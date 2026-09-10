@@ -177,7 +177,7 @@ public static class TypeRelations
             return TypeSymbols.Object;
         }
 
-        return TypeSymbols.Unknown;
+        return null;
     }
 
     private static bool CanConvertChecked(TypeSymbol source, TypeSymbol target)

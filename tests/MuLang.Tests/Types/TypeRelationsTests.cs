@@ -132,6 +132,10 @@ public sealed class TypeRelationsTests
                 TypeRelations.GetCommonType(TypeSymbols.Void, TypeSymbols.Int),
                 Is.Null
             );
+            Assert.That(
+                TypeRelations.GetCommonType(TypeSymbols.Bool, TypeSymbols.String),
+                Is.Null
+            );
         }
     }
 

@@ -742,6 +742,8 @@ The variable is not in scope within its own initializer.
 
 A declaration without an initializer MUST have an explicit type annotation and is subject to definite-assignment analysis.
 
+A local variable declaration cannot be used directly as the embedded statement of an `if`, `while`, or `for`. It MUST be enclosed in a block.
+
 ### 12.5. Assignment statements
 
 Assignment is a statement and does not produce a value.
