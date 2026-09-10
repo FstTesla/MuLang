@@ -1,4 +1,17 @@
 <Solution>
+  <Folder Name="/docs/">
+    <File Path="docs/language-specification.md" />
+  </Folder>
+  <Folder Name="/Solution Items/">
+    <File Path=".gitignore" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Build.targets" />
+    <File Path="global.json" />
+    <File Path="README.md" />
+  </Folder>
+  <Folder Name="/Solution Items/.github/">
+    <File Path=".github/copilot-instructions.md" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/MuLang.Compiler/MuLang.Compiler.csproj" />
     <Project Path="src/MuLang.Exporters.DotNet/MuLang.Exporters.DotNet.csproj" />

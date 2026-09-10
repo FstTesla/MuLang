@@ -124,3 +124,19 @@ Use compact `namespace` declarations.
 ---
 
 Put top-level types in their own files, and name the file after the type. Of course, the only exception are `file`-scoped types.
+
+---
+
+Mark lambdas and local functions as `static` whenever possible.
+
+---
+
+Leverage local functions for small helper functions.
+
+---
+
+Put `[MethodImpl(MethodImplOptions.AggressiveInlining)]` on small methods and local functions when possible, especially in hot paths.
+
+---
+
+Prefer `throw new ArgumentException` (or similar argument-related exceptions) over `ArgumentException.ThrowIfWhatever` (or similar argument-related methods).
