@@ -23,18 +23,25 @@ public sealed class SourceText
 
     public static SourceText From(string text)
     {
-        ArgumentNullException.ThrowIfNull(text);
+        if (text is null)
+        {
+            throw new ArgumentNullException(nameof(text));
+        }
 
         ICollection<int> scalarOffsets = new List<int>(text.Length + 1);
         ICollection<int> lineStarts = [ 0 ];
-        var utf16Offset = 0;
-        var scalarOffset = 0;
+        int utf16Offset = 0;
+        int scalarOffset = 0;
 
         while (utf16Offset < text.Length)
         {
             scalarOffsets.Add(utf16Offset);
 
-            var status = Rune.DecodeFromUtf16(text.AsSpan(utf16Offset), out var rune, out var consumed);
+            OperationStatus status = Rune.DecodeFromUtf16(
+                text.AsSpan(utf16Offset),
+                out Rune rune,
+                out int consumed
+            );
             if (status != OperationStatus.Done)
             {
                 throw new ArgumentException("Source text contains invalid UTF-16.", nameof(text));
@@ -69,7 +76,7 @@ public sealed class SourceText
     {
         ValidateOffset(offset);
 
-        var lineIndex = Array.BinarySearch(lineStarts, offset);
+        int lineIndex = Array.BinarySearch(lineStarts, offset);
         if (lineIndex < 0)
         {
             lineIndex = ~lineIndex - 1;
@@ -87,8 +94,8 @@ public sealed class SourceText
         ValidateOffset(span.Start);
         ValidateOffset(span.End);
 
-        var utf16Start = scalarOffsets[span.Start];
-        var utf16End = scalarOffsets[span.End];
+        int utf16Start = scalarOffsets[span.Start];
+        int utf16End = scalarOffsets[span.End];
 
         return Text[utf16Start..utf16End];
     }
@@ -100,7 +107,11 @@ public sealed class SourceText
             throw new ArgumentOutOfRangeException(nameof(offset));
         }
 
-        var status = Rune.DecodeFromUtf16(Text.AsSpan(scalarOffsets[offset]), out var rune, out _);
+        OperationStatus status = Rune.DecodeFromUtf16(
+            Text.AsSpan(scalarOffsets[offset]),
+            out Rune rune,
+            out _
+        );
         if (status != OperationStatus.Done)
         {
             throw new InvalidOperationException("Source text contains invalid UTF-16.");

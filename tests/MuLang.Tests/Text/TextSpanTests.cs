@@ -7,7 +7,7 @@ public sealed class TextSpanTests
     [Test]
     public void FromBoundsCreatesExpectedSpan()
     {
-        var span = TextSpan.FromBounds(3, 8);
+        TextSpan span = TextSpan.FromBounds(3, 8);
 
         using (Assert.EnterMultipleScope())
         {
@@ -22,7 +22,7 @@ public sealed class TextSpanTests
     [TestCase(8, false)]
     public void ContainsUsesExclusiveEnd(int offset, bool expected)
     {
-        var span = new TextSpan(3, 5);
+        TextSpan span = new (3, 5);
 
         Assert.That(span.Contains(offset), Is.EqualTo(expected));
     }

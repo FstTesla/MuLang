@@ -4,9 +4,20 @@ public readonly record struct TextPosition
 {
     public TextPosition(int offset, int line, int column)
     {
-        ArgumentOutOfRangeException.ThrowIfNegative(offset);
-        ArgumentOutOfRangeException.ThrowIfLessThan(line, 1);
-        ArgumentOutOfRangeException.ThrowIfLessThan(column, 1);
+        if (offset < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(offset));
+        }
+
+        if (line < 1)
+        {
+            throw new ArgumentOutOfRangeException(nameof(line));
+        }
+
+        if (column < 1)
+        {
+            throw new ArgumentOutOfRangeException(nameof(column));
+        }
 
         Offset = offset;
         Line = line;

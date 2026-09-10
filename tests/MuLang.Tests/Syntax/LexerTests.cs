@@ -9,7 +9,7 @@ public sealed class LexerTests
     [Test]
     public void RecognizesKeywordsAndUnicodeIdentifiers()
     {
-        var result = Lexer.Lex(SourceText.From("var café = true;"));
+        LexResult result = Lexer.Lex(SourceText.From("var café = true;"));
 
         Assert.That(
             result.Tokens.Select(static token => token.Kind),
@@ -30,7 +30,7 @@ public sealed class LexerTests
     [Test]
     public void RecognizesOperatorsUsingLongestMatch()
     {
-        var result = Lexer.Lex(
+        LexResult result = Lexer.Lex(
             SourceText.From("?. ?[ @{ === !== == != <= >= << >> && || ~")
         );
 
@@ -62,7 +62,7 @@ public sealed class LexerTests
     [Test]
     public void KeepsNumericSignsAsSeparateTokens()
     {
-        var result = Lexer.Lex(SourceText.From("-12 +3.5 2e-4"));
+        LexResult result = Lexer.Lex(SourceText.From("-12 +3.5 2e-4"));
 
         Assert.That(
             result.Tokens.Select(static token => token.Kind),
@@ -83,7 +83,7 @@ public sealed class LexerTests
     [Test]
     public void DecodesStringEscapes()
     {
-        var result = Lexer.Lex(SourceText.From("\"a\\n\\u0062\\U0001F600\""));
+        LexResult result = Lexer.Lex(SourceText.From("\"a\\n\\u0062\\U0001F600\""));
 
         using (Assert.EnterMultipleScope())
         {
@@ -96,7 +96,7 @@ public sealed class LexerTests
     [Test]
     public void ReportsInvalidCharactersUsingScalarSpans()
     {
-        var result = Lexer.Lex(SourceText.From("😀"));
+        LexResult result = Lexer.Lex(SourceText.From("😀"));
 
         using (Assert.EnterMultipleScope())
         {
@@ -109,7 +109,7 @@ public sealed class LexerTests
     [Test]
     public void ReportsInvalidExponent()
     {
-        var result = Lexer.Lex(SourceText.From("1e+"));
+        LexResult result = Lexer.Lex(SourceText.From("1e+"));
 
         using (Assert.EnterMultipleScope())
         {
@@ -121,7 +121,7 @@ public sealed class LexerTests
     [Test]
     public void ReportsUnterminatedStringWithoutConsumingNextLine()
     {
-        var result = Lexer.Lex(SourceText.From("\"text\nvar"));
+        LexResult result = Lexer.Lex(SourceText.From("\"text\nvar"));
 
         using (Assert.EnterMultipleScope())
         {

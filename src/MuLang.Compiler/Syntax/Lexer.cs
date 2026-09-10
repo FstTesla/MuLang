@@ -20,9 +20,12 @@ internal sealed class Lexer
 
     public static LexResult Lex(SourceText source)
     {
-        ArgumentNullException.ThrowIfNull(source);
+        if (source is null)
+        {
+            throw new ArgumentNullException(nameof(source));
+        }
 
-        var lexer = new Lexer(source);
+        Lexer lexer = new (source);
         lexer.LexTokens();
 
         return new LexResult(
@@ -68,7 +71,7 @@ internal sealed class Lexer
             return ReadString();
         }
 
-        var start = position;
+        int start = position;
 
         if (TryRead("@{"))
         {
@@ -135,7 +138,7 @@ internal sealed class Lexer
             return CreateToken(TokenKind.PipePipe, start);
         }
 
-        var kind = Current.Value switch
+        TokenKind kind = Current.Value switch
         {
             '(' => TokenKind.OpenParenthesis,
             ')' => TokenKind.CloseParenthesis,
@@ -184,7 +187,7 @@ internal sealed class Lexer
 
     private SyntaxToken ReadIdentifierOrKeyword()
     {
-        var start = position;
+        int start = position;
         position++;
 
         while (!IsAtEnd && IsIdentifierPart(Current))
@@ -192,18 +195,18 @@ internal sealed class Lexer
             position++;
         }
 
-        var span = TextSpan.FromBounds(start, position);
-        var text = source.GetText(span);
+        TextSpan span = TextSpan.FromBounds(start, position);
+        string text = source.GetText(span);
 
         return new SyntaxToken(GetKeywordKind(text), span);
     }
 
     private SyntaxToken ReadNumber()
     {
-        var start = position;
+        int start = position;
         ReadDecimalDigits();
 
-        var isNumber = false;
+        bool isNumber = false;
         if (!IsAtEnd && Current.Value == '.' && IsDecimalDigit(Peek(1)))
         {
             isNumber = true;
@@ -221,7 +224,7 @@ internal sealed class Lexer
                 position++;
             }
 
-            var exponentStart = position;
+            int exponentStart = position;
             ReadDecimalDigits();
 
             if (position == exponentStart)
@@ -246,10 +249,10 @@ internal sealed class Lexer
 
     private SyntaxToken ReadString()
     {
-        var start = position;
-        var value = new StringBuilder();
+        int start = position;
+        StringBuilder value = new ();
         position++;
-        var isTerminated = false;
+        bool isTerminated = false;
 
         while (!IsAtEnd)
         {
@@ -297,7 +300,7 @@ internal sealed class Lexer
 
     private void ReadEscape(StringBuilder value)
     {
-        var start = position;
+        int start = position;
         position++;
 
         if (IsAtEnd)
@@ -306,7 +309,7 @@ internal sealed class Lexer
             return;
         }
 
-        var escapedValue = Current.Value switch
+        string? escapedValue = Current.Value switch
         {
             '"' => "\"",
             '\\' => "\\",
@@ -344,11 +347,11 @@ internal sealed class Lexer
 
     private void ReadUnicodeEscape(StringBuilder value, int start, int digitCount)
     {
-        var scalarValue = 0;
+        int scalarValue = 0;
 
-        for (var index = 0; index < digitCount; index++)
+        for (int index = 0; index < digitCount; index++)
         {
-            if (IsAtEnd || !TryGetHexValue(Current, out var hexValue))
+            if (IsAtEnd || !TryGetHexValue(Current, out int hexValue))
             {
                 ReportInvalidEscape(start);
                 return;
@@ -404,7 +407,7 @@ internal sealed class Lexer
             return false;
         }
 
-        for (var index = 0; index < text.Length; index++)
+        for (int index = 0; index < text.Length; index++)
         {
             if (Peek(index).Value != text[index])
             {
@@ -418,7 +421,7 @@ internal sealed class Lexer
 
     private Rune Peek(int offset)
     {
-        var target = position + offset;
+        int target = position + offset;
 
         return target >= 0 && target < source.Length
             ? source.GetRune(target)

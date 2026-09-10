@@ -7,7 +7,7 @@ public sealed class SourceTextTests
     [Test]
     public void TracksUnicodeScalarOffsets()
     {
-        var source = SourceText.From("a😀b");
+        SourceText source = SourceText.From("a😀b");
 
         using (Assert.EnterMultipleScope())
         {
@@ -20,7 +20,7 @@ public sealed class SourceTextTests
     [Test]
     public void TracksMixedLineEndings()
     {
-        var source = SourceText.From("a\r\nb\nc\rd");
+        SourceText source = SourceText.From("a\r\nb\nc\rd");
 
         using (Assert.EnterMultipleScope())
         {

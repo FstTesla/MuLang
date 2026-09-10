@@ -21,19 +21,24 @@ public sealed class DiagnosticCollection : IReadOnlyList<Diagnostic>
 
     public static DiagnosticCollection Create(IEnumerable<Diagnostic> diagnostics)
     {
-        ArgumentNullException.ThrowIfNull(diagnostics);
+        if (diagnostics is null)
+        {
+            throw new ArgumentNullException(nameof(diagnostics));
+        }
 
-        var orderedDiagnostics = diagnostics
-            .Select(static (diagnostic, index) => (Diagnostic: diagnostic, Index: index))
-            .OrderBy(static item => item.Diagnostic.Span.Start)
-            .ThenBy(static item => item.Diagnostic.Span.Length)
-            .ThenBy(static item => item.Index)
-            .Select(static item => item.Diagnostic)
-            .ToArray();
+        Diagnostic[] orderedDiagnostics =
+        [
+            .. diagnostics
+                .Select(static (diagnostic, index) => (Diagnostic: diagnostic, Index: index))
+                .OrderBy(static item => item.Diagnostic.Span.Start)
+                .ThenBy(static item => item.Diagnostic.Span.Length)
+                .ThenBy(static item => item.Index)
+                .Select(static item => item.Diagnostic),
+        ];
 
-        return orderedDiagnostics.Length == 0
-            ? Empty
-            : new DiagnosticCollection(orderedDiagnostics);
+        return orderedDiagnostics.Length > 0
+            ? new DiagnosticCollection(orderedDiagnostics)
+            : Empty;
     }
 
     public IEnumerator<Diagnostic> GetEnumerator() => ((IEnumerable<Diagnostic>)diagnostics).GetEnumerator();

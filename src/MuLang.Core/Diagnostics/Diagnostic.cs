@@ -12,8 +12,15 @@ public sealed record Diagnostic
         string message
     )
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(code);
-        ArgumentException.ThrowIfNullOrWhiteSpace(message);
+        if (string.IsNullOrWhiteSpace(code))
+        {
+            throw new ArgumentException("Diagnostic code cannot be null or whitespace.", nameof(code));
+        }
+
+        if (string.IsNullOrWhiteSpace(message))
+        {
+            throw new ArgumentException("Diagnostic message cannot be null or whitespace.", nameof(message));
+        }
 
         Code = code;
         Severity = severity;
