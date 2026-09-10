@@ -96,6 +96,7 @@ An identifier that exactly matches a reserved keyword cannot be used as an ident
 
 The first language version reserves:
 
+- `as`
 - `bool`
 - `break`
 - `continue`
@@ -110,7 +111,6 @@ The first language version reserves:
 - `number`
 - `object`
 - `return`
-- `as`
 - `string`
 - `true`
 - `unknown`
@@ -270,6 +270,10 @@ Nullability binds to the immediately preceding type construction. Element nullab
 
 Empty array literals require an expected array type or an explicit type context.
 
+Every array type implicitly defines a read-only intrinsic property named `length` with type `int`.
+
+`length` is not a reserved keyword, is not part of a provider schema, and cannot be overridden by the provider.
+
 ### 7.7. The `void` type
 
 `void` is permitted only as:
@@ -362,6 +366,8 @@ An explicit conversion uses the infix `as` operator followed by a non-void type.
 A checked conversion performs runtime validation when static validation cannot prove success.
 
 A failed checked conversion produces a MuLang runtime error at the `as` expression source span.
+
+The language does not provide a general predicate that determines whether an `as` conversion will succeed. The `is` operator tests runtime assignability, which is intentionally distinct from convertibility. In particular, a value can be convertible to a type without being assignable to that type.
 
 An `as` expression has the target type. It does not change the static type of the original variable or expression elsewhere in the program.
 
@@ -479,6 +485,8 @@ Dot access requires a statically known property name.
 
 Element-style property access accepts a string expression as the property key.
 
+Arrays support dot access only for the intrinsic `length` property.
+
 Access to a known property has the type declared by the structured object schema.
 
 Access to a dynamic property of an open object has type `unknown`.
@@ -501,13 +509,21 @@ When a dynamically named property is absent, optional access produces `null`.
 
 Optional access to a known required property only affects a nullable target; it does not change the property schema.
 
-### 10.7. Array element access
+### 10.7. Array access
 
 Array indexes have type `int`.
 
 An index outside the valid array range produces a runtime error.
 
 Array element access through a nullable array is statically permitted and produces a runtime error when the array is `null`, unless optional access is used.
+
+The intrinsic `length` property returns the current number of elements as a non-negative `int`.
+
+Access to `length` through a nullable array is statically permitted and produces a runtime error when the array is `null`. Optional access through `array?.length` produces `null` for a null array and otherwise returns its length, giving the expression type `int?`.
+
+Array element syntax cannot be used to access `length`; array indexes always require `int`.
+
+The intrinsic `length` property is not considered an object property and is not visible to the `has` operator.
 
 ### 10.8. Function calls
 
@@ -571,9 +587,9 @@ Operators are listed from highest to lowest precedence.
 | Equality | `==`, `!=`, `===`, `!==` | None |
 | Bitwise AND | `&` | Left |
 | Bitwise XOR | `^` | Left |
-| Bitwise OR | `|` | Left |
+| Bitwise OR | `\|` | Left |
 | Conditional AND | `&&` | Left |
-| Conditional OR | `||` | Left |
+| Conditional OR | `\|\|` | Left |
 | Conditional | `?:` | Right |
 
 The postfix property-removal token `~` is a statement terminator and is not part of expression precedence.
@@ -732,6 +748,8 @@ Valid assignment targets are:
 - a known or dynamic object property;
 - an array element.
 
+The intrinsic array `length` property is not an assignment target.
+
 Global bindings cannot be assigned.
 
 The assigned value MUST be statically assignable to the target type.
@@ -755,6 +773,8 @@ The type checker MUST prove that the selected property is removable:
 A known required property cannot be removed.
 
 Array elements cannot be removed with this statement.
+
+The intrinsic array `length` property cannot be removed.
 
 Removal of an absent property produces a runtime error.
 
@@ -881,6 +901,8 @@ Static mutability is intentionally not represented in the first-version type sys
 
 An adapter MAY reject a mutation or removal at runtime. Previous completed side effects are not rolled back.
 
+The first language version does not provide source-level operations for inspecting whether a specific property or array element is writable or whether a property is removable. `has` reports only property presence and does not imply either capability.
+
 ## 15. Runtime errors
 
 A runtime failure MUST be represented as a MuLang runtime error containing:
@@ -909,6 +931,17 @@ Runtime errors include:
 Provider exceptions MUST be wrapped while preserving the original exception as the inner cause where the host runtime supports it.
 
 The language provides no source-level mechanism for catching runtime errors.
+
+### 15.1. Intentionally non-preventable runtime errors
+
+The first language version intentionally permits two categories of data-dependent runtime failure that source code cannot always prevent through a prior check:
+
+- a checked `as` conversion can fail even though no general convertibility predicate is available;
+- a property assignment, array element assignment, or property removal can be rejected by the runtime adapter even though no source-level capability predicate is available.
+
+These limitations are part of the first-version language contract rather than omissions in static validation.
+
+Provider failures, environment incompatibility, cancellation, and budget exhaustion are operational failures controlled outside the source program and are not considered semantic check gaps.
 
 ## 16. Execution controls
 
@@ -977,6 +1010,7 @@ The portable IR SHOULD contain:
 - typed load and store instructions;
 - global reads;
 - property and array operations;
+- intrinsic array-length reads;
 - property removal;
 - provider calls by stable symbolic identifier;
 - explicit conversions;
@@ -1111,3 +1145,5 @@ The following choices are made by this draft and require explicit review before 
 10. Prefix `~` is bitwise complement, while postfix `~` is a property-removal statement.
 11. Local variables cannot shadow visible local or global variables.
 12. Open object literals use `@{`, while closed object literals use `{`.
+13. Arrays expose a read-only intrinsic `length` property that is not an object property.
+14. Checked conversion success and runtime mutation capabilities cannot always be queried before performing the corresponding operation.
