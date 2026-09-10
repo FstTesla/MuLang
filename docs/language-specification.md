@@ -349,6 +349,8 @@ Every non-null structured object type is assignable to `object`.
 
 Assignment between structured object types is structural and requires compatibility of known properties, optionality, and openness.
 
+Because structured objects are mutable, structural object types are invariant. Assignment requires the same openness and the same set of known properties, with equivalent property types and matching optionality. Type names and provider identifiers do not affect structural compatibility.
+
 The precise structural compatibility algorithm is part of the type system and MUST NOT depend on host-runtime class inheritance.
 
 ### 8.7. Array conversion
@@ -858,6 +860,8 @@ The provider supplies an immutable static environment containing:
 - structured object declarations;
 - stable symbolic identifiers;
 - the language profile supported by the provider.
+
+Every structured object type referenced directly or indirectly by a global, function parameter, function return type, array element, nullable type, or structured property MUST be registered in the static environment. Every reference to the same stable type identifier MUST resolve to the same type declaration.
 
 The compiler resolves source names exclusively against local declarations and the static environment.
 
