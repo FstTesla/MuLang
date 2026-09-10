@@ -31,7 +31,7 @@ public sealed class LexerTests
     public void RecognizesOperatorsUsingLongestMatch()
     {
         LexResult result = Lexer.Lex(
-            SourceText.From("?. ?[ @{ === !== == != <= >= << >> && || ~")
+            SourceText.From("?. ?.[ @{ === !== == != <= >= << >> && || ~")
         );
 
         Assert.That(

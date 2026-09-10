@@ -497,7 +497,9 @@ Access to a member through a nullable value is statically permitted but produces
 
 ### 10.6. Optional access
 
-Optional property and element access use C#-style optional access syntax.
+Optional property access uses `target?.property`.
+
+Optional element access uses `target?.[index]`. The dot before the opening bracket is required to keep optional element access unambiguous with a conditional expression whose true branch begins with an array literal.
 
 When the target is `null`, optional access:
 
@@ -1141,7 +1143,7 @@ The following choices are made by this draft and require explicit review before 
 6. Empty statements are supported.
 7. `for` supports one initializer and one iterator operation rather than comma-separated lists.
 8. Explicit checked conversions use the left-associative `as` operator and fail with a runtime error.
-9. Optional property access follows C# syntax and also treats an absent dynamic property as `null`.
+9. Optional property access uses `?.`, optional element access uses `?.[`, and absent dynamic properties produce `null`.
 10. Prefix `~` is bitwise complement, while postfix `~` is a property-removal statement.
 11. Local variables cannot shadow visible local or global variables.
 12. Open object literals use `@{`, while closed object literals use `{`.

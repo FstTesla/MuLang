@@ -78,14 +78,14 @@ internal sealed class Lexer
             return CreateToken(TokenKind.OpenObjectBrace, start);
         }
 
+        if (TryRead("?.["))
+        {
+            return CreateToken(TokenKind.OptionalOpenBracket, start);
+        }
+
         if (TryRead("?."))
         {
             return CreateToken(TokenKind.OptionalDot, start);
-        }
-
-        if (TryRead("?["))
-        {
-            return CreateToken(TokenKind.OptionalOpenBracket, start);
         }
 
         if (TryRead("==="))
