@@ -1,5 +1,5 @@
-using MuLang.Diagnostics;
-using MuLang.Text;
+using MuLang.Core.Diagnostics;
+using MuLang.Core.Text;
 
 namespace MuLang.Tests.Diagnostics;
 

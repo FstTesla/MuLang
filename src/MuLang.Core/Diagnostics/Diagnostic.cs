@@ -1,6 +1,6 @@
-using MuLang.Text;
+using MuLang.Core.Text;
 
-namespace MuLang.Diagnostics;
+namespace MuLang.Core.Diagnostics;
 
 public sealed record Diagnostic
 {

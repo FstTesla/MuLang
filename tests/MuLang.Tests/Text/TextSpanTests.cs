@@ -1,4 +1,4 @@
-using MuLang.Text;
+using MuLang.Core.Text;
 
 namespace MuLang.Tests.Text;
 

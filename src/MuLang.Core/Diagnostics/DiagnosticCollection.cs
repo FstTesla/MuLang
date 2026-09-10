@@ -1,6 +1,6 @@
 using System.Collections;
 
-namespace MuLang.Diagnostics;
+namespace MuLang.Core.Diagnostics;
 
 public sealed class DiagnosticCollection : IReadOnlyList<Diagnostic>
 {

@@ -1,0 +1,132 @@
+using MuLang.Compiler.Diagnostics;
+using MuLang.Compiler.Syntax;
+using MuLang.Core.Text;
+
+namespace MuLang.Tests.Syntax;
+
+public sealed class LexerTests
+{
+    [Test]
+    public void RecognizesKeywordsAndUnicodeIdentifiers()
+    {
+        var result = Lexer.Lex(SourceText.From("var café = true;"));
+
+        Assert.That(
+            result.Tokens.Select(static token => token.Kind),
+            Is.EqualTo(
+                [
+                    TokenKind.VarKeyword,
+                    TokenKind.Identifier,
+                    TokenKind.Equal,
+                    TokenKind.TrueKeyword,
+                    TokenKind.Semicolon,
+                    TokenKind.EndOfFile,
+                ]
+            )
+        );
+        Assert.That(result.Diagnostics, Is.Empty);
+    }
+
+    [Test]
+    public void RecognizesOperatorsUsingLongestMatch()
+    {
+        var result = Lexer.Lex(
+            SourceText.From("?. ?[ @{ === !== == != <= >= << >> && || ~")
+        );
+
+        Assert.That(
+            result.Tokens.Select(static token => token.Kind),
+            Is.EqualTo(
+                [
+                    TokenKind.OptionalDot,
+                    TokenKind.OptionalOpenBracket,
+                    TokenKind.OpenObjectBrace,
+                    TokenKind.EqualEqualEqual,
+                    TokenKind.BangEqualEqual,
+                    TokenKind.EqualEqual,
+                    TokenKind.BangEqual,
+                    TokenKind.LessThanOrEqual,
+                    TokenKind.GreaterThanOrEqual,
+                    TokenKind.LeftShift,
+                    TokenKind.RightShift,
+                    TokenKind.AmpersandAmpersand,
+                    TokenKind.PipePipe,
+                    TokenKind.Tilde,
+                    TokenKind.EndOfFile,
+                ]
+            )
+        );
+        Assert.That(result.Diagnostics, Is.Empty);
+    }
+
+    [Test]
+    public void KeepsNumericSignsAsSeparateTokens()
+    {
+        var result = Lexer.Lex(SourceText.From("-12 +3.5 2e-4"));
+
+        Assert.That(
+            result.Tokens.Select(static token => token.Kind),
+            Is.EqualTo(
+                [
+                    TokenKind.Minus,
+                    TokenKind.IntegerLiteral,
+                    TokenKind.Plus,
+                    TokenKind.NumberLiteral,
+                    TokenKind.NumberLiteral,
+                    TokenKind.EndOfFile,
+                ]
+            )
+        );
+        Assert.That(result.Diagnostics, Is.Empty);
+    }
+
+    [Test]
+    public void DecodesStringEscapes()
+    {
+        var result = Lexer.Lex(SourceText.From("\"a\\n\\u0062\\U0001F600\""));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.Tokens[0].Kind, Is.EqualTo(TokenKind.StringLiteral));
+            Assert.That(result.Tokens[0].Value, Is.EqualTo("a\nb😀"));
+            Assert.That(result.Diagnostics, Is.Empty);
+        }
+    }
+
+    [Test]
+    public void ReportsInvalidCharactersUsingScalarSpans()
+    {
+        var result = Lexer.Lex(SourceText.From("😀"));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.Tokens[0].Kind, Is.EqualTo(TokenKind.Bad));
+            Assert.That(result.Tokens[0].Span, Is.EqualTo(new TextSpan(0, 1)));
+            Assert.That(result.Diagnostics[0].Code, Is.EqualTo(DiagnosticCodes.InvalidCharacter));
+        }
+    }
+
+    [Test]
+    public void ReportsInvalidExponent()
+    {
+        var result = Lexer.Lex(SourceText.From("1e+"));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.Tokens[0].Kind, Is.EqualTo(TokenKind.NumberLiteral));
+            Assert.That(result.Diagnostics[0].Code, Is.EqualTo(DiagnosticCodes.InvalidNumber));
+        }
+    }
+
+    [Test]
+    public void ReportsUnterminatedStringWithoutConsumingNextLine()
+    {
+        var result = Lexer.Lex(SourceText.From("\"text\nvar"));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.Diagnostics[0].Code, Is.EqualTo(DiagnosticCodes.UnterminatedString));
+            Assert.That(result.Tokens[1].Kind, Is.EqualTo(TokenKind.VarKeyword));
+        }
+    }
+}

@@ -7,6 +7,7 @@
   <ItemGroup>
     <ProjectReference Include="..\MuLang.Compiler\MuLang.Compiler.csproj" />
     <ProjectReference Include="..\MuLang.Exporters.DotNet\MuLang.Exporters.DotNet.csproj" />
+    <ProjectReference Include="..\MuLang.Core\MuLang.Core.csproj" />
   </ItemGroup>
 
 </Project>

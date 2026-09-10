@@ -1,7 +1,7 @@
 using System.Buffers;
 using System.Text;
 
-namespace MuLang.Text;
+namespace MuLang.Core.Text;
 
 public sealed class SourceText
 {
@@ -25,8 +25,8 @@ public sealed class SourceText
     {
         ArgumentNullException.ThrowIfNull(text);
 
-        var scalarOffsets = new List<int>(text.Length + 1);
-        var lineStarts = new List<int> { 0 };
+        ICollection<int> scalarOffsets = new List<int>(text.Length + 1);
+        ICollection<int> lineStarts = [ 0 ];
         var utf16Offset = 0;
         var scalarOffset = 0;
 
@@ -91,6 +91,22 @@ public sealed class SourceText
         var utf16End = scalarOffsets[span.End];
 
         return Text[utf16Start..utf16End];
+    }
+
+    public Rune GetRune(int offset)
+    {
+        if (offset < 0 || offset >= Length)
+        {
+            throw new ArgumentOutOfRangeException(nameof(offset));
+        }
+
+        var status = Rune.DecodeFromUtf16(Text.AsSpan(scalarOffsets[offset]), out var rune, out _);
+        if (status != OperationStatus.Done)
+        {
+            throw new InvalidOperationException("Source text contains invalid UTF-16.");
+        }
+
+        return rune;
     }
 
     private void ValidateOffset(int offset)

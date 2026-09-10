@@ -140,3 +140,19 @@ Put `[MethodImpl(MethodImplOptions.AggressiveInlining)]` on small methods and lo
 ---
 
 Prefer `throw new ArgumentException` (or similar argument-related exceptions) over `ArgumentException.ThrowIfWhatever` (or similar argument-related methods).
+
+---
+
+Prefer explicit types over `var` for local variables, except for lengthy types or when mandatory (e.g., anonymous types, LINQ queries, `var` pattern, etc.).
+
+---
+
+Prefer interface collections over concrete collections, unless the concrete collection is required for some reason.
+
+Among the interface collections, choose the most appropriate one for the use case.
+For example:
+- `IReadOnlyCollection<T>` over `IEnumerable<T>`, when count is required or when the underlying instance is not lazy;
+- `IReadOnlyList<T>` over `IReadOnlyCollection<T>`, when indexing is required;
+- writable collections over read-only collections, when the collection is expected to be modified.
+
+All rules above can be relaxed if other APIs make it necessary or more convenient to use a different collection type.

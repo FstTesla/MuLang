@@ -14,6 +14,7 @@
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/MuLang.Compiler/MuLang.Compiler.csproj" />
+    <Project Path="src/MuLang.Core/MuLang.Core.csproj" />
     <Project Path="src/MuLang.Exporters.DotNet/MuLang.Exporters.DotNet.csproj" />
     <Project Path="src/MuLang.IR/MuLang.IR.csproj" />
     <Project Path="src/MuLang/MuLang.csproj" />

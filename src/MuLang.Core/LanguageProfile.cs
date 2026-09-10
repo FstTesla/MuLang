@@ -1,4 +1,4 @@
-namespace MuLang;
+namespace MuLang.Core;
 
 internal sealed record LanguageProfile
 {

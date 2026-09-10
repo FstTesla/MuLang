@@ -1,4 +1,4 @@
-namespace MuLang.Text;
+namespace MuLang.Core.Text;
 
 public readonly record struct TextSpan
 {

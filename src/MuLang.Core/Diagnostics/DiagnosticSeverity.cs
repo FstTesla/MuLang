@@ -1,4 +1,4 @@
-namespace MuLang.Diagnostics;
+namespace MuLang.Core.Diagnostics;
 
 public enum DiagnosticSeverity
 {

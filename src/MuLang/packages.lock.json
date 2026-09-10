@@ -5,17 +5,25 @@
       "mulang.compiler": {
         "type": "Project",
         "dependencies": {
+          "MuLang.Core": "[1.0.0, )",
           "MuLang.IR": "[1.0.0, )"
         }
+      },
+      "mulang.core": {
+        "type": "Project"
       },
       "mulang.exporters.dotnet": {
         "type": "Project",
         "dependencies": {
+          "MuLang.Core": "[1.0.0, )",
           "MuLang.IR": "[1.0.0, )"
         }
       },
       "mulang.ir": {
-        "type": "Project"
+        "type": "Project",
+        "dependencies": {
+          "MuLang.Core": "[1.0.0, )"
+        }
       }
     }
   }
