@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/MuLang.Compiler/MuLang.Compiler.csproj" />
+    <Project Path="src/MuLang.Exporters.DotNet/MuLang.Exporters.DotNet.csproj" />
+    <Project Path="src/MuLang.IR/MuLang.IR.csproj" />
+    <Project Path="src/MuLang/MuLang.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/MuLang.Tests/MuLang.Tests.csproj" />
+  </Folder>
+</Solution>
