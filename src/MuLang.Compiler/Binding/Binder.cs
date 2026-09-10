@@ -1727,22 +1727,6 @@ internal sealed class Binder
             return;
         }
 
-        if (
-            operatorKind is
-                TokenKind.EqualEqual or
-                TokenKind.BangEqual or
-                TokenKind.EqualEqualEqual or
-                TokenKind.BangEqualEqual &&
-            left is not { Type: NullableTypeSymbol } &&
-            right is not { Type: NullableTypeSymbol } &&
-            IsNumeric(leftType) &&
-            IsNumeric(rightType) &&
-            (leftType.Kind == TypeKind.Number || rightType.Kind == TypeKind.Number)
-        )
-        {
-            left = ConvertImplicit(left, TypeSymbols.Number);
-            right = ConvertImplicit(right, TypeSymbols.Number);
-        }
     }
 
     private static BoundExpression ConvertRequiredOperand(

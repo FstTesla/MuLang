@@ -9,7 +9,9 @@ public sealed class EnvironmentSchema
 {
     private readonly FrozenDictionary<string, ObjectTypeSymbol> typesByName;
     private readonly FrozenDictionary<string, GlobalSymbol> globalsByName;
+    private readonly FrozenDictionary<string, GlobalSymbol> globalsById;
     private readonly FrozenDictionary<string, FunctionSymbol> functionsByName;
+    private readonly FrozenDictionary<string, FunctionSymbol> functionsById;
 
     internal EnvironmentSchema(
         LanguageVersion languageVersion,
@@ -32,8 +34,16 @@ public sealed class EnvironmentSchema
             static global => global.Name,
             StringComparer.Ordinal
         );
+        globalsById = globals.ToFrozenDictionary(
+            static global => global.Id,
+            StringComparer.Ordinal
+        );
         functionsByName = functions.ToFrozenDictionary(
             static function => function.Name,
+            StringComparer.Ordinal
+        );
+        functionsById = functions.ToFrozenDictionary(
+            static function => function.Id,
             StringComparer.Ordinal
         );
     }
@@ -70,5 +80,21 @@ public sealed class EnvironmentSchema
     )
     {
         return functionsByName.TryGetValue(name, out function);
+    }
+
+    public bool TryGetGlobalById(
+        string id,
+        [NotNullWhen(true)] out GlobalSymbol? global
+    )
+    {
+        return globalsById.TryGetValue(id, out global);
+    }
+
+    public bool TryGetFunctionById(
+        string id,
+        [NotNullWhen(true)] out FunctionSymbol? function
+    )
+    {
+        return functionsById.TryGetValue(id, out function);
     }
 }
