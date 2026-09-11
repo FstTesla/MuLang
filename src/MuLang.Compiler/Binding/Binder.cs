@@ -1140,15 +1140,24 @@ internal sealed class Binder
         if (
             operatorKind is
                 TokenKind.LeftShift or
-                TokenKind.RightShift or
-                TokenKind.Ampersand or
-                TokenKind.Caret or
-                TokenKind.Pipe &&
+                TokenKind.RightShift &&
             left.Kind == TypeKind.Int &&
             right.Kind == TypeKind.Int
         )
         {
             return TypeSymbols.Int;
+        }
+
+        if (
+            operatorKind is
+                TokenKind.Ampersand or
+                TokenKind.Caret or
+                TokenKind.Pipe &&
+            left.Kind == right.Kind &&
+            left.Kind is TypeKind.Int or TypeKind.Bool
+        )
+        {
+            return left;
         }
 
         if (
@@ -1764,14 +1773,23 @@ internal sealed class Binder
         if (
             operatorKind is
             TokenKind.LeftShift or
-            TokenKind.RightShift or
+            TokenKind.RightShift
+        )
+        {
+            left = ConvertRequiredOperand(left, TypeSymbols.Int);
+            right = ConvertRequiredOperand(right, TypeSymbols.Int);
+            return;
+        }
+
+        if (
+            operatorKind is
             TokenKind.Ampersand or
             TokenKind.Caret or
             TokenKind.Pipe
         )
         {
-            left = ConvertRequiredOperand(left, TypeSymbols.Int);
-            right = ConvertRequiredOperand(right, TypeSymbols.Int);
+            left = ConvertRequiredOperand(left, resultType);
+            right = ConvertRequiredOperand(right, resultType);
             return;
         }
 

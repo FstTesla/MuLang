@@ -486,9 +486,9 @@ internal static class IrValidator
         {
             IrUnaryOperator.Identity or IrUnaryOperator.Negate
                 when destination.Type.Kind is
-                TypeKind.Int or
-                TypeKind.Float or
-                TypeKind.Number =>
+                    TypeKind.Int or
+                    TypeKind.Float or
+                    TypeKind.Number =>
                 destination.Type,
             IrUnaryOperator.LogicalNot => TypeSymbols.Bool,
             IrUnaryOperator.BitwiseNot => TypeSymbols.Int,
@@ -547,13 +547,15 @@ internal static class IrValidator
                     TypeKind.Float or
                     TypeKind.Number,
             IrBinaryOperator.LeftShift or
-                IrBinaryOperator.RightShift or
-                IrBinaryOperator.BitwiseAnd or
-                IrBinaryOperator.BitwiseXor or
-                IrBinaryOperator.BitwiseOr =>
+                IrBinaryOperator.RightShift =>
                 AreType(left, TypeSymbols.Int) &&
                 AreType(right, TypeSymbols.Int) &&
                 AreType(destination, TypeSymbols.Int),
+            IrBinaryOperator.BitwiseAnd or
+                IrBinaryOperator.BitwiseXor or
+                IrBinaryOperator.BitwiseOr =>
+                AreEquivalent(left, right, destination) &&
+                destination.Type.Kind is TypeKind.Int or TypeKind.Bool,
             IrBinaryOperator.LessThan or
                 IrBinaryOperator.LessThanOrEqual or
                 IrBinaryOperator.GreaterThan or

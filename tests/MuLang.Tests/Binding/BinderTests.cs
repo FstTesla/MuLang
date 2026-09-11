@@ -279,6 +279,38 @@ public sealed class BinderTests
     }
 
     [Test]
+    public void SupportsBooleanEagerOperators()
+    {
+        BindingResult andResult = BindExpression(
+            "true & false",
+            CreateEmptyEnvironment()
+        );
+        BindingResult orResult = BindExpression(
+            "true | false",
+            CreateEmptyEnvironment()
+        );
+        BindingResult xorResult = BindExpression(
+            "true ^ false",
+            CreateEmptyEnvironment()
+        );
+        BindingResult mixedResult = BindExpression(
+            "true & 1",
+            CreateEmptyEnvironment()
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(
+                ((BoundRoot.Expression)andResult.Root).Value.Type,
+                Is.SameAs(TypeSymbols.Bool)
+            );
+            Assert.That(orResult.Diagnostics, Is.Empty);
+            Assert.That(xorResult.Diagnostics, Is.Empty);
+            AssertDiagnostic(mixedResult, DiagnosticCodes.OperatorNotDefined);
+        }
+    }
+
+    [Test]
     public void ValidatesCheckedConversions()
     {
         EnvironmentSchema environment = new EnvironmentBuilder()

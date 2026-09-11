@@ -114,11 +114,11 @@ internal static class DotNetRuntimeOperations
             IrBinaryOperator.IdentityNotEqual =>
                 !IdentityEquals(context, left, right, span),
             IrBinaryOperator.BitwiseAnd =>
-                RequireInt(left, span) & RequireInt(right, span),
+                And(left, right, span),
             IrBinaryOperator.BitwiseXor =>
-                RequireInt(left, span) ^ RequireInt(right, span),
+                Xor(left, right, span),
             IrBinaryOperator.BitwiseOr =>
-                RequireInt(left, span) | RequireInt(right, span),
+                Or(left, right, span),
             _ => throw new InvalidOperationException("Unknown IR binary operator."),
         };
     }
@@ -581,6 +581,36 @@ internal static class DotNetRuntimeOperations
         int shift = RequireShift(right, span);
 
         return value >> shift;
+    }
+
+    private static object And(object? left, object? right, TextSpan span)
+    {
+        if (left is bool leftBoolean && right is bool rightBoolean)
+        {
+            return leftBoolean & rightBoolean;
+        }
+
+        return RequireInt(left, span) & RequireInt(right, span);
+    }
+
+    private static object Xor(object? left, object? right, TextSpan span)
+    {
+        if (left is bool leftBoolean && right is bool rightBoolean)
+        {
+            return leftBoolean ^ rightBoolean;
+        }
+
+        return RequireInt(left, span) ^ RequireInt(right, span);
+    }
+
+    private static object Or(object? left, object? right, TextSpan span)
+    {
+        if (left is bool leftBoolean && right is bool rightBoolean)
+        {
+            return leftBoolean | rightBoolean;
+        }
+
+        return RequireInt(left, span) | RequireInt(right, span);
     }
 
     private static bool CompareRelational(

@@ -654,13 +654,19 @@ Relational operators are defined for:
 
 No ordering is defined for booleans, arrays, or objects.
 
-### 11.5. Bitwise operators
+### 11.5. Bitwise and eager Boolean operators
 
-`~`, `&`, `^`, `|`, `<<`, and `>>` require `int` operands and produce an `int`.
+`~`, `<<`, and `>>` require `int` operands and produce an `int`.
 
 `~` performs bitwise complement.
 
-`&`, `^`, and `|` perform bitwise AND, exclusive OR, and inclusive OR.
+For two `int` operands, `&`, `^`, and `|` perform bitwise AND, exclusive OR, and inclusive OR and produce an `int`.
+
+For two `bool` operands, `&`, `^`, and `|` perform eager logical AND, exclusive OR, and inclusive OR and produce a `bool`.
+
+Both operands of the Boolean forms are always evaluated. Unlike `&&` and `||`, `&` and `|` do not short-circuit.
+
+Mixed `int` and `bool` operands are not permitted.
 
 The right operand of `<<` and `>>` MUST be between 0 and 63 inclusive. A value outside this range produces a runtime error.
 

@@ -93,6 +93,44 @@ public sealed class DotNetExporterTests
         }
     }
 
+    [TestCase("false & touch()", false)]
+    [TestCase("true | touch()", true)]
+    [TestCase("true ^ touch()", false)]
+    public void BooleanEagerOperatorsEvaluateBothOperands(
+        string source,
+        bool expected
+    )
+    {
+        int invocationCount = 0;
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddFunction("function.touch", "touch", [ ], TypeSymbols.Bool)
+            .Build();
+        Func<DotNetRuntimeContext, object?> compiled = CompileExpression(
+            source,
+            environment
+        );
+        DotNetRuntimeContext context = CreateContext(
+            environment,
+            functions:
+            [
+                new KeyValuePair<string, DotNetFunction>(
+                    "function.touch",
+                    (_, _) =>
+                    {
+                        invocationCount++;
+                        return true;
+                    }
+                ),
+            ]
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(compiled(context), Is.EqualTo(expected));
+            Assert.That(invocationCount, Is.EqualTo(1));
+        }
+    }
+
     [Test]
     public void ExecutesForLoopAndLocalAssignments()
     {
@@ -380,11 +418,11 @@ public sealed class DotNetExporterTests
         );
         DotNetRuntimeContext integerContext = CreateContext(
             environment,
-            [new KeyValuePair<string, object?>("global.value", 2L)]
+            [ new KeyValuePair<string, object?>("global.value", 2L) ]
         );
         DotNetRuntimeContext floatContext = CreateContext(
             environment,
-            [new KeyValuePair<string, object?>("global.value", 2.0)]
+            [ new KeyValuePair<string, object?>("global.value", 2.0) ]
         );
 
         using (Assert.EnterMultipleScope())
@@ -434,11 +472,11 @@ public sealed class DotNetExporterTests
         );
         DotNetRuntimeContext invalidFloatContext = CreateContext(
             floatEnvironment,
-            [new KeyValuePair<string, object?>("global.value", 1L)]
+            [ new KeyValuePair<string, object?>("global.value", 1L) ]
         );
         DotNetRuntimeContext integerNumberContext = CreateContext(
             numberEnvironment,
-            [new KeyValuePair<string, object?>("global.value", 1L)]
+            [ new KeyValuePair<string, object?>("global.value", 1L) ]
         );
 
         using (Assert.EnterMultipleScope())
@@ -464,7 +502,7 @@ public sealed class DotNetExporterTests
         );
         DotNetRuntimeContext context = CreateContext(
             environment,
-            [new KeyValuePair<string, object?>("global.value", 2.0)]
+            [ new KeyValuePair<string, object?>("global.value", 2.0) ]
         );
 
         MuLangRuntimeException exception = RequireRuntimeException(
