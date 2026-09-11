@@ -7,7 +7,7 @@ internal sealed record TypeSyntax(
     IReadOnlyList<SyntaxToken> SuffixTokens
 ) : SyntaxNode
 {
-    public override TextSpan Span => SuffixTokens.Count == 0
+    public override TextSpan Span => SuffixTokens is not [ .., var lastSuffixToken ]
         ? NameToken.Span
-        : TextSpan.FromBounds(NameToken.Span.Start, SuffixTokens[^1].Span.End);
+        : TextSpan.FromBounds(NameToken.Span.Start, lastSuffixToken.Span.End);
 }

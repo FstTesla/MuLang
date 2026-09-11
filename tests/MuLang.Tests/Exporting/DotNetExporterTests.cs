@@ -947,7 +947,7 @@ public sealed class DotNetExporterTests
             environment,
             TypeSymbols.Void
         );
-        string[] callIds =
+        IEnumerable<string> callIds =
         [
             .. program.Blocks
                 .SelectMany(static block => block.Instructions)

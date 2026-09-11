@@ -78,14 +78,14 @@ internal sealed class IrBuilder
         TypeSymbol resultType
     )
     {
-        IrBasicBlock[] immutableBlocks = [ .. blocks.Select(static block => block.Build()) ];
+        IReadOnlyList<IrBasicBlock> immutableBlocks = [ .. blocks.Select(static block => block.Build()) ];
 
         return new IrProgram(
             environmentFingerprint,
             resultType,
             EntryBlock,
             slots.AsReadOnly(),
-            Array.AsReadOnly(immutableBlocks)
+            immutableBlocks
         );
     }
 

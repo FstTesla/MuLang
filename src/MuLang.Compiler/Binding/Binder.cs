@@ -1969,7 +1969,7 @@ internal sealed class Binder
 
     private void ReportOperatorNotDefined(
         SyntaxToken operatorToken,
-        params TypeSymbol[] operandTypes
+        params IEnumerable<TypeSymbol> operandTypes
     )
     {
         string operands = string.Join(

@@ -7,7 +7,7 @@ internal sealed record ProgramRootSyntax(
     SyntaxToken EndOfFileToken
 ) : RootSyntax
 {
-    public override TextSpan Span => Statements.Count == 0
-        ? EndOfFileToken.Span
-        : TextSpan.FromBounds(Statements[0].Span.Start, EndOfFileToken.Span.End);
+    public override TextSpan Span => Statements is [ var firstStatement, .. ]
+        ? TextSpan.FromBounds(firstStatement.Span.Start, EndOfFileToken.Span.End)
+        : EndOfFileToken.Span;
 }

@@ -188,7 +188,7 @@ public sealed class TypeRelationsTests
         string id,
         string name,
         bool isOpen,
-        params ObjectPropertySymbol[] properties
+        params IEnumerable<ObjectPropertySymbol> properties
     )
     {
         return new ObjectTypeSymbol(id, name, isOpen, properties);

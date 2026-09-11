@@ -35,7 +35,7 @@ internal static class DotNetExporter
         nameof(DotNetRuntimeOperations.Invoke),
         typeof(DotNetRuntimeContext),
         typeof(string),
-        typeof(object[]),
+        typeof(IReadOnlyList<object?>),
         typeof(TypeSymbol),
         typeof(TextSpan)
     );
@@ -86,13 +86,13 @@ internal static class DotNetExporter
 
     private static readonly MethodInfo createArrayMethod = GetMethod(
         nameof(DotNetRuntimeOperations.CreateArray),
-        typeof(object[])
+        typeof(IEnumerable<object?>)
     );
 
     private static readonly MethodInfo createObjectMethod = GetMethod(
         nameof(DotNetRuntimeOperations.CreateObject),
-        typeof(string[]),
-        typeof(object[])
+        typeof(IEnumerable<string>),
+        typeof(IEnumerable<object?>)
     );
 
     private static readonly MethodInfo getPropertyMethod = GetMethod(
@@ -176,9 +176,9 @@ internal static class DotNetExporter
             typeof(DotNetRuntimeContext),
             "context"
         );
-        ParameterExpression[] slots =
+        IReadOnlyList<ParameterExpression> slots =
             [ .. program.Slots.Select(static slot => Expression.Variable(typeof(object), $"slot{slot.Id}")) ];
-        LabelTarget[] blockLabels =
+        IReadOnlyList<LabelTarget> blockLabels =
             [ .. program.Blocks.Select(static block => Expression.Label($"block{block.Id}")) ];
         LabelTarget returnLabel = Expression.Label(typeof(object), "return");
         ICollection<Expression> expressions = [ ];

@@ -82,7 +82,7 @@ internal sealed class Lowerer
         }
     }
 
-    private void LowerStatements(IReadOnlyList<BoundStatement> statements)
+    private void LowerStatements(IEnumerable<BoundStatement> statements)
     {
         foreach (BoundStatement statement in statements)
         {

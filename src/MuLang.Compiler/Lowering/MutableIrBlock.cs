@@ -8,7 +8,7 @@ internal sealed class MutableIrBlock
 
     public int Id { get; }
 
-    public IReadOnlyList<IrInstruction> Instructions => instructions;
+    public IReadOnlyCollection<IrInstruction> Instructions => instructions;
 
     public MutableIrBlock(int id)
     {

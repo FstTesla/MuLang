@@ -80,11 +80,11 @@ public sealed class EnvironmentBuilder
             throw new ArgumentOutOfRangeException(nameof(languageVersion));
         }
 
-        ObjectTypeSymbol[] types =
+        IReadOnlyCollection<ObjectTypeSymbol> types =
             [ .. typesByName.Values.OrderBy(static type => type.Name, StringComparer.Ordinal) ];
-        GlobalSymbol[] globals =
+        IReadOnlyCollection<GlobalSymbol> globals =
             [ .. globalsByName.Values.OrderBy(static global => global.Name, StringComparer.Ordinal) ];
-        FunctionSymbol[] functions =
+        IReadOnlyCollection<FunctionSymbol> functions =
             [ .. functionsByName.Values.OrderBy(static function => function.Name, StringComparer.Ordinal) ];
         ValidateReferencedTypes(types, globals, functions);
         EnvironmentFingerprint fingerprint = EnvironmentFingerprintFactory.Create(

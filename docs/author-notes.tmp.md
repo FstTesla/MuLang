@@ -5,12 +5,12 @@
   - ~~`Dictionary<TKey, TValue>`~~
   - ~~`Queue<T>`~~
   - ~~`Stack<T>`~~
-  - `FrozenDictionary<TKey, TValue>`
-  - `Array` e array `T[]`
-  - `IGrouping<TKey, TElement>`
-  - `ISet<T>`
-  - `IList<T>`
-  - `ICollection<T>`
+  - ~~`FrozenDictionary<TKey, TValue>`~~
+  - ~~`Array` e array `T[]`~~
+  - ~~`IGrouping<TKey, TElement>`~~
+  - ~~`ISet<T>`~~
+  - ~~`IList<T>`~~
+  - ~~`ICollection<T>`~~
   - `IReadOnlyList<T>`
   - `IReadOnlySet<T>`
   - `IReadOnlyDictionary<TKey, TValue>`

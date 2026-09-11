@@ -2,18 +2,18 @@ using System.Collections;
 
 namespace MuLang.Core.Diagnostics;
 
-public sealed class DiagnosticCollection : IReadOnlyList<Diagnostic>
+public sealed class DiagnosticCollection : IReadOnlyCollection<Diagnostic>
 {
-    private readonly Diagnostic[] diagnostics;
+    private readonly IReadOnlyList<Diagnostic> diagnostics;
 
-    private DiagnosticCollection(Diagnostic[] diagnostics)
+    private DiagnosticCollection(IReadOnlyList<Diagnostic> diagnostics)
     {
         this.diagnostics = diagnostics;
     }
 
     public static DiagnosticCollection Empty { get; } = new ([ ]);
 
-    public int Count => diagnostics.Length;
+    public int Count => diagnostics.Count;
 
     public Diagnostic this[int index] => diagnostics[index];
 
@@ -26,7 +26,7 @@ public sealed class DiagnosticCollection : IReadOnlyList<Diagnostic>
             throw new ArgumentNullException(nameof(diagnostics));
         }
 
-        Diagnostic[] orderedDiagnostics =
+        IReadOnlyList<Diagnostic> orderedDiagnostics =
         [
             .. diagnostics
                 .Select(static (diagnostic, index) => (Diagnostic: diagnostic, Index: index))
@@ -36,12 +36,12 @@ public sealed class DiagnosticCollection : IReadOnlyList<Diagnostic>
                 .Select(static item => item.Diagnostic),
         ];
 
-        return orderedDiagnostics.Length > 0
+        return orderedDiagnostics.Count > 0
             ? new DiagnosticCollection(orderedDiagnostics)
             : Empty;
     }
 
-    public IEnumerator<Diagnostic> GetEnumerator() => ((IEnumerable<Diagnostic>)diagnostics).GetEnumerator();
+    public IEnumerator<Diagnostic> GetEnumerator() => diagnostics.GetEnumerator();
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }

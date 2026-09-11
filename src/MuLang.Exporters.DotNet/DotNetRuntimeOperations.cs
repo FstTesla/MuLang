@@ -44,12 +44,12 @@ internal static class DotNetRuntimeOperations
     public static object? Invoke(
         DotNetRuntimeContext context,
         string id,
-        object?[] arguments,
+        IReadOnlyList<object?> arguments,
         TypeSymbol returnType,
         TextSpan span
     )
     {
-        return context.Invoke(id, Array.AsReadOnly(arguments), returnType, span);
+        return context.Invoke(id, arguments, returnType, span);
     }
 
     public static bool RequireBoolean(object? value, TextSpan span)
@@ -221,23 +221,15 @@ internal static class DotNetRuntimeOperations
         };
     }
 
-    public static object CreateArray(object?[] elements)
+    public static object CreateArray(IEnumerable<object?> elements)
     {
         return new DotNetArrayValue(elements);
     }
 
-    public static object CreateObject(string[] names, object?[] values)
+    public static object CreateObject(IEnumerable<string> names, IEnumerable<object?> values)
     {
-        KeyValuePair<string, object?>[] properties =
-            new KeyValuePair<string, object?>[names.Length];
-
-        for (int index = 0; index < names.Length; index++)
-        {
-            properties[index] = new KeyValuePair<string, object?>(
-                names[index],
-                values[index]
-            );
-        }
+        IEnumerable<KeyValuePair<string, object?>> properties =
+            names.Zip(values).Select(static nv => KeyValuePair.Create(nv.First, nv.Second));
 
         return new DotNetObjectValue(properties);
     }

@@ -4,7 +4,7 @@ namespace MuLang.Compiler.Syntax;
 
 internal sealed record BlockStatementSyntax(
     SyntaxToken OpenBraceToken,
-    IReadOnlyList<StatementSyntax> Statements,
+    IReadOnlyCollection<StatementSyntax> Statements,
     SyntaxToken CloseBraceToken
 ) : StatementSyntax
 {

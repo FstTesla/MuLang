@@ -825,7 +825,7 @@ internal sealed class Parser
 
     private void ReportUnexpectedToken(
         SyntaxToken actualToken,
-        params TokenKind[] expectedKinds
+        params IEnumerable<TokenKind> expectedKinds
     )
     {
         string expected = string.Join(

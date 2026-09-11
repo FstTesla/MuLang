@@ -15,16 +15,16 @@ public sealed class EnvironmentSchema
 
     internal EnvironmentSchema(
         LanguageVersion languageVersion,
-        ObjectTypeSymbol[] types,
-        GlobalSymbol[] globals,
-        FunctionSymbol[] functions,
+        IReadOnlyCollection<ObjectTypeSymbol> types,
+        IReadOnlyCollection<GlobalSymbol> globals,
+        IReadOnlyCollection<FunctionSymbol> functions,
         EnvironmentFingerprint fingerprint
     )
     {
         LanguageVersion = languageVersion;
-        Types = Array.AsReadOnly(types);
-        Globals = Array.AsReadOnly(globals);
-        Functions = Array.AsReadOnly(functions);
+        Types = types;
+        Globals = globals;
+        Functions = functions;
         Fingerprint = fingerprint;
         typesByName = types.ToFrozenDictionary(
             static type => type.Name,
