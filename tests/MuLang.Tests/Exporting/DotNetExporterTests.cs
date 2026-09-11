@@ -552,7 +552,7 @@ public sealed class DotNetExporterTests
                 TypeSymbols.Array(TypeSymbols.Int)
             )
             .Build();
-        long[] values = [42L];
+        long[] values = [ 42L ];
         Func<DotNetRuntimeContext, object?> compiled = CompileExpression(
             "values[0]",
             environment
@@ -579,7 +579,7 @@ public sealed class DotNetExporterTests
                 TypeSymbols.Array(TypeSymbols.Int)
             )
             .Build();
-        MutableArrayValue values = new([42L]);
+        MutableArrayValue values = new ([ 42L ]);
         Func<DotNetRuntimeContext, object?> compiled = CompileProgram(
             "values[0] = 7; return values[0];",
             environment,
@@ -587,7 +587,7 @@ public sealed class DotNetExporterTests
         );
         DotNetRuntimeContext context = CreateContext(
             environment,
-            [new KeyValuePair<string, object?>("global.values", values)]
+            [ new KeyValuePair<string, object?>("global.values", values) ]
         );
 
         Assert.That(compiled(context), Is.EqualTo(7L));
@@ -599,7 +599,7 @@ public sealed class DotNetExporterTests
         EnvironmentSchema environment = new EnvironmentBuilder()
             .AddGlobal("global.item", "item", TypeSymbols.Object)
             .Build();
-        Dictionary<string, object?> item = new(StringComparer.Ordinal)
+        object item = new Dictionary<string, object?>(StringComparer.Ordinal)
         {
             ["value"] = 1L,
         };
@@ -609,7 +609,7 @@ public sealed class DotNetExporterTests
         );
         DotNetRuntimeContext context = CreateContext(
             environment,
-            [new KeyValuePair<string, object?>("global.item", item)]
+            [ new KeyValuePair<string, object?>("global.item", item) ]
         );
 
         MuLangRuntimeException exception = RequireRuntimeException(
@@ -783,8 +783,8 @@ public sealed class DotNetExporterTests
             .AddType(itemType)
             .AddGlobal("global.item", "item", itemType)
             .Build();
-        MutableObjectValue item = new(
-            [new KeyValuePair<string, object?>("id", 42L)]
+        MutableObjectValue item = new (
+            [ new KeyValuePair<string, object?>("id", 42L) ]
         );
         Func<DotNetRuntimeContext, object?> compiled = CompileExpression(
             "item.id",
@@ -840,8 +840,8 @@ public sealed class DotNetExporterTests
             .AddGlobal("global.left", "left", TypeSymbols.Object)
             .AddGlobal("global.right", "right", TypeSymbols.Object)
             .Build();
-        MutableObjectValue left = new([]);
-        MutableObjectValue right = new([]);
+        MutableObjectValue left = new ([ ]);
+        MutableObjectValue right = new ([ ]);
         left.Set("self", left);
         right.Set("self", right);
         Func<DotNetRuntimeContext, object?> compiled = CompileExpression(
@@ -1172,13 +1172,13 @@ public sealed class DotNetExporterTests
     private static object CreateNestedObject(int depth)
     {
         object current = new MutableObjectValue(
-            [new KeyValuePair<string, object?>("value", 1L)]
+            [ new KeyValuePair<string, object?>("value", 1L) ]
         );
 
         for (int index = 0; index < depth; index++)
         {
             current = new MutableObjectValue(
-                [new KeyValuePair<string, object?>("next", current)]
+                [ new KeyValuePair<string, object?>("next", current) ]
             );
         }
 
@@ -1228,11 +1228,11 @@ public sealed class DotNetExporterTests
 
     private sealed class MutableArrayValue : IDotNetArrayValue
     {
-        private readonly List<object?> elements;
+        private readonly IList<object?> elements;
 
         public MutableArrayValue(IEnumerable<object?> elements)
         {
-            this.elements = new List<object?>(elements);
+            this.elements = [ .. elements ];
         }
 
         public object Identity => this;

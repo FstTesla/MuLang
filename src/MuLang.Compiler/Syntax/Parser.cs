@@ -9,7 +9,7 @@ internal sealed class Parser
 {
     private readonly SourceText source;
     private readonly IReadOnlyList<SyntaxToken> tokens;
-    private readonly List<Diagnostic> diagnostics = [ ];
+    private readonly ICollection<Diagnostic> diagnostics = [ ];
     private int position;
 
     private Parser(SourceText source, IReadOnlyList<SyntaxToken> tokens)
@@ -78,7 +78,7 @@ internal sealed class Parser
 
     private ProgramRootSyntax ParseProgramRoot()
     {
-        List<StatementSyntax> statements = [ ];
+        IList<StatementSyntax> statements = [ ];
 
         while (Current.Kind != TokenKind.EndOfFile)
         {
@@ -116,7 +116,7 @@ internal sealed class Parser
     private BlockStatementSyntax ParseBlockStatement()
     {
         SyntaxToken openBraceToken = Match(TokenKind.OpenBrace);
-        List<StatementSyntax> statements = [ ];
+        IList<StatementSyntax> statements = [ ];
 
         while (Current.Kind is not TokenKind.CloseBrace and not TokenKind.EndOfFile)
         {
@@ -417,7 +417,7 @@ internal sealed class Parser
     {
         ExpressionSyntax left = ParsePrefixExpression();
         left = ParsePostfixExpression(left);
-        HashSet<int> usedNonAssociativePrecedences = [ ];
+        ISet<int> usedNonAssociativePrecedences = new HashSet<int>();
 
         while (true)
         {
@@ -549,8 +549,8 @@ internal sealed class Parser
     private ArrayLiteralExpressionSyntax ParseArrayLiteralExpression()
     {
         SyntaxToken openBracketToken = Match(TokenKind.OpenBracket);
-        List<ExpressionSyntax> elements = [ ];
-        List<SyntaxToken> commaTokens = [ ];
+        IList<ExpressionSyntax> elements = [ ];
+        IList<SyntaxToken> commaTokens = [ ];
 
         while (Current.Kind is not TokenKind.CloseBracket and not TokenKind.EndOfFile)
         {
@@ -582,8 +582,8 @@ internal sealed class Parser
     private ObjectLiteralExpressionSyntax ParseObjectLiteralExpression()
     {
         SyntaxToken openBraceToken = ParseToken();
-        List<ObjectPropertyInitializerSyntax> properties = [ ];
-        List<SyntaxToken> commaTokens = [ ];
+        IList<ObjectPropertyInitializerSyntax> properties = [ ];
+        IList<SyntaxToken> commaTokens = [ ];
 
         while (Current.Kind is not TokenKind.CloseBrace and not TokenKind.EndOfFile)
         {
@@ -676,8 +676,8 @@ internal sealed class Parser
     private CallExpressionSyntax ParseCallExpression(ExpressionSyntax target)
     {
         SyntaxToken openParenthesisToken = Match(TokenKind.OpenParenthesis);
-        List<ExpressionSyntax> arguments = [ ];
-        List<SyntaxToken> commaTokens = [ ];
+        IList<ExpressionSyntax> arguments = [ ];
+        IList<SyntaxToken> commaTokens = [ ];
 
         while (Current.Kind is not TokenKind.CloseParenthesis and not TokenKind.EndOfFile)
         {
@@ -717,7 +717,7 @@ internal sealed class Parser
         SyntaxToken nameToken = SyntaxFacts.IsTypeName(Current.Kind)
             ? ParseToken() : Match(TokenKind.Identifier);
 
-        List<SyntaxToken> suffixTokens = [ ];
+        IList<SyntaxToken> suffixTokens = [ ];
 
         ParseNullableSuffix(suffixTokens, isOperatorType);
 

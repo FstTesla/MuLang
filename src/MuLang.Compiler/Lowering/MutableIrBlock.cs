@@ -6,14 +6,14 @@ internal sealed class MutableIrBlock
 {
     private readonly List<IrInstruction> instructions = [ ];
 
+    public int Id { get; }
+
+    public IReadOnlyList<IrInstruction> Instructions => instructions;
+
     public MutableIrBlock(int id)
     {
         Id = id;
     }
-
-    public int Id { get; }
-
-    public IReadOnlyList<IrInstruction> Instructions => instructions;
 
     public IrTerminator? Terminator { get; set; }
 

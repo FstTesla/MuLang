@@ -7,11 +7,11 @@ namespace MuLang.Core.Environment;
 
 public sealed class EnvironmentSchema
 {
-    private readonly FrozenDictionary<string, ObjectTypeSymbol> typesByName;
-    private readonly FrozenDictionary<string, GlobalSymbol> globalsByName;
-    private readonly FrozenDictionary<string, GlobalSymbol> globalsById;
-    private readonly FrozenDictionary<string, FunctionSymbol> functionsByName;
-    private readonly FrozenDictionary<string, FunctionSymbol> functionsById;
+    private readonly IReadOnlyDictionary<string, ObjectTypeSymbol> typesByName;
+    private readonly IReadOnlyDictionary<string, GlobalSymbol> globalsByName;
+    private readonly IReadOnlyDictionary<string, GlobalSymbol> globalsById;
+    private readonly IReadOnlyDictionary<string, FunctionSymbol> functionsByName;
+    private readonly IReadOnlyDictionary<string, FunctionSymbol> functionsById;
 
     internal EnvironmentSchema(
         LanguageVersion languageVersion,

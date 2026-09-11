@@ -5,7 +5,7 @@ namespace MuLang.Core.Types;
 
 public sealed class ObjectTypeSymbol : TypeSymbol
 {
-    private readonly FrozenDictionary<string, ObjectPropertySymbol> propertiesByName;
+    private readonly IReadOnlyDictionary<string, ObjectPropertySymbol> propertiesByName;
 
     public ObjectTypeSymbol(
         string id,

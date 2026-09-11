@@ -5,23 +5,23 @@ namespace MuLang.Core.Environment;
 
 public sealed class EnvironmentBuilder
 {
-    private readonly Dictionary<string, ObjectTypeSymbol> typesByName =
-        new (StringComparer.Ordinal);
+    private readonly IDictionary<string, ObjectTypeSymbol> typesByName =
+        new Dictionary<string, ObjectTypeSymbol>(StringComparer.Ordinal);
 
-    private readonly Dictionary<string, ObjectTypeSymbol> typesById =
-        new (StringComparer.Ordinal);
+    private readonly IDictionary<string, ObjectTypeSymbol> typesById =
+        new Dictionary<string, ObjectTypeSymbol>(StringComparer.Ordinal);
 
-    private readonly Dictionary<string, GlobalSymbol> globalsByName =
-        new (StringComparer.Ordinal);
+    private readonly IDictionary<string, GlobalSymbol> globalsByName =
+        new Dictionary<string, GlobalSymbol>(StringComparer.Ordinal);
 
-    private readonly Dictionary<string, GlobalSymbol> globalsById =
-        new (StringComparer.Ordinal);
+    private readonly IDictionary<string, GlobalSymbol> globalsById =
+        new Dictionary<string, GlobalSymbol>(StringComparer.Ordinal);
 
-    private readonly Dictionary<string, FunctionSymbol> functionsByName =
-        new (StringComparer.Ordinal);
+    private readonly IDictionary<string, FunctionSymbol> functionsByName =
+        new Dictionary<string, FunctionSymbol>(StringComparer.Ordinal);
 
-    private readonly Dictionary<string, FunctionSymbol> functionsById =
-        new (StringComparer.Ordinal);
+    private readonly IDictionary<string, FunctionSymbol> functionsById =
+        new Dictionary<string, FunctionSymbol>(StringComparer.Ordinal);
 
     public EnvironmentBuilder AddType(ObjectTypeSymbol type)
     {
@@ -109,7 +109,7 @@ public sealed class EnvironmentBuilder
         IReadOnlyCollection<FunctionSymbol> functions
     )
     {
-        HashSet<ObjectTypeSymbol> visited = new (ReferenceEqualityComparer.Instance);
+        ISet<ObjectTypeSymbol> visited = new HashSet<ObjectTypeSymbol>(ReferenceEqualityComparer.Instance);
 
         foreach (ObjectTypeSymbol type in types)
         {
@@ -183,7 +183,7 @@ public sealed class EnvironmentBuilder
     }
 
     private static void EnsureUnique<T>(
-        IReadOnlyDictionary<string, T> items,
+        IDictionary<string, T> items,
         string key,
         string description
     )

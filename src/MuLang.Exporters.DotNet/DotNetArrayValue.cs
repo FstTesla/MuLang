@@ -2,7 +2,7 @@ namespace MuLang.Exporters.DotNet;
 
 internal sealed class DotNetArrayValue : IDotNetArrayValue
 {
-    private readonly List<object?> elements;
+    private readonly IList<object?> elements;
 
     public DotNetArrayValue(IEnumerable<object?> elements)
     {

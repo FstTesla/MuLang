@@ -12,8 +12,8 @@ internal sealed class Lowerer
     private readonly EnvironmentSchema environment;
     private readonly IrBuilder builder = new ();
 
-    private readonly Dictionary<LocalSymbol, int> localSlots =
-        new (ReferenceEqualityComparer.Instance);
+    private readonly IDictionary<LocalSymbol, int> localSlots =
+        new Dictionary<LocalSymbol, int>(ReferenceEqualityComparer.Instance);
 
     private readonly Stack<LoweringLoopContext> loopContexts = [ ];
 
@@ -540,7 +540,7 @@ internal sealed class Lowerer
 
     private int LowerArray(BoundExpression.Array expression)
     {
-        List<int> elements = [ ];
+        IList<int> elements = [ ];
 
         foreach (BoundExpression element in expression.Elements)
         {
@@ -562,7 +562,7 @@ internal sealed class Lowerer
 
     private int LowerObject(BoundExpression.Object expression)
     {
-        List<IrInstruction.ObjectPropertyValue> properties = [ ];
+        IList<IrInstruction.ObjectPropertyValue> properties = [ ];
 
         foreach (BoundExpression.ObjectProperty property in expression.Properties)
         {
@@ -753,7 +753,7 @@ internal sealed class Lowerer
 
     private int LowerCall(BoundExpression.Call expression)
     {
-        List<int> arguments = [ ];
+        IList<int> arguments = [ ];
 
         foreach (BoundExpression argument in expression.Arguments)
         {

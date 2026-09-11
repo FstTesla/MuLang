@@ -181,8 +181,9 @@ internal static class DotNetExporter
         LabelTarget[] blockLabels =
             [ .. program.Blocks.Select(static block => Expression.Label($"block{block.Id}")) ];
         LabelTarget returnLabel = Expression.Label(typeof(object), "return");
-        List<Expression> expressions = [ ];
+        ICollection<Expression> expressions = [ ];
         TextSpan entrySpan = program.Blocks[program.EntryBlock].Terminator.Span;
+
         expressions.Add(
             Expression.Call(
                 validateEnvironmentMethod,

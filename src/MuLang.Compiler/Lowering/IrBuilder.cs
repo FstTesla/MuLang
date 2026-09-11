@@ -6,18 +6,20 @@ namespace MuLang.Compiler.Lowering;
 
 internal sealed class IrBuilder
 {
-    private readonly List<IrSlot> slots = [ ];
-    private readonly List<MutableIrBlock> blocks = [ ];
+    private readonly IList<IrSlot> slots = [ ];
+    private readonly IList<MutableIrBlock> blocks = [ ];
+
+    public int EntryBlock { get; }
+
+    public MutableIrBlock? CurrentBlock { get; private set; }
+
+    public bool IsCurrentTerminated => CurrentBlock?.Terminator is not null;
 
     public IrBuilder()
     {
         EntryBlock = CreateBlock();
         CurrentBlock = GetBlock(EntryBlock);
     }
-
-    public int EntryBlock { get; }
-
-    public MutableIrBlock? CurrentBlock { get; private set; }
 
     public int CreateBlock()
     {
@@ -70,8 +72,6 @@ internal sealed class IrBuilder
 
         block.Terminator = terminator;
     }
-
-    public bool IsCurrentTerminated => CurrentBlock?.Terminator is not null;
 
     public IrProgram Build(
         EnvironmentFingerprint environmentFingerprint,

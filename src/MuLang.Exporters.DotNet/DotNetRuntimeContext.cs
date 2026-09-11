@@ -8,8 +8,8 @@ namespace MuLang.Exporters.DotNet;
 
 public sealed class DotNetRuntimeContext
 {
-    private readonly FrozenDictionary<string, object?> globals;
-    private readonly FrozenDictionary<string, DotNetFunction> functions;
+    private readonly IReadOnlyDictionary<string, object?> globals;
+    private readonly IReadOnlyDictionary<string, DotNetFunction> functions;
     private long remainingBudget;
 
     public DotNetRuntimeContext(

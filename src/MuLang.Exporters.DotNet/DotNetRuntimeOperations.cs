@@ -631,7 +631,7 @@ internal static class DotNetRuntimeOperations
         TextSpan span
     )
     {
-        HashSet<ReferencePair> visited = new (ReferencePairComparer.Instance);
+        ISet<ReferencePair> visited = new HashSet<ReferencePair>(ReferencePairComparer.Instance);
         return StructuralEquals(context, left, right, visited, span, 0);
     }
 
@@ -877,14 +877,14 @@ internal static class DotNetRuntimeOperations
 
         if (!type.IsOpen)
         {
-            HashSet<string> declaredNames = type.Properties
+            IReadOnlySet<string> declaredNames = type.Properties
                 .Select(static property => property.Name)
                 .ToHashSet(StringComparer.Ordinal);
 
             return names.All(declaredNames.Contains);
         }
 
-        HashSet<string> knownNames = type.Properties
+        IReadOnlySet<string> knownNames = type.Properties
             .Select(static property => property.Name)
             .ToHashSet(StringComparer.Ordinal);
 

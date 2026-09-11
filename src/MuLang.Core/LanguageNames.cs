@@ -6,33 +6,31 @@ namespace MuLang.Core;
 
 internal static class LanguageNames
 {
-    private static readonly HashSet<string> reservedKeywords = new (
-        [
-            "as",
-            "bool",
-            "break",
-            "continue",
-            "else",
-            "false",
-            "float",
-            "for",
-            "has",
-            "if",
-            "int",
-            "is",
-            "null",
-            "number",
-            "object",
-            "return",
-            "string",
-            "true",
-            "unknown",
-            "var",
-            "void",
-            "while",
-        ],
-        StringComparer.Ordinal
-    );
+    private static readonly IReadOnlySet<string> reservedKeywords = new HashSet<string>(StringComparer.Ordinal)
+    {
+        "as",
+        "bool",
+        "break",
+        "continue",
+        "else",
+        "false",
+        "float",
+        "for",
+        "has",
+        "if",
+        "int",
+        "is",
+        "null",
+        "number",
+        "object",
+        "return",
+        "string",
+        "true",
+        "unknown",
+        "var",
+        "void",
+        "while",
+    };
 
     public static void ValidateIdentifier(string value, string parameterName)
     {

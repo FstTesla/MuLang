@@ -15,7 +15,7 @@ internal sealed class Binder
     private readonly SourceText source;
     private readonly EnvironmentSchema environment;
     private readonly TypeSymbol expectedResultType;
-    private readonly List<Diagnostic> diagnostics = [ ];
+    private readonly ICollection<Diagnostic> diagnostics = [ ];
     private BindingScope scope = new (null);
     private FlowState currentFlowState = new ([ ]);
     private readonly Stack<LoopFlowContext> loopContexts = [ ];
@@ -109,7 +109,7 @@ internal sealed class Binder
     private BoundRoot BindProgramRoot(ProgramRootSyntax syntax)
     {
         FlowState state = new ([ ]);
-        List<BoundStatement> statements = [ ];
+        IList<BoundStatement> statements = [ ];
 
         foreach (StatementSyntax statementSyntax in syntax.Statements)
         {
@@ -186,7 +186,7 @@ internal sealed class Binder
         BindingScope parentScope = scope;
         BindingScope blockScope = new (parentScope);
         scope = blockScope;
-        List<BoundStatement> statements = [ ];
+        IList<BoundStatement> statements = [ ];
 
         foreach (StatementSyntax statementSyntax in syntax.Statements)
         {
@@ -811,7 +811,7 @@ internal sealed class Binder
     )
     {
         ArrayTypeSymbol? expectedArray = GetNonNullable(expectedType) as ArrayTypeSymbol;
-        List<BoundExpression> elements = [ ];
+        IList<BoundExpression> elements = [ ];
         TypeSymbol? elementType = null;
         bool hasInvalidElementType = false;
 
@@ -870,8 +870,7 @@ internal sealed class Binder
         }
 
         if (
-            elementType is null &&
-            !hasInvalidElementType ||
+            (elementType is null && !hasInvalidElementType) ||
             elementType?.Kind == TypeKind.Null
         )
         {
@@ -907,9 +906,9 @@ internal sealed class Binder
     )
     {
         ObjectTypeSymbol? expectedObject = GetNonNullable(expectedType) as ObjectTypeSymbol;
-        List<BoundExpression.ObjectProperty> properties = [ ];
-        List<ObjectPropertySymbol> propertySymbols = [ ];
-        HashSet<string> names = new (StringComparer.Ordinal);
+        IList<BoundExpression.ObjectProperty> properties = [ ];
+        ICollection<ObjectPropertySymbol> propertySymbols = [ ];
+        ISet<string> names = new HashSet<string>(StringComparer.Ordinal);
 
         if (expectedObject is not null && syntax.IsOpen != expectedObject.IsOpen)
         {
@@ -1329,7 +1328,7 @@ internal sealed class Binder
             );
         }
 
-        List<BoundExpression> arguments = [ ];
+        IList<BoundExpression> arguments = [ ];
 
         for (int index = 0; index < syntax.Arguments.Count; index++)
         {

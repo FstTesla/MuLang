@@ -3,6 +3,7 @@ using MuLang.Core.Environment;
 using MuLang.Core.Symbols;
 using MuLang.Core.Text;
 using MuLang.Core.Types;
+using System.Collections.ObjectModel;
 
 namespace MuLang.IR;
 
@@ -23,7 +24,7 @@ internal static class IrValidator
             throw new ArgumentNullException(nameof(environment));
         }
 
-        List<Diagnostic> diagnostics = [ ];
+        ICollection<Diagnostic> diagnostics = [ ];
 
         if (program.EnvironmentFingerprint != environment.Fingerprint)
         {
@@ -36,7 +37,7 @@ internal static class IrValidator
         }
 
         ValidateSlots(program, diagnostics);
-        Dictionary<int, IrBasicBlock> blocksById = ValidateBlocks(program, diagnostics);
+        IReadOnlyDictionary<int, IrBasicBlock> blocksById = ValidateBlocks(program, diagnostics);
 
         if (!blocksById.ContainsKey(program.EntryBlock))
         {
@@ -922,14 +923,17 @@ internal static class IrValidator
             return;
         }
 
-        HashSet<int> reachable = GetReachableBlocks(program.EntryBlock, blocksById);
-        Dictionary<int, List<int>> predecessors = GetPredecessors(reachable, blocksById);
-        HashSet<int> allSlots = [ .. program.Slots.Select(static slot => slot.Id) ];
-        Dictionary<int, HashSet<int>> outgoing = [ ];
+        IReadOnlyCollection<int> reachable = GetReachableBlocks(program.EntryBlock, blocksById);
+        IReadOnlyDictionary<int, IReadOnlyList<int>> predecessors = GetPredecessors(reachable, blocksById);
+        IReadOnlySet<int> allSlots = new HashSet<int>(program.Slots.Select(static slot => slot.Id));
+        Dictionary<int, IReadOnlySet<int>> outgoing = [ ];
 
         foreach (int blockId in reachable)
         {
-            outgoing.Add(blockId, blockId == program.EntryBlock ? [ ] : [ .. allSlots ]);
+            outgoing.Add(
+                blockId,
+                blockId == program.EntryBlock ? ReadOnlySet<int>.Empty : [ .. allSlots ]
+            );
         }
 
         bool changed;
@@ -940,13 +944,13 @@ internal static class IrValidator
 
             foreach (int blockId in reachable.Order())
             {
-                HashSet<int> incoming = GetIncomingDefinitions(
+                IReadOnlySet<int> incoming = GetIncomingDefinitions(
                     blockId,
                     program.EntryBlock,
                     predecessors,
                     outgoing
                 );
-                HashSet<int> definitions = ApplyDefinitions(
+                IReadOnlySet<int> definitions = ApplyDefinitions(
                     blocksById[blockId],
                     incoming
                 );
@@ -962,7 +966,7 @@ internal static class IrValidator
 
         foreach (int blockId in reachable)
         {
-            HashSet<int> defined = GetIncomingDefinitions(
+            IReadOnlySet<int> defined = GetIncomingDefinitions(
                 blockId,
                 program.EntryBlock,
                 predecessors,
@@ -972,7 +976,7 @@ internal static class IrValidator
         }
     }
 
-    private static HashSet<int> GetReachableBlocks(
+    private static IReadOnlySet<int> GetReachableBlocks(
         int entryBlock,
         IReadOnlyDictionary<int, IrBasicBlock> blocksById
     )
@@ -1004,23 +1008,23 @@ internal static class IrValidator
         return reachable;
     }
 
-    private static Dictionary<int, List<int>> GetPredecessors(
+    private static IReadOnlyDictionary<int, IReadOnlyList<int>> GetPredecessors(
         IReadOnlyCollection<int> reachable,
         IReadOnlyDictionary<int, IrBasicBlock> blocksById
     )
     {
-        Dictionary<int, List<int>> predecessors = reachable.ToDictionary(
+        Dictionary<int, IReadOnlyList<int>> predecessors = reachable.ToDictionary(
             static blockId => blockId,
-            static _ => new List<int>()
+            static IReadOnlyList<int> (_) => new List<int>()
         );
 
         foreach (int blockId in reachable)
         {
             foreach (int successor in GetSuccessors(blocksById[blockId].Terminator))
             {
-                if (predecessors.TryGetValue(successor, out List<int>? values))
+                if (predecessors.TryGetValue(successor, out IReadOnlyList<int>? values))
                 {
-                    values.Add(blockId);
+                    ((IList<int>)values).Add(blockId);
                 }
             }
         }
@@ -1028,16 +1032,16 @@ internal static class IrValidator
         return predecessors;
     }
 
-    private static HashSet<int> GetIncomingDefinitions(
+    private static IReadOnlySet<int> GetIncomingDefinitions(
         int blockId,
         int entryBlock,
-        IReadOnlyDictionary<int, List<int>> predecessors,
-        IReadOnlyDictionary<int, HashSet<int>> outgoing
+        IReadOnlyDictionary<int, IReadOnlyList<int>> predecessors,
+        IReadOnlyDictionary<int, IReadOnlySet<int>> outgoing
     )
     {
         if (blockId == entryBlock || predecessors[blockId].Count == 0)
         {
-            return [ ];
+            return ReadOnlySet<int>.Empty;
         }
 
         HashSet<int> incoming = [ .. outgoing[predecessors[blockId][0]] ];
@@ -1050,7 +1054,7 @@ internal static class IrValidator
         return incoming;
     }
 
-    private static HashSet<int> ApplyDefinitions(
+    private static IReadOnlySet<int> ApplyDefinitions(
         IrBasicBlock block,
         IEnumerable<int> incoming
     )
@@ -1072,15 +1076,17 @@ internal static class IrValidator
 
     private static void ValidateUses(
         IrBasicBlock block,
-        ISet<int> defined,
+        IEnumerable<int> defined,
         ICollection<Diagnostic> diagnostics
     )
     {
+        ISet<int> allDefined = new HashSet<int>(defined);
+
         foreach (IrInstruction instruction in block.Instructions)
         {
             foreach (int operand in GetOperands(instruction))
             {
-                if (!defined.Contains(operand))
+                if (!allDefined.Contains(operand))
                 {
                     Report(
                         diagnostics,
@@ -1095,13 +1101,13 @@ internal static class IrValidator
 
             if (destination is not null)
             {
-                defined.Add(destination.Value);
+                allDefined.Add(destination.Value);
             }
         }
 
         foreach (int operand in GetOperands(block.Terminator))
         {
-            if (!defined.Contains(operand))
+            if (!allDefined.Contains(operand))
             {
                 Report(
                     diagnostics,
