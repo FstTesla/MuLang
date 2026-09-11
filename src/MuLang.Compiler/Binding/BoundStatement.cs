@@ -6,7 +6,7 @@ internal abstract record BoundStatement(SyntaxNode Syntax) : BoundNode(Syntax)
 {
     internal sealed record Block(
         SyntaxNode Syntax,
-        IReadOnlyList<BoundStatement> Statements
+        IReadOnlyCollection<BoundStatement> Statements
     ) : BoundStatement(Syntax);
 
     internal sealed record VariableDeclaration(

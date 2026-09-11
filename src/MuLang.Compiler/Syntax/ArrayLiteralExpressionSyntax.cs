@@ -4,8 +4,8 @@ namespace MuLang.Compiler.Syntax;
 
 internal sealed record ArrayLiteralExpressionSyntax(
     SyntaxToken OpenBracketToken,
-    IReadOnlyList<ExpressionSyntax> Elements,
-    IReadOnlyList<SyntaxToken> CommaTokens,
+    IReadOnlyCollection<ExpressionSyntax> Elements,
+    IReadOnlyCollection<SyntaxToken> CommaTokens,
     SyntaxToken CloseBracketToken
 ) : ExpressionSyntax
 {

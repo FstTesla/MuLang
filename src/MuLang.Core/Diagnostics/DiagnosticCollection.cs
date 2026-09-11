@@ -2,7 +2,7 @@ using System.Collections;
 
 namespace MuLang.Core.Diagnostics;
 
-public sealed class DiagnosticCollection : IReadOnlyCollection<Diagnostic>
+public sealed class DiagnosticCollection : IReadOnlyList<Diagnostic>
 {
     private readonly IReadOnlyList<Diagnostic> diagnostics;
 

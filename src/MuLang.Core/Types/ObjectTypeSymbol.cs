@@ -39,7 +39,7 @@ public sealed class ObjectTypeSymbol : TypeSymbol
             throw new ArgumentNullException(nameof(properties));
         }
 
-        IReadOnlyList<ObjectPropertySymbol> propertyList = [ .. properties ];
+        IReadOnlyCollection<ObjectPropertySymbol> propertyList = [ .. properties ];
 
         IGrouping<string, ObjectPropertySymbol>? duplicate = propertyList
             .GroupBy(static property => property.Name, StringComparer.Ordinal)

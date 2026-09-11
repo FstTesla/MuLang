@@ -90,7 +90,7 @@ internal abstract record BoundExpression(
     internal sealed record Call(
         SyntaxNode Syntax,
         FunctionSymbol Function,
-        IReadOnlyList<BoundExpression> Arguments
+        IReadOnlyCollection<BoundExpression> Arguments
     ) : BoundExpression(Syntax, Function.ReturnType);
 
     internal sealed record MemberAccess(

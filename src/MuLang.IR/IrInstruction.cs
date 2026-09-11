@@ -71,7 +71,7 @@ internal abstract record IrInstruction(TextSpan Span)
         TextSpan Span,
         int Destination,
         ArrayTypeSymbol Type,
-        IReadOnlyList<int> Elements
+        IReadOnlyCollection<int> Elements
     ) : IrInstruction(Span);
 
     internal sealed record ObjectPropertyValue(string Name, int Value);
@@ -80,7 +80,7 @@ internal abstract record IrInstruction(TextSpan Span)
         TextSpan Span,
         int Destination,
         ObjectTypeSymbol Type,
-        IReadOnlyList<ObjectPropertyValue> Properties
+        IReadOnlyCollection<ObjectPropertyValue> Properties
     ) : IrInstruction(Span);
 
     internal sealed record GetProperty(
