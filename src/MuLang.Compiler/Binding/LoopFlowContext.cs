@@ -2,8 +2,8 @@ namespace MuLang.Compiler.Binding;
 
 internal sealed class LoopFlowContext
 {
-    private readonly List<FlowState> breakStates = [];
-    private readonly List<FlowState> continueStates = [];
+    private readonly List<FlowState> breakStates = [ ];
+    private readonly List<FlowState> continueStates = [ ];
 
     public IReadOnlyCollection<FlowState> BreakStates => breakStates;
 

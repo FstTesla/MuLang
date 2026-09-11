@@ -1,9 +1,10 @@
-using System.Linq.Expressions;
-using System.Reflection;
 using MuLang.Core.Diagnostics;
 using MuLang.Core.Environment;
 using MuLang.Core.Text;
+using MuLang.Core.Types;
 using MuLang.IR;
+using System.Linq.Expressions;
+using System.Reflection;
 
 namespace MuLang.Exporters.DotNet;
 
@@ -15,37 +16,43 @@ internal static class DotNetExporter
         typeof(EnvironmentFingerprint),
         typeof(TextSpan)
     );
+
     private static readonly MethodInfo consumeMethod = GetMethod(
         nameof(DotNetRuntimeOperations.Consume),
         typeof(DotNetRuntimeContext),
         typeof(TextSpan)
     );
+
     private static readonly MethodInfo getGlobalMethod = GetMethod(
         nameof(DotNetRuntimeOperations.GetGlobal),
         typeof(DotNetRuntimeContext),
         typeof(string),
-        typeof(Core.Types.TypeSymbol),
+        typeof(TypeSymbol),
         typeof(TextSpan)
     );
+
     private static readonly MethodInfo invokeMethod = GetMethod(
         nameof(DotNetRuntimeOperations.Invoke),
         typeof(DotNetRuntimeContext),
         typeof(string),
         typeof(object[]),
-        typeof(Core.Types.TypeSymbol),
+        typeof(TypeSymbol),
         typeof(TextSpan)
     );
+
     private static readonly MethodInfo requireBooleanMethod = GetMethod(
         nameof(DotNetRuntimeOperations.RequireBoolean),
         typeof(object),
         typeof(TextSpan)
     );
+
     private static readonly MethodInfo unaryMethod = GetMethod(
         nameof(DotNetRuntimeOperations.Unary),
         typeof(IrUnaryOperator),
         typeof(object),
         typeof(TextSpan)
     );
+
     private static readonly MethodInfo binaryMethod = GetMethod(
         nameof(DotNetRuntimeOperations.Binary),
         typeof(DotNetRuntimeContext),
@@ -54,42 +61,49 @@ internal static class DotNetExporter
         typeof(object),
         typeof(TextSpan)
     );
+
     private static readonly MethodInfo convertMethod = GetMethod(
         nameof(DotNetRuntimeOperations.ConvertValue),
         typeof(DotNetRuntimeContext),
         typeof(object),
-        typeof(Core.Types.TypeSymbol),
+        typeof(TypeSymbol),
         typeof(TextSpan)
     );
+
     private static readonly MethodInfo typeTestMethod = GetMethod(
         nameof(DotNetRuntimeOperations.TypeTest),
         typeof(DotNetRuntimeContext),
         typeof(object),
-        typeof(Core.Types.TypeSymbol),
+        typeof(TypeSymbol),
         typeof(TextSpan)
     );
+
     private static readonly MethodInfo isNullMethod = GetMethod(
         nameof(DotNetRuntimeOperations.IsNull),
         typeof(object)
     );
+
     private static readonly MethodInfo createArrayMethod = GetMethod(
         nameof(DotNetRuntimeOperations.CreateArray),
         typeof(object[])
     );
+
     private static readonly MethodInfo createObjectMethod = GetMethod(
         nameof(DotNetRuntimeOperations.CreateObject),
         typeof(string[]),
         typeof(object[])
     );
+
     private static readonly MethodInfo getPropertyMethod = GetMethod(
         nameof(DotNetRuntimeOperations.GetProperty),
         typeof(object),
         typeof(string),
         typeof(bool),
         typeof(bool),
-        typeof(Core.Types.TypeSymbol),
+        typeof(TypeSymbol),
         typeof(TextSpan)
     );
+
     private static readonly MethodInfo setPropertyMethod = GetMethod(
         nameof(DotNetRuntimeOperations.SetProperty),
         typeof(object),
@@ -97,21 +111,24 @@ internal static class DotNetExporter
         typeof(object),
         typeof(TextSpan)
     );
+
     private static readonly MethodInfo removePropertyMethod = GetMethod(
         nameof(DotNetRuntimeOperations.RemoveProperty),
         typeof(object),
         typeof(string),
         typeof(TextSpan)
     );
+
     private static readonly MethodInfo getElementMethod = GetMethod(
         nameof(DotNetRuntimeOperations.GetElement),
         typeof(object),
         typeof(object),
         typeof(bool),
         typeof(bool),
-        typeof(Core.Types.TypeSymbol),
+        typeof(TypeSymbol),
         typeof(TextSpan)
     );
+
     private static readonly MethodInfo setElementMethod = GetMethod(
         nameof(DotNetRuntimeOperations.SetElement),
         typeof(object),
@@ -120,12 +137,14 @@ internal static class DotNetExporter
         typeof(bool),
         typeof(TextSpan)
     );
+
     private static readonly MethodInfo removeElementPropertyMethod = GetMethod(
         nameof(DotNetRuntimeOperations.RemoveElementProperty),
         typeof(object),
         typeof(object),
         typeof(TextSpan)
     );
+
     private static readonly MethodInfo hasPropertyMethod = GetMethod(
         nameof(DotNetRuntimeOperations.HasProperty),
         typeof(object),
@@ -156,21 +175,21 @@ internal static class DotNetExporter
             typeof(DotNetRuntimeContext),
             "context"
         );
-        ParameterExpression[] slots = program.Slots
-            .Select(static slot => Expression.Variable(typeof(object), $"slot{slot.Id}"))
-            .ToArray();
-        LabelTarget[] blockLabels = program.Blocks
-            .Select(static block => Expression.Label($"block{block.Id}"))
-            .ToArray();
+        ParameterExpression[] slots =
+            [ .. program.Slots.Select(static slot => Expression.Variable(typeof(object), $"slot{slot.Id}")) ];
+        LabelTarget[] blockLabels =
+            [ .. program.Blocks.Select(static block => Expression.Label($"block{block.Id}")) ];
         LabelTarget returnLabel = Expression.Label(typeof(object), "return");
-        List<Expression> expressions = [];
+        List<Expression> expressions = [ ];
         TextSpan entrySpan = program.Blocks[program.EntryBlock].Terminator.Span;
-        expressions.Add(Expression.Call(
-            validateEnvironmentMethod,
-            context,
-            Expression.Constant(program.EnvironmentFingerprint),
-            Expression.Constant(entrySpan)
-        ));
+        expressions.Add(
+            Expression.Call(
+                validateEnvironmentMethod,
+                context,
+                Expression.Constant(program.EnvironmentFingerprint),
+                Expression.Constant(entrySpan)
+            )
+        );
         expressions.Add(Expression.Goto(blockLabels[program.EntryBlock]));
 
         foreach (IrBasicBlock block in program.Blocks)
@@ -180,27 +199,33 @@ internal static class DotNetExporter
             foreach (IrInstruction instruction in block.Instructions)
             {
                 expressions.Add(CreateConsumeExpression(context, instruction.Span));
-                expressions.Add(CreateInstructionExpression(
-                    context,
-                    slots,
-                    program.Slots,
-                    instruction
-                ));
+                expressions.Add(
+                    CreateInstructionExpression(
+                        context,
+                        slots,
+                        program.Slots,
+                        instruction
+                    )
+                );
             }
 
             expressions.Add(CreateConsumeExpression(context, block.Terminator.Span));
-            expressions.Add(CreateTerminatorExpression(
-                slots,
-                blockLabels,
-                returnLabel,
-                block.Terminator
-            ));
+            expressions.Add(
+                CreateTerminatorExpression(
+                    slots,
+                    blockLabels,
+                    returnLabel,
+                    block.Terminator
+                )
+            );
         }
 
-        expressions.Add(Expression.Label(
-            returnLabel,
-            Expression.Constant(null, typeof(object))
-        ));
+        expressions.Add(
+            Expression.Label(
+                returnLabel,
+                Expression.Constant(null, typeof(object))
+            )
+        );
         BlockExpression body = Expression.Block(slots, expressions);
         Expression<Func<DotNetRuntimeContext, object?>> lambda =
             Expression.Lambda<Func<DotNetRuntimeContext, object?>>(body, context);

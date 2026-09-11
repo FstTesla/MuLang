@@ -26,12 +26,9 @@ public readonly record struct TextSpan
 
     public static TextSpan FromBounds(int start, int end)
     {
-        if (end < start)
-        {
-            throw new ArgumentOutOfRangeException(nameof(end));
-        }
-
-        return new TextSpan(start, end - start);
+        return end < start
+            ? throw new ArgumentOutOfRangeException(nameof(end))
+            : new TextSpan(start, end - start);
     }
 
     public bool Contains(int offset)

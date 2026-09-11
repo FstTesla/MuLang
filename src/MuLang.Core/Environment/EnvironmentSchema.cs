@@ -1,7 +1,7 @@
-using System.Collections.Frozen;
-using System.Diagnostics.CodeAnalysis;
 using MuLang.Core.Symbols;
 using MuLang.Core.Types;
+using System.Collections.Frozen;
+using System.Diagnostics.CodeAnalysis;
 
 namespace MuLang.Core.Environment;
 

@@ -112,12 +112,9 @@ public sealed class SourceText
             out Rune rune,
             out _
         );
-        if (status != OperationStatus.Done)
-        {
-            throw new InvalidOperationException("Source text contains invalid UTF-16.");
-        }
-
-        return rune;
+        return status != OperationStatus.Done
+            ? throw new InvalidOperationException("Source text contains invalid UTF-16.")
+            : rune;
     }
 
     private void ValidateOffset(int offset)

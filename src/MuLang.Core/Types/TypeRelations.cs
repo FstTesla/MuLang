@@ -49,9 +49,9 @@ public static class TypeRelations
                 return true;
             }
 
-            return source is NullableTypeSymbol sourceNullable
-                ? IsAssignable(sourceNullable.UnderlyingType, targetNullable.UnderlyingType)
-                : IsAssignable(source, targetNullable.UnderlyingType);
+            TypeSymbol innerSource = source is NullableTypeSymbol sourceNullable
+                ? sourceNullable.UnderlyingType : source;
+            return IsAssignable(innerSource, targetNullable.UnderlyingType);
         }
 
         if (source is NullableTypeSymbol)

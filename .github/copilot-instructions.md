@@ -4,7 +4,7 @@ Be concise. Do not repeat yourself. Avoid unnecessary explanations and enthusias
 
 ---
 
-In conversations with multiple phases, make sure to re-read all involved files, so that you acknowledge any manual changes made by the user.
+After user prompts, make sure to re-read all involved files, so that you acknowledge any manual changes made by the user.
 
 ---
 
@@ -120,6 +120,10 @@ Leverage Fluent's `tokens` in CSS styles whenever possible, except for `0` dimen
 # C\#
 
 Use compact `namespace` declarations.
+
+---
+
+Sort `using` directives in alphabetical order (no `System` first).
 
 ---
 

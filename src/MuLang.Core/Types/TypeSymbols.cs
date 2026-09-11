@@ -28,25 +28,19 @@ public static class TypeSymbols
 
     public static NullableTypeSymbol Nullable(TypeSymbol underlyingType)
     {
-        if (underlyingType is null)
+        return underlyingType switch
         {
-            throw new ArgumentNullException(nameof(underlyingType));
-        }
-
-        if (underlyingType is NullableTypeSymbol)
-        {
-            throw new ArgumentException("A nullable type cannot be nullable again.", nameof(underlyingType));
-        }
-
-        if (underlyingType.Kind is TypeKind.Void or TypeKind.Null or TypeKind.Error)
-        {
-            throw new ArgumentException(
-                $"Type '{underlyingType.DisplayName}' cannot be nullable.",
-                nameof(underlyingType)
-            );
-        }
-
-        return new NullableTypeSymbol(underlyingType);
+            null =>
+                throw new ArgumentNullException(nameof(underlyingType)),
+            NullableTypeSymbol =>
+                throw new ArgumentException("A nullable type cannot be nullable again.", nameof(underlyingType)),
+            { Kind: TypeKind.Void or TypeKind.Null or TypeKind.Error } =>
+                throw new ArgumentException(
+                    $"Type '{underlyingType.DisplayName}' cannot be nullable.",
+                    nameof(underlyingType)
+                ),
+            _ => new NullableTypeSymbol(underlyingType),
+        };
     }
 
     public static ArrayTypeSymbol Array(TypeSymbol elementType)

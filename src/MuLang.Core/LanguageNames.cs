@@ -6,7 +6,7 @@ namespace MuLang.Core;
 
 internal static class LanguageNames
 {
-    private static readonly HashSet<string> reservedKeywords = new(
+    private static readonly HashSet<string> reservedKeywords = new (
         [
             "as",
             "bool",

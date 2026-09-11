@@ -15,10 +15,10 @@ public sealed class MuLangCompilerTests
             environment,
             TypeSymbols.Int
         );
-        DotNetRuntimeContext context = new(
+        DotNetRuntimeContext context = new (
             environment,
-            [],
-            []
+            [ ],
+            [ ]
         );
 
         using (Assert.EnterMultipleScope())

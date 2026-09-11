@@ -1,4 +1,3 @@
-using System.Globalization;
 using MuLang.Compiler.Diagnostics;
 using MuLang.Compiler.Syntax;
 using MuLang.Core;
@@ -7,6 +6,7 @@ using MuLang.Core.Environment;
 using MuLang.Core.Symbols;
 using MuLang.Core.Text;
 using MuLang.Core.Types;
+using System.Globalization;
 
 namespace MuLang.Compiler.Binding;
 
@@ -15,10 +15,10 @@ internal sealed class Binder
     private readonly SourceText source;
     private readonly EnvironmentSchema environment;
     private readonly TypeSymbol expectedResultType;
-    private readonly List<Diagnostic> diagnostics = [];
-    private BindingScope scope = new(null);
-    private FlowState currentFlowState = new([]);
-    private readonly Stack<LoopFlowContext> loopContexts = [];
+    private readonly List<Diagnostic> diagnostics = [ ];
+    private BindingScope scope = new (null);
+    private FlowState currentFlowState = new ([ ]);
+    private readonly Stack<LoopFlowContext> loopContexts = [ ];
     private int nextLocalSlot;
 
     private Binder(
@@ -62,7 +62,7 @@ internal sealed class Binder
             );
         }
 
-        Binder binder = new(syntaxTree.Source, environment, resultType);
+        Binder binder = new (syntaxTree.Source, environment, resultType);
         BoundRoot root = syntaxTree.Root switch
         {
             ExpressionRootSyntax expressionRoot => binder.BindExpressionRoot(
@@ -108,8 +108,8 @@ internal sealed class Binder
 
     private BoundRoot BindProgramRoot(ProgramRootSyntax syntax)
     {
-        FlowState state = new([]);
-        List<BoundStatement> statements = [];
+        FlowState state = new ([ ]);
+        List<BoundStatement> statements = [ ];
 
         foreach (StatementSyntax statementSyntax in syntax.Statements)
         {
@@ -184,9 +184,9 @@ internal sealed class Binder
     )
     {
         BindingScope parentScope = scope;
-        BindingScope blockScope = new(parentScope);
+        BindingScope blockScope = new (parentScope);
         scope = blockScope;
-        List<BoundStatement> statements = [];
+        List<BoundStatement> statements = [ ];
 
         foreach (StatementSyntax statementSyntax in syntax.Statements)
         {
@@ -216,7 +216,7 @@ internal sealed class Binder
             : BindExpression(syntax.Initializer, declaredType);
         TypeSymbol localType = declaredType ?? InferLocalType(syntax, initializer);
         string name = GetText(syntax.IdentifierToken);
-        LocalSymbol local = new(name, localType, nextLocalSlot++);
+        LocalSymbol local = new (name, localType, nextLocalSlot++);
         bool hasCurrentLocal = scope.ContainsLocal(name);
         bool hasVisibleLocal = scope.TryLookup(name, out _);
         bool hasVisibleGlobal = environment.TryGetGlobal(name, out _);
@@ -252,21 +252,17 @@ internal sealed class Binder
         BoundExpression? initializer
     )
     {
-        if (
-            initializer is null ||
-            initializer.Type.Kind is TypeKind.Null or TypeKind.Error or TypeKind.Void
-        )
+        if (initializer is not (null or { Type.Kind: TypeKind.Null or TypeKind.Error or TypeKind.Void }))
         {
-            Report(
-                DiagnosticCodes.CannotInferType,
-                syntax.Span,
-                "The local variable type cannot be inferred from its initializer."
-            );
-
-            return TypeSymbols.Error;
+            return initializer.Type;
         }
 
-        return initializer.Type;
+        Report(
+            DiagnosticCodes.CannotInferType,
+            syntax.Span,
+            "The local variable type cannot be inferred from its initializer."
+        );
+        return TypeSymbols.Error;
     }
 
     private BoundStatement BindAssignment(
@@ -361,7 +357,7 @@ internal sealed class Binder
         bool wasReachable = state.CanCompleteNormally;
         BoundExpression condition = BindExpression(syntax.Condition, TypeSymbols.Bool);
         FlowState bodyState = state.Clone();
-        LoopFlowContext loopContext = new();
+        LoopFlowContext loopContext = new ();
         loopContexts.Push(loopContext);
         BoundStatement body = BindEmbeddedStatement(syntax.Body, bodyState);
         loopContexts.Pop();
@@ -388,7 +384,7 @@ internal sealed class Binder
     {
         bool wasReachable = state.CanCompleteNormally;
         BindingScope parentScope = scope;
-        BindingScope forScope = new(parentScope);
+        BindingScope forScope = new (parentScope);
         scope = forScope;
         BoundStatement? initializer = syntax.Initializer is null
             ? null
@@ -397,10 +393,10 @@ internal sealed class Binder
             ? null
             : BindExpression(syntax.Condition, TypeSymbols.Bool);
         FlowState bodyState = state.Clone();
-        LoopFlowContext loopContext = new();
+        LoopFlowContext loopContext = new ();
         loopContexts.Push(loopContext);
         BoundStatement body = BindEmbeddedStatement(syntax.Body, bodyState);
-        List<FlowState> iteratorEntryStates = [];
+        List<FlowState> iteratorEntryStates = [ ];
 
         if (bodyState.CanCompleteNormally)
         {
@@ -473,7 +469,7 @@ internal sealed class Binder
         }
 
         BindingScope parentScope = scope;
-        BindingScope embeddedScope = new(parentScope);
+        BindingScope embeddedScope = new (parentScope);
         scope = embeddedScope;
         BoundStatement statement = BindStatement(syntax, state);
 
@@ -643,6 +639,7 @@ internal sealed class Binder
 
                 return new BoundExpression.Literal(syntax, TypeSymbols.Int, value);
             }
+
             case TokenKind.NumberLiteral:
             {
                 string text = GetSignedLiteralText(syntax);
@@ -668,26 +665,31 @@ internal sealed class Binder
 
                 return new BoundExpression.Literal(syntax, TypeSymbols.Number, value);
             }
+
             case TokenKind.StringLiteral:
             {
                 return new BoundExpression.Literal(
                     syntax,
                     TypeSymbols.String,
-                    syntax.LiteralToken.Value ?? string.Empty
+                    syntax.LiteralToken.Value ?? ""
                 );
             }
+
             case TokenKind.TrueKeyword:
             {
                 return new BoundExpression.Literal(syntax, TypeSymbols.Bool, true);
             }
+
             case TokenKind.FalseKeyword:
             {
                 return new BoundExpression.Literal(syntax, TypeSymbols.Bool, false);
             }
+
             case TokenKind.NullKeyword:
             {
                 return new BoundExpression.Literal(syntax, TypeSymbols.Null, null);
             }
+
             default:
             {
                 return new BoundExpression.Error(syntax);
@@ -737,7 +739,7 @@ internal sealed class Binder
     )
     {
         ArrayTypeSymbol? expectedArray = GetNonNullable(expectedType) as ArrayTypeSymbol;
-        List<BoundExpression> elements = [];
+        List<BoundExpression> elements = [ ];
         TypeSymbol? elementType = null;
         bool hasInvalidElementType = false;
 
@@ -833,9 +835,9 @@ internal sealed class Binder
     )
     {
         ObjectTypeSymbol? expectedObject = GetNonNullable(expectedType) as ObjectTypeSymbol;
-        List<BoundExpression.ObjectProperty> properties = [];
-        List<ObjectPropertySymbol> propertySymbols = [];
-        HashSet<string> names = new(StringComparer.Ordinal);
+        List<BoundExpression.ObjectProperty> properties = [ ];
+        List<ObjectPropertySymbol> propertySymbols = [ ];
+        HashSet<string> names = new (StringComparer.Ordinal);
 
         if (expectedObject is not null && syntax.IsOpen != expectedObject.IsOpen)
         {
@@ -849,14 +851,11 @@ internal sealed class Binder
         foreach (ObjectPropertyInitializerSyntax propertySyntax in syntax.Properties)
         {
             string name = propertySyntax.NameToken.Kind == TokenKind.StringLiteral
-                ? propertySyntax.NameToken.Value ?? string.Empty
+                ? propertySyntax.NameToken.Value ?? ""
                 : GetText(propertySyntax.NameToken);
             ObjectPropertySymbol? expectedProperty = null;
 
-            if (expectedObject is not null)
-            {
-                expectedObject.TryGetProperty(name, out expectedProperty);
-            }
+            _ = expectedObject?.TryGetProperty(name, out expectedProperty);
 
             TypeSymbol? expectedPropertyType = expectedProperty?.Type;
 
@@ -1032,7 +1031,7 @@ internal sealed class Binder
         );
     }
 
-    private TypeSymbol? GetBinaryResultType(
+    private static TypeSymbol? GetBinaryResultType(
         TokenKind operatorKind,
         TypeSymbol left,
         TypeSymbol right
@@ -1083,8 +1082,8 @@ internal sealed class Binder
                 TokenKind.GreaterThan or
                 TokenKind.GreaterThanOrEqual &&
             (
-                IsNumeric(left) && IsNumeric(right) ||
-                left.Kind == TypeKind.String && right.Kind == TypeKind.String
+                (IsNumeric(left) && IsNumeric(right)) ||
+                (left.Kind == TypeKind.String && right.Kind == TypeKind.String)
             )
         )
         {
@@ -1245,7 +1244,7 @@ internal sealed class Binder
             );
         }
 
-        List<BoundExpression> arguments = [];
+        List<BoundExpression> arguments = [ ];
 
         for (int index = 0; index < syntax.Arguments.Count; index++)
         {
@@ -1525,7 +1524,7 @@ internal sealed class Binder
             TokenKind.ObjectKeyword => TypeSymbols.Object,
             TokenKind.Identifier
                 when environment.TryGetType(name, out ObjectTypeSymbol? objectType) =>
-                    objectType,
+                objectType,
             _ => TypeSymbols.Error,
         };
 
@@ -1549,11 +1548,8 @@ internal sealed class Binder
                 {
                     type = TypeSymbols.Nullable(type);
                 }
-
-                continue;
             }
-
-            if (
+            else if (
                 suffix.Kind == TokenKind.OpenBracket &&
                 index + 1 < syntax.SuffixTokens.Count &&
                 syntax.SuffixTokens[index + 1].Kind == TokenKind.CloseBracket
@@ -1567,7 +1563,7 @@ internal sealed class Binder
         return type;
     }
 
-    private ObjectPropertySymbol? TryResolveLiteralProperty(
+    private static ObjectPropertySymbol? TryResolveLiteralProperty(
         BoundExpression index,
         ObjectTypeSymbol objectType
     )
@@ -1693,11 +1689,11 @@ internal sealed class Binder
 
         if (
             operatorKind is
-                TokenKind.LeftShift or
-                TokenKind.RightShift or
-                TokenKind.Ampersand or
-                TokenKind.Caret or
-                TokenKind.Pipe
+            TokenKind.LeftShift or
+            TokenKind.RightShift or
+            TokenKind.Ampersand or
+            TokenKind.Caret or
+            TokenKind.Pipe
         )
         {
             left = ConvertRequiredOperand(left, TypeSymbols.Int);
@@ -1726,7 +1722,6 @@ internal sealed class Binder
             right = ConvertRequiredOperand(right, TypeSymbols.String);
             return;
         }
-
     }
 
     private static BoundExpression ConvertRequiredOperand(
@@ -1830,7 +1825,7 @@ internal sealed class Binder
         {
             TokenKind.Plus => "+",
             TokenKind.Minus => "-",
-            _ => string.Empty,
+            _ => "",
         };
 
         return $"{sign}{GetText(syntax.LiteralToken)}";

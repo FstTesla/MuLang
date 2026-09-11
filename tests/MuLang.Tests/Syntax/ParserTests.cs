@@ -191,10 +191,18 @@ public sealed class ParserTests
 
     [TestCase("[1,]")]
     [TestCase("{ value: 1, }")]
-    [TestCase("call(1,)")]
-    public void ReportsTrailingSeparators(string source)
+    [TestCase("@{ value: 1, }")]
+    public void AllowsTrailingSeparatorsInCollectionLiterals(string source)
     {
         SyntaxTree tree = ParseExpression(source);
+
+        Assert.That(tree.Diagnostics, Is.Empty);
+    }
+
+    [Test]
+    public void ReportsTrailingSeparatorInArgumentList()
+    {
+        SyntaxTree tree = ParseExpression("call(1,)");
 
         Assert.That(
             tree.Diagnostics.Select(static diagnostic => diagnostic.Code),

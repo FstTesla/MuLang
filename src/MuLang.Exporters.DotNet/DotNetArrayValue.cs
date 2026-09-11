@@ -6,7 +6,7 @@ internal sealed class DotNetArrayValue : IDotNetArrayValue
 
     public DotNetArrayValue(IEnumerable<object?> elements)
     {
-        this.elements = new List<object?>(elements);
+        this.elements = [ .. elements ];
     }
 
     public object Identity => this;

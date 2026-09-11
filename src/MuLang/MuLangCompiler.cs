@@ -2,6 +2,7 @@ using MuLang.Compiler.Binding;
 using MuLang.Compiler.Lowering;
 using MuLang.Compiler.Syntax;
 using MuLang.Core;
+using MuLang.Core.Diagnostics;
 using MuLang.Core.Environment;
 using MuLang.Core.Text;
 using MuLang.Core.Types;
@@ -88,8 +89,8 @@ public static class MuLangCompiler
             lowering.Program,
             environment
         );
-        Core.Diagnostics.DiagnosticCollection diagnostics =
-            Core.Diagnostics.DiagnosticCollection.Create(
+        DiagnosticCollection diagnostics =
+            DiagnosticCollection.Create(
                 binding.Diagnostics
                     .Concat(lowering.Diagnostics)
                     .Concat(export.Diagnostics)

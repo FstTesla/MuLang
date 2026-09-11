@@ -36,7 +36,7 @@ public sealed class DotNetExporterTests
             .AddFunction(
                 "function.increment",
                 "increment",
-                [new ParameterSymbol("value", TypeSymbols.Int)],
+                [ new ParameterSymbol("value", TypeSymbols.Int) ],
                 TypeSymbols.Int
             )
             .Build();
@@ -46,7 +46,7 @@ public sealed class DotNetExporterTests
         );
         DotNetRuntimeContext context = CreateContext(
             environment,
-            [new KeyValuePair<string, object?>("global.value", 41L)],
+            [ new KeyValuePair<string, object?>("global.value", 41L) ],
             [
                 new KeyValuePair<string, DotNetFunction>(
                     "function.increment",
@@ -65,7 +65,7 @@ public sealed class DotNetExporterTests
     {
         int invocationCount = 0;
         EnvironmentSchema environment = new EnvironmentBuilder()
-            .AddFunction("function.touch", "touch", [], TypeSymbols.Bool)
+            .AddFunction("function.touch", "touch", [ ], TypeSymbols.Bool)
             .Build();
         Func<DotNetRuntimeContext, object?> compiled = CompileExpression(
             "false && touch()",
@@ -97,11 +97,11 @@ public sealed class DotNetExporterTests
     public void ExecutesForLoopAndLocalAssignments()
     {
         const string source = """
-            var sum = 0;
-            for (var index = 0; index < 5; index = index + 1)
-                sum = sum + index;
-            return sum;
-            """;
+                              var sum = 0;
+                              for (var index = 0; index < 5; index = index + 1)
+                                  sum = sum + index;
+                              return sum;
+                              """;
         EnvironmentSchema environment = CreateEmptyEnvironment();
         Func<DotNetRuntimeContext, object?> compiled = CompileProgram(
             source,
@@ -116,10 +116,10 @@ public sealed class DotNetExporterTests
     public void ExecutesArrayCreationMutationIndexingAndLength()
     {
         const string source = """
-            var values: int[] = [1, 2];
-            values[0] = 3;
-            return values.length + values[0];
-            """;
+                              var values: int[] = [1, 2];
+                              values[0] = 3;
+                              return values.length + values[0];
+                              """;
         EnvironmentSchema environment = CreateEmptyEnvironment();
         Func<DotNetRuntimeContext, object?> compiled = CompileProgram(
             source,
@@ -134,11 +134,11 @@ public sealed class DotNetExporterTests
     public void ExecutesDynamicObjectMutationRemovalAndHas()
     {
         const string source = """
-            var item = @{ value: 1 };
-            item.extra = 2;
-            item.extra~;
-            return item has "extra";
-            """;
+                              var item = @{ value: 1 };
+                              item.extra = 2;
+                              item.extra~;
+                              return item has "extra";
+                              """;
         EnvironmentSchema environment = CreateEmptyEnvironment();
         Func<DotNetRuntimeContext, object?> compiled = CompileProgram(
             source,
@@ -174,11 +174,11 @@ public sealed class DotNetExporterTests
     [Test]
     public void ExecutesOptionalAccessOnNull()
     {
-        ObjectTypeSymbol itemType = new(
+        ObjectTypeSymbol itemType = new (
             "type.item",
             "Item",
             false,
-            [new ObjectPropertySymbol("value", TypeSymbols.Int)]
+            [ new ObjectPropertySymbol("value", TypeSymbols.Int) ]
         );
         EnvironmentSchema environment = new EnvironmentBuilder()
             .AddType(itemType)
@@ -195,7 +195,7 @@ public sealed class DotNetExporterTests
         );
         DotNetRuntimeContext context = CreateContext(
             environment,
-            [new KeyValuePair<string, object?>("global.item", null)]
+            [ new KeyValuePair<string, object?>("global.item", null) ]
         );
 
         Assert.That(compiled(context), Is.Null);
@@ -218,7 +218,7 @@ public sealed class DotNetExporterTests
         );
         DotNetRuntimeContext context = CreateContext(
             environment,
-            [new KeyValuePair<string, object?>("global.values", null)]
+            [ new KeyValuePair<string, object?>("global.values", null) ]
         );
 
         Assert.That(compiled(context), Is.Null);
@@ -257,9 +257,9 @@ public sealed class DotNetExporterTests
     public void NanIsNotEqualToItself(string equalityOperator)
     {
         string source = $"""
-            var value = 0.0 / 0.0;
-            return value {equalityOperator} value;
-            """;
+                         var value = 0.0 / 0.0;
+                         return value {equalityOperator} value;
+                         """;
         EnvironmentSchema environment = CreateEmptyEnvironment();
         Func<DotNetRuntimeContext, object?> compiled = CompileProgram(
             source,
@@ -292,7 +292,7 @@ public sealed class DotNetExporterTests
                 TypeSymbols.Array(TypeSymbols.Int)
             )
             .Build();
-        Array values = Array.CreateInstance(typeof(long), [1], [1]);
+        Array values = Array.CreateInstance(typeof(long), [ 1 ], [ 1 ]);
         values.SetValue(42L, 1);
         Func<DotNetRuntimeContext, object?> compiled = CompileExpression(
             "values[0]",
@@ -300,7 +300,7 @@ public sealed class DotNetExporterTests
         );
         DotNetRuntimeContext context = CreateContext(
             environment,
-            [new KeyValuePair<string, object?>("global.values", values)]
+            [ new KeyValuePair<string, object?>("global.values", values) ]
         );
 
         Assert.That(compiled(context), Is.EqualTo(42L));
@@ -334,11 +334,11 @@ public sealed class DotNetExporterTests
             "1",
             environment
         );
-        using CancellationTokenSource cancellation = new();
-        cancellation.Cancel();
+        using CancellationTokenSource cts = new ();
+        cts.Cancel();
         DotNetRuntimeContext context = CreateContext(
             environment,
-            cancellationToken: cancellation.Token
+            cancellationToken: cts.Token
         );
 
         MuLangRuntimeException exception = RequireRuntimeException(
@@ -380,7 +380,7 @@ public sealed class DotNetExporterTests
         );
         DotNetRuntimeContext context = CreateContext(
             environment,
-            [new KeyValuePair<string, object?>("global.value", 1)]
+            [ new KeyValuePair<string, object?>("global.value", 1) ]
         );
 
         MuLangRuntimeException exception = RequireRuntimeException(
@@ -394,7 +394,7 @@ public sealed class DotNetExporterTests
     public void RejectsInvalidProviderReturnValues()
     {
         EnvironmentSchema environment = new EnvironmentBuilder()
-            .AddFunction("function.value", "value", [], TypeSymbols.Int)
+            .AddFunction("function.value", "value", [ ], TypeSymbols.Int)
             .Build();
         Func<DotNetRuntimeContext, object?> compiled = CompileExpression(
             "value()",
@@ -421,9 +421,9 @@ public sealed class DotNetExporterTests
     [Test]
     public void PreservesProviderCancellation()
     {
-        using CancellationTokenSource cancellation = new();
+        using CancellationTokenSource cts = new ();
         EnvironmentSchema environment = new EnvironmentBuilder()
-            .AddFunction("function.cancel", "cancel", [], TypeSymbols.Void)
+            .AddFunction("function.cancel", "cancel", [ ], TypeSymbols.Void)
             .Build();
         Func<DotNetRuntimeContext, object?> compiled = CompileProgram(
             "cancel();",
@@ -438,12 +438,13 @@ public sealed class DotNetExporterTests
                     "function.cancel",
                     (_, _) =>
                     {
-                        cancellation.Cancel();
-                        throw new OperationCanceledException(cancellation.Token);
+                        // ReSharper disable once AccessToDisposedClosure
+                        cts.Cancel();
+                        return null;
                     }
                 ),
             ],
-            cancellationToken: cancellation.Token
+            cancellationToken: cts.Token
         );
 
         MuLangRuntimeException exception = RequireRuntimeException(
@@ -456,7 +457,7 @@ public sealed class DotNetExporterTests
     [Test]
     public void AcceptsAbsentOptionalPropertiesOnClosedProviderObjects()
     {
-        ObjectTypeSymbol itemType = new(
+        ObjectTypeSymbol itemType = new (
             "type.item",
             "Item",
             false,
@@ -469,7 +470,7 @@ public sealed class DotNetExporterTests
             .AddType(itemType)
             .AddGlobal("global.item", "item", itemType)
             .Build();
-        Dictionary<string, object?> item = new(StringComparer.Ordinal)
+        Dictionary<string, object?> item = new (StringComparer.Ordinal)
         {
             ["id"] = 42L,
         };
@@ -479,7 +480,7 @@ public sealed class DotNetExporterTests
         );
         DotNetRuntimeContext context = CreateContext(
             environment,
-            [new KeyValuePair<string, object?>("global.item", item)]
+            [ new KeyValuePair<string, object?>("global.item", item) ]
         );
 
         Assert.That(compiled(context), Is.EqualTo(42L));
@@ -488,11 +489,11 @@ public sealed class DotNetExporterTests
     [Test]
     public void SurfacesRejectedProviderMutations()
     {
-        ObjectTypeSymbol itemType = new(
+        ObjectTypeSymbol itemType = new (
             "type.item",
             "Item",
             false,
-            [new ObjectPropertySymbol("value", TypeSymbols.Int)]
+            [ new ObjectPropertySymbol("value", TypeSymbols.Int) ]
         );
         EnvironmentSchema environment = new EnvironmentBuilder()
             .AddType(itemType)
@@ -527,8 +528,8 @@ public sealed class DotNetExporterTests
             .AddGlobal("global.left", "left", TypeSymbols.Object)
             .AddGlobal("global.right", "right", TypeSymbols.Object)
             .Build();
-        Dictionary<string, object?> left = new(StringComparer.Ordinal);
-        Dictionary<string, object?> right = new(StringComparer.Ordinal);
+        Dictionary<string, object?> left = new (StringComparer.Ordinal);
+        Dictionary<string, object?> right = new (StringComparer.Ordinal);
         left["self"] = left;
         right["self"] = right;
         Func<DotNetRuntimeContext, object?> compiled = CompileExpression(
@@ -600,7 +601,7 @@ public sealed class DotNetExporterTests
     public void LowersShortCircuitToExplicitControlFlow()
     {
         EnvironmentSchema environment = new EnvironmentBuilder()
-            .AddFunction("function.touch", "touch", [], TypeSymbols.Bool)
+            .AddFunction("function.touch", "touch", [ ], TypeSymbols.Bool)
             .Build();
         IrProgram program = LowerExpression("true || touch()", environment);
 
@@ -618,31 +619,33 @@ public sealed class DotNetExporterTests
     [Test]
     public void PreservesAssignmentEvaluationOrderInIr()
     {
-        ObjectTypeSymbol itemType = new(
+        ObjectTypeSymbol itemType = new (
             "type.item",
             "Item",
             false,
-            [new ObjectPropertySymbol("value", TypeSymbols.Int)]
+            [ new ObjectPropertySymbol("value", TypeSymbols.Int) ]
         );
         EnvironmentSchema environment = new EnvironmentBuilder()
             .AddType(itemType)
-            .AddFunction("function.target", "target", [], itemType)
-            .AddFunction("function.value", "value", [], TypeSymbols.Int)
+            .AddFunction("function.target", "target", [ ], itemType)
+            .AddFunction("function.value", "value", [ ], TypeSymbols.Int)
             .Build();
         IrProgram program = LowerProgram(
             "target().value = value();",
             environment,
             TypeSymbols.Void
         );
-        string[] callIds = program.Blocks
-            .SelectMany(static block => block.Instructions)
-            .OfType<IrInstruction.Call>()
-            .Select(static call => call.FunctionId)
-            .ToArray();
+        string[] callIds =
+        [
+            .. program.Blocks
+                .SelectMany(static block => block.Instructions)
+                .OfType<IrInstruction.Call>()
+                .Select(static call => call.FunctionId),
+        ];
 
         Assert.That(
             callIds,
-            Is.EqualTo(new[] { "function.target", "function.value" })
+            Is.EqualTo([ "function.target", "function.value" ])
         );
     }
 
@@ -650,7 +653,7 @@ public sealed class DotNetExporterTests
     public void ValidatorRejectsUseBeforeDefinition()
     {
         EnvironmentSchema environment = CreateEmptyEnvironment();
-        IrProgram program = new(
+        IrProgram program = new (
             environment.Fingerprint,
             TypeSymbols.Int,
             0,
@@ -661,7 +664,7 @@ public sealed class DotNetExporterTests
             [
                 new IrBasicBlock(
                     0,
-                    [new IrInstruction.Copy(default, 1, 0)],
+                    [ new IrInstruction.Copy(default, 1, 0) ],
                     new IrTerminator.Return(default, 1)
                 ),
             ]
@@ -679,15 +682,15 @@ public sealed class DotNetExporterTests
     public void ValidatorReportsMissingBlockTargetsWithoutThrowing()
     {
         EnvironmentSchema environment = CreateEmptyEnvironment();
-        IrProgram program = new(
+        IrProgram program = new (
             environment.Fingerprint,
             TypeSymbols.Void,
             0,
-            [],
+            [ ],
             [
                 new IrBasicBlock(
                     0,
-                    [],
+                    [ ],
                     new IrTerminator.Jump(default, 1)
                 ),
             ]
@@ -706,9 +709,9 @@ public sealed class DotNetExporterTests
         EnvironmentSchema environment = CreateEmptyEnvironment();
         ObjectTypeSymbol objectType = ObjectTypeSymbol.CreateAnonymous(
             false,
-            [new ObjectPropertySymbol("value", TypeSymbols.Int)]
+            [ new ObjectPropertySymbol("value", TypeSymbols.Int) ]
         );
-        IrProgram program = new(
+        IrProgram program = new (
             environment.Fingerprint,
             objectType,
             0,
@@ -841,8 +844,8 @@ public sealed class DotNetExporterTests
     {
         return new DotNetRuntimeContext(
             environment,
-            globals ?? [],
-            functions ?? [],
+            globals ?? [ ],
+            functions ?? [ ],
             executionBudget,
             cancellationToken
         );
@@ -885,7 +888,7 @@ public sealed class DotNetExporterTests
 
         public object Identity => this;
 
-        public IReadOnlyCollection<string> PropertyNames => [name];
+        public IReadOnlyCollection<string> PropertyNames => [ name ];
 
         public bool TryGetProperty(string propertyName, out object? propertyValue)
         {

@@ -4,7 +4,7 @@ namespace MuLang.Exporters.DotNet;
 
 internal sealed class ReferencePairComparer : IEqualityComparer<ReferencePair>
 {
-    public static ReferencePairComparer Instance { get; } = new();
+    public static ReferencePairComparer Instance { get; } = new ();
 
     public bool Equals(ReferencePair x, ReferencePair y)
     {

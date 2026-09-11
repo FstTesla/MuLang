@@ -1,11 +1,10 @@
-using System.Collections;
-using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
 using MuLang.Core.Environment;
 using MuLang.Core.Runtime;
 using MuLang.Core.Text;
 using MuLang.Core.Types;
 using MuLang.IR;
+using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 
 namespace MuLang.Exporters.DotNet;
 
@@ -239,12 +238,7 @@ internal static class DotNetRuntimeOperations
     {
         if (target is null)
         {
-            if (isOptional)
-            {
-                return null;
-            }
-
-            throw NullTarget(span);
+            return isOptional ? null : throw NullTarget(span);
         }
 
         if (isArrayLength)
@@ -261,16 +255,16 @@ internal static class DotNetRuntimeOperations
             return EnsureValueType(value, expectedType, span);
         }
 
-        if (isOptional)
+        if (!isOptional)
         {
-            return null;
+            throw new MuLangRuntimeException(
+                DotNetRuntimeErrorCodes.MissingProperty,
+                $"Property '{name}' does not exist.",
+                span
+            );
         }
 
-        throw new MuLangRuntimeException(
-            DotNetRuntimeErrorCodes.MissingProperty,
-            $"Property '{name}' does not exist.",
-            span
-        );
+        return null;
     }
 
     public static void SetProperty(
@@ -345,12 +339,7 @@ internal static class DotNetRuntimeOperations
     {
         if (target is null)
         {
-            if (isOptional)
-            {
-                return null;
-            }
-
-            throw NullTarget(span);
+            return isOptional ? null : throw NullTarget(span);
         }
 
         if (isObjectAccess)
@@ -368,16 +357,16 @@ internal static class DotNetRuntimeOperations
 
         int arrayIndex = RequireIndex(index, span);
 
-        if (TryGetArrayElement(target, arrayIndex, out object? value))
+        if (!TryGetArrayElement(target, arrayIndex, out object? value))
         {
-            return EnsureValueType(value, expectedType, span);
+            throw new MuLangRuntimeException(
+                DotNetRuntimeErrorCodes.InvalidIndex,
+                $"Array index {arrayIndex} is outside the valid range.",
+                span
+            );
         }
 
-        throw new MuLangRuntimeException(
-            DotNetRuntimeErrorCodes.InvalidIndex,
-            $"Array index {arrayIndex} is outside the valid range.",
-            span
-        );
+        return EnsureValueType(value, expectedType, span);
     }
 
     public static void SetElement(
@@ -406,10 +395,10 @@ internal static class DotNetRuntimeOperations
                 arrayValue.TrySetElement(arrayIndex, value),
             IList<object?> list
                 when arrayIndex >= 0 && arrayIndex < list.Count =>
-                    SetListElement(list, arrayIndex, value),
+                SetListElement(list, arrayIndex, value),
             Array array
                 when arrayIndex >= 0 && arrayIndex < array.Length =>
-                    SetArrayElement(array, arrayIndex, value),
+                SetArrayElement(array, arrayIndex, value),
             _ => false,
         };
 
@@ -434,12 +423,9 @@ internal static class DotNetRuntimeOperations
 
     public static bool HasProperty(object? target, object? key, TextSpan span)
     {
-        if (target is null)
-        {
-            throw NullTarget(span);
-        }
-
-        return TryGetProperty(target, RequireString(key, span), out _);
+        return target is null
+            ? throw NullTarget(span)
+            : TryGetProperty(target, RequireString(key, span), out _);
     }
 
     private static object Negate(object? value, TextSpan span)
@@ -607,7 +593,7 @@ internal static class DotNetRuntimeOperations
         TextSpan span
     )
     {
-        HashSet<ReferencePair> visited = new(ReferencePairComparer.Instance);
+        HashSet<ReferencePair> visited = new (ReferencePairComparer.Instance);
         return StructuralEquals(context, left, right, visited, span, 0);
     }
 
@@ -658,7 +644,7 @@ internal static class DotNetRuntimeOperations
 
         object leftIdentity = GetIdentity(left);
         object rightIdentity = GetIdentity(right);
-        ReferencePair pair = new(leftIdentity, rightIdentity);
+        ReferencePair pair = new (leftIdentity, rightIdentity);
 
         if (!visited.Add(pair))
         {
@@ -678,13 +664,13 @@ internal static class DotNetRuntimeOperations
                 TryGetArrayElement(right, index, out object? rightValue);
 
                 if (!StructuralEquals(
-                    context,
-                    leftValue,
-                    rightValue,
-                    visited,
-                    span,
-                    depth + 1
-                ))
+                        context,
+                        leftValue,
+                        rightValue,
+                        visited,
+                        span,
+                        depth + 1
+                    ))
                 {
                     return false;
                 }
@@ -828,12 +814,12 @@ internal static class DotNetRuntimeOperations
             }
 
             if (!IsValueOfTypeDeep(
-                context,
-                propertyValue,
-                property.Type,
-                span,
-                depth + 1
-            ))
+                    context,
+                    propertyValue,
+                    property.Type,
+                    span,
+                    depth + 1
+                ))
             {
                 return false;
             }
@@ -909,9 +895,9 @@ internal static class DotNetRuntimeOperations
             null => "null",
             bool boolean => boolean ? "true" : "false",
             long integer => integer.ToString(CultureInfo.InvariantCulture),
-            double number when double.IsNaN(number) => "NaN",
-            double number when double.IsPositiveInfinity(number) => "Infinity",
-            double number when double.IsNegativeInfinity(number) => "-Infinity",
+            double.NaN => "NaN",
+            double.PositiveInfinity => "Infinity",
+            double.NegativeInfinity => "-Infinity",
             double number => FormatNumber(number),
             string text => text,
             _ => throw InvalidValue("Value has no intrinsic string conversion.", span),
@@ -929,8 +915,7 @@ internal static class DotNetRuntimeOperations
             value is double number &&
             double.IsFinite(number) &&
             Math.Truncate(number) == number &&
-            number >= long.MinValue &&
-            number <= long.MaxValue
+            number is >= long.MinValue and <= long.MaxValue
         )
         {
             try
@@ -977,16 +962,14 @@ internal static class DotNetRuntimeOperations
 
     private static string RequireString(object? value, TextSpan span)
     {
-        return value is string text
-            ? text
-            : throw InvalidValue("Expected a string value.", span);
+        return value as string ?? throw InvalidValue("Expected a string value.", span);
     }
 
     private static int RequireIndex(object? value, TextSpan span)
     {
         long index = RequireInt(value, span);
 
-        if (index < int.MinValue || index > int.MaxValue)
+        if (index is < int.MinValue or > int.MaxValue)
         {
             throw new MuLangRuntimeException(
                 DotNetRuntimeErrorCodes.InvalidIndex,
@@ -1002,7 +985,7 @@ internal static class DotNetRuntimeOperations
     {
         long shift = RequireInt(value, span);
 
-        if (shift < 0 || shift > 63)
+        if (shift is < 0 or > 63)
         {
             throw new MuLangRuntimeException(
                 DotNetRuntimeErrorCodes.InvalidShift,
@@ -1044,14 +1027,17 @@ internal static class DotNetRuntimeOperations
             {
                 return objectValue.TryGetProperty(name, out value);
             }
+
             case IDictionary<string, object?> dictionary:
             {
                 return dictionary.TryGetValue(name, out value);
             }
+
             case IReadOnlyDictionary<string, object?> dictionary:
             {
                 return dictionary.TryGetValue(name, out value);
             }
+
             default:
             {
                 value = null;
@@ -1072,16 +1058,19 @@ internal static class DotNetRuntimeOperations
                 names = objectValue.PropertyNames;
                 return true;
             }
+
             case IDictionary<string, object?> dictionary:
             {
-                names = dictionary.Keys.ToArray();
+                names = [ .. dictionary.Keys ];
                 return true;
             }
+
             case IReadOnlyDictionary<string, object?> dictionary:
             {
-                names = dictionary.Keys.ToArray();
+                names = [ .. dictionary.Keys ];
                 return true;
             }
+
             default:
             {
                 names = null;
@@ -1092,12 +1081,9 @@ internal static class DotNetRuntimeOperations
 
     private static int GetArrayCount(object target, TextSpan span)
     {
-        if (TryGetArrayCount(target, out int count))
-        {
-            return count;
-        }
-
-        throw InvalidValue("Expected an array value.", span);
+        return TryGetArrayCount(target, out int count)
+            ? count
+            : throw InvalidValue("Expected an array value.", span);
     }
 
     private static bool TryGetArrayCount(object target, out int count)
@@ -1109,16 +1095,19 @@ internal static class DotNetRuntimeOperations
                 count = arrayValue.Count;
                 return true;
             }
+
             case IList<object?> list:
             {
                 count = list.Count;
                 return true;
             }
+
             case IReadOnlyList<object?> list:
             {
                 count = list.Count;
                 return true;
             }
+
             case Array array:
             {
                 if (array.Rank != 1)
@@ -1130,6 +1119,7 @@ internal static class DotNetRuntimeOperations
                 count = array.Length;
                 return true;
             }
+
             default:
             {
                 count = 0;
@@ -1150,22 +1140,25 @@ internal static class DotNetRuntimeOperations
             {
                 return arrayValue.TryGetElement(index, out value);
             }
+
             case IList<object?> list when index >= 0 && index < list.Count:
             {
                 value = list[index];
                 return true;
             }
+
             case IReadOnlyList<object?> list when index >= 0 && index < list.Count:
             {
                 value = list[index];
                 return true;
             }
-            case Array array
-                when array.Rank == 1 && index >= 0 && index < array.Length:
+
+            case Array { Rank: 1 } array when index >= 0 && index < array.Length:
             {
                 value = array.GetValue(index + array.GetLowerBound(0));
                 return true;
             }
+
             default:
             {
                 value = null;

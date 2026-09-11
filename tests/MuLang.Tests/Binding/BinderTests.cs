@@ -42,7 +42,7 @@ public sealed class BinderTests
             .AddFunction(
                 "function.format",
                 "format",
-                [new ParameterSymbol("value", TypeSymbols.Int)],
+                [ new ParameterSymbol("value", TypeSymbols.Int) ],
                 TypeSymbols.String
             )
             .Build();
@@ -139,7 +139,7 @@ public sealed class BinderTests
     public void ReportsVoidArrayElementWithoutThrowing()
     {
         EnvironmentSchema environment = new EnvironmentBuilder()
-            .AddFunction("function.log", "log", [], TypeSymbols.Void)
+            .AddFunction("function.log", "log", [ ], TypeSymbols.Void)
             .Build();
         BindingResult result = BindExpression("[log()]", environment);
 
@@ -169,11 +169,11 @@ public sealed class BinderTests
     [Test]
     public void ResolvesKnownAndDynamicProperties()
     {
-        ObjectTypeSymbol itemType = new(
+        ObjectTypeSymbol itemType = new (
             "type.item",
             "Item",
             true,
-            [new ObjectPropertySymbol("id", TypeSymbols.Int)]
+            [ new ObjectPropertySymbol("id", TypeSymbols.Int) ]
         );
         EnvironmentSchema environment = new EnvironmentBuilder()
             .AddType(itemType)
@@ -438,7 +438,7 @@ public sealed class BinderTests
     [Test]
     public void AllowsRemovalOnlyForOptionalOrDynamicProperties()
     {
-        ObjectTypeSymbol itemType = new(
+        ObjectTypeSymbol itemType = new (
             "type.item",
             "Item",
             false,
@@ -491,7 +491,7 @@ public sealed class BinderTests
     [Test]
     public void UsesExpectedStructuredObjectType()
     {
-        ObjectTypeSymbol pointType = new(
+        ObjectTypeSymbol pointType = new (
             "type.point",
             "Point",
             false,
@@ -528,11 +528,11 @@ public sealed class BinderTests
     [Test]
     public void ValidatesOpenObjectAdditionalPropertiesAgainstUnknown()
     {
-        ObjectTypeSymbol openType = new(
+        ObjectTypeSymbol openType = new (
             "type.open",
             "Open",
             true,
-            []
+            [ ]
         );
         EnvironmentSchema environment = new EnvironmentBuilder()
             .AddType(openType)
@@ -614,11 +614,11 @@ public sealed class BinderTests
     [Test]
     public void ReportsMissingRequiredObjectProperties()
     {
-        ObjectTypeSymbol pointType = new(
+        ObjectTypeSymbol pointType = new (
             "type.point",
             "Point",
             false,
-            [new ObjectPropertySymbol("x", TypeSymbols.Int)]
+            [ new ObjectPropertySymbol("x", TypeSymbols.Int) ]
         );
         EnvironmentSchema environment = new EnvironmentBuilder()
             .AddType(pointType)
@@ -659,7 +659,7 @@ public sealed class BinderTests
             "var",
             "while",
         ];
-        Random random = new(481516);
+        Random random = new (481516);
         EnvironmentSchema environment = CreateEmptyEnvironment();
 
         for (int sourceIndex = 0; sourceIndex < 500; sourceIndex++)

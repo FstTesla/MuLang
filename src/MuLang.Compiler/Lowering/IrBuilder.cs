@@ -6,8 +6,8 @@ namespace MuLang.Compiler.Lowering;
 
 internal sealed class IrBuilder
 {
-    private readonly List<IrSlot> slots = [];
-    private readonly List<MutableIrBlock> blocks = [];
+    private readonly List<IrSlot> slots = [ ];
+    private readonly List<MutableIrBlock> blocks = [ ];
 
     public IrBuilder()
     {
@@ -78,9 +78,7 @@ internal sealed class IrBuilder
         TypeSymbol resultType
     )
     {
-        IrBasicBlock[] immutableBlocks = blocks
-            .Select(static block => block.Build())
-            .ToArray();
+        IrBasicBlock[] immutableBlocks = [ .. blocks.Select(static block => block.Build()) ];
 
         return new IrProgram(
             environmentFingerprint,

@@ -4,7 +4,7 @@ namespace MuLang.Compiler.Lowering;
 
 internal sealed class MutableIrBlock
 {
-    private readonly List<IrInstruction> instructions = [];
+    private readonly List<IrInstruction> instructions = [ ];
 
     public MutableIrBlock(int id)
     {

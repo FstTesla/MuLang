@@ -13,9 +13,7 @@ public sealed class ObjectTypeSymbol : TypeSymbol
         bool isOpen,
         IEnumerable<ObjectPropertySymbol> properties
     )
-        : this(id, name, isOpen, properties, true)
-    {
-    }
+        : this(id, name, isOpen, properties, true) { }
 
     private ObjectTypeSymbol(
         string? id,
@@ -41,14 +39,9 @@ public sealed class ObjectTypeSymbol : TypeSymbol
             throw new ArgumentNullException(nameof(properties));
         }
 
-        ObjectPropertySymbol[] propertyArray = properties.ToArray();
+        IReadOnlyList<ObjectPropertySymbol> propertyList = [ .. properties ];
 
-        if (propertyArray.Any(static property => property is null))
-        {
-            throw new ArgumentException("Properties cannot contain null values.", nameof(properties));
-        }
-
-        IGrouping<string, ObjectPropertySymbol>? duplicate = propertyArray
+        IGrouping<string, ObjectPropertySymbol>? duplicate = propertyList
             .GroupBy(static property => property.Name, StringComparer.Ordinal)
             .FirstOrDefault(static group => group.Count() > 1);
 
@@ -63,8 +56,8 @@ public sealed class ObjectTypeSymbol : TypeSymbol
         Id = id;
         Name = name;
         IsOpen = isOpen;
-        Properties = Array.AsReadOnly(propertyArray);
-        propertiesByName = propertyArray.ToFrozenDictionary(
+        Properties = propertyList;
+        propertiesByName = propertyList.ToFrozenDictionary(
             static property => property.Name,
             StringComparer.Ordinal
         );

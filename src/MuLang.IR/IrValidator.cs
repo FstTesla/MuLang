@@ -23,7 +23,7 @@ internal static class IrValidator
             throw new ArgumentNullException(nameof(environment));
         }
 
-        List<Diagnostic> diagnostics = [];
+        List<Diagnostic> diagnostics = [ ];
 
         if (program.EnvironmentFingerprint != environment.Fingerprint)
         {
@@ -94,7 +94,7 @@ internal static class IrValidator
         ICollection<Diagnostic> diagnostics
     )
     {
-        Dictionary<int, IrBasicBlock> blocksById = [];
+        Dictionary<int, IrBasicBlock> blocksById = [ ];
 
         for (int index = 0; index < program.Blocks.Count; index++)
         {
@@ -144,6 +144,7 @@ internal static class IrValidator
                 ValidateBlockTarget(blocksById, jump.TargetBlock, jump.Span, diagnostics);
                 break;
             }
+
             case IrTerminator.Branch branch:
             {
                 ValidateSlotType(
@@ -157,6 +158,7 @@ internal static class IrValidator
                 ValidateBlockTarget(blocksById, branch.FalseBlock, branch.Span, diagnostics);
                 break;
             }
+
             case IrTerminator.Return result:
             {
                 if (program.ResultType.Kind == TypeKind.Void)
@@ -227,6 +229,7 @@ internal static class IrValidator
 
                 break;
             }
+
             case IrInstruction.Copy copy:
             {
                 ValidateEquivalentSlots(
@@ -238,6 +241,7 @@ internal static class IrValidator
                 );
                 break;
             }
+
             case IrInstruction.LoadGlobal global:
             {
                 if (!environment.TryGetGlobalById(global.GlobalId, out GlobalSymbol? symbol))
@@ -260,16 +264,19 @@ internal static class IrValidator
                 );
                 break;
             }
+
             case IrInstruction.Unary unary:
             {
                 ValidateUnary(program, unary, diagnostics);
                 break;
             }
+
             case IrInstruction.Binary binary:
             {
                 ValidateBinary(program, binary, diagnostics);
                 break;
             }
+
             case IrInstruction.Convert conversion:
             {
                 ValidateSlotType(
@@ -304,6 +311,7 @@ internal static class IrValidator
 
                 break;
             }
+
             case IrInstruction.TypeTest typeTest:
             {
                 ValidateSlotType(
@@ -316,6 +324,7 @@ internal static class IrValidator
                 ValidateSlot(program, typeTest.Source, typeTest.Span, diagnostics);
                 break;
             }
+
             case IrInstruction.IsNull isNull:
             {
                 ValidateSlotType(
@@ -328,6 +337,7 @@ internal static class IrValidator
                 ValidateSlot(program, isNull.Source, isNull.Span, diagnostics);
                 break;
             }
+
             case IrInstruction.HasProperty propertyTest:
             {
                 ValidateSlotType(
@@ -347,6 +357,7 @@ internal static class IrValidator
                 );
                 break;
             }
+
             case IrInstruction.CreateArray array:
             {
                 ValidateSlotType(
@@ -370,6 +381,7 @@ internal static class IrValidator
 
                 break;
             }
+
             case IrInstruction.CreateObject objectValue:
             {
                 ValidateSlotType(
@@ -402,31 +414,37 @@ internal static class IrValidator
 
                 break;
             }
+
             case IrInstruction.GetProperty property:
             {
                 ValidatePropertyRead(program, property, diagnostics);
                 break;
             }
+
             case IrInstruction.SetProperty property:
             {
                 ValidatePropertyWrite(program, property, diagnostics);
                 break;
             }
+
             case IrInstruction.RemoveProperty property:
             {
                 ValidateSlot(program, property.Target, property.Span, diagnostics);
                 break;
             }
+
             case IrInstruction.GetElement element:
             {
                 ValidateElementRead(program, element, diagnostics);
                 break;
             }
+
             case IrInstruction.SetElement element:
             {
                 ValidateElementWrite(program, element, diagnostics);
                 break;
             }
+
             case IrInstruction.RemoveElementProperty property:
             {
                 ValidateSlot(program, property.Target, property.Span, diagnostics);
@@ -439,6 +457,7 @@ internal static class IrValidator
                 );
                 break;
             }
+
             case IrInstruction.Call call:
             {
                 ValidateCall(program, environment, call, diagnostics);
@@ -448,354 +467,354 @@ internal static class IrValidator
     }
 
     private static void ValidateUnary(
-                IrProgram program,
-                IrInstruction.Unary unary,
-                ICollection<Diagnostic> diagnostics
-            )
-            {
-                IrSlot? destination = GetSlot(program, unary.Destination);
-                IrSlot? operand = GetSlot(program, unary.Operand);
+        IrProgram program,
+        IrInstruction.Unary unary,
+        ICollection<Diagnostic> diagnostics
+    )
+    {
+        IrSlot? destination = GetSlot(program, unary.Destination);
+        IrSlot? operand = GetSlot(program, unary.Operand);
 
-                if (destination is null || operand is null)
-                {
-                    ValidateSlot(program, unary.Destination, unary.Span, diagnostics);
-                    ValidateSlot(program, unary.Operand, unary.Span, diagnostics);
-                    return;
-                }
+        if (destination is null || operand is null)
+        {
+            ValidateSlot(program, unary.Destination, unary.Span, diagnostics);
+            ValidateSlot(program, unary.Operand, unary.Span, diagnostics);
+            return;
+        }
 
-                TypeSymbol? expectedType = unary.Operator switch
-                {
-                    IrUnaryOperator.Identity or IrUnaryOperator.Negate
-                        when destination.Type.Kind is TypeKind.Int or TypeKind.Number =>
-                            destination.Type,
-                    IrUnaryOperator.LogicalNot => TypeSymbols.Bool,
-                    IrUnaryOperator.BitwiseNot => TypeSymbols.Int,
-                    _ => null,
-                };
+        TypeSymbol? expectedType = unary.Operator switch
+        {
+            IrUnaryOperator.Identity or IrUnaryOperator.Negate
+                when destination.Type.Kind is TypeKind.Int or TypeKind.Number =>
+                destination.Type,
+            IrUnaryOperator.LogicalNot => TypeSymbols.Bool,
+            IrUnaryOperator.BitwiseNot => TypeSymbols.Int,
+            _ => null,
+        };
 
-                if (
-                    expectedType is null ||
-                    !TypeRelations.AreEquivalent(destination.Type, expectedType) ||
-                    !TypeRelations.AreEquivalent(operand.Type, expectedType)
-                )
-                {
-                    Report(
-                        diagnostics,
-                        IrDiagnosticCodes.TypeMismatch,
-                        unary.Span,
-                        "IR unary instruction has incompatible operand or destination types."
-                    );
-                }
-            }
+        if (
+            expectedType is null ||
+            !TypeRelations.AreEquivalent(destination.Type, expectedType) ||
+            !TypeRelations.AreEquivalent(operand.Type, expectedType)
+        )
+        {
+            Report(
+                diagnostics,
+                IrDiagnosticCodes.TypeMismatch,
+                unary.Span,
+                "IR unary instruction has incompatible operand or destination types."
+            );
+        }
+    }
 
     private static void ValidateBinary(
-                IrProgram program,
-                IrInstruction.Binary binary,
-                ICollection<Diagnostic> diagnostics
-            )
-            {
-                IrSlot? destination = GetSlot(program, binary.Destination);
-                IrSlot? left = GetSlot(program, binary.Left);
-                IrSlot? right = GetSlot(program, binary.Right);
+        IrProgram program,
+        IrInstruction.Binary binary,
+        ICollection<Diagnostic> diagnostics
+    )
+    {
+        IrSlot? destination = GetSlot(program, binary.Destination);
+        IrSlot? left = GetSlot(program, binary.Left);
+        IrSlot? right = GetSlot(program, binary.Right);
 
-                if (destination is null || left is null || right is null)
-                {
-                    ValidateSlot(program, binary.Destination, binary.Span, diagnostics);
-                    ValidateSlot(program, binary.Left, binary.Span, diagnostics);
-                    ValidateSlot(program, binary.Right, binary.Span, diagnostics);
-                    return;
-                }
+        if (destination is null || left is null || right is null)
+        {
+            ValidateSlot(program, binary.Destination, binary.Span, diagnostics);
+            ValidateSlot(program, binary.Left, binary.Span, diagnostics);
+            ValidateSlot(program, binary.Right, binary.Span, diagnostics);
+            return;
+        }
 
-                bool isValid = binary.Operator switch
-                {
-                    IrBinaryOperator.Add =>
-                        AreEquivalent(left, right, destination) &&
-                        destination.Type.Kind is TypeKind.Int or TypeKind.Number or TypeKind.String,
-                    IrBinaryOperator.Subtract or
-                    IrBinaryOperator.Multiply or
-                    IrBinaryOperator.Divide or
-                    IrBinaryOperator.Remainder =>
-                        AreEquivalent(left, right, destination) &&
-                        destination.Type.Kind is TypeKind.Int or TypeKind.Number,
-                    IrBinaryOperator.LeftShift or
-                    IrBinaryOperator.RightShift or
-                    IrBinaryOperator.BitwiseAnd or
-                    IrBinaryOperator.BitwiseXor or
-                    IrBinaryOperator.BitwiseOr =>
-                        AreType(left, TypeSymbols.Int) &&
-                        AreType(right, TypeSymbols.Int) &&
-                        AreType(destination, TypeSymbols.Int),
-                    IrBinaryOperator.LessThan or
-                    IrBinaryOperator.LessThanOrEqual or
-                    IrBinaryOperator.GreaterThan or
-                    IrBinaryOperator.GreaterThanOrEqual =>
-                        AreType(destination, TypeSymbols.Bool) &&
-                        TypeRelations.AreEquivalent(left.Type, right.Type) &&
-                        left.Type.Kind is TypeKind.Int or TypeKind.Number or TypeKind.String,
-                    IrBinaryOperator.StructuralEqual or
-                    IrBinaryOperator.StructuralNotEqual or
-                    IrBinaryOperator.IdentityEqual or
-                    IrBinaryOperator.IdentityNotEqual =>
-                        AreType(destination, TypeSymbols.Bool),
-                    _ => false,
-                };
+        bool isValid = binary.Operator switch
+        {
+            IrBinaryOperator.Add =>
+                AreEquivalent(left, right, destination) &&
+                destination.Type.Kind is TypeKind.Int or TypeKind.Number or TypeKind.String,
+            IrBinaryOperator.Subtract or
+                IrBinaryOperator.Multiply or
+                IrBinaryOperator.Divide or
+                IrBinaryOperator.Remainder =>
+                AreEquivalent(left, right, destination) &&
+                destination.Type.Kind is TypeKind.Int or TypeKind.Number,
+            IrBinaryOperator.LeftShift or
+                IrBinaryOperator.RightShift or
+                IrBinaryOperator.BitwiseAnd or
+                IrBinaryOperator.BitwiseXor or
+                IrBinaryOperator.BitwiseOr =>
+                AreType(left, TypeSymbols.Int) &&
+                AreType(right, TypeSymbols.Int) &&
+                AreType(destination, TypeSymbols.Int),
+            IrBinaryOperator.LessThan or
+                IrBinaryOperator.LessThanOrEqual or
+                IrBinaryOperator.GreaterThan or
+                IrBinaryOperator.GreaterThanOrEqual =>
+                AreType(destination, TypeSymbols.Bool) &&
+                TypeRelations.AreEquivalent(left.Type, right.Type) &&
+                left.Type.Kind is TypeKind.Int or TypeKind.Number or TypeKind.String,
+            IrBinaryOperator.StructuralEqual or
+                IrBinaryOperator.StructuralNotEqual or
+                IrBinaryOperator.IdentityEqual or
+                IrBinaryOperator.IdentityNotEqual =>
+                AreType(destination, TypeSymbols.Bool),
+            _ => false,
+        };
 
-                if (!isValid)
-                {
-                    Report(
-                        diagnostics,
-                        IrDiagnosticCodes.TypeMismatch,
-                        binary.Span,
-                        "IR binary instruction has incompatible operand or destination types."
-                    );
-                }
-            }
+        if (!isValid)
+        {
+            Report(
+                diagnostics,
+                IrDiagnosticCodes.TypeMismatch,
+                binary.Span,
+                "IR binary instruction has incompatible operand or destination types."
+            );
+        }
+    }
 
     private static void ValidatePropertyRead(
-                IrProgram program,
-                IrInstruction.GetProperty property,
-                ICollection<Diagnostic> diagnostics
-            )
+        IrProgram program,
+        IrInstruction.GetProperty property,
+        ICollection<Diagnostic> diagnostics
+    )
+    {
+        IrSlot? destination = GetSlot(program, property.Destination);
+        IrSlot? target = GetSlot(program, property.Target);
+
+        if (destination is null || target is null)
+        {
+            ValidateSlot(program, property.Destination, property.Span, diagnostics);
+            ValidateSlot(program, property.Target, property.Span, diagnostics);
+            return;
+        }
+
+        TypeSymbol targetType = GetNonNullable(target.Type);
+        TypeSymbol? expectedType = null;
+
+        if (property.IsArrayLength && targetType is ArrayTypeSymbol)
+        {
+            expectedType =
+                property.IsOptional && target.Type is NullableTypeSymbol
+                    ? TypeSymbols.Nullable(TypeSymbols.Int)
+                    : TypeSymbols.Int;
+        }
+        else if (targetType is ObjectTypeSymbol objectType)
+        {
+            if (objectType.TryGetProperty(property.Name, out ObjectPropertySymbol? symbol))
             {
-                IrSlot? destination = GetSlot(program, property.Destination);
-                IrSlot? target = GetSlot(program, property.Target);
-
-                if (destination is null || target is null)
-                {
-                    ValidateSlot(program, property.Destination, property.Span, diagnostics);
-                    ValidateSlot(program, property.Target, property.Span, diagnostics);
-                    return;
-                }
-
-                TypeSymbol targetType = GetNonNullable(target.Type);
-                TypeSymbol? expectedType = null;
-
-                if (property.IsArrayLength && targetType is ArrayTypeSymbol)
-                {
-                    expectedType =
-                        property.IsOptional && target.Type is NullableTypeSymbol
-                            ? TypeSymbols.Nullable(TypeSymbols.Int)
-                            : TypeSymbols.Int;
-                }
-                else if (targetType is ObjectTypeSymbol objectType)
-                {
-                    if (objectType.TryGetProperty(property.Name, out ObjectPropertySymbol? symbol))
-                    {
-                        expectedType =
-                            property.IsOptional &&
-                            (target.Type is NullableTypeSymbol || symbol.IsOptional)
-                                ? MakeNullable(symbol.Type)
-                                : symbol.Type;
-                    }
-                    else if (objectType.IsOpen)
-                    {
-                        expectedType = property.IsOptional
-                            ? TypeSymbols.Nullable(TypeSymbols.Unknown)
-                            : TypeSymbols.Unknown;
-                    }
-                }
-                else if (targetType.Kind == TypeKind.Object)
-                {
-                    expectedType = property.IsOptional
-                        ? TypeSymbols.Nullable(TypeSymbols.Unknown)
-                        : TypeSymbols.Unknown;
-                }
-
-                if (
-                    expectedType is null ||
-                    !TypeRelations.AreEquivalent(destination.Type, expectedType)
-                )
-                {
-                    Report(
-                        diagnostics,
-                        IrDiagnosticCodes.TypeMismatch,
-                        property.Span,
-                        "IR property read has incompatible target or destination types."
-                    );
-                }
+                expectedType =
+                    property.IsOptional &&
+                    (target.Type is NullableTypeSymbol || symbol.IsOptional)
+                        ? MakeNullable(symbol.Type)
+                        : symbol.Type;
             }
+            else if (objectType.IsOpen)
+            {
+                expectedType = property.IsOptional
+                    ? TypeSymbols.Nullable(TypeSymbols.Unknown)
+                    : TypeSymbols.Unknown;
+            }
+        }
+        else if (targetType.Kind == TypeKind.Object)
+        {
+            expectedType = property.IsOptional
+                ? TypeSymbols.Nullable(TypeSymbols.Unknown)
+                : TypeSymbols.Unknown;
+        }
+
+        if (
+            expectedType is null ||
+            !TypeRelations.AreEquivalent(destination.Type, expectedType)
+        )
+        {
+            Report(
+                diagnostics,
+                IrDiagnosticCodes.TypeMismatch,
+                property.Span,
+                "IR property read has incompatible target or destination types."
+            );
+        }
+    }
 
     private static void ValidatePropertyWrite(
-                IrProgram program,
-                IrInstruction.SetProperty property,
-                ICollection<Diagnostic> diagnostics
-            )
-            {
-                IrSlot? target = GetSlot(program, property.Target);
-                IrSlot? value = GetSlot(program, property.Value);
+        IrProgram program,
+        IrInstruction.SetProperty property,
+        ICollection<Diagnostic> diagnostics
+    )
+    {
+        IrSlot? target = GetSlot(program, property.Target);
+        IrSlot? value = GetSlot(program, property.Value);
 
-                if (target is null || value is null)
-                {
-                    ValidateSlot(program, property.Target, property.Span, diagnostics);
-                    ValidateSlot(program, property.Value, property.Span, diagnostics);
-                    return;
-                }
+        if (target is null || value is null)
+        {
+            ValidateSlot(program, property.Target, property.Span, diagnostics);
+            ValidateSlot(program, property.Value, property.Span, diagnostics);
+            return;
+        }
 
-                TypeSymbol targetType = GetNonNullable(target.Type);
-                TypeSymbol? expectedType = null;
+        TypeSymbol targetType = GetNonNullable(target.Type);
+        TypeSymbol? expectedType = null;
 
-                if (
-                    targetType is ObjectTypeSymbol objectType &&
-                    objectType.TryGetProperty(property.Name, out ObjectPropertySymbol? symbol)
-                )
-                {
-                    expectedType = symbol.Type;
-                }
-                else if (
-                    targetType.Kind == TypeKind.Object ||
-                    targetType is ObjectTypeSymbol { IsOpen: true }
-                )
-                {
-                    expectedType = TypeSymbols.Unknown;
-                }
+        if (
+            targetType is ObjectTypeSymbol objectType &&
+            objectType.TryGetProperty(property.Name, out ObjectPropertySymbol? symbol)
+        )
+        {
+            expectedType = symbol.Type;
+        }
+        else if (
+            targetType.Kind == TypeKind.Object ||
+            targetType is ObjectTypeSymbol { IsOpen: true }
+        )
+        {
+            expectedType = TypeSymbols.Unknown;
+        }
 
-                if (
-                    expectedType is null ||
-                    !TypeRelations.AreEquivalent(value.Type, expectedType)
-                )
-                {
-                    Report(
-                        diagnostics,
-                        IrDiagnosticCodes.TypeMismatch,
-                        property.Span,
-                        "IR property write has incompatible target or value types."
-                    );
-                }
-            }
+        if (
+            expectedType is null ||
+            !TypeRelations.AreEquivalent(value.Type, expectedType)
+        )
+        {
+            Report(
+                diagnostics,
+                IrDiagnosticCodes.TypeMismatch,
+                property.Span,
+                "IR property write has incompatible target or value types."
+            );
+        }
+    }
 
     private static void ValidateElementRead(
-                IrProgram program,
-                IrInstruction.GetElement element,
-                ICollection<Diagnostic> diagnostics
-            )
-            {
-                IrSlot? destination = GetSlot(program, element.Destination);
-                IrSlot? target = GetSlot(program, element.Target);
-                IrSlot? index = GetSlot(program, element.Index);
+        IrProgram program,
+        IrInstruction.GetElement element,
+        ICollection<Diagnostic> diagnostics
+    )
+    {
+        IrSlot? destination = GetSlot(program, element.Destination);
+        IrSlot? target = GetSlot(program, element.Target);
+        IrSlot? index = GetSlot(program, element.Index);
 
-                if (destination is null || target is null || index is null)
-                {
-                    ValidateSlot(program, element.Destination, element.Span, diagnostics);
-                    ValidateSlot(program, element.Target, element.Span, diagnostics);
-                    ValidateSlot(program, element.Index, element.Span, diagnostics);
-                    return;
-                }
+        if (destination is null || target is null || index is null)
+        {
+            ValidateSlot(program, element.Destination, element.Span, diagnostics);
+            ValidateSlot(program, element.Target, element.Span, diagnostics);
+            ValidateSlot(program, element.Index, element.Span, diagnostics);
+            return;
+        }
 
-                TypeSymbol targetType = GetNonNullable(target.Type);
-                bool isValid;
+        TypeSymbol targetType = GetNonNullable(target.Type);
+        bool isValid;
 
-                if (element.IsObjectAccess)
-                {
-                    isValid =
-                        targetType.Kind is TypeKind.Object or TypeKind.StructuredObject &&
-                        AreType(index, TypeSymbols.String);
-                }
-                else
-                {
-                    isValid =
-                        targetType is ArrayTypeSymbol arrayType &&
-                        AreType(index, TypeSymbols.Int) &&
-                        TypeRelations.AreEquivalent(
-                            destination.Type,
-                            element.IsOptional && target.Type is NullableTypeSymbol
-                                ? MakeNullable(arrayType.ElementType)
-                                : arrayType.ElementType
-                        );
-                }
+        if (element.IsObjectAccess)
+        {
+            isValid =
+                targetType.Kind is TypeKind.Object or TypeKind.StructuredObject &&
+                AreType(index, TypeSymbols.String);
+        }
+        else
+        {
+            isValid =
+                targetType is ArrayTypeSymbol arrayType &&
+                AreType(index, TypeSymbols.Int) &&
+                TypeRelations.AreEquivalent(
+                    destination.Type,
+                    element.IsOptional && target.Type is NullableTypeSymbol
+                        ? MakeNullable(arrayType.ElementType)
+                        : arrayType.ElementType
+                );
+        }
 
-                if (!isValid)
-                {
-                    Report(
-                        diagnostics,
-                        IrDiagnosticCodes.TypeMismatch,
-                        element.Span,
-                        "IR element read has incompatible target, index, or destination types."
-                    );
-                }
-            }
+        if (!isValid)
+        {
+            Report(
+                diagnostics,
+                IrDiagnosticCodes.TypeMismatch,
+                element.Span,
+                "IR element read has incompatible target, index, or destination types."
+            );
+        }
+    }
 
     private static void ValidateElementWrite(
-                IrProgram program,
-                IrInstruction.SetElement element,
-                ICollection<Diagnostic> diagnostics
-            )
-            {
-                IrSlot? target = GetSlot(program, element.Target);
-                IrSlot? index = GetSlot(program, element.Index);
-                IrSlot? value = GetSlot(program, element.Value);
+        IrProgram program,
+        IrInstruction.SetElement element,
+        ICollection<Diagnostic> diagnostics
+    )
+    {
+        IrSlot? target = GetSlot(program, element.Target);
+        IrSlot? index = GetSlot(program, element.Index);
+        IrSlot? value = GetSlot(program, element.Value);
 
-                if (target is null || index is null || value is null)
-                {
-                    ValidateSlot(program, element.Target, element.Span, diagnostics);
-                    ValidateSlot(program, element.Index, element.Span, diagnostics);
-                    ValidateSlot(program, element.Value, element.Span, diagnostics);
-                    return;
-                }
+        if (target is null || index is null || value is null)
+        {
+            ValidateSlot(program, element.Target, element.Span, diagnostics);
+            ValidateSlot(program, element.Index, element.Span, diagnostics);
+            ValidateSlot(program, element.Value, element.Span, diagnostics);
+            return;
+        }
 
-                TypeSymbol targetType = GetNonNullable(target.Type);
-                bool isValid = element.IsObjectAccess
-                    ? targetType.Kind is TypeKind.Object or TypeKind.StructuredObject &&
-                        AreType(index, TypeSymbols.String)
-                    : targetType is ArrayTypeSymbol arrayType &&
-                        AreType(index, TypeSymbols.Int) &&
-                        TypeRelations.AreEquivalent(value.Type, arrayType.ElementType);
+        TypeSymbol targetType = GetNonNullable(target.Type);
+        bool isValid = element.IsObjectAccess
+            ? targetType.Kind is TypeKind.Object or TypeKind.StructuredObject &&
+            AreType(index, TypeSymbols.String)
+            : targetType is ArrayTypeSymbol arrayType &&
+            AreType(index, TypeSymbols.Int) &&
+            TypeRelations.AreEquivalent(value.Type, arrayType.ElementType);
 
-                if (!isValid)
-                {
-                    Report(
-                        diagnostics,
-                        IrDiagnosticCodes.TypeMismatch,
-                        element.Span,
-                        "IR element write has incompatible target, index, or value types."
-                    );
-                }
-            }
+        if (!isValid)
+        {
+            Report(
+                diagnostics,
+                IrDiagnosticCodes.TypeMismatch,
+                element.Span,
+                "IR element write has incompatible target, index, or value types."
+            );
+        }
+    }
 
     private static bool IsConstantCompatible(object? value, TypeSymbol type)
-            {
-                if (type is NullableTypeSymbol nullable)
-                {
-                    return value is null || IsConstantCompatible(value, nullable.UnderlyingType);
-                }
+    {
+        if (type is NullableTypeSymbol nullable)
+        {
+            return value is null || IsConstantCompatible(value, nullable.UnderlyingType);
+        }
 
-                return type.Kind switch
-                {
-                    TypeKind.Bool => value is bool,
-                    TypeKind.Int => value is long,
-                    TypeKind.Number => value is double,
-                    TypeKind.String => value is string,
-                    TypeKind.Unknown => value is not null,
-                    _ => false,
-                };
-            }
+        return type.Kind switch
+        {
+            TypeKind.Bool => value is bool,
+            TypeKind.Int => value is long,
+            TypeKind.Number => value is double,
+            TypeKind.String => value is string,
+            TypeKind.Unknown => value is not null,
+            _ => false,
+        };
+    }
 
     private static bool AreEquivalent(
-                IrSlot first,
-                IrSlot second,
-                IrSlot third
-            )
-            {
-                return TypeRelations.AreEquivalent(first.Type, second.Type) &&
-                    TypeRelations.AreEquivalent(first.Type, third.Type);
-            }
+        IrSlot first,
+        IrSlot second,
+        IrSlot third
+    )
+    {
+        return TypeRelations.AreEquivalent(first.Type, second.Type) &&
+            TypeRelations.AreEquivalent(first.Type, third.Type);
+    }
 
     private static bool AreType(IrSlot slot, TypeSymbol type)
-            {
-                return TypeRelations.AreEquivalent(slot.Type, type);
-            }
+    {
+        return TypeRelations.AreEquivalent(slot.Type, type);
+    }
 
     private static TypeSymbol GetNonNullable(TypeSymbol type)
-            {
-                return type is NullableTypeSymbol nullable
-                    ? nullable.UnderlyingType
-                    : type;
-            }
+    {
+        return type is NullableTypeSymbol nullable
+            ? nullable.UnderlyingType
+            : type;
+    }
 
     private static TypeSymbol MakeNullable(TypeSymbol type)
-            {
-                return type is NullableTypeSymbol
-                    ? type
-                    : TypeSymbols.Nullable(type);
+    {
+        return type is NullableTypeSymbol
+            ? type
+            : TypeSymbols.Nullable(type);
     }
 
     private static void ValidateCall(
@@ -888,17 +907,12 @@ internal static class IrValidator
 
         HashSet<int> reachable = GetReachableBlocks(program.EntryBlock, blocksById);
         Dictionary<int, List<int>> predecessors = GetPredecessors(reachable, blocksById);
-        HashSet<int> allSlots = program.Slots.Select(static slot => slot.Id).ToHashSet();
-        Dictionary<int, HashSet<int>> outgoing = [];
+        HashSet<int> allSlots = [ .. program.Slots.Select(static slot => slot.Id) ];
+        Dictionary<int, HashSet<int>> outgoing = [ ];
 
         foreach (int blockId in reachable)
         {
-            outgoing.Add(
-                blockId,
-                blockId == program.EntryBlock
-                    ? []
-                    : new HashSet<int>(allSlots)
-            );
+            outgoing.Add(blockId, blockId == program.EntryBlock ? [ ] : [ .. allSlots ]);
         }
 
         bool changed;
@@ -946,8 +960,8 @@ internal static class IrValidator
         IReadOnlyDictionary<int, IrBasicBlock> blocksById
     )
     {
-        HashSet<int> reachable = [];
-        Queue<int> pending = new();
+        HashSet<int> reachable = [ ];
+        Queue<int> pending = new ();
         pending.Enqueue(entryBlock);
 
         while (pending.Count > 0)
@@ -1006,10 +1020,10 @@ internal static class IrValidator
     {
         if (blockId == entryBlock || predecessors[blockId].Count == 0)
         {
-            return [];
+            return [ ];
         }
 
-        HashSet<int> incoming = new(outgoing[predecessors[blockId][0]]);
+        HashSet<int> incoming = [ .. outgoing[predecessors[blockId][0]] ];
 
         foreach (int predecessor in predecessors[blockId].Skip(1))
         {
@@ -1024,7 +1038,7 @@ internal static class IrValidator
         IEnumerable<int> incoming
     )
     {
-        HashSet<int> defined = new(incoming);
+        HashSet<int> defined = [ .. incoming ];
 
         foreach (IrInstruction instruction in block.Instructions)
         {
@@ -1108,27 +1122,27 @@ internal static class IrValidator
     {
         return instruction switch
         {
-            IrInstruction.Copy copy => [copy.Source],
-            IrInstruction.Unary unary => [unary.Operand],
-            IrInstruction.Binary binary => [binary.Left, binary.Right],
-            IrInstruction.Convert conversion => [conversion.Source],
-            IrInstruction.TypeTest typeTest => [typeTest.Source],
-            IrInstruction.IsNull isNull => [isNull.Source],
+            IrInstruction.Copy copy => [ copy.Source ],
+            IrInstruction.Unary unary => [ unary.Operand ],
+            IrInstruction.Binary binary => [ binary.Left, binary.Right ],
+            IrInstruction.Convert conversion => [ conversion.Source ],
+            IrInstruction.TypeTest typeTest => [ typeTest.Source ],
+            IrInstruction.IsNull isNull => [ isNull.Source ],
             IrInstruction.HasProperty propertyTest =>
-                [propertyTest.Target, propertyTest.Key],
+                [ propertyTest.Target, propertyTest.Key ],
             IrInstruction.CreateArray array => array.Elements,
             IrInstruction.CreateObject objectValue =>
                 objectValue.Properties.Select(static property => property.Value),
-            IrInstruction.GetProperty property => [property.Target],
-            IrInstruction.SetProperty property => [property.Target, property.Value],
-            IrInstruction.RemoveProperty property => [property.Target],
-            IrInstruction.GetElement element => [element.Target, element.Index],
+            IrInstruction.GetProperty property => [ property.Target ],
+            IrInstruction.SetProperty property => [ property.Target, property.Value ],
+            IrInstruction.RemoveProperty property => [ property.Target ],
+            IrInstruction.GetElement element => [ element.Target, element.Index ],
             IrInstruction.SetElement element =>
-                [element.Target, element.Index, element.Value],
+                [ element.Target, element.Index, element.Value ],
             IrInstruction.RemoveElementProperty property =>
-                [property.Target, property.Key],
+                [ property.Target, property.Key ],
             IrInstruction.Call call => call.Arguments,
-            _ => [],
+            _ => [ ],
         };
     }
 
@@ -1136,9 +1150,9 @@ internal static class IrValidator
     {
         return terminator switch
         {
-            IrTerminator.Branch branch => [branch.Condition],
-            IrTerminator.Return { Value: int value } => [value],
-            _ => [],
+            IrTerminator.Branch branch => [ branch.Condition ],
+            IrTerminator.Return { Value: { } value } => [ value ],
+            _ => [ ],
         };
     }
 
@@ -1146,9 +1160,9 @@ internal static class IrValidator
     {
         return terminator switch
         {
-            IrTerminator.Jump jump => [jump.TargetBlock],
-            IrTerminator.Branch branch => [branch.TrueBlock, branch.FalseBlock],
-            _ => [],
+            IrTerminator.Jump jump => [ jump.TargetBlock ],
+            IrTerminator.Branch branch => [ branch.TrueBlock, branch.FalseBlock ],
+            _ => [ ],
         };
     }
 

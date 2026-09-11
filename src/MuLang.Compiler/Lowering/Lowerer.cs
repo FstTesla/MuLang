@@ -2,7 +2,6 @@ using MuLang.Compiler.Binding;
 using MuLang.Compiler.Syntax;
 using MuLang.Core.Diagnostics;
 using MuLang.Core.Environment;
-using MuLang.Core.Text;
 using MuLang.Core.Types;
 using MuLang.IR;
 
@@ -11,10 +10,12 @@ namespace MuLang.Compiler.Lowering;
 internal sealed class Lowerer
 {
     private readonly EnvironmentSchema environment;
-    private readonly IrBuilder builder = new();
+    private readonly IrBuilder builder = new ();
+
     private readonly Dictionary<LocalSymbol, int> localSlots =
-        new(ReferenceEqualityComparer.Instance);
-    private readonly Stack<LoweringLoopContext> loopContexts = [];
+        new (ReferenceEqualityComparer.Instance);
+
+    private readonly Stack<LoweringLoopContext> loopContexts = [ ];
 
     private Lowerer(EnvironmentSchema environment)
     {
@@ -41,7 +42,7 @@ internal sealed class Lowerer
             return new LoweringResult(null, bindingResult.Diagnostics);
         }
 
-        Lowerer lowerer = new(environment);
+        Lowerer lowerer = new (environment);
         TypeSymbol resultType = lowerer.LowerRoot(bindingResult.Root);
         IrProgram program = lowerer.builder.Build(
             environment.Fingerprint,
@@ -61,6 +62,7 @@ internal sealed class Lowerer
                 builder.Terminate(new IrTerminator.Return(expression.Span, value));
                 return expression.Value.Type;
             }
+
             case BoundRoot.Program program:
             {
                 LowerStatements(program.Statements);
@@ -72,6 +74,7 @@ internal sealed class Lowerer
 
                 return program.ResultType;
             }
+
             default:
             {
                 throw new InvalidOperationException("Unknown bound root.");
@@ -101,6 +104,7 @@ internal sealed class Lowerer
                 LowerStatements(block.Statements);
                 break;
             }
+
             case BoundStatement.VariableDeclaration declaration:
             {
                 int localSlot = GetLocalSlot(declaration.Local);
@@ -108,55 +112,66 @@ internal sealed class Lowerer
                 if (declaration.Initializer is not null)
                 {
                     int initializer = LowerExpression(declaration.Initializer);
-                    builder.Emit(new IrInstruction.Copy(
-                        declaration.Span,
-                        localSlot,
-                        initializer
-                    ));
+                    builder.Emit(
+                        new IrInstruction.Copy(
+                            declaration.Span,
+                            localSlot,
+                            initializer
+                        )
+                    );
                 }
 
                 break;
             }
+
             case BoundStatement.Assignment assignment:
             {
                 LowerAssignment(assignment);
                 break;
             }
+
             case BoundStatement.Removal removal:
             {
                 LowerRemoval(removal);
                 break;
             }
+
             case BoundStatement.ExpressionStatement expression:
             {
                 LowerExpression(expression.Value);
                 break;
             }
+
             case BoundStatement.If conditional:
             {
                 LowerIf(conditional);
                 break;
             }
+
             case BoundStatement.While loop:
             {
                 LowerWhile(loop);
                 break;
             }
+
             case BoundStatement.For loop:
             {
                 LowerFor(loop);
                 break;
             }
+
             case BoundStatement.Break loopExit:
             {
                 LowerBreak(loopExit);
                 break;
             }
+
             case BoundStatement.Continue iteration:
             {
                 LowerContinue(iteration);
                 break;
             }
+
             case BoundStatement.Return result:
             {
                 int? value = result.Value is null
@@ -166,10 +181,12 @@ internal sealed class Lowerer
                 builder.SetUnreachable();
                 break;
             }
+
             case BoundStatement.Empty:
             {
                 break;
             }
+
             default:
             {
                 throw new InvalidOperationException("Unknown bound statement.");
@@ -184,39 +201,48 @@ internal sealed class Lowerer
             case BoundExpression.Local local:
             {
                 int value = LowerExpression(assignment.Value);
-                builder.Emit(new IrInstruction.Copy(
-                    assignment.Span,
-                    GetLocalSlot(local.Symbol),
-                    value
-                ));
+                builder.Emit(
+                    new IrInstruction.Copy(
+                        assignment.Span,
+                        GetLocalSlot(local.Symbol),
+                        value
+                    )
+                );
                 break;
             }
+
             case BoundExpression.MemberAccess member:
             {
                 int target = LowerExpression(member.Target);
                 int value = LowerExpression(assignment.Value);
-                builder.Emit(new IrInstruction.SetProperty(
-                    assignment.Span,
-                    target,
-                    member.Name,
-                    value
-                ));
+                builder.Emit(
+                    new IrInstruction.SetProperty(
+                        assignment.Span,
+                        target,
+                        member.Name,
+                        value
+                    )
+                );
                 break;
             }
+
             case BoundExpression.ElementAccess element:
             {
                 int target = LowerExpression(element.Target);
                 int index = LowerExpression(element.Index);
                 int value = LowerExpression(assignment.Value);
-                builder.Emit(new IrInstruction.SetElement(
-                    assignment.Span,
-                    target,
-                    index,
-                    value,
-                    element.IsObjectAccess
-                ));
+                builder.Emit(
+                    new IrInstruction.SetElement(
+                        assignment.Span,
+                        target,
+                        index,
+                        value,
+                        element.IsObjectAccess
+                    )
+                );
                 break;
             }
+
             default:
             {
                 throw new InvalidOperationException("Unknown assignment target.");
@@ -231,24 +257,30 @@ internal sealed class Lowerer
             case BoundExpression.MemberAccess member:
             {
                 int target = LowerExpression(member.Target);
-                builder.Emit(new IrInstruction.RemoveProperty(
-                    removal.Span,
-                    target,
-                    member.Name
-                ));
+                builder.Emit(
+                    new IrInstruction.RemoveProperty(
+                        removal.Span,
+                        target,
+                        member.Name
+                    )
+                );
                 break;
             }
+
             case BoundExpression.ElementAccess element:
             {
                 int target = LowerExpression(element.Target);
                 int key = LowerExpression(element.Index);
-                builder.Emit(new IrInstruction.RemoveElementProperty(
-                    removal.Span,
-                    target,
-                    key
-                ));
+                builder.Emit(
+                    new IrInstruction.RemoveElementProperty(
+                        removal.Span,
+                        target,
+                        key
+                    )
+                );
                 break;
             }
+
             default:
             {
                 throw new InvalidOperationException("Unknown removal target.");
@@ -261,12 +293,14 @@ internal sealed class Lowerer
         int condition = LowerExpression(conditional.Condition);
         int thenBlock = builder.CreateBlock();
         int elseBlock = builder.CreateBlock();
-        builder.Terminate(new IrTerminator.Branch(
-            conditional.Condition.Span,
-            condition,
-            thenBlock,
-            elseBlock
-        ));
+        builder.Terminate(
+            new IrTerminator.Branch(
+                conditional.Condition.Span,
+                condition,
+                thenBlock,
+                elseBlock
+            )
+        );
 
         builder.SwitchTo(thenBlock);
         LowerStatement(conditional.Then);
@@ -324,15 +358,17 @@ internal sealed class Lowerer
         {
             int finiteExitBlock = exitBlock ??
                 throw new InvalidOperationException("A finite loop requires an exit block.");
-            builder.Terminate(new IrTerminator.Branch(
-                loop.Condition.Span,
-                condition,
-                bodyBlock,
-                finiteExitBlock
-            ));
+            builder.Terminate(
+                new IrTerminator.Branch(
+                    loop.Condition.Span,
+                    condition,
+                    bodyBlock,
+                    finiteExitBlock
+                )
+            );
         }
 
-        LoweringLoopContext context = new(
+        LoweringLoopContext context = new (
             conditionBlock,
             exitBlock,
             builder.CreateBlock
@@ -386,15 +422,17 @@ internal sealed class Lowerer
             int finiteExitBlock = exitBlock ??
                 throw new InvalidOperationException("A finite for loop requires an exit block.");
             int condition = LowerExpression(conditionExpression);
-            builder.Terminate(new IrTerminator.Branch(
-                conditionExpression.Span,
-                condition,
-                bodyBlock,
-                finiteExitBlock
-            ));
+            builder.Terminate(
+                new IrTerminator.Branch(
+                    conditionExpression.Span,
+                    condition,
+                    bodyBlock,
+                    finiteExitBlock
+                )
+            );
         }
 
-        LoweringLoopContext context = new(
+        LoweringLoopContext context = new (
             iteratorBlock,
             exitBlock,
             builder.CreateBlock
@@ -474,12 +512,14 @@ internal sealed class Lowerer
     private int LowerLiteral(BoundExpression.Literal expression)
     {
         int destination = CreateTemporary(expression.Type);
-        builder.Emit(new IrInstruction.Constant(
-            expression.Span,
-            destination,
-            expression.Type,
-            expression.Value
-        ));
+        builder.Emit(
+            new IrInstruction.Constant(
+                expression.Span,
+                destination,
+                expression.Type,
+                expression.Value
+            )
+        );
 
         return destination;
     }
@@ -487,18 +527,20 @@ internal sealed class Lowerer
     private int LowerGlobal(BoundExpression.Global expression)
     {
         int destination = CreateTemporary(expression.Type);
-        builder.Emit(new IrInstruction.LoadGlobal(
-            expression.Span,
-            destination,
-            expression.Symbol.Id
-        ));
+        builder.Emit(
+            new IrInstruction.LoadGlobal(
+                expression.Span,
+                destination,
+                expression.Symbol.Id
+            )
+        );
 
         return destination;
     }
 
     private int LowerArray(BoundExpression.Array expression)
     {
-        List<int> elements = [];
+        List<int> elements = [ ];
 
         foreach (BoundExpression element in expression.Elements)
         {
@@ -506,35 +548,41 @@ internal sealed class Lowerer
         }
 
         int destination = CreateTemporary(expression.Type);
-        builder.Emit(new IrInstruction.CreateArray(
-            expression.Span,
-            destination,
-            expression.ArrayType,
-            elements.AsReadOnly()
-        ));
+        builder.Emit(
+            new IrInstruction.CreateArray(
+                expression.Span,
+                destination,
+                expression.ArrayType,
+                elements.AsReadOnly()
+            )
+        );
 
         return destination;
     }
 
     private int LowerObject(BoundExpression.Object expression)
     {
-        List<IrInstruction.ObjectPropertyValue> properties = [];
+        List<IrInstruction.ObjectPropertyValue> properties = [ ];
 
         foreach (BoundExpression.ObjectProperty property in expression.Properties)
         {
-            properties.Add(new IrInstruction.ObjectPropertyValue(
-                property.Name,
-                LowerExpression(property.Value)
-            ));
+            properties.Add(
+                new IrInstruction.ObjectPropertyValue(
+                    property.Name,
+                    LowerExpression(property.Value)
+                )
+            );
         }
 
         int destination = CreateTemporary(expression.Type);
-        builder.Emit(new IrInstruction.CreateObject(
-            expression.Span,
-            destination,
-            expression.ObjectType,
-            properties.AsReadOnly()
-        ));
+        builder.Emit(
+            new IrInstruction.CreateObject(
+                expression.Span,
+                destination,
+                expression.ObjectType,
+                properties.AsReadOnly()
+            )
+        );
 
         return destination;
     }
@@ -543,12 +591,14 @@ internal sealed class Lowerer
     {
         int operand = LowerExpression(expression.Operand);
         int destination = CreateTemporary(expression.Type);
-        builder.Emit(new IrInstruction.Unary(
-            expression.Span,
-            destination,
-            MapUnaryOperator(expression.Operator),
-            operand
-        ));
+        builder.Emit(
+            new IrInstruction.Unary(
+                expression.Span,
+                destination,
+                MapUnaryOperator(expression.Operator),
+                operand
+            )
+        );
 
         return destination;
     }
@@ -563,13 +613,15 @@ internal sealed class Lowerer
         int left = LowerExpression(expression.Left);
         int right = LowerExpression(expression.Right);
         int destination = CreateTemporary(expression.Type);
-        builder.Emit(new IrInstruction.Binary(
-            expression.Span,
-            destination,
-            MapBinaryOperator(expression.Operator),
-            left,
-            right
-        ));
+        builder.Emit(
+            new IrInstruction.Binary(
+                expression.Span,
+                destination,
+                MapBinaryOperator(expression.Operator),
+                left,
+                right
+            )
+        );
 
         return destination;
     }
@@ -582,26 +634,32 @@ internal sealed class Lowerer
         int shortCircuitBlock = builder.CreateBlock();
         int mergeBlock = builder.CreateBlock();
         bool isAnd = expression.Operator == TokenKind.AmpersandAmpersand;
-        builder.Terminate(new IrTerminator.Branch(
-            expression.Left.Span,
-            left,
-            isAnd ? rightBlock : shortCircuitBlock,
-            isAnd ? shortCircuitBlock : rightBlock
-        ));
+        builder.Terminate(
+            new IrTerminator.Branch(
+                expression.Left.Span,
+                left,
+                isAnd ? rightBlock : shortCircuitBlock,
+                isAnd ? shortCircuitBlock : rightBlock
+            )
+        );
 
         builder.SwitchTo(shortCircuitBlock);
         int shortCircuitValue = CreateTemporary(TypeSymbols.Bool);
-        builder.Emit(new IrInstruction.Constant(
-            expression.Span,
-            shortCircuitValue,
-            TypeSymbols.Bool,
-            !isAnd
-        ));
-        builder.Emit(new IrInstruction.Copy(
-            expression.Span,
-            result,
-            shortCircuitValue
-        ));
+        builder.Emit(
+            new IrInstruction.Constant(
+                expression.Span,
+                shortCircuitValue,
+                TypeSymbols.Bool,
+                !isAnd
+            )
+        );
+        builder.Emit(
+            new IrInstruction.Copy(
+                expression.Span,
+                result,
+                shortCircuitValue
+            )
+        );
         builder.Terminate(new IrTerminator.Jump(expression.Span, mergeBlock));
 
         builder.SwitchTo(rightBlock);
@@ -617,13 +675,15 @@ internal sealed class Lowerer
     {
         int sourceSlot = LowerExpression(expression.Expression);
         int destination = CreateTemporary(expression.Type);
-        builder.Emit(new IrInstruction.Convert(
-            expression.Span,
-            destination,
-            sourceSlot,
-            expression.Type,
-            expression.ConversionKind == ConversionKind.Checked
-        ));
+        builder.Emit(
+            new IrInstruction.Convert(
+                expression.Span,
+                destination,
+                sourceSlot,
+                expression.Type,
+                expression.ConversionKind == ConversionKind.Checked
+            )
+        );
 
         return destination;
     }
@@ -632,12 +692,14 @@ internal sealed class Lowerer
     {
         int sourceSlot = LowerExpression(expression.Expression);
         int destination = CreateTemporary(TypeSymbols.Bool);
-        builder.Emit(new IrInstruction.TypeTest(
-            expression.Span,
-            destination,
-            sourceSlot,
-            expression.TestedType
-        ));
+        builder.Emit(
+            new IrInstruction.TypeTest(
+                expression.Span,
+                destination,
+                sourceSlot,
+                expression.TestedType
+            )
+        );
 
         return destination;
     }
@@ -647,12 +709,14 @@ internal sealed class Lowerer
         int target = LowerExpression(expression.Target);
         int key = LowerExpression(expression.Key);
         int destination = CreateTemporary(TypeSymbols.Bool);
-        builder.Emit(new IrInstruction.HasProperty(
-            expression.Span,
-            destination,
-            target,
-            key
-        ));
+        builder.Emit(
+            new IrInstruction.HasProperty(
+                expression.Span,
+                destination,
+                target,
+                key
+            )
+        );
 
         return destination;
     }
@@ -664,12 +728,14 @@ internal sealed class Lowerer
         int trueBlock = builder.CreateBlock();
         int falseBlock = builder.CreateBlock();
         int mergeBlock = builder.CreateBlock();
-        builder.Terminate(new IrTerminator.Branch(
-            expression.Condition.Span,
-            condition,
-            trueBlock,
-            falseBlock
-        ));
+        builder.Terminate(
+            new IrTerminator.Branch(
+                expression.Condition.Span,
+                condition,
+                trueBlock,
+                falseBlock
+            )
+        );
 
         builder.SwitchTo(trueBlock);
         int trueValue = LowerExpression(expression.WhenTrue);
@@ -687,7 +753,7 @@ internal sealed class Lowerer
 
     private int LowerCall(BoundExpression.Call expression)
     {
-        List<int> arguments = [];
+        List<int> arguments = [ ];
 
         foreach (BoundExpression argument in expression.Arguments)
         {
@@ -697,13 +763,15 @@ internal sealed class Lowerer
         int? destination = expression.Type.Kind == TypeKind.Void
             ? null
             : CreateTemporary(expression.Type);
-        builder.Emit(new IrInstruction.Call(
-            expression.Span,
-            destination,
-            expression.Function.Id,
-            expression.Type,
-            arguments.AsReadOnly()
-        ));
+        builder.Emit(
+            new IrInstruction.Call(
+                expression.Span,
+                destination,
+                expression.Function.Id,
+                expression.Type,
+                arguments.AsReadOnly()
+            )
+        );
 
         return destination ?? -1;
     }
@@ -712,14 +780,16 @@ internal sealed class Lowerer
     {
         int target = LowerExpression(expression.Target);
         int destination = CreateTemporary(expression.Type);
-        builder.Emit(new IrInstruction.GetProperty(
-            expression.Span,
-            destination,
-            target,
-            expression.Name,
-            expression.IsOptional,
-            expression.IsArrayLength
-        ));
+        builder.Emit(
+            new IrInstruction.GetProperty(
+                expression.Span,
+                destination,
+                target,
+                expression.Name,
+                expression.IsOptional,
+                expression.IsArrayLength
+            )
+        );
 
         return destination;
     }
@@ -728,24 +798,23 @@ internal sealed class Lowerer
     {
         int target = LowerExpression(expression.Target);
 
-        if (
-            expression.IsOptional &&
-            expression.Target.Type is NullableTypeSymbol
-        )
+        if (expression is { IsOptional: true, Target.Type: NullableTypeSymbol })
         {
             return LowerOptionalElementAccess(expression, target);
         }
 
         int index = LowerExpression(expression.Index);
         int destination = CreateTemporary(expression.Type);
-        builder.Emit(new IrInstruction.GetElement(
-            expression.Span,
-            destination,
-            target,
-            index,
-            expression.IsObjectAccess,
-            expression.IsOptional
-        ));
+        builder.Emit(
+            new IrInstruction.GetElement(
+                expression.Span,
+                destination,
+                target,
+                index,
+                expression.IsObjectAccess,
+                expression.IsOptional
+            )
+        );
 
         return destination;
     }
@@ -757,40 +826,48 @@ internal sealed class Lowerer
     {
         int result = CreateTemporary(expression.Type);
         int isNull = CreateTemporary(TypeSymbols.Bool);
-        builder.Emit(new IrInstruction.IsNull(
-            expression.Target.Span,
-            isNull,
-            target
-        ));
+        builder.Emit(
+            new IrInstruction.IsNull(
+                expression.Target.Span,
+                isNull,
+                target
+            )
+        );
         int nullBlock = builder.CreateBlock();
         int valueBlock = builder.CreateBlock();
         int mergeBlock = builder.CreateBlock();
-        builder.Terminate(new IrTerminator.Branch(
-            expression.Target.Span,
-            isNull,
-            nullBlock,
-            valueBlock
-        ));
+        builder.Terminate(
+            new IrTerminator.Branch(
+                expression.Target.Span,
+                isNull,
+                nullBlock,
+                valueBlock
+            )
+        );
 
         builder.SwitchTo(nullBlock);
-        builder.Emit(new IrInstruction.Constant(
-            expression.Span,
-            result,
-            expression.Type,
-            null
-        ));
+        builder.Emit(
+            new IrInstruction.Constant(
+                expression.Span,
+                result,
+                expression.Type,
+                null
+            )
+        );
         builder.Terminate(new IrTerminator.Jump(expression.Span, mergeBlock));
 
         builder.SwitchTo(valueBlock);
         int index = LowerExpression(expression.Index);
-        builder.Emit(new IrInstruction.GetElement(
-            expression.Span,
-            result,
-            target,
-            index,
-            expression.IsObjectAccess,
-            true
-        ));
+        builder.Emit(
+            new IrInstruction.GetElement(
+                expression.Span,
+                result,
+                target,
+                index,
+                expression.IsObjectAccess,
+                true
+            )
+        );
         builder.Terminate(new IrTerminator.Jump(expression.Span, mergeBlock));
         builder.SwitchTo(mergeBlock);
 

@@ -451,6 +451,8 @@ Each operand MUST be evaluated exactly once.
 
 An array literal contains zero or more comma-separated expressions enclosed in square brackets.
 
+A non-empty array literal MAY contain one trailing comma after its final expression.
+
 All elements MUST have a common type under the implicit conversion rules. Each element is converted to that common type.
 
 Numeric elements use `number` as their common type when at least one element has type `number`.
@@ -466,6 +468,8 @@ Array literals create mutable arrays. A runtime adapter MAY still reject a later
 A closed object literal contains zero or more comma-separated property initializers enclosed in `{` and `}`.
 
 An open object literal contains the same contents enclosed in `@{` and `}`.
+
+A non-empty object literal MAY contain one trailing comma after its final property initializer.
 
 Each property initializer consists of an identifier or string literal property name, followed by `:`, followed by an expression.
 
@@ -1122,6 +1126,9 @@ array-suffix
 nullable-suffix
     = "?" ;
 
+array-literal
+    = "[" (expression ("," expression)* ","?)? "]" ;
+
 closed-object-literal
     = "{" property-initializer-list? "}" ;
 
@@ -1129,7 +1136,7 @@ open-object-literal
     = "@{" property-initializer-list? "}" ;
 
 property-initializer-list
-    = property-initializer ("," property-initializer)* ;
+    = property-initializer ("," property-initializer)* ","? ;
 
 property-initializer
     = (identifier | string-literal) ":" expression ;

@@ -4,7 +4,7 @@ namespace MuLang.Compiler.Binding;
 
 internal sealed class BindingScope
 {
-    private readonly Dictionary<string, LocalSymbol> locals = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, LocalSymbol> locals = new (StringComparer.Ordinal);
 
     public BindingScope(BindingScope? parent)
     {

@@ -16,7 +16,7 @@ public sealed class EnvironmentBuilderTests
             .AddFunction(
                 "function.log",
                 "log",
-                [new ParameterSymbol("value", TypeSymbols.Unknown)],
+                [ new ParameterSymbol("value", TypeSymbols.Unknown) ],
                 TypeSymbols.Void
             )
             .Build();
@@ -35,7 +35,7 @@ public sealed class EnvironmentBuilderTests
     {
         EnvironmentSchema schema = new EnvironmentBuilder()
             .AddGlobal("global.value", "value", TypeSymbols.Int)
-            .AddFunction("function.value", "value", [], TypeSymbols.Int)
+            .AddFunction("function.value", "value", [ ], TypeSymbols.Int)
             .Build();
 
         using (Assert.EnterMultipleScope())
@@ -73,10 +73,10 @@ public sealed class EnvironmentBuilderTests
         EnvironmentSchema first = new EnvironmentBuilder()
             .AddType(firstType)
             .AddGlobal("global.items", "items", TypeSymbols.Array(firstType))
-            .AddFunction("function.count", "count", [], TypeSymbols.Int)
+            .AddFunction("function.count", "count", [ ], TypeSymbols.Int)
             .Build();
         EnvironmentSchema second = new EnvironmentBuilder()
-            .AddFunction("function.count", "count", [], TypeSymbols.Int)
+            .AddFunction("function.count", "count", [ ], TypeSymbols.Int)
             .AddGlobal("global.items", "items", TypeSymbols.Array(secondType))
             .AddType(secondType)
             .Build();
@@ -100,17 +100,17 @@ public sealed class EnvironmentBuilderTests
     [Test]
     public void IncludesStructuredTypeShapeInFingerprint()
     {
-        ObjectTypeSymbol requiredPropertyType = new(
+        ObjectTypeSymbol requiredPropertyType = new (
             "type.item",
             "Item",
             false,
-            [new ObjectPropertySymbol("value", TypeSymbols.Int)]
+            [ new ObjectPropertySymbol("value", TypeSymbols.Int) ]
         );
-        ObjectTypeSymbol optionalPropertyType = new(
+        ObjectTypeSymbol optionalPropertyType = new (
             "type.item",
             "Item",
             false,
-            [new ObjectPropertySymbol("value", TypeSymbols.Int, true)]
+            [ new ObjectPropertySymbol("value", TypeSymbols.Int, true) ]
         );
         EnvironmentSchema first = new EnvironmentBuilder()
             .AddType(requiredPropertyType)
@@ -149,7 +149,7 @@ public sealed class EnvironmentBuilderTests
     [Test]
     public void AllowsNonIdentifierObjectPropertyNames()
     {
-        ObjectPropertySymbol property = new("display-name", TypeSymbols.String);
+        ObjectPropertySymbol property = new ("display-name", TypeSymbols.String);
 
         Assert.That(property.Name, Is.EqualTo("display-name"));
     }

@@ -1,8 +1,8 @@
-using System.Collections.Frozen;
 using MuLang.Core.Environment;
 using MuLang.Core.Runtime;
 using MuLang.Core.Text;
 using MuLang.Core.Types;
+using System.Collections.Frozen;
 
 namespace MuLang.Exporters.DotNet;
 

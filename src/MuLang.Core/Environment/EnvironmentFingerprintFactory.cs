@@ -1,8 +1,8 @@
+using MuLang.Core.Symbols;
+using MuLang.Core.Types;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
-using MuLang.Core.Symbols;
-using MuLang.Core.Types;
 
 namespace MuLang.Core.Environment;
 
@@ -15,13 +15,13 @@ internal static class EnvironmentFingerprintFactory
         IReadOnlyCollection<FunctionSymbol> functions
     )
     {
-        StringBuilder canonical = new();
+        StringBuilder canonical = new ();
         AppendValue(canonical, ((int)languageVersion).ToString(CultureInfo.InvariantCulture));
 
         foreach (ObjectTypeSymbol type in types.OrderBy(
-            static type => type.Id,
-            StringComparer.Ordinal
-        ))
+                static type => type.Id,
+                StringComparer.Ordinal
+            ))
         {
             AppendValue(canonical, "type");
             AppendValue(canonical, GetProviderTypeId(type));
@@ -29,9 +29,9 @@ internal static class EnvironmentFingerprintFactory
             AppendValue(canonical, type.IsOpen ? "open" : "closed");
 
             foreach (ObjectPropertySymbol property in type.Properties.OrderBy(
-                static property => property.Name,
-                StringComparer.Ordinal
-            ))
+                    static property => property.Name,
+                    StringComparer.Ordinal
+                ))
             {
                 AppendValue(canonical, property.Name);
                 AppendValue(canonical, property.IsOptional ? "optional" : "required");
@@ -40,9 +40,9 @@ internal static class EnvironmentFingerprintFactory
         }
 
         foreach (GlobalSymbol global in globals.OrderBy(
-            static global => global.Id,
-            StringComparer.Ordinal
-        ))
+                static global => global.Id,
+                StringComparer.Ordinal
+            ))
         {
             AppendValue(canonical, "global");
             AppendValue(canonical, global.Id);
@@ -51,9 +51,9 @@ internal static class EnvironmentFingerprintFactory
         }
 
         foreach (FunctionSymbol function in functions.OrderBy(
-            static function => function.Id,
-            StringComparer.Ordinal
-        ))
+                static function => function.Id,
+                StringComparer.Ordinal
+            ))
         {
             AppendValue(canonical, "function");
             AppendValue(canonical, function.Id);
@@ -84,11 +84,13 @@ internal static class EnvironmentFingerprintFactory
                 AppendType(canonical, nullable.UnderlyingType);
                 break;
             }
+
             case ArrayTypeSymbol array:
             {
                 AppendType(canonical, array.ElementType);
                 break;
             }
+
             case ObjectTypeSymbol structuredObject:
             {
                 AppendValue(canonical, GetProviderTypeId(structuredObject));

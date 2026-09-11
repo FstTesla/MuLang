@@ -1,0 +1,8 @@
+- Add `float` to types
+- .NET representation of objects
+- Optional property in object literals
+- Negative array indexes
+- Deep `break` and `continue`
+- Reduce usage of `InternalVisibleTo` except for tests
+- Collection types in compiler
+- Exceptions review

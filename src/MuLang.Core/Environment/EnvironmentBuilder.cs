@@ -6,17 +6,22 @@ namespace MuLang.Core.Environment;
 public sealed class EnvironmentBuilder
 {
     private readonly Dictionary<string, ObjectTypeSymbol> typesByName =
-        new(StringComparer.Ordinal);
+        new (StringComparer.Ordinal);
+
     private readonly Dictionary<string, ObjectTypeSymbol> typesById =
-        new(StringComparer.Ordinal);
+        new (StringComparer.Ordinal);
+
     private readonly Dictionary<string, GlobalSymbol> globalsByName =
-        new(StringComparer.Ordinal);
+        new (StringComparer.Ordinal);
+
     private readonly Dictionary<string, GlobalSymbol> globalsById =
-        new(StringComparer.Ordinal);
+        new (StringComparer.Ordinal);
+
     private readonly Dictionary<string, FunctionSymbol> functionsByName =
-        new(StringComparer.Ordinal);
+        new (StringComparer.Ordinal);
+
     private readonly Dictionary<string, FunctionSymbol> functionsById =
-        new(StringComparer.Ordinal);
+        new (StringComparer.Ordinal);
 
     public EnvironmentBuilder AddType(ObjectTypeSymbol type)
     {
@@ -43,7 +48,7 @@ public sealed class EnvironmentBuilder
 
     public EnvironmentBuilder AddGlobal(string id, string name, TypeSymbol type)
     {
-        GlobalSymbol global = new(id, name, type);
+        GlobalSymbol global = new (id, name, type);
         EnsureUnique(globalsByName, global.Name, "global name");
         EnsureUnique(globalsById, global.Id, "global identifier");
         globalsByName.Add(global.Name, global);
@@ -59,7 +64,7 @@ public sealed class EnvironmentBuilder
         TypeSymbol returnType
     )
     {
-        FunctionSymbol function = new(id, name, parameters, returnType);
+        FunctionSymbol function = new (id, name, parameters, returnType);
         EnsureUnique(functionsByName, function.Name, "function name");
         EnsureUnique(functionsById, function.Id, "function identifier");
         functionsByName.Add(function.Name, function);
@@ -75,15 +80,12 @@ public sealed class EnvironmentBuilder
             throw new ArgumentOutOfRangeException(nameof(languageVersion));
         }
 
-        ObjectTypeSymbol[] types = typesByName.Values
-            .OrderBy(static type => type.Name, StringComparer.Ordinal)
-            .ToArray();
-        GlobalSymbol[] globals = globalsByName.Values
-            .OrderBy(static global => global.Name, StringComparer.Ordinal)
-            .ToArray();
-        FunctionSymbol[] functions = functionsByName.Values
-            .OrderBy(static function => function.Name, StringComparer.Ordinal)
-            .ToArray();
+        ObjectTypeSymbol[] types =
+            [ .. typesByName.Values.OrderBy(static type => type.Name, StringComparer.Ordinal) ];
+        GlobalSymbol[] globals =
+            [ .. globalsByName.Values.OrderBy(static global => global.Name, StringComparer.Ordinal) ];
+        FunctionSymbol[] functions =
+            [ .. functionsByName.Values.OrderBy(static function => function.Name, StringComparer.Ordinal) ];
         ValidateReferencedTypes(types, globals, functions);
         EnvironmentFingerprint fingerprint = EnvironmentFingerprintFactory.Create(
             languageVersion,
@@ -107,7 +109,7 @@ public sealed class EnvironmentBuilder
         IReadOnlyCollection<FunctionSymbol> functions
     )
     {
-        HashSet<ObjectTypeSymbol> visited = new(ReferenceEqualityComparer.Instance);
+        HashSet<ObjectTypeSymbol> visited = new (ReferenceEqualityComparer.Instance);
 
         foreach (ObjectTypeSymbol type in types)
         {
@@ -142,11 +144,13 @@ public sealed class EnvironmentBuilder
                 ValidateReferencedType(nullable.UnderlyingType, visited);
                 break;
             }
+
             case ArrayTypeSymbol array:
             {
                 ValidateReferencedType(array.ElementType, visited);
                 break;
             }
+
             case ObjectTypeSymbol structuredObject:
             {
                 if (!visited.Add(structuredObject))

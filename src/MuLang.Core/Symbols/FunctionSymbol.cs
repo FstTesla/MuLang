@@ -32,14 +32,9 @@ public sealed class FunctionSymbol
             );
         }
 
-        ParameterSymbol[] parameterArray = parameters.ToArray();
+        IReadOnlyList<ParameterSymbol> parameterList = [ .. parameters ];
 
-        if (parameterArray.Any(static parameter => parameter is null))
-        {
-            throw new ArgumentException("Parameters cannot contain null values.", nameof(parameters));
-        }
-
-        IGrouping<string, ParameterSymbol>? duplicate = parameterArray
+        IGrouping<string, ParameterSymbol>? duplicate = parameterList
             .GroupBy(static parameter => parameter.Name, StringComparer.Ordinal)
             .FirstOrDefault(static group => group.Count() > 1);
 
@@ -53,7 +48,7 @@ public sealed class FunctionSymbol
 
         Id = id;
         Name = name;
-        Parameters = Array.AsReadOnly(parameterArray);
+        Parameters = parameterList;
         ReturnType = returnType;
     }
 

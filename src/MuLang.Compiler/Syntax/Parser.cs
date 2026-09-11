@@ -408,24 +408,31 @@ internal sealed class Parser
                 );
             }
 
-            if (operatorToken.Kind == TokenKind.AsKeyword)
+            switch (operatorToken.Kind)
             {
-                TypeSyntax type = ParseType(true);
-                left = new ConversionExpressionSyntax(left, operatorToken, type);
-                continue;
-            }
+                case TokenKind.AsKeyword:
+                {
+                    TypeSyntax type = ParseType(true);
+                    left = new ConversionExpressionSyntax(left, operatorToken, type);
+                    break;
+                }
 
-            if (operatorToken.Kind == TokenKind.IsKeyword)
-            {
-                TypeSyntax type = ParseType(true);
-                left = new TypeTestExpressionSyntax(left, operatorToken, type);
-                continue;
-            }
+                case TokenKind.IsKeyword:
+                {
+                    TypeSyntax type = ParseType(true);
+                    left = new TypeTestExpressionSyntax(left, operatorToken, type);
+                    break;
+                }
 
-            ExpressionSyntax right = ParseExpression(precedence);
-            left = operatorToken.Kind == TokenKind.HasKeyword
-                ? new PropertyTestExpressionSyntax(left, operatorToken, right)
-                : new BinaryExpressionSyntax(left, operatorToken, right);
+                default:
+                {
+                    ExpressionSyntax right = ParseExpression(precedence);
+                    left = operatorToken.Kind == TokenKind.HasKeyword
+                        ? new PropertyTestExpressionSyntax(left, operatorToken, right)
+                        : new BinaryExpressionSyntax(left, operatorToken, right);
+                    break;
+                }
+            }
         }
 
         if (parentPrecedence == 0 && Current.Kind == TokenKind.Question)
@@ -474,44 +481,23 @@ internal sealed class Parser
 
     private ExpressionSyntax ParsePrimaryExpression()
     {
-        switch (Current.Kind)
+        return Current.Kind switch
         {
-            case TokenKind.IntegerLiteral:
-            case TokenKind.NumberLiteral:
-            case TokenKind.StringLiteral:
-            case TokenKind.TrueKeyword:
-            case TokenKind.FalseKeyword:
-            case TokenKind.NullKeyword:
-            {
-                return new LiteralExpressionSyntax(null, ParseToken());
-            }
-
-            case TokenKind.Identifier:
-            {
-                return new NameExpressionSyntax(ParseToken());
-            }
-
-            case TokenKind.OpenParenthesis:
-            {
-                return ParseParenthesizedExpression();
-            }
-
-            case TokenKind.OpenBracket:
-            {
-                return ParseArrayLiteralExpression();
-            }
-
-            case TokenKind.OpenBrace:
-            case TokenKind.OpenObjectBrace:
-            {
-                return ParseObjectLiteralExpression();
-            }
-
-            default:
-            {
-                return ParseMissingExpression();
-            }
-        }
+            TokenKind.IntegerLiteral or
+                TokenKind.NumberLiteral or
+                TokenKind.StringLiteral or
+                TokenKind.TrueKeyword or
+                TokenKind.FalseKeyword or
+                TokenKind.NullKeyword =>
+                new LiteralExpressionSyntax(null, ParseToken()),
+            TokenKind.Identifier => new NameExpressionSyntax(ParseToken()),
+            TokenKind.OpenParenthesis => ParseParenthesizedExpression(),
+            TokenKind.OpenBracket => ParseArrayLiteralExpression(),
+            TokenKind.OpenBrace or
+                TokenKind.OpenObjectBrace
+                => ParseObjectLiteralExpression(),
+            _ => ParseMissingExpression(),
+        };
     }
 
     private ParenthesizedExpressionSyntax ParseParenthesizedExpression()
@@ -546,11 +532,6 @@ internal sealed class Parser
 
             if (Current.Kind == TokenKind.CloseBracket)
             {
-                Report(
-                    DiagnosticCodes.TrailingSeparator,
-                    commaTokens[^1].Span,
-                    "A trailing comma is not permitted in an array literal."
-                );
                 break;
             }
         }
@@ -589,11 +570,6 @@ internal sealed class Parser
 
             if (Current.Kind == TokenKind.CloseBrace)
             {
-                Report(
-                    DiagnosticCodes.TrailingSeparator,
-                    commaTokens[^1].Span,
-                    "A trailing comma is not permitted in an object literal."
-                );
                 break;
             }
         }
@@ -697,16 +673,8 @@ internal sealed class Parser
 
     private TypeSyntax ParseType(bool isOperatorType = false)
     {
-        SyntaxToken nameToken;
-
-        if (SyntaxFacts.IsTypeName(Current.Kind))
-        {
-            nameToken = ParseToken();
-        }
-        else
-        {
-            nameToken = Match(TokenKind.Identifier);
-        }
+        SyntaxToken nameToken = SyntaxFacts.IsTypeName(Current.Kind)
+            ? ParseToken() : Match(TokenKind.Identifier);
 
         List<SyntaxToken> suffixTokens = [ ];
 
@@ -755,7 +723,7 @@ internal sealed class Parser
     }
 
     private void ParseNullableSuffix(
-        List<SyntaxToken> suffixTokens,
+        ICollection<SyntaxToken> suffixTokens,
         bool isOperatorType
     )
     {
