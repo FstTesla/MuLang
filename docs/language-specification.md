@@ -229,7 +229,7 @@ Equality, identity comparison, assignment to another compatible location, argume
 
 `object` is the generic open object type.
 
-It represents a non-null object with dynamically named properties whose values have type `unknown`.
+It represents a non-null object with dynamically named properties whose values have type `unknown?`.
 
 Arrays and primitive values are not objects.
 
@@ -253,7 +253,7 @@ A closed object rejects access to, assignment to, and removal of properties not 
 
 An open structured object retains its known properties and permits additional dynamic properties.
 
-Additional properties always have type `unknown`.
+Additional properties always have type `unknown?`.
 
 An optional property and a nullable property are distinct:
 
@@ -496,7 +496,7 @@ An object literal has an inferred anonymous structured type whose known required
 
 A closed object literal has a closed inferred type.
 
-An open object literal has an open inferred type and permits additional properties of type `unknown`.
+An open object literal has an open inferred type and permits additional properties of type `unknown?`.
 
 Object literals create mutable objects.
 
@@ -510,7 +510,9 @@ Arrays support dot access only for the intrinsic `length` property.
 
 Access to a known property has the type declared by the structured object schema.
 
-Access to a dynamic property of an open object has type `unknown`.
+Access to a dynamic property of an open object has type `unknown?`.
+
+A dynamic property may be present with the value `null`. Property absence remains distinct from a present null value and can be tested with `has`.
 
 Access to an absent optional or dynamic property produces a runtime error unless optional access is used.
 
@@ -928,6 +930,10 @@ Runtime-specific values MUST be accessed through explicit adapters rather than i
 
 The .NET runtime accepts object and array values only through its explicit object and array adapter interfaces. CLR dictionaries, lists, arrays, POCOs, and other host values are not recognized implicitly.
 
+Global values and provider function results are recursively validated against their declared MuLang types when they cross the runtime boundary.
+
+Deep runtime traversal is subject to the execution budget and to a configurable maximum traversal depth.
+
 Adapters define:
 
 - property lookup;
@@ -991,6 +997,8 @@ Provider failures, environment incompatibility, cancellation, and budget exhaust
 Execution MUST support cancellation.
 
 Execution MUST support a configurable budget.
+
+The .NET runtime represents an unlimited budget with a null execution-budget value. When a budget is present, each instruction, terminator, provider call, and deeply traversed value currently has a fixed unit cost.
 
 The budget is charged for executed portable IR instructions and provider function calls. Implementations MAY assign different fixed costs to different instruction categories, but the cost model MUST be deterministic for a given language version and profile.
 

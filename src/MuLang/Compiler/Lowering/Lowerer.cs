@@ -673,6 +673,25 @@ internal sealed class Lowerer
 
     private int LowerConversion(BoundExpression.Conversion expression)
     {
+        if (
+            expression.Expression is BoundExpression.Literal
+            {
+                Type.Kind: TypeKind.Null,
+            } &&
+            expression.Type is NullableTypeSymbol
+        )
+        {
+            int nullDestination = CreateTemporary(expression.Type);
+            builder.Emit(new IrInstruction.Constant(
+                expression.Span,
+                nullDestination,
+                expression.Type,
+                null
+            ));
+
+            return nullDestination;
+        }
+
         int sourceSlot = LowerExpression(expression.Expression);
         int destination = CreateTemporary(expression.Type);
         builder.Emit(

@@ -10,13 +10,15 @@ public sealed class DotNetRuntimeContext
 {
     private readonly IReadOnlyDictionary<string, object?> globals;
     private readonly IReadOnlyDictionary<string, DotNetFunction> functions;
+    private readonly bool hasExecutionBudget;
     private long remainingBudget;
 
     public DotNetRuntimeContext(
         EnvironmentSchema environment,
         IEnumerable<KeyValuePair<string, object?>> globals,
         IEnumerable<KeyValuePair<string, DotNetFunction>> functions,
-        long executionBudget = long.MaxValue,
+        long? executionBudget = null,
+        int maximumTraversalDepth = 256,
         CancellationToken cancellationToken = default
     )
     {
@@ -40,6 +42,11 @@ public sealed class DotNetRuntimeContext
             throw new ArgumentOutOfRangeException(nameof(executionBudget));
         }
 
+        if (maximumTraversalDepth < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(maximumTraversalDepth));
+        }
+
         EnvironmentFingerprint = environment.Fingerprint;
         this.globals = globals.ToFrozenDictionary(
             static pair => pair.Key,
@@ -51,13 +58,17 @@ public sealed class DotNetRuntimeContext
             static pair => pair.Value,
             StringComparer.Ordinal
         );
-        remainingBudget = executionBudget;
+        hasExecutionBudget = executionBudget is not null;
+        remainingBudget = executionBudget ?? 0;
+        MaximumTraversalDepth = maximumTraversalDepth;
         CancellationToken = cancellationToken;
     }
 
     public EnvironmentFingerprint EnvironmentFingerprint { get; }
 
     public CancellationToken CancellationToken { get; }
+
+    public int MaximumTraversalDepth { get; }
 
     internal object? GetGlobal(string id, TypeSymbol expectedType, TextSpan span)
     {
@@ -70,7 +81,12 @@ public sealed class DotNetRuntimeContext
             );
         }
 
-        if (!DotNetRuntimeOperations.IsValueOfTypeShallow(value, expectedType))
+        if (!DotNetRuntimeOperations.IsValueOfTypeDeep(
+            this,
+            value,
+            expectedType,
+            span
+        ))
         {
             throw new MuLangRuntimeException(
                 DotNetRuntimeErrorCodes.InvalidRuntimeValue,
@@ -102,11 +118,16 @@ public sealed class DotNetRuntimeContext
 
         try
         {
-            object? result = function(this, arguments);
+            object? result = function(arguments);
 
             if (
                 returnType.Kind != TypeKind.Void &&
-                !DotNetRuntimeOperations.IsValueOfTypeShallow(result, returnType)
+                !DotNetRuntimeOperations.IsValueOfTypeDeep(
+                    this,
+                    result,
+                    returnType,
+                    span
+                )
             )
             {
                 throw new MuLangRuntimeException(
@@ -154,7 +175,7 @@ public sealed class DotNetRuntimeContext
             );
         }
 
-        if (remainingBudget == long.MaxValue)
+        if (!hasExecutionBudget)
         {
             return;
         }

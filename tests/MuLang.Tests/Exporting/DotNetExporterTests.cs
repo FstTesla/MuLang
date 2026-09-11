@@ -50,7 +50,7 @@ public sealed class DotNetExporterTests
             [
                 new KeyValuePair<string, DotNetFunction>(
                     "function.increment",
-                    static (_, arguments) =>
+                    static arguments =>
                         (long)(arguments[0] ??
                             throw new AssertionException("Expected an argument.")) + 1
                 ),
@@ -77,7 +77,7 @@ public sealed class DotNetExporterTests
             [
                 new KeyValuePair<string, DotNetFunction>(
                     "function.touch",
-                    (_, _) =>
+                    _ =>
                     {
                         invocationCount++;
                         return true;
@@ -115,7 +115,7 @@ public sealed class DotNetExporterTests
             [
                 new KeyValuePair<string, DotNetFunction>(
                     "function.touch",
-                    (_, _) =>
+                    _ =>
                     {
                         invocationCount++;
                         return true;
@@ -231,6 +231,24 @@ public sealed class DotNetExporterTests
         );
 
         Assert.That(compiled(CreateContext(environment)), Is.False);
+    }
+
+    [Test]
+    public void DynamicPropertyCanBePresentWithNullValue()
+    {
+        const string source = """
+            var item = @{ };
+            item.value = null;
+            return item has "value";
+            """;
+        EnvironmentSchema environment = CreateEmptyEnvironment();
+        Func<DotNetRuntimeContext, object?> compiled = CompileProgram(
+            source,
+            environment,
+            TypeSymbols.Bool
+        );
+
+        Assert.That(compiled(CreateContext(environment)), Is.True);
     }
 
     [Test]
@@ -719,9 +737,102 @@ public sealed class DotNetExporterTests
             [
                 new KeyValuePair<string, DotNetFunction>(
                     "function.value",
-                    static (_, _) => "invalid"
+                    static _ => "invalid"
                 ),
             ]
+        );
+
+        MuLangRuntimeException exception = RequireRuntimeException(
+            () => compiled(context)
+        );
+
+        Assert.That(exception.Code, Is.EqualTo("MUL6015"));
+    }
+
+    [Test]
+    public void DeeplyValidatesGlobalValuesAtTheBoundary()
+    {
+        ObjectTypeSymbol containerType = new(
+            "type.container",
+            "Container",
+            false,
+            [
+                new ObjectPropertySymbol(
+                    "values",
+                    TypeSymbols.Array(TypeSymbols.Int)
+                ),
+            ]
+        );
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddType(containerType)
+            .AddGlobal("global.container", "container", containerType)
+            .Build();
+        MutableObjectValue container = new(
+            [
+                new KeyValuePair<string, object?>(
+                    "values",
+                    new MutableArrayValue(["invalid"])
+                ),
+            ]
+        );
+        Func<DotNetRuntimeContext, object?> compiled = CompileExpression(
+            "container",
+            environment
+        );
+        DotNetRuntimeContext context = CreateContext(
+            environment,
+            [new KeyValuePair<string, object?>("global.container", container)]
+        );
+
+        MuLangRuntimeException exception = RequireRuntimeException(
+            () => compiled(context)
+        );
+
+        Assert.That(exception.Code, Is.EqualTo("MUL6015"));
+    }
+
+    [Test]
+    public void AllowsNullGenericObjectProperties()
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddGlobal("global.item", "item", TypeSymbols.Object)
+            .Build();
+        MutableObjectValue item = new(
+            [new KeyValuePair<string, object?>("value", null)]
+        );
+        Func<DotNetRuntimeContext, object?> compiled = CompileExpression(
+            "item has \"value\"",
+            environment
+        );
+        DotNetRuntimeContext context = CreateContext(
+            environment,
+            [new KeyValuePair<string, object?>("global.item", item)]
+        );
+
+        Assert.That(compiled(context), Is.True);
+    }
+
+    [Test]
+    public void EnforcesConfigurableTraversalDepth()
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddGlobal(
+                "global.values",
+                "values",
+                TypeSymbols.Array(TypeSymbols.Array(TypeSymbols.Int))
+            )
+            .Build();
+        MutableArrayValue values = new(
+            [new MutableArrayValue([1L])]
+        );
+        Func<DotNetRuntimeContext, object?> compiled = CompileExpression(
+            "values",
+            environment
+        );
+        DotNetRuntimeContext context = CreateContext(
+            environment,
+            [new KeyValuePair<string, object?>("global.values", values)],
+            maximumTraversalDepth: 0
         );
 
         MuLangRuntimeException exception = RequireRuntimeException(
@@ -749,7 +860,7 @@ public sealed class DotNetExporterTests
             [
                 new KeyValuePair<string, DotNetFunction>(
                     "function.cancel",
-                    (_, _) =>
+                    _ =>
                     {
                         // ReSharper disable once AccessToDisposedClosure
                         cts.Cancel();
@@ -1150,7 +1261,8 @@ public sealed class DotNetExporterTests
         EnvironmentSchema environment,
         IEnumerable<KeyValuePair<string, object?>>? globals = null,
         IEnumerable<KeyValuePair<string, DotNetFunction>>? functions = null,
-        long executionBudget = long.MaxValue,
+        long? executionBudget = null,
+        int maximumTraversalDepth = 256,
         CancellationToken cancellationToken = default
     )
     {
@@ -1159,6 +1271,7 @@ public sealed class DotNetExporterTests
             globals ?? [ ],
             functions ?? [ ],
             executionBudget,
+            maximumTraversalDepth,
             cancellationToken
         );
     }

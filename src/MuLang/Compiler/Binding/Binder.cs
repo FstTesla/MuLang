@@ -935,7 +935,7 @@ internal sealed class Binder
                 expectedObject?.IsOpen == true
             )
             {
-                expectedPropertyType = TypeSymbols.Unknown;
+                expectedPropertyType = TypeSymbols.Nullable(TypeSymbols.Unknown);
             }
 
             if (
@@ -1412,9 +1412,7 @@ internal sealed class Binder
             {
                 return new BoundExpression.MemberAccess(
                     syntax,
-                    syntax.IsOptional
-                        ? TypeSymbols.Nullable(TypeSymbols.Unknown)
-                        : TypeSymbols.Unknown,
+                    TypeSymbols.Nullable(TypeSymbols.Unknown),
                     target,
                     name,
                     null,
@@ -1428,9 +1426,7 @@ internal sealed class Binder
         {
             return new BoundExpression.MemberAccess(
                 syntax,
-                syntax.IsOptional
-                    ? TypeSymbols.Nullable(TypeSymbols.Unknown)
-                    : TypeSymbols.Unknown,
+                TypeSymbols.Nullable(TypeSymbols.Unknown),
                 target,
                 name,
                 null,
@@ -1493,7 +1489,8 @@ internal sealed class Binder
                 return new BoundExpression.Error(syntax);
             }
 
-            TypeSymbol propertyType = property?.Type ?? TypeSymbols.Unknown;
+            TypeSymbol propertyType = property?.Type ??
+                TypeSymbols.Nullable(TypeSymbols.Unknown);
             TypeSymbol resultType = ShouldOptionalAccessReturnNullable(
                 syntax.IsOptional,
                 target.Type,
@@ -1520,9 +1517,7 @@ internal sealed class Binder
 
             return new BoundExpression.ElementAccess(
                 syntax,
-                syntax.IsOptional
-                    ? TypeSymbols.Nullable(TypeSymbols.Unknown)
-                    : TypeSymbols.Unknown,
+                TypeSymbols.Nullable(TypeSymbols.Unknown),
                 target,
                 index,
                 null,

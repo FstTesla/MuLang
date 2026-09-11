@@ -625,16 +625,12 @@ internal static class IrValidator
             }
             else if (objectType.IsOpen)
             {
-                expectedType = property.IsOptional
-                    ? TypeSymbols.Nullable(TypeSymbols.Unknown)
-                    : TypeSymbols.Unknown;
+                expectedType = TypeSymbols.Nullable(TypeSymbols.Unknown);
             }
         }
         else if (targetType.Kind == TypeKind.Object)
         {
-            expectedType = property.IsOptional
-                ? TypeSymbols.Nullable(TypeSymbols.Unknown)
-                : TypeSymbols.Unknown;
+            expectedType = TypeSymbols.Nullable(TypeSymbols.Unknown);
         }
 
         if (
@@ -682,7 +678,7 @@ internal static class IrValidator
             targetType is ObjectTypeSymbol { IsOpen: true }
         )
         {
-            expectedType = TypeSymbols.Unknown;
+            expectedType = TypeSymbols.Nullable(TypeSymbols.Unknown);
         }
 
         if (

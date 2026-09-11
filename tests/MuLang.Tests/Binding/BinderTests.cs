@@ -187,7 +187,13 @@ public sealed class BinderTests
         using (Assert.EnterMultipleScope())
         {
             Assert.That(knownRoot.Value.Type, Is.SameAs(TypeSymbols.Int));
-            Assert.That(dynamicRoot.Value.Type, Is.SameAs(TypeSymbols.Unknown));
+            Assert.That(
+                TypeRelations.AreEquivalent(
+                    dynamicRoot.Value.Type,
+                    TypeSymbols.Nullable(TypeSymbols.Unknown)
+                ),
+                Is.True
+            );
             Assert.That(known.Diagnostics, Is.Empty);
             Assert.That(dynamic.Diagnostics, Is.Empty);
         }
@@ -660,7 +666,7 @@ public sealed class BinderTests
     }
 
     [Test]
-    public void ValidatesOpenObjectAdditionalPropertiesAgainstUnknown()
+    public void AllowsNullableOpenObjectAdditionalProperties()
     {
         ObjectTypeSymbol openType = new (
             "type.open",
@@ -682,7 +688,7 @@ public sealed class BinderTests
             TypeSymbols.Void
         );
 
-        AssertDiagnostic(result, DiagnosticCodes.TypeMismatch);
+        Assert.That(result.Diagnostics, Is.Empty);
     }
 
     [Test]

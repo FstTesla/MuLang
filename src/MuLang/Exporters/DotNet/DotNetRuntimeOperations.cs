@@ -221,6 +221,16 @@ internal static class DotNetRuntimeOperations
         };
     }
 
+    internal static bool IsValueOfTypeDeep(
+        DotNetRuntimeContext context,
+        object? value,
+        TypeSymbol type,
+        TextSpan span
+    )
+    {
+        return IsValueOfTypeDeep(context, value, type, span, 0);
+    }
+
     public static object CreateArray(IEnumerable<object?> elements)
     {
         return new DotNetArrayValue(elements);
@@ -636,7 +646,7 @@ internal static class DotNetRuntimeOperations
         int depth
     )
     {
-        EnsureTraversalDepth(depth, span);
+        EnsureTraversalDepth(context, depth, span);
         context.Consume(span);
 
         if (left is double leftDouble && right is double rightDouble)
@@ -783,7 +793,7 @@ internal static class DotNetRuntimeOperations
         int depth
     )
     {
-        EnsureTraversalDepth(depth, span);
+        EnsureTraversalDepth(context, depth, span);
         context.Consume(span);
 
         if (type is NullableTypeSymbol nullable)
@@ -811,7 +821,12 @@ internal static class DotNetRuntimeOperations
             TypeKind.Number => value is long or double,
             TypeKind.String => value is string,
             TypeKind.Unknown => true,
-            TypeKind.Object => IsObject(value),
+            TypeKind.Object => IsGenericObject(
+                context,
+                value,
+                span,
+                depth + 1
+            ),
             TypeKind.StructuredObject => IsStructuredObject(
                 context,
                 value,
@@ -886,7 +901,45 @@ internal static class DotNetRuntimeOperations
                 !knownNames.Contains(name) &&
                 (
                     !TryGetProperty(value, name, out object? additionalValue) ||
-                    additionalValue is null
+                    !IsValueOfTypeDeep(
+                        context,
+                        additionalValue,
+                        TypeSymbols.Nullable(TypeSymbols.Unknown),
+                        span,
+                        depth + 1
+                    )
+                )
+            )
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool IsGenericObject(
+        DotNetRuntimeContext context,
+        object value,
+        TextSpan span,
+        int depth
+    )
+    {
+        if (!TryGetPropertyNames(value, out IReadOnlyCollection<string>? names))
+        {
+            return false;
+        }
+
+        foreach (string name in names)
+        {
+            if (
+                !TryGetProperty(value, name, out object? propertyValue) ||
+                !IsValueOfTypeDeep(
+                    context,
+                    propertyValue,
+                    TypeSymbols.Nullable(TypeSymbols.Unknown),
+                    span,
+                    depth + 1
                 )
             )
             {
@@ -1216,9 +1269,13 @@ internal static class DotNetRuntimeOperations
                 : $"{text}.0";
     }
 
-    private static void EnsureTraversalDepth(int depth, TextSpan span)
+    private static void EnsureTraversalDepth(
+        DotNetRuntimeContext context,
+        int depth,
+        TextSpan span
+    )
     {
-        if (depth > 256)
+        if (depth > context.MaximumTraversalDepth)
         {
             throw new MuLangRuntimeException(
                 DotNetRuntimeErrorCodes.InvalidRuntimeValue,

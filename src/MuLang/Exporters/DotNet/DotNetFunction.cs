@@ -1,6 +1,3 @@
 namespace MuLang.Exporters.DotNet;
 
-public delegate object? DotNetFunction(
-    DotNetRuntimeContext context,
-    IReadOnlyList<object?> arguments
-);
+public delegate object? DotNetFunction(IReadOnlyList<object?> arguments);

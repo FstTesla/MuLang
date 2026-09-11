@@ -1,1 +1,0 @@
-- Reduce usage of `InternalVisibleTo` except for tests
