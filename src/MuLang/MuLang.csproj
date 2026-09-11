@@ -2,12 +2,11 @@
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\MuLang.Compiler\MuLang.Compiler.csproj" />
-    <ProjectReference Include="..\MuLang.Exporters.DotNet\MuLang.Exporters.DotNet.csproj" />
-    <ProjectReference Include="..\MuLang.Core\MuLang.Core.csproj" />
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
 </Project>

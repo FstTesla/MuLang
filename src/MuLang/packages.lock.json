@@ -1,30 +1,6 @@
 {
   "version": 1,
   "dependencies": {
-    "net10.0": {
-      "mulang.compiler": {
-        "type": "Project",
-        "dependencies": {
-          "MuLang.Core": "[1.0.0, )",
-          "MuLang.IR": "[1.0.0, )"
-        }
-      },
-      "mulang.core": {
-        "type": "Project"
-      },
-      "mulang.exporters.dotnet": {
-        "type": "Project",
-        "dependencies": {
-          "MuLang.Core": "[1.0.0, )",
-          "MuLang.IR": "[1.0.0, )"
-        }
-      },
-      "mulang.ir": {
-        "type": "Project",
-        "dependencies": {
-          "MuLang.Core": "[1.0.0, )"
-        }
-      }
-    }
+    "net10.0": {}
   }
 }

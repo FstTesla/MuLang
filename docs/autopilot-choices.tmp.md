@@ -7,7 +7,7 @@ This document records important autonomous choices made while implementing MuLan
 - The portable IR uses mutable numbered slots and explicit basic blocks rather than SSA. This keeps loop lowering and translation to .NET expression trees straightforward while remaining runtime-independent.
 - Every computed value is stored in a typed slot. Instructions refer only to slots, symbolic provider IDs, portable operators, types, and source spans.
 - Short-circuit Boolean operators and conditional expressions are lowered to branches that assign a shared result slot.
-- The IR remains internal to the solution. Assembly-level friend access allows the compiler, validator, .NET exporter, and tests to share it without making it a public compatibility contract.
+- The compiler, portable IR, and .NET exporter are compiled into the single `MuLang` assembly. Their contracts remain internal without production `InternalsVisibleTo` relationships; only the test assembly receives internal access.
 
 ## .NET exporter
 

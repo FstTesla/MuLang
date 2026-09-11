@@ -111,35 +111,7 @@
         "contentHash": "HrC5BXdl00IP9zeV+0Z848QWPAoCr9P3bDEZguI+gkLcBKAOxix/tLEAAHC+UvDNPv4a2d18lOReHMOagPa+zQ=="
       },
       "mulang": {
-        "type": "Project",
-        "dependencies": {
-          "MuLang.Compiler": "[1.0.0, )",
-          "MuLang.Core": "[1.0.0, )",
-          "MuLang.Exporters.DotNet": "[1.0.0, )"
-        }
-      },
-      "mulang.compiler": {
-        "type": "Project",
-        "dependencies": {
-          "MuLang.Core": "[1.0.0, )",
-          "MuLang.IR": "[1.0.0, )"
-        }
-      },
-      "mulang.core": {
         "type": "Project"
-      },
-      "mulang.exporters.dotnet": {
-        "type": "Project",
-        "dependencies": {
-          "MuLang.Core": "[1.0.0, )",
-          "MuLang.IR": "[1.0.0, )"
-        }
-      },
-      "mulang.ir": {
-        "type": "Project",
-        "dependencies": {
-          "MuLang.Core": "[1.0.0, )"
-        }
       }
     }
   }
