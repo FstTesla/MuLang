@@ -543,7 +543,7 @@ public sealed class DotNetExporterTests
     }
 
     [Test]
-    public void TreatsClrArraysAsZeroBasedLanguageArrays()
+    public void RejectsClrArraysWithoutAnAdapter()
     {
         EnvironmentSchema environment = new EnvironmentBuilder()
             .AddGlobal(
@@ -552,8 +552,7 @@ public sealed class DotNetExporterTests
                 TypeSymbols.Array(TypeSymbols.Int)
             )
             .Build();
-        Array values = Array.CreateInstance(typeof(long), [ 1 ], [ 1 ]);
-        values.SetValue(42L, 1);
+        long[] values = [42L];
         Func<DotNetRuntimeContext, object?> compiled = CompileExpression(
             "values[0]",
             environment
@@ -563,7 +562,61 @@ public sealed class DotNetExporterTests
             [ new KeyValuePair<string, object?>("global.values", values) ]
         );
 
-        Assert.That(compiled(context), Is.EqualTo(42L));
+        MuLangRuntimeException exception = RequireRuntimeException(
+            () => compiled(context)
+        );
+
+        Assert.That(exception.Code, Is.EqualTo("MUL6015"));
+    }
+
+    [Test]
+    public void AcceptsArrayAdapters()
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddGlobal(
+                "global.values",
+                "values",
+                TypeSymbols.Array(TypeSymbols.Int)
+            )
+            .Build();
+        MutableArrayValue values = new([42L]);
+        Func<DotNetRuntimeContext, object?> compiled = CompileProgram(
+            "values[0] = 7; return values[0];",
+            environment,
+            TypeSymbols.Int
+        );
+        DotNetRuntimeContext context = CreateContext(
+            environment,
+            [new KeyValuePair<string, object?>("global.values", values)]
+        );
+
+        Assert.That(compiled(context), Is.EqualTo(7L));
+    }
+
+    [Test]
+    public void RejectsClrDictionariesWithoutAnAdapter()
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddGlobal("global.item", "item", TypeSymbols.Object)
+            .Build();
+        Dictionary<string, object?> item = new(StringComparer.Ordinal)
+        {
+            ["value"] = 1L,
+        };
+        Func<DotNetRuntimeContext, object?> compiled = CompileExpression(
+            "item",
+            environment
+        );
+        DotNetRuntimeContext context = CreateContext(
+            environment,
+            [new KeyValuePair<string, object?>("global.item", item)]
+        );
+
+        MuLangRuntimeException exception = RequireRuntimeException(
+            () => compiled(context)
+        );
+
+        Assert.That(exception.Code, Is.EqualTo("MUL6015"));
     }
 
     [Test]
@@ -730,10 +783,9 @@ public sealed class DotNetExporterTests
             .AddType(itemType)
             .AddGlobal("global.item", "item", itemType)
             .Build();
-        Dictionary<string, object?> item = new (StringComparer.Ordinal)
-        {
-            ["id"] = 42L,
-        };
+        MutableObjectValue item = new(
+            [new KeyValuePair<string, object?>("id", 42L)]
+        );
         Func<DotNetRuntimeContext, object?> compiled = CompileExpression(
             "item.id",
             environment
@@ -788,10 +840,10 @@ public sealed class DotNetExporterTests
             .AddGlobal("global.left", "left", TypeSymbols.Object)
             .AddGlobal("global.right", "right", TypeSymbols.Object)
             .Build();
-        Dictionary<string, object?> left = new (StringComparer.Ordinal);
-        Dictionary<string, object?> right = new (StringComparer.Ordinal);
-        left["self"] = left;
-        right["self"] = right;
+        MutableObjectValue left = new([]);
+        MutableObjectValue right = new([]);
+        left.Set("self", left);
+        right.Set("self", right);
         Func<DotNetRuntimeContext, object?> compiled = CompileExpression(
             "left == right",
             environment
@@ -1119,20 +1171,96 @@ public sealed class DotNetExporterTests
 
     private static object CreateNestedObject(int depth)
     {
-        object current = new Dictionary<string, object?>(StringComparer.Ordinal)
-        {
-            ["value"] = 1L,
-        };
+        object current = new MutableObjectValue(
+            [new KeyValuePair<string, object?>("value", 1L)]
+        );
 
         for (int index = 0; index < depth; index++)
         {
-            current = new Dictionary<string, object?>(StringComparer.Ordinal)
-            {
-                ["next"] = current,
-            };
+            current = new MutableObjectValue(
+                [new KeyValuePair<string, object?>("next", current)]
+            );
         }
 
         return current;
+    }
+
+    private sealed class MutableObjectValue : IDotNetObjectValue
+    {
+        private readonly Dictionary<string, object?> properties;
+
+        public MutableObjectValue(
+            IEnumerable<KeyValuePair<string, object?>> properties
+        )
+        {
+            this.properties = properties.ToDictionary(
+                static property => property.Key,
+                static property => property.Value,
+                StringComparer.Ordinal
+            );
+        }
+
+        public object Identity => this;
+
+        public IReadOnlyCollection<string> PropertyNames => properties.Keys;
+
+        public bool TryGetProperty(string name, out object? value)
+        {
+            return properties.TryGetValue(name, out value);
+        }
+
+        public bool TrySetProperty(string name, object? value)
+        {
+            properties[name] = value;
+            return true;
+        }
+
+        public bool TryRemoveProperty(string name)
+        {
+            return properties.Remove(name);
+        }
+
+        public void Set(string name, object? value)
+        {
+            properties[name] = value;
+        }
+    }
+
+    private sealed class MutableArrayValue : IDotNetArrayValue
+    {
+        private readonly List<object?> elements;
+
+        public MutableArrayValue(IEnumerable<object?> elements)
+        {
+            this.elements = new List<object?>(elements);
+        }
+
+        public object Identity => this;
+
+        public int Count => elements.Count;
+
+        public bool TryGetElement(int index, out object? value)
+        {
+            if (index < 0 || index >= elements.Count)
+            {
+                value = null;
+                return false;
+            }
+
+            value = elements[index];
+            return true;
+        }
+
+        public bool TrySetElement(int index, object? value)
+        {
+            if (index < 0 || index >= elements.Count)
+            {
+                return false;
+            }
+
+            elements[index] = value;
+            return true;
+        }
     }
 
     private sealed class ReadOnlyObjectValue : IDotNetObjectValue

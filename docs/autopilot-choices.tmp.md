@@ -17,7 +17,7 @@ This document records important autonomous choices made while implementing MuLan
 - Provider functions are invoked through stable symbolic IDs and a runtime delegate accepting an ordered read-only argument list.
 - Global values, provider return values, and adapter reads are checked against the statically expected MuLang type at their runtime boundary.
 - Provider boundary checks are shallow: they validate the immediate runtime kind, while individual property and element values are validated when read. Deep `is`, checked `as`, and structural equality operations charge the execution budget during traversal.
-- Provider objects and arrays can implement explicit public adapter interfaces. Built-in dictionaries, lists, and arrays are also supported without reflection.
+- Provider objects and arrays must implement the explicit public adapter interfaces `IDotNetObjectValue` and `IDotNetArrayValue`. Convenience wrappers for common CLR collections or POCOs are intentionally deferred.
 - Runtime primitive representations are fixed as `bool`, `long`, `double`, and `string`. Providers must adapt other CLR numeric representations explicitly.
 - Execution budget is charged once per executed IR instruction or terminator and once more for each provider function invocation. Cancellation is checked at the same boundaries.
 - `long.MaxValue` is the explicit unlimited-budget sentinel for `DotNetRuntimeContext`.

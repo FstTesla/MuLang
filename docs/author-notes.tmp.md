@@ -1,5 +1,3 @@
-- .NET representation of objects
 - Reduce usage of `InternalVisibleTo` except for tests
 - Collection types in compiler
 - Exceptions review
-- Non-short-circuiting boolean operators

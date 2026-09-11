@@ -135,13 +135,7 @@ internal static class DotNetRuntimeOperations
         {
             return value is null
                 ? null
-                : ConvertValue(
-                    context,
-                    value,
-                    GetNonNullable(sourceType),
-                    nullable.UnderlyingType,
-                    span
-                );
+                : ConvertValue(context, value, GetNonNullable(sourceType), nullable.UnderlyingType, span);
         }
 
         if (targetType.Kind == TypeKind.String)
@@ -300,14 +294,7 @@ internal static class DotNetRuntimeOperations
             throw NullTarget(span);
         }
 
-        bool updated = target switch
-        {
-            IDotNetObjectValue objectValue =>
-                objectValue.TrySetProperty(name, value),
-            IDictionary<string, object?> dictionary =>
-                SetDictionaryProperty(dictionary, name, value),
-            _ => false,
-        };
+        bool updated = target is IDotNetObjectValue objectValue && objectValue.TrySetProperty(name, value);
 
         if (!updated)
         {
@@ -330,14 +317,7 @@ internal static class DotNetRuntimeOperations
             throw NullTarget(span);
         }
 
-        bool removed = target switch
-        {
-            IDotNetObjectValue objectValue =>
-                objectValue.TryRemoveProperty(name),
-            IDictionary<string, object?> dictionary =>
-                dictionary.Remove(name),
-            _ => false,
-        };
+        bool removed = target is IDotNetObjectValue objectValue && objectValue.TryRemoveProperty(name);
 
         if (!removed)
         {
@@ -410,18 +390,7 @@ internal static class DotNetRuntimeOperations
         }
 
         int arrayIndex = RequireIndex(index, span);
-        bool updated = target switch
-        {
-            IDotNetArrayValue arrayValue =>
-                arrayValue.TrySetElement(arrayIndex, value),
-            IList<object?> list
-                when arrayIndex >= 0 && arrayIndex < list.Count =>
-                SetListElement(list, arrayIndex, value),
-            Array array
-                when arrayIndex >= 0 && arrayIndex < array.Length =>
-                SetArrayElement(array, arrayIndex, value),
-            _ => false,
-        };
+        bool updated = target is IDotNetArrayValue arrayValue && arrayValue.TrySetElement(arrayIndex, value);
 
         if (!updated)
         {
@@ -680,6 +649,7 @@ internal static class DotNetRuntimeOperations
 
         if (left is double leftDouble && right is double rightDouble)
         {
+            // ReSharper disable once CompareOfFloatsByEqualityOperator
             return leftDouble == rightDouble;
         }
 
@@ -695,12 +665,14 @@ internal static class DotNetRuntimeOperations
 
         if (left is long leftInt && right is double rightNumber)
         {
-            return (double)leftInt == rightNumber;
+            // ReSharper disable once CompareOfFloatsByEqualityOperator
+            return leftInt == rightNumber;
         }
 
         if (left is double leftNumber && right is long rightInt)
         {
-            return leftNumber == (double)rightInt;
+            // ReSharper disable once CompareOfFloatsByEqualityOperator
+            return leftNumber == rightInt;
         }
 
         if (
@@ -1099,10 +1071,7 @@ internal static class DotNetRuntimeOperations
 
     private static bool IsObject(object value)
     {
-        return value is
-            IDotNetObjectValue or
-            IDictionary<string, object?> or
-            IReadOnlyDictionary<string, object?>;
+        return value is IDotNetObjectValue;
     }
 
     private static object GetIdentity(object value)
@@ -1121,28 +1090,14 @@ internal static class DotNetRuntimeOperations
         out object? value
     )
     {
-        switch (target)
+        if (target is IDotNetObjectValue objectValue)
         {
-            case IDotNetObjectValue objectValue:
-            {
-                return objectValue.TryGetProperty(name, out value);
-            }
-
-            case IDictionary<string, object?> dictionary:
-            {
-                return dictionary.TryGetValue(name, out value);
-            }
-
-            case IReadOnlyDictionary<string, object?> dictionary:
-            {
-                return dictionary.TryGetValue(name, out value);
-            }
-
-            default:
-            {
-                value = null;
-                return false;
-            }
+            return objectValue.TryGetProperty(name, out value);
+        }
+        else
+        {
+            value = null;
+            return false;
         }
     }
 
@@ -1151,31 +1106,15 @@ internal static class DotNetRuntimeOperations
         [NotNullWhen(true)] out IReadOnlyCollection<string>? names
     )
     {
-        switch (target)
+        if (target is IDotNetObjectValue objectValue)
         {
-            case IDotNetObjectValue objectValue:
-            {
-                names = objectValue.PropertyNames;
-                return true;
-            }
-
-            case IDictionary<string, object?> dictionary:
-            {
-                names = [ .. dictionary.Keys ];
-                return true;
-            }
-
-            case IReadOnlyDictionary<string, object?> dictionary:
-            {
-                names = [ .. dictionary.Keys ];
-                return true;
-            }
-
-            default:
-            {
-                names = null;
-                return false;
-            }
+            names = objectValue.PropertyNames;
+            return true;
+        }
+        else
+        {
+            names = null;
+            return false;
         }
     }
 
@@ -1188,43 +1127,15 @@ internal static class DotNetRuntimeOperations
 
     private static bool TryGetArrayCount(object target, out int count)
     {
-        switch (target)
+        if (target is IDotNetArrayValue arrayValue)
         {
-            case IDotNetArrayValue arrayValue:
-            {
-                count = arrayValue.Count;
-                return true;
-            }
-
-            case IList<object?> list:
-            {
-                count = list.Count;
-                return true;
-            }
-
-            case IReadOnlyList<object?> list:
-            {
-                count = list.Count;
-                return true;
-            }
-
-            case Array array:
-            {
-                if (array.Rank != 1)
-                {
-                    count = 0;
-                    return false;
-                }
-
-                count = array.Length;
-                return true;
-            }
-
-            default:
-            {
-                count = 0;
-                return false;
-            }
+            count = arrayValue.Count;
+            return true;
+        }
+        else
+        {
+            count = 0;
+            return false;
         }
     }
 
@@ -1234,84 +1145,13 @@ internal static class DotNetRuntimeOperations
         out object? value
     )
     {
-        switch (target)
+        if (target is IDotNetArrayValue arrayValue)
         {
-            case IDotNetArrayValue arrayValue:
-            {
-                return arrayValue.TryGetElement(index, out value);
-            }
-
-            case IList<object?> list when index >= 0 && index < list.Count:
-            {
-                value = list[index];
-                return true;
-            }
-
-            case IReadOnlyList<object?> list when index >= 0 && index < list.Count:
-            {
-                value = list[index];
-                return true;
-            }
-
-            case Array { Rank: 1 } array when index >= 0 && index < array.Length:
-            {
-                value = array.GetValue(index + array.GetLowerBound(0));
-                return true;
-            }
-
-            default:
-            {
-                value = null;
-                return false;
-            }
+            return arrayValue.TryGetElement(index, out value);
         }
-    }
-
-    private static bool SetDictionaryProperty(
-        IDictionary<string, object?> dictionary,
-        string name,
-        object? value
-    )
-    {
-        try
+        else
         {
-            dictionary[name] = value;
-            return true;
-        }
-        catch (NotSupportedException)
-        {
-            return false;
-        }
-    }
-
-    private static bool SetListElement(
-        IList<object?> list,
-        int index,
-        object? value
-    )
-    {
-        try
-        {
-            list[index] = value;
-            return true;
-        }
-        catch (NotSupportedException)
-        {
-            return false;
-        }
-    }
-
-    private static bool SetArrayElement(Array array, int index, object? value)
-    {
-        try
-        {
-            array.SetValue(value, index + array.GetLowerBound(0));
-            return true;
-        }
-        catch (Exception exception) when (
-            exception is InvalidCastException or ArgumentException
-        )
-        {
+            value = null;
             return false;
         }
     }

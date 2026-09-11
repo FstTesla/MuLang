@@ -926,6 +926,8 @@ Names, types, mutability capabilities, and function signatures that affect compi
 
 Runtime-specific values MUST be accessed through explicit adapters rather than implicit reflection.
 
+The .NET runtime accepts object and array values only through its explicit object and array adapter interfaces. CLR dictionaries, lists, arrays, POCOs, and other host values are not recognized implicitly.
+
 Adapters define:
 
 - property lookup;
