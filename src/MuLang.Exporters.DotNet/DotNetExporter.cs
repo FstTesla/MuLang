@@ -67,6 +67,7 @@ internal static class DotNetExporter
         typeof(DotNetRuntimeContext),
         typeof(object),
         typeof(TypeSymbol),
+        typeof(TypeSymbol),
         typeof(TextSpan)
     );
 
@@ -292,6 +293,7 @@ internal static class DotNetExporter
                     convertMethod,
                     context,
                     slots[conversion.Source],
+                    Expression.Constant(slotMetadata[conversion.Source].Type),
                     Expression.Constant(conversion.TargetType),
                     Expression.Constant(conversion.Span)
                 )

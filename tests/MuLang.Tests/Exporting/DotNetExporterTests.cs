@@ -305,7 +305,7 @@ public sealed class DotNetExporterTests
     }
 
     [Test]
-    public void ComparesMixedNumericEqualityWithoutPrecisionLoss()
+    public void StructuralEqualityPromotesIntToFloat()
     {
         EnvironmentSchema environment = CreateEmptyEnvironment();
         Func<DotNetRuntimeContext, object?> compiled = CompileExpression(
@@ -313,7 +313,165 @@ public sealed class DotNetExporterTests
             environment
         );
 
+        Assert.That(compiled(CreateContext(environment)), Is.True);
+    }
+
+    [Test]
+    public void IdentityEqualityDistinguishesIntAndFloat()
+    {
+        EnvironmentSchema environment = CreateEmptyEnvironment();
+        Func<DotNetRuntimeContext, object?> compiled = CompileExpression(
+            "1 === 1.0",
+            environment
+        );
+
         Assert.That(compiled(CreateContext(environment)), Is.False);
+    }
+
+    [Test]
+    public void GenericNumberArithmeticPreservesRuntimeKinds()
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddGlobal("global.left", "left", TypeSymbols.Number)
+            .AddGlobal("global.right", "right", TypeSymbols.Number)
+            .Build();
+        Func<DotNetRuntimeContext, object?> compiled = CompileExpression(
+            "left + right",
+            environment,
+            TypeSymbols.Number
+        );
+        DotNetRuntimeContext integerContext = CreateContext(
+            environment,
+            [
+                new KeyValuePair<string, object?>("global.left", 1L),
+                new KeyValuePair<string, object?>("global.right", 2L),
+            ]
+        );
+        DotNetRuntimeContext mixedContext = CreateContext(
+            environment,
+            [
+                new KeyValuePair<string, object?>("global.left", 1L),
+                new KeyValuePair<string, object?>("global.right", 2.5),
+            ]
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(compiled(integerContext), Is.EqualTo(3L));
+            Assert.That(compiled(mixedContext), Is.EqualTo(3.5));
+        }
+    }
+
+    [Test]
+    public void CheckedNumberCastsUseTheRuntimeNumericKind()
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddGlobal("global.value", "value", TypeSymbols.Number)
+            .Build();
+        Func<DotNetRuntimeContext, object?> toInt = CompileExpression(
+            "value as int",
+            environment,
+            TypeSymbols.Int
+        );
+        Func<DotNetRuntimeContext, object?> toFloat = CompileExpression(
+            "value as float",
+            environment,
+            TypeSymbols.Float
+        );
+        DotNetRuntimeContext integerContext = CreateContext(
+            environment,
+            [new KeyValuePair<string, object?>("global.value", 2L)]
+        );
+        DotNetRuntimeContext floatContext = CreateContext(
+            environment,
+            [new KeyValuePair<string, object?>("global.value", 2.0)]
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(toInt(integerContext), Is.EqualTo(2L));
+            Assert.That(toFloat(integerContext), Is.EqualTo(2.0));
+            Assert.That(toInt(floatContext), Is.EqualTo(2L));
+        }
+    }
+
+    [Test]
+    public void TypeTestsUseNumericAssignability()
+    {
+        EnvironmentSchema environment = CreateEmptyEnvironment();
+        Func<DotNetRuntimeContext, object?> intIsFloat = CompileExpression(
+            "1 is float",
+            environment
+        );
+        Func<DotNetRuntimeContext, object?> floatIsInt = CompileExpression(
+            "1.0 is int",
+            environment
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(intIsFloat(CreateContext(environment)), Is.True);
+            Assert.That(floatIsInt(CreateContext(environment)), Is.False);
+        }
+    }
+
+    [Test]
+    public void RuntimeBoundariesDistinguishFloatFromNumber()
+    {
+        EnvironmentSchema floatEnvironment = new EnvironmentBuilder()
+            .AddGlobal("global.value", "value", TypeSymbols.Float)
+            .Build();
+        EnvironmentSchema numberEnvironment = new EnvironmentBuilder()
+            .AddGlobal("global.value", "value", TypeSymbols.Number)
+            .Build();
+        Func<DotNetRuntimeContext, object?> readFloat = CompileExpression(
+            "value",
+            floatEnvironment
+        );
+        Func<DotNetRuntimeContext, object?> readNumber = CompileExpression(
+            "value",
+            numberEnvironment
+        );
+        DotNetRuntimeContext invalidFloatContext = CreateContext(
+            floatEnvironment,
+            [new KeyValuePair<string, object?>("global.value", 1L)]
+        );
+        DotNetRuntimeContext integerNumberContext = CreateContext(
+            numberEnvironment,
+            [new KeyValuePair<string, object?>("global.value", 1L)]
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(
+                RequireRuntimeException(() => readFloat(invalidFloatContext)).Code,
+                Is.EqualTo("MUL6015")
+            );
+            Assert.That(readNumber(integerNumberContext), Is.EqualTo(1L));
+        }
+    }
+
+    [Test]
+    public void UnknownCannotBypassFloatToIntConversionRule()
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddGlobal("global.value", "value", TypeSymbols.Unknown)
+            .Build();
+        Func<DotNetRuntimeContext, object?> compiled = CompileExpression(
+            "value as int",
+            environment,
+            TypeSymbols.Int
+        );
+        DotNetRuntimeContext context = CreateContext(
+            environment,
+            [new KeyValuePair<string, object?>("global.value", 2.0)]
+        );
+
+        MuLangRuntimeException exception = RequireRuntimeException(
+            () => compiled(context)
+        );
+
+        Assert.That(exception.Code, Is.EqualTo("MUL6015"));
     }
 
     [TestCase("==")]

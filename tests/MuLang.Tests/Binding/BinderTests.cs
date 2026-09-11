@@ -22,7 +22,7 @@ public sealed class BinderTests
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(root.Value.Type, Is.SameAs(TypeSymbols.Number));
+            Assert.That(root.Value.Type, Is.SameAs(TypeSymbols.Float));
             Assert.That(result.Diagnostics, Is.Empty);
         }
     }
@@ -66,7 +66,7 @@ public sealed class BinderTests
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(array.ArrayType.ElementType, Is.SameAs(TypeSymbols.Number));
+            Assert.That(array.ArrayType.ElementType, Is.SameAs(TypeSymbols.Float));
             Assert.That(array.Elements[0], Is.TypeOf<BoundExpression.Conversion>());
             Assert.That(result.Diagnostics, Is.Empty);
         }
@@ -268,15 +268,39 @@ public sealed class BinderTests
     }
 
     [Test]
+    public void RequiresConcreteIntForBitwiseOperators()
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddGlobal("global.value", "value", TypeSymbols.Number)
+            .Build();
+        BindingResult result = BindExpression("value & 1", environment);
+
+        AssertDiagnostic(result, DiagnosticCodes.OperatorNotDefined);
+    }
+
+    [Test]
     public void ValidatesCheckedConversions()
     {
-        BindingResult valid = BindExpression("1.0 as int", CreateEmptyEnvironment());
-        BindingResult invalid = BindExpression("{} as string", CreateEmptyEnvironment());
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddGlobal("global.value", "value", TypeSymbols.Number)
+            .Build();
+        BindingResult intCast = BindExpression("value as int", environment);
+        BindingResult floatCast = BindExpression("value as float", environment);
+        BindingResult invalidNumericCast = BindExpression(
+            "1.0 as int",
+            CreateEmptyEnvironment()
+        );
+        BindingResult invalidObjectCast = BindExpression(
+            "{} as string",
+            CreateEmptyEnvironment()
+        );
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(valid.Diagnostics, Is.Empty);
-            AssertDiagnostic(invalid, DiagnosticCodes.InvalidConversion);
+            Assert.That(intCast.Diagnostics, Is.Empty);
+            Assert.That(floatCast.Diagnostics, Is.Empty);
+            AssertDiagnostic(invalidNumericCast, DiagnosticCodes.InvalidConversion);
+            AssertDiagnostic(invalidObjectCast, DiagnosticCodes.InvalidConversion);
         }
     }
 
@@ -659,7 +683,7 @@ public sealed class BinderTests
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(conditional.Type, Is.SameAs(TypeSymbols.Number));
+            Assert.That(conditional.Type, Is.SameAs(TypeSymbols.Float));
             Assert.That(conditional.WhenTrue, Is.TypeOf<BoundExpression.Conversion>());
             Assert.That(result.Diagnostics, Is.Empty);
         }

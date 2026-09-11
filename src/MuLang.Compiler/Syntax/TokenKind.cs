@@ -13,6 +13,7 @@ internal enum TokenKind
     ContinueKeyword,
     ElseKeyword,
     FalseKeyword,
+    FloatKeyword,
     ForKeyword,
     HasKeyword,
     IfKeyword,

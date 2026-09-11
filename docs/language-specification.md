@@ -102,6 +102,7 @@ The first language version reserves:
 - `continue`
 - `else`
 - `false`
+- `float`
 - `for`
 - `has`
 - `if`
@@ -140,13 +141,13 @@ Whitespace between the sign and numeric token has no semantic meaning.
 
 The complete signed value MUST be representable as a signed 64-bit integer. A value outside that range is a compile-time error.
 
-### 5.8. Number literals
+### 5.8. Float literals
 
-A number literal consists of an optional leading `+` or `-` sign and a numeric portion containing a decimal separator, an exponent, or both.
+A float literal consists of an optional leading `+` or `-` sign and a numeric portion containing a decimal separator, an exponent, or both.
 
-Number literals use `.` as the decimal separator and are independent of host culture.
+Float literals use `.` as the decimal separator and are independent of host culture.
 
-Number values use IEEE 754 binary64 semantics. The source syntax does not provide literals for NaN or infinity.
+Float values use IEEE 754 binary64 semantics. The source syntax does not provide literals for NaN or infinity.
 
 The lexer emits the sign and unsigned numeric portion as separate tokens. The parser combines them into one signed literal syntax node under the same rules as integer literals.
 
@@ -204,10 +205,13 @@ The primitive types are:
 |---|---|
 | `bool` | Boolean value |
 | `int` | Signed 64-bit integer |
-| `number` | IEEE 754 binary64 number |
+| `float` | IEEE 754 binary64 floating-point value |
+| `number` | Generic numeric value whose concrete runtime kind is `int` or `float` |
 | `string` | Unicode string |
 
 Primitive values are immutable.
+
+`number` is a non-null common supertype of `int` and `float`. It has no dedicated runtime representation and no dedicated literal syntax.
 
 ### 7.3. The `unknown` type
 
@@ -317,11 +321,17 @@ Conversion from `unknown` or `unknown?` to a more specific type requires an expl
 
 ### 8.4. Numeric conversion
 
-`int` is implicitly convertible to `number`.
+`int` is implicitly convertible to `float`.
 
-`number` is not implicitly convertible to `int`.
+`int` and `float` are implicitly convertible to `number`.
 
-An explicit conversion from `number` to `int` MUST fail at runtime when the value is not finite, is not integral, or is outside the signed 64-bit range.
+`number` is explicitly convertible to `int` and `float`. The conversion validates the concrete runtime numeric kind and value.
+
+An explicit conversion from `number` to `int` MUST fail at runtime when its concrete value is a `float` that is not finite, is not integral, or is outside the signed 64-bit range.
+
+An explicit conversion from `number` to `float` converts a concrete `int` value to `float` and preserves a concrete `float` value.
+
+There is no conversion from `float` to `int`.
 
 Integer arithmetic is checked. Overflow produces a runtime error.
 
@@ -335,7 +345,8 @@ The result uses the culture-independent source representation of the value:
 
 - `null`, `true`, and `false` use their corresponding keyword spelling;
 - an `int` uses signed invariant decimal notation;
-- a finite `number` uses the shortest round-trip decimal representation accepted by the number-literal grammar;
+- a finite `float` uses the shortest round-trip decimal representation accepted by the float-literal grammar;
+- a `number` uses the representation of its concrete runtime kind;
 - positive infinity, negative infinity, and NaN use `Infinity`, `-Infinity`, and `NaN`, respectively;
 - a `string` is unchanged and is not surrounded by quotes or escaped.
 
@@ -455,7 +466,7 @@ A non-empty array literal MAY contain one trailing comma after its final express
 
 All elements MUST have a common type under the implicit conversion rules. Each element is converted to that common type.
 
-Numeric elements use `number` as their common type when at least one element has type `number`.
+Numeric elements use the numeric conversion hierarchy to determine their common type: `int` with `float` produces `float`, while a static `number` element produces `number`.
 
 A mixture of `T` and the `null` literal has `T?` as its common type when all non-null elements have a common non-null type `T`.
 
@@ -599,10 +610,10 @@ Operators are listed from highest to lowest precedence.
 | Equality | `==`, `!=`, `===`, `!==` | None |
 | Bitwise AND | `&` | Left |
 | Bitwise XOR | `^` | Left |
-| Bitwise OR | `\|` | Left |
+| Bitwise OR | `|` | Left |
 | Conditional AND | `&&` | Left |
-| Conditional OR | `\|\|` | Left |
-| Conditional | `?:` | Right |
+| Conditional OR | `||` | Left |
+| Conditional | `? :` | Right |
 
 The postfix property-removal token `~` is a statement terminator and is not part of expression precedence.
 
@@ -612,11 +623,15 @@ When `+` or `-` immediately precedes a numeric token in a literal position, the 
 
 ### 11.3. Arithmetic operators
 
-Arithmetic operators operate on `int` and `number`.
+Arithmetic operators operate on `int`, `float`, and `number`.
 
 When both operands are `int`, the result is `int`, except where this specification explicitly requires another result.
 
-When either operand is `number`, the other operand is converted to `number` and the result is `number`.
+When either concrete operand is `float`, an `int` operand is implicitly converted to `float` and the result is `float`.
+
+When either operand has static type `number`, the other numeric operand is converted to `number` and the static result type is `number`.
+
+Operations on values with static type `number` dispatch according to their concrete runtime kinds. Two concrete `int` operands use checked integer arithmetic and produce `int`. If either concrete operand is `float`, a concrete `int` operand is promoted to `float` and the operation produces `float`.
 
 Integer operations are checked for overflow.
 
@@ -685,7 +700,7 @@ The key expression is evaluated exactly once. The `has` operator does not read t
 
 For primitive values, structural equality compares values.
 
-An `int` and a `number` are structurally equal when they represent the same mathematical numeric value.
+For `==` and `!=`, numeric operands use value equality. When an `int` is compared with a `float`, the `int` is converted to `float` before comparison. Values with static type `number` follow the same rule according to their concrete runtime kinds.
 
 For arrays, structural equality compares lengths and corresponding elements in order.
 
@@ -701,7 +716,9 @@ Structural equality MUST safely handle cyclic object and array graphs by trackin
 
 `!==` is the logical negation of `===`.
 
-For primitive values, identity equality coincides with structural equality, including cross-type numeric equality between equivalent `int` and `number` values.
+For primitive values with the same concrete type, identity equality coincides with value equality.
+
+Numeric primitive values with different concrete types are never identical. In particular, an `int` and a `float` compare unequal with `===` and equal with `!==`, even when `==` considers their values equal.
 
 For arrays and objects, identity is supplied by the runtime adapter and represents the same logical runtime instance.
 
@@ -1120,6 +1137,7 @@ type
 primary-type
     = "bool"
     | "int"
+    | "float"
     | "number"
     | "string"
     | "unknown"

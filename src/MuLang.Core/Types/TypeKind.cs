@@ -14,4 +14,5 @@ public enum TypeKind
     Void = 10,
     Null = 11,
     Error = 12,
+    Float = 13,
 }

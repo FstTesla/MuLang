@@ -28,6 +28,14 @@ public sealed class LexerTests
     }
 
     [Test]
+    public void RecognizesFloatKeyword()
+    {
+        LexResult result = Lexer.Lex(SourceText.From("float"));
+
+        Assert.That(result.Tokens[0].Kind, Is.EqualTo(TokenKind.FloatKeyword));
+    }
+
+    [Test]
     public void RecognizesOperatorsUsingLongestMatch()
     {
         LexResult result = Lexer.Lex(

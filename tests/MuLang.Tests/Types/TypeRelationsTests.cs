@@ -103,6 +103,22 @@ public sealed class TypeRelationsTests
                 Is.EqualTo(ConversionKind.Checked)
             );
             Assert.That(
+                TypeRelations.ClassifyConversion(TypeSymbols.Number, TypeSymbols.Float),
+                Is.EqualTo(ConversionKind.Checked)
+            );
+            Assert.That(
+                TypeRelations.ClassifyConversion(TypeSymbols.Int, TypeSymbols.Float),
+                Is.EqualTo(ConversionKind.Implicit)
+            );
+            Assert.That(
+                TypeRelations.ClassifyConversion(TypeSymbols.Float, TypeSymbols.Number),
+                Is.EqualTo(ConversionKind.Implicit)
+            );
+            Assert.That(
+                TypeRelations.ClassifyConversion(TypeSymbols.Float, TypeSymbols.Int),
+                Is.EqualTo(ConversionKind.None)
+            );
+            Assert.That(
                 TypeRelations.ClassifyConversion(nullableInt, TypeSymbols.Int),
                 Is.EqualTo(ConversionKind.Checked)
             );
@@ -125,6 +141,14 @@ public sealed class TypeRelationsTests
         {
             Assert.That(
                 TypeRelations.GetCommonType(TypeSymbols.Int, TypeSymbols.Number),
+                Is.SameAs(TypeSymbols.Number)
+            );
+            Assert.That(
+                TypeRelations.GetCommonType(TypeSymbols.Int, TypeSymbols.Float),
+                Is.SameAs(TypeSymbols.Float)
+            );
+            Assert.That(
+                TypeRelations.GetCommonType(TypeSymbols.Float, TypeSymbols.Number),
                 Is.SameAs(TypeSymbols.Number)
             );
             Assert.That(TypeRelations.AreEquivalent(nullCommonType, nullableInt), Is.True);

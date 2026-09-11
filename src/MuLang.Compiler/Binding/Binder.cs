@@ -727,15 +727,15 @@ internal sealed class Binder
                 )
                 {
                     Report(
-                        DiagnosticCodes.InvalidNumberLiteral,
+                        DiagnosticCodes.InvalidFloatLiteral,
                         syntax.Span,
-                        $"Number literal '{text}' is outside the supported range."
+                        $"Float literal '{text}' is outside the supported range."
                     );
 
                     return new BoundExpression.Error(syntax);
                 }
 
-                return new BoundExpression.Literal(syntax, TypeSymbols.Number, value);
+                return new BoundExpression.Literal(syntax, TypeSymbols.Float, value);
             }
 
             case TokenKind.StringLiteral:
@@ -1134,9 +1134,7 @@ internal sealed class Binder
             IsNumeric(right)
         )
         {
-            return left.Kind == TypeKind.Number || right.Kind == TypeKind.Number
-                ? TypeSymbols.Number
-                : TypeSymbols.Int;
+            return GetNumericResultType(left, right);
         }
 
         if (
@@ -1596,6 +1594,7 @@ internal sealed class Binder
         {
             TokenKind.BoolKeyword => TypeSymbols.Bool,
             TokenKind.IntKeyword => TypeSymbols.Int,
+            TokenKind.FloatKeyword => TypeSymbols.Float,
             TokenKind.NumberKeyword => TypeSymbols.Number,
             TokenKind.StringKeyword => TypeSymbols.String,
             TokenKind.UnknownKeyword => TypeSymbols.Unknown,
@@ -1749,10 +1748,7 @@ internal sealed class Binder
 
         if (isArithmeticOrRelational)
         {
-            TypeSymbol operandType =
-                leftType.Kind == TypeKind.Number || rightType.Kind == TypeKind.Number
-                    ? TypeSymbols.Number
-                    : TypeSymbols.Int;
+            TypeSymbol operandType = GetNumericResultType(leftType, rightType);
             left = ConvertRequiredOperand(left, operandType);
             right = ConvertRequiredOperand(right, operandType);
             return;
@@ -1799,6 +1795,17 @@ internal sealed class Binder
             left = ConvertRequiredOperand(left, TypeSymbols.String);
             right = ConvertRequiredOperand(right, TypeSymbols.String);
             return;
+        }
+
+        if (
+            operatorKind is TokenKind.EqualEqual or TokenKind.BangEqual &&
+            IsNumeric(leftType) &&
+            IsNumeric(rightType)
+        )
+        {
+            TypeSymbol operandType = GetNumericResultType(leftType, rightType);
+            left = ConvertRequiredOperand(left, operandType);
+            right = ConvertRequiredOperand(right, operandType);
         }
     }
 
@@ -1878,7 +1885,7 @@ internal sealed class Binder
 
     private static bool IsNumeric(TypeSymbol type)
     {
-        return type.Kind is TypeKind.Int or TypeKind.Number;
+        return type.Kind is TypeKind.Int or TypeKind.Float or TypeKind.Number;
     }
 
     private static bool IsStringConcatenation(TypeSymbol left, TypeSymbol right)
@@ -1892,9 +1899,25 @@ internal sealed class Binder
         return type.Kind is
             TypeKind.Bool or
             TypeKind.Int or
+            TypeKind.Float or
             TypeKind.Number or
             TypeKind.String or
             TypeKind.Null;
+    }
+
+    private static TypeSymbol GetNumericResultType(
+        TypeSymbol left,
+        TypeSymbol right
+    )
+    {
+        if (left.Kind == TypeKind.Number || right.Kind == TypeKind.Number)
+        {
+            return TypeSymbols.Number;
+        }
+
+        return left.Kind == TypeKind.Float || right.Kind == TypeKind.Float
+            ? TypeSymbols.Float
+            : TypeSymbols.Int;
     }
 
     private string GetSignedLiteralText(LiteralExpressionSyntax syntax)

@@ -485,7 +485,10 @@ internal static class IrValidator
         TypeSymbol? expectedType = unary.Operator switch
         {
             IrUnaryOperator.Identity or IrUnaryOperator.Negate
-                when destination.Type.Kind is TypeKind.Int or TypeKind.Number =>
+                when destination.Type.Kind is
+                TypeKind.Int or
+                TypeKind.Float or
+                TypeKind.Number =>
                 destination.Type,
             IrUnaryOperator.LogicalNot => TypeSymbols.Bool,
             IrUnaryOperator.BitwiseNot => TypeSymbols.Int,
@@ -529,13 +532,20 @@ internal static class IrValidator
         {
             IrBinaryOperator.Add =>
                 AreEquivalent(left, right, destination) &&
-                destination.Type.Kind is TypeKind.Int or TypeKind.Number or TypeKind.String,
+                destination.Type.Kind is
+                    TypeKind.Int or
+                    TypeKind.Float or
+                    TypeKind.Number or
+                    TypeKind.String,
             IrBinaryOperator.Subtract or
                 IrBinaryOperator.Multiply or
                 IrBinaryOperator.Divide or
                 IrBinaryOperator.Remainder =>
                 AreEquivalent(left, right, destination) &&
-                destination.Type.Kind is TypeKind.Int or TypeKind.Number,
+                destination.Type.Kind is
+                    TypeKind.Int or
+                    TypeKind.Float or
+                    TypeKind.Number,
             IrBinaryOperator.LeftShift or
                 IrBinaryOperator.RightShift or
                 IrBinaryOperator.BitwiseAnd or
@@ -550,7 +560,11 @@ internal static class IrValidator
                 IrBinaryOperator.GreaterThanOrEqual =>
                 AreType(destination, TypeSymbols.Bool) &&
                 TypeRelations.AreEquivalent(left.Type, right.Type) &&
-                left.Type.Kind is TypeKind.Int or TypeKind.Number or TypeKind.String,
+                left.Type.Kind is
+                    TypeKind.Int or
+                    TypeKind.Float or
+                    TypeKind.Number or
+                    TypeKind.String,
             IrBinaryOperator.StructuralEqual or
                 IrBinaryOperator.StructuralNotEqual or
                 IrBinaryOperator.IdentityEqual or
@@ -781,7 +795,8 @@ internal static class IrValidator
         {
             TypeKind.Bool => value is bool,
             TypeKind.Int => value is long,
-            TypeKind.Number => value is double,
+            TypeKind.Float => value is double,
+            TypeKind.Number => value is long or double,
             TypeKind.String => value is string,
             TypeKind.Unknown => value is not null,
             _ => false,

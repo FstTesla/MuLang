@@ -18,6 +18,16 @@ public sealed class TypeSymbolsTests
     }
 
     [Test]
+    public void ExposesFloatAndGenericNumberTypes()
+    {
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(TypeSymbols.Float.DisplayName, Is.EqualTo("float"));
+            Assert.That(TypeSymbols.Number.DisplayName, Is.EqualTo("number"));
+        }
+    }
+
+    [Test]
     public void RejectsInvalidTypeConstructions()
     {
         Assert.That(

@@ -240,7 +240,7 @@ internal sealed class Lexer
                         DiagnosticSeverity.Error,
                         DiagnosticCategory.Lexical,
                         TextSpan.FromBounds(start, position),
-                        "A number exponent requires at least one decimal digit."
+                        "A float exponent requires at least one decimal digit."
                     )
                 );
             }
@@ -448,6 +448,7 @@ internal sealed class Lexer
             "continue" => TokenKind.ContinueKeyword,
             "else" => TokenKind.ElseKeyword,
             "false" => TokenKind.FalseKeyword,
+            "float" => TokenKind.FloatKeyword,
             "for" => TokenKind.ForKeyword,
             "has" => TokenKind.HasKeyword,
             "if" => TokenKind.IfKeyword,

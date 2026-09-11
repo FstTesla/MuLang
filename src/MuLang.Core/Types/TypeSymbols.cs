@@ -6,6 +6,8 @@ public static class TypeSymbols
 
     public static TypeSymbol Int { get; } = new IntrinsicTypeSymbol(TypeKind.Int, "int");
 
+    public static TypeSymbol Float { get; } = new IntrinsicTypeSymbol(TypeKind.Float, "float");
+
     public static TypeSymbol Number { get; } = new IntrinsicTypeSymbol(TypeKind.Number, "number");
 
     public static TypeSymbol String { get; } = new IntrinsicTypeSymbol(TypeKind.String, "string");

@@ -57,6 +57,7 @@ internal static class SyntaxFacts
         return kind is
             TokenKind.BoolKeyword or
             TokenKind.IntKeyword or
+            TokenKind.FloatKeyword or
             TokenKind.NumberKeyword or
             TokenKind.StringKeyword or
             TokenKind.UnknownKeyword or

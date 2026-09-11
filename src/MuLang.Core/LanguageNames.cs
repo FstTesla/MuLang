@@ -14,6 +14,7 @@ internal static class LanguageNames
             "continue",
             "else",
             "false",
+            "float",
             "for",
             "has",
             "if",

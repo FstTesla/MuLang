@@ -64,7 +64,15 @@ public static class TypeRelations
             return source.Kind is not TypeKind.Null and not TypeKind.Void;
         }
 
-        if (source.Kind == TypeKind.Int && target.Kind == TypeKind.Number)
+        if (
+            source.Kind == TypeKind.Int &&
+            target.Kind is TypeKind.Float or TypeKind.Number
+        )
+        {
+            return true;
+        }
+
+        if (source.Kind == TypeKind.Float && target.Kind == TypeKind.Number)
         {
             return true;
         }
@@ -143,11 +151,18 @@ public static class TypeRelations
         }
 
         if (
-            left.Kind is TypeKind.Int or TypeKind.Number &&
-            right.Kind is TypeKind.Int or TypeKind.Number
+            IsNumeric(left) &&
+            IsNumeric(right)
         )
         {
-            return TypeSymbols.Number;
+            if (left.Kind == TypeKind.Number || right.Kind == TypeKind.Number)
+            {
+                return TypeSymbols.Number;
+            }
+
+            return left.Kind == TypeKind.Float || right.Kind == TypeKind.Float
+                ? TypeSymbols.Float
+                : TypeSymbols.Int;
         }
 
         if (IsAssignable(left, right))
@@ -198,7 +213,10 @@ public static class TypeRelations
             return CanConvertChecked(sourceNullable.UnderlyingType, target);
         }
 
-        if (source.Kind == TypeKind.Number && target.Kind == TypeKind.Int)
+        if (
+            source.Kind == TypeKind.Number &&
+            target.Kind is TypeKind.Int or TypeKind.Float
+        )
         {
             return true;
         }
@@ -208,6 +226,7 @@ public static class TypeRelations
             source.Kind is
                 TypeKind.Bool or
                 TypeKind.Int or
+                TypeKind.Float or
                 TypeKind.Number or
                 TypeKind.String or
                 TypeKind.Null
@@ -246,6 +265,11 @@ public static class TypeRelations
     private static bool CanBeNullable(TypeSymbol type)
     {
         return type.Kind is not TypeKind.Void and not TypeKind.Null and not TypeKind.Error;
+    }
+
+    private static bool IsNumeric(TypeSymbol type)
+    {
+        return type.Kind is TypeKind.Int or TypeKind.Float or TypeKind.Number;
     }
 
     private static bool AreEquivalent(

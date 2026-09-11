@@ -126,6 +126,7 @@ internal static class DotNetRuntimeOperations
     public static object? ConvertValue(
         DotNetRuntimeContext context,
         object? value,
+        TypeSymbol sourceType,
         TypeSymbol targetType,
         TextSpan span
     )
@@ -134,7 +135,13 @@ internal static class DotNetRuntimeOperations
         {
             return value is null
                 ? null
-                : ConvertValue(context, value, nullable.UnderlyingType, span);
+                : ConvertValue(
+                    context,
+                    value,
+                    GetNonNullable(sourceType),
+                    nullable.UnderlyingType,
+                    span
+                );
         }
 
         if (targetType.Kind == TypeKind.String)
@@ -154,7 +161,8 @@ internal static class DotNetRuntimeOperations
         return targetType.Kind switch
         {
             TypeKind.Bool when value is bool => value,
-            TypeKind.Int => ConvertToInt(value, span),
+            TypeKind.Int => ConvertToInt(value, sourceType, span),
+            TypeKind.Float => ConvertToFloat(value, span),
             TypeKind.Number => ConvertToNumber(value, span),
             TypeKind.Unknown => value,
             TypeKind.Object when IsObject(value) => value,
@@ -177,6 +185,18 @@ internal static class DotNetRuntimeOperations
         TextSpan span
     )
     {
+        TypeSymbol nonNullableType = type is NullableTypeSymbol nullable
+            ? nullable.UnderlyingType
+            : type;
+
+        if (
+            value is long &&
+            nonNullableType.Kind is TypeKind.Float or TypeKind.Number
+        )
+        {
+            return true;
+        }
+
         return IsValueOfTypeDeep(context, value, type, span, 0);
     }
 
@@ -196,7 +216,8 @@ internal static class DotNetRuntimeOperations
         {
             TypeKind.Bool => value is bool,
             TypeKind.Int => value is long,
-            TypeKind.Number => value is double,
+            TypeKind.Float => value is double,
+            TypeKind.Number => value is long or double,
             TypeKind.String => value is string,
             TypeKind.Unknown => true,
             TypeKind.Object => IsObject(value),
@@ -442,7 +463,7 @@ internal static class DotNetRuntimeOperations
             }
         }
 
-        return -RequireNumber(value, span);
+        return -RequireFloatCompatible(value, span);
     }
 
     private static object Add(object? left, object? right, TextSpan span)
@@ -464,7 +485,8 @@ internal static class DotNetRuntimeOperations
             }
         }
 
-        return RequireNumber(left, span) + RequireNumber(right, span);
+        return RequireFloatCompatible(left, span) +
+            RequireFloatCompatible(right, span);
     }
 
     private static object Subtract(object? left, object? right, TextSpan span)
@@ -481,7 +503,8 @@ internal static class DotNetRuntimeOperations
             }
         }
 
-        return RequireNumber(left, span) - RequireNumber(right, span);
+        return RequireFloatCompatible(left, span) -
+            RequireFloatCompatible(right, span);
     }
 
     private static object Multiply(object? left, object? right, TextSpan span)
@@ -498,7 +521,8 @@ internal static class DotNetRuntimeOperations
             }
         }
 
-        return RequireNumber(left, span) * RequireNumber(right, span);
+        return RequireFloatCompatible(left, span) *
+            RequireFloatCompatible(right, span);
     }
 
     private static object Divide(object? left, object? right, TextSpan span)
@@ -518,7 +542,8 @@ internal static class DotNetRuntimeOperations
             return leftInt / rightInt;
         }
 
-        return RequireNumber(left, span) / RequireNumber(right, span);
+        return RequireFloatCompatible(left, span) /
+            RequireFloatCompatible(right, span);
     }
 
     private static object Remainder(object? left, object? right, TextSpan span)
@@ -538,7 +563,8 @@ internal static class DotNetRuntimeOperations
             return leftInt % rightInt;
         }
 
-        return RequireNumber(left, span) % RequireNumber(right, span);
+        return RequireFloatCompatible(left, span) %
+            RequireFloatCompatible(right, span);
     }
 
     private static long LeftShift(object? left, object? right, TextSpan span)
@@ -574,6 +600,19 @@ internal static class DotNetRuntimeOperations
             return !double.IsNaN(leftNumber) &&
                 !double.IsNaN(rightNumber) &&
                 evaluateComparison(leftNumber.CompareTo(rightNumber));
+        }
+
+        if (
+            left is long or double &&
+            right is long or double
+        )
+        {
+            double promotedLeft = RequireFloatCompatible(left, span);
+            double promotedRight = RequireFloatCompatible(right, span);
+
+            return !double.IsNaN(promotedLeft) &&
+                !double.IsNaN(promotedRight) &&
+                evaluateComparison(promotedLeft.CompareTo(promotedRight));
         }
 
         if (left is string leftString && right is string rightString)
@@ -626,12 +665,12 @@ internal static class DotNetRuntimeOperations
 
         if (left is long leftInt && right is double rightNumber)
         {
-            return IntegerEqualsNumber(leftInt, rightNumber);
+            return (double)leftInt == rightNumber;
         }
 
         if (left is double leftNumber && right is long rightInt)
         {
-            return IntegerEqualsNumber(rightInt, leftNumber);
+            return leftNumber == (double)rightInt;
         }
 
         if (
@@ -722,6 +761,14 @@ internal static class DotNetRuntimeOperations
     )
     {
         if (
+            left is long && right is double ||
+            left is double && right is long
+        )
+        {
+            return false;
+        }
+
+        if (
             left is null ||
             right is null ||
             left is bool or long or double or string ||
@@ -766,7 +813,8 @@ internal static class DotNetRuntimeOperations
         {
             TypeKind.Bool => value is bool,
             TypeKind.Int => value is long,
-            TypeKind.Number => value is double,
+            TypeKind.Float => value is double,
+            TypeKind.Number => value is long or double,
             TypeKind.String => value is string,
             TypeKind.Unknown => true,
             TypeKind.Object => IsObject(value),
@@ -904,7 +952,11 @@ internal static class DotNetRuntimeOperations
         };
     }
 
-    private static long ConvertToInt(object value, TextSpan span)
+    private static long ConvertToInt(
+        object value,
+        TypeSymbol sourceType,
+        TextSpan span
+    )
     {
         if (value is long integer)
         {
@@ -912,6 +964,7 @@ internal static class DotNetRuntimeOperations
         }
 
         if (
+            GetNonNullable(sourceType).Kind == TypeKind.Number &&
             value is double number &&
             double.IsFinite(number) &&
             Math.Truncate(number) == number &&
@@ -936,14 +989,11 @@ internal static class DotNetRuntimeOperations
         throw InvalidValue("Value cannot be converted to int.", span);
     }
 
-    private static double ConvertToNumber(object value, TextSpan span)
+    private static TypeSymbol GetNonNullable(TypeSymbol type)
     {
-        return value switch
-        {
-            long integer => integer,
-            double number => number,
-            _ => throw InvalidValue("Value cannot be converted to number.", span),
-        };
+        return type is NullableTypeSymbol nullable
+            ? nullable.UnderlyingType
+            : type;
     }
 
     private static long RequireInt(object? value, TextSpan span)
@@ -953,11 +1003,31 @@ internal static class DotNetRuntimeOperations
             : throw InvalidValue("Expected an int value.", span);
     }
 
-    private static double RequireNumber(object? value, TextSpan span)
+    private static double ConvertToFloat(object value, TextSpan span)
     {
-        return value is double number
-            ? number
-            : throw InvalidValue("Expected a number value.", span);
+        return value switch
+        {
+            long integer => integer,
+            double number => number,
+            _ => throw InvalidValue("Value cannot be converted to float.", span),
+        };
+    }
+
+    private static object ConvertToNumber(object value, TextSpan span)
+    {
+        return value is long or double
+            ? value
+            : throw InvalidValue("Value cannot be converted to number.", span);
+    }
+
+    private static double RequireFloatCompatible(object? value, TextSpan span)
+    {
+        return value switch
+        {
+            long integer => integer,
+            double number => number,
+            _ => throw InvalidValue("Expected a numeric value.", span),
+        };
     }
 
     private static string RequireString(object? value, TextSpan span)
@@ -1272,21 +1342,6 @@ internal static class DotNetRuntimeOperations
         }
 
         return value;
-    }
-
-    private static bool IntegerEqualsNumber(long integer, double number)
-    {
-        if (
-            !double.IsFinite(number) ||
-            Math.Truncate(number) != number ||
-            number < long.MinValue ||
-            number >= 9223372036854775808.0
-        )
-        {
-            return false;
-        }
-
-        return integer == (long)number;
     }
 
     private static string FormatNumber(double number)
