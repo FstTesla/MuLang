@@ -150,6 +150,24 @@ public sealed class DotNetExporterTests
     }
 
     [Test]
+    public void ExecutesRemovalOfInferredOptionalProperty()
+    {
+        const string source = """
+            var item = { value?: 1 };
+            item.value~;
+            return item has "value";
+            """;
+        EnvironmentSchema environment = CreateEmptyEnvironment();
+        Func<DotNetRuntimeContext, object?> compiled = CompileProgram(
+            source,
+            environment,
+            TypeSymbols.Bool
+        );
+
+        Assert.That(compiled(CreateContext(environment)), Is.False);
+    }
+
+    [Test]
     public void DistinguishesStructuralEqualityAndIdentity()
     {
         EnvironmentSchema environment = CreateEmptyEnvironment();

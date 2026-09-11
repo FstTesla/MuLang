@@ -205,6 +205,56 @@ public sealed class BinderTests
     }
 
     [Test]
+    public void InfersOptionalObjectLiteralProperties()
+    {
+        BindingResult result = BindExpression(
+            "{ value?: 1 }",
+            CreateEmptyEnvironment()
+        );
+        BoundRoot.Expression root = (BoundRoot.Expression)result.Root;
+        BoundExpression.Object objectExpression =
+            (BoundExpression.Object)root.Value;
+        ObjectPropertySymbol property = objectExpression.ObjectType.Properties.Single();
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(property.IsOptional, Is.True);
+            Assert.That(result.Diagnostics, Is.Empty);
+        }
+    }
+
+    [Test]
+    public void ExpectedObjectTypeDeterminesLiteralPropertyOptionality()
+    {
+        ObjectTypeSymbol itemType = new(
+            "type.item",
+            "Item",
+            false,
+            [new ObjectPropertySymbol("value", TypeSymbols.Int)]
+        );
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddType(itemType)
+            .Build();
+        BindingResult result = BindProgram(
+            "var item: Item = { value?: 1 };",
+            environment,
+            TypeSymbols.Void
+        );
+        BoundRoot.Program root = (BoundRoot.Program)result.Root;
+        BoundStatement.VariableDeclaration declaration =
+            (BoundStatement.VariableDeclaration)root.Statements[0];
+        BoundExpression.Object objectExpression =
+            RequireInitializer<BoundExpression.Object>(declaration);
+        ObjectPropertySymbol property = objectExpression.ObjectType.Properties.Single();
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(property.IsOptional, Is.False);
+            Assert.That(result.Diagnostics, Is.Empty);
+        }
+    }
+
+    [Test]
     public void ValidatesUnaryAndBinaryOperators()
     {
         BindingResult valid = BindExpression("~1 & 3", CreateEmptyEnvironment());

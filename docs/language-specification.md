@@ -471,7 +471,11 @@ An open object literal contains the same contents enclosed in `@{` and `}`.
 
 A non-empty object literal MAY contain one trailing comma after its final property initializer.
 
-Each property initializer consists of an identifier or string literal property name, followed by `:`, followed by an expression.
+Each property initializer consists of an identifier or string literal property name, either the `:` token or the optional-property `?:` token, and a required expression.
+
+The `?:` token declares the property optional in the anonymous structured type inferred for an object literal. It is a single lexical token: whitespace is not permitted between `?` and `:`. It does not make the initializer expression optional: the property is always present in the newly created object.
+
+When an object literal is contextually typed by a provider-declared structured type, the expected type determines property optionality and the literal marker does not alter it.
 
 Computed property names and property spread are not supported.
 
@@ -1139,7 +1143,7 @@ property-initializer-list
     = property-initializer ("," property-initializer)* ","? ;
 
 property-initializer
-    = (identifier | string-literal) ":" expression ;
+    = (identifier | string-literal) (":" | "?:") expression ;
 ```
 
 Expression grammar is defined by the precedence table rather than expanded in this summary.

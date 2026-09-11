@@ -39,6 +39,7 @@ internal enum TokenKind
     Comma,
     Dot,
     Colon,
+    OptionalPropertyColon,
     Semicolon,
     Question,
     OptionalDot,

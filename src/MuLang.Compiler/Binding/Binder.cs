@@ -923,7 +923,13 @@ internal sealed class Binder
 
             if (isFirstDeclaration)
             {
-                propertySymbols.Add(new ObjectPropertySymbol(name, propertyType));
+                propertySymbols.Add(
+                    new ObjectPropertySymbol(
+                        name,
+                        propertyType,
+                        propertySyntax.IsOptional
+                    )
+                );
             }
         }
 

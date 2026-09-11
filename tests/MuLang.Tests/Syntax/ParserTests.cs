@@ -122,6 +122,29 @@ public sealed class ParserTests
     }
 
     [Test]
+    public void ParsesOptionalObjectLiteralProperty()
+    {
+        SyntaxTree tree = ParseExpression("{ value?: 1 }");
+        ExpressionRootSyntax root = (ExpressionRootSyntax)tree.Root;
+        ObjectLiteralExpressionSyntax objectLiteral =
+            (ObjectLiteralExpressionSyntax)root.Expression;
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(objectLiteral.Properties[0].IsOptional, Is.True);
+            Assert.That(tree.Diagnostics, Is.Empty);
+        }
+    }
+
+    [Test]
+    public void RejectsWhitespaceInsideOptionalPropertySeparator()
+    {
+        SyntaxTree tree = ParseExpression("{ value? : 1 }");
+
+        Assert.That(tree.Diagnostics.HasErrors, Is.True);
+    }
+
+    [Test]
     public void ParsesProgramStatements()
     {
         const string source = """

@@ -557,9 +557,17 @@ internal sealed class Parser
             SyntaxToken nameToken = Current.Kind is TokenKind.Identifier or TokenKind.StringLiteral
                 ? ParseToken()
                 : Match(TokenKind.Identifier);
-            SyntaxToken colonToken = Match(TokenKind.Colon);
+            SyntaxToken separatorToken = Current.Kind == TokenKind.OptionalPropertyColon
+                ? ParseToken()
+                : Match(TokenKind.Colon);
             ExpressionSyntax value = ParseExpression();
-            properties.Add(new ObjectPropertyInitializerSyntax(nameToken, colonToken, value));
+            properties.Add(
+                new ObjectPropertyInitializerSyntax(
+                    nameToken,
+                    separatorToken,
+                    value
+                )
+            );
 
             if (Current.Kind != TokenKind.Comma)
             {
