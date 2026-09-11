@@ -843,11 +843,13 @@ Multiple comma-separated initializers or iterators are not supported.
 
 `break` and `continue` are valid only within `while` or `for`.
 
-`break` terminates the innermost enclosing loop.
+Each statement MAY include one positive integer literal indicating the number of enclosing loops affected. The literal defaults to `1` when omitted and MUST NOT exceed the number of loops enclosing the statement.
 
-`continue` begins the next iteration of the innermost enclosing loop.
+`break` terminates the selected enclosing loop.
 
-In a `for` statement, `continue` transfers control to the iterator before reevaluating the condition.
+`continue` begins the next iteration of the selected enclosing loop.
+
+When the selected loop is a `for` statement, `continue` transfers control to that loop's iterator before reevaluating its condition.
 
 ### 12.12. Return
 
@@ -1058,8 +1060,8 @@ statement
     | if-statement
     | while-statement
     | for-statement
-    | "break" ";"
-    | "continue" ";"
+    | "break" integer-literal? ";"
+    | "continue" integer-literal? ";"
     | return-statement ";"
     | ";" ;
 

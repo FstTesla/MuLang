@@ -226,11 +226,11 @@ public sealed class BinderTests
     [Test]
     public void ExpectedObjectTypeDeterminesLiteralPropertyOptionality()
     {
-        ObjectTypeSymbol itemType = new(
+        ObjectTypeSymbol itemType = new (
             "type.item",
             "Item",
             false,
-            [new ObjectPropertySymbol("value", TypeSymbols.Int)]
+            [ new ObjectPropertySymbol("value", TypeSymbols.Int) ]
         );
         EnvironmentSchema environment = new EnvironmentBuilder()
             .AddType(itemType)
@@ -483,6 +483,34 @@ public sealed class BinderTests
             AssertDiagnostic(invalidBreak, DiagnosticCodes.BreakOutsideLoop);
             Assert.That(validBreak.Diagnostics, Is.Empty);
         }
+    }
+
+    [TestCase("while (true) break 0;")]
+    [TestCase("while (true) break -1;")]
+    [TestCase("while (true) break 2;")]
+    [TestCase("while (true) continue 0;")]
+    [TestCase("while (true) continue 2;")]
+    public void ValidatesLoopControlLevels(string source)
+    {
+        BindingResult result = BindProgram(
+            source,
+            CreateEmptyEnvironment(),
+            TypeSymbols.Void
+        );
+
+        AssertDiagnostic(result, DiagnosticCodes.InvalidLoopLevel);
+    }
+
+    [Test]
+    public void AllowsLoopControlLevelWithinNestingDepth()
+    {
+        BindingResult result = BindProgram(
+            "while (true) while (true) break 2;",
+            CreateEmptyEnvironment(),
+            TypeSymbols.Void
+        );
+
+        Assert.That(result.Diagnostics, Is.Empty);
     }
 
     [Test]

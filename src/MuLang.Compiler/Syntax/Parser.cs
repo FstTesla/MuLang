@@ -356,17 +356,50 @@ internal sealed class Parser
     private BreakStatementSyntax ParseBreakStatement()
     {
         SyntaxToken breakKeyword = Match(TokenKind.BreakKeyword);
+        (SyntaxToken? levelSignToken, SyntaxToken? levelToken) =
+            ParseOptionalIntegerLiteral();
         SyntaxToken semicolonToken = Match(TokenKind.Semicolon);
 
-        return new BreakStatementSyntax(breakKeyword, semicolonToken);
+        return new BreakStatementSyntax(
+            breakKeyword,
+            levelSignToken,
+            levelToken,
+            semicolonToken
+        );
     }
 
     private ContinueStatementSyntax ParseContinueStatement()
     {
         SyntaxToken continueKeyword = Match(TokenKind.ContinueKeyword);
+        (SyntaxToken? levelSignToken, SyntaxToken? levelToken) =
+            ParseOptionalIntegerLiteral();
         SyntaxToken semicolonToken = Match(TokenKind.Semicolon);
 
-        return new ContinueStatementSyntax(continueKeyword, semicolonToken);
+        return new ContinueStatementSyntax(
+            continueKeyword,
+            levelSignToken,
+            levelToken,
+            semicolonToken
+        );
+    }
+
+    private (SyntaxToken? SignToken, SyntaxToken? LiteralToken)
+        ParseOptionalIntegerLiteral()
+    {
+        if (Current.Kind == TokenKind.IntegerLiteral)
+        {
+            return (null, ParseToken());
+        }
+
+        if (
+            Current.Kind is TokenKind.Plus or TokenKind.Minus &&
+            Peek(1).Kind == TokenKind.IntegerLiteral
+        )
+        {
+            return (ParseToken(), ParseToken());
+        }
+
+        return (null, null);
     }
 
     private ReturnStatementSyntax ParseReturnStatement()

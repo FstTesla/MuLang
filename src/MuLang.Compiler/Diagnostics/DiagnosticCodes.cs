@@ -40,6 +40,7 @@ internal static class DiagnosticCodes
     public const string UnreachableStatement = "MUL4005";
     public const string InvalidIntegerLiteral = "MUL4006";
     public const string InvalidNumberLiteral = "MUL4007";
+    public const string InvalidLoopLevel = "MUL4008";
     public const string ReadOnlyTarget = "MUL3019";
     public const string MissingObjectProperty = "MUL3020";
     public const string InvalidEmbeddedDeclaration = "MUL3021";

@@ -4,6 +4,8 @@ namespace MuLang.Compiler.Syntax;
 
 internal sealed record BreakStatementSyntax(
     SyntaxToken BreakKeyword,
+    SyntaxToken? LevelSignToken,
+    SyntaxToken? LevelToken,
     SyntaxToken SemicolonToken
 ) : StatementSyntax
 {

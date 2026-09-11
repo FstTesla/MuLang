@@ -52,9 +52,15 @@ internal abstract record BoundStatement(SyntaxNode Syntax) : BoundNode(Syntax)
         BoundStatement Body
     ) : BoundStatement(Syntax);
 
-    internal sealed record Break(SyntaxNode Syntax) : BoundStatement(Syntax);
+    internal sealed record Break(
+        SyntaxNode Syntax,
+        int Level
+    ) : BoundStatement(Syntax);
 
-    internal sealed record Continue(SyntaxNode Syntax) : BoundStatement(Syntax);
+    internal sealed record Continue(
+        SyntaxNode Syntax,
+        int Level
+    ) : BoundStatement(Syntax);
 
     internal sealed record Return(
         SyntaxNode Syntax,

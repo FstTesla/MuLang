@@ -487,6 +487,8 @@ internal sealed class Binder
         FlowState state
     )
     {
+        int level = BindLoopLevel(syntax.LevelSignToken, syntax.LevelToken);
+
         if (loopContexts.Count == 0)
         {
             Report(
@@ -496,14 +498,18 @@ internal sealed class Binder
                 DiagnosticCategory.ControlFlow
             );
         }
+        else if (level > loopContexts.Count)
+        {
+            ReportInvalidLoopLevel(level, loopContexts.Count, syntax.Span);
+        }
         else if (state.CanCompleteNormally)
         {
-            loopContexts.Peek().AddBreakState(state);
+            GetLoopContext(level).AddBreakState(state);
         }
 
         state.CanCompleteNormally = false;
 
-        return new BoundStatement.Break(syntax);
+        return new BoundStatement.Break(syntax, level);
     }
 
     private BoundStatement BindContinueStatement(
@@ -511,6 +517,8 @@ internal sealed class Binder
         FlowState state
     )
     {
+        int level = BindLoopLevel(syntax.LevelSignToken, syntax.LevelToken);
+
         if (loopContexts.Count == 0)
         {
             Report(
@@ -520,14 +528,78 @@ internal sealed class Binder
                 DiagnosticCategory.ControlFlow
             );
         }
+        else if (level > loopContexts.Count)
+        {
+            ReportInvalidLoopLevel(level, loopContexts.Count, syntax.Span);
+        }
         else if (state.CanCompleteNormally)
         {
-            loopContexts.Peek().AddContinueState(state);
+            GetLoopContext(level).AddContinueState(state);
         }
 
         state.CanCompleteNormally = false;
 
-        return new BoundStatement.Continue(syntax);
+        return new BoundStatement.Continue(syntax, level);
+    }
+
+    private int BindLoopLevel(
+        SyntaxToken? signToken,
+        SyntaxToken? levelToken
+    )
+    {
+        if (levelToken is null)
+        {
+            return 1;
+        }
+
+        string sign = signToken?.Kind switch
+        {
+            TokenKind.Plus => "+",
+            TokenKind.Minus => "-",
+            _ => "",
+        };
+        string text = $"{sign}{GetText(levelToken)}";
+
+        if (
+            !int.TryParse(
+                text,
+                NumberStyles.AllowLeadingSign,
+                CultureInfo.InvariantCulture,
+                out int level
+            ) ||
+            level <= 0
+        )
+        {
+            Report(
+                DiagnosticCodes.InvalidLoopLevel,
+                levelToken.Span,
+                "The loop level must be a positive integer literal.",
+                DiagnosticCategory.ControlFlow
+            );
+
+            return 1;
+        }
+
+        return level;
+    }
+
+    private LoopFlowContext GetLoopContext(int level)
+    {
+        return loopContexts.ElementAt(level - 1);
+    }
+
+    private void ReportInvalidLoopLevel(
+        int level,
+        int loopCount,
+        TextSpan span
+    )
+    {
+        Report(
+            DiagnosticCodes.InvalidLoopLevel,
+            span,
+            $"Loop level {level} exceeds the {loopCount} enclosing loop(s).",
+            DiagnosticCategory.ControlFlow
+        );
     }
 
     private BoundStatement BindReturnStatement(

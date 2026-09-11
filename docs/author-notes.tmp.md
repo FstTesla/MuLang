@@ -1,6 +1,5 @@
 - Add `float` to types
 - .NET representation of objects
-- Deep `break` and `continue`
 - Reduce usage of `InternalVisibleTo` except for tests
 - Collection types in compiler
 - Exceptions review

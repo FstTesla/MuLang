@@ -113,6 +113,52 @@ public sealed class DotNetExporterTests
     }
 
     [Test]
+    public void BreakCanExitMultipleNestedLoops()
+    {
+        const string source = """
+                              var count = 0;
+                              for (var outer = 0; outer < 3; outer = outer + 1) {
+                                  for (var inner = 0; inner < 3; inner = inner + 1) {
+                                      count = count + 1;
+                                      break 2;
+                                  }
+                              }
+                              return count;
+                              """;
+        EnvironmentSchema environment = CreateEmptyEnvironment();
+        Func<DotNetRuntimeContext, object?> compiled = CompileProgram(
+            source,
+            environment,
+            TypeSymbols.Int
+        );
+
+        Assert.That(compiled(CreateContext(environment)), Is.EqualTo(1L));
+    }
+
+    [Test]
+    public void ContinueCanAdvanceAnOuterLoop()
+    {
+        const string source = """
+                              var count = 0;
+                              for (var outer = 0; outer < 3; outer = outer + 1) {
+                                  for (var inner = 0; inner < 3; inner = inner + 1) {
+                                      count = count + 1;
+                                      continue 2;
+                                  }
+                              }
+                              return count;
+                              """;
+        EnvironmentSchema environment = CreateEmptyEnvironment();
+        Func<DotNetRuntimeContext, object?> compiled = CompileProgram(
+            source,
+            environment,
+            TypeSymbols.Int
+        );
+
+        Assert.That(compiled(CreateContext(environment)), Is.EqualTo(3L));
+    }
+
+    [Test]
     public void ExecutesArrayCreationMutationIndexingAndLength()
     {
         const string source = """
@@ -153,10 +199,10 @@ public sealed class DotNetExporterTests
     public void ExecutesRemovalOfInferredOptionalProperty()
     {
         const string source = """
-            var item = { value?: 1 };
-            item.value~;
-            return item has "value";
-            """;
+                              var item = { value?: 1 };
+                              item.value~;
+                              return item has "value";
+                              """;
         EnvironmentSchema environment = CreateEmptyEnvironment();
         Func<DotNetRuntimeContext, object?> compiled = CompileProgram(
             source,

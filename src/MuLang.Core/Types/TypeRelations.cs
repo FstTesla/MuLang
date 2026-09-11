@@ -86,22 +86,13 @@ public static class TypeRelations
     {
         ValidateTypes(source, target);
 
-        if (AreEquivalent(source, target))
-        {
-            return ConversionKind.Identity;
-        }
-
-        if (IsAssignable(source, target))
-        {
-            return ConversionKind.Implicit;
-        }
-
-        if (CanConvertChecked(source, target))
-        {
-            return ConversionKind.Checked;
-        }
-
-        return ConversionKind.None;
+        return AreEquivalent(source, target)
+            ? ConversionKind.Identity
+            : IsAssignable(source, target)
+                ? ConversionKind.Implicit
+                : CanConvertChecked(source, target)
+                    ? ConversionKind.Checked
+                    : ConversionKind.None;
     }
 
     public static TypeSymbol? GetCommonType(TypeSymbol left, TypeSymbol right)

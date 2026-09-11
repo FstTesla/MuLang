@@ -472,14 +472,14 @@ internal sealed class Lowerer
 
     private void LowerBreak(BoundStatement.Break statement)
     {
-        LoweringLoopContext context = loopContexts.Peek();
+        LoweringLoopContext context = loopContexts.ElementAt(statement.Level - 1);
         builder.Terminate(new IrTerminator.Jump(statement.Span, context.BreakBlock));
         builder.SetUnreachable();
     }
 
     private void LowerContinue(BoundStatement.Continue statement)
     {
-        LoweringLoopContext context = loopContexts.Peek();
+        LoweringLoopContext context = loopContexts.ElementAt(statement.Level - 1);
         builder.Terminate(new IrTerminator.Jump(statement.Span, context.ContinueBlock));
         builder.SetUnreachable();
     }

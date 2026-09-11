@@ -171,6 +171,28 @@ public sealed class ParserTests
     }
 
     [Test]
+    public void ParsesLoopControlLevels()
+    {
+        SyntaxTree tree = Parser.Parse(
+            SourceText.From("break +2; continue 3;"),
+            CompilationMode.Program
+        );
+        ProgramRootSyntax root = (ProgramRootSyntax)tree.Root;
+        BreakStatementSyntax breakStatement =
+            (BreakStatementSyntax)root.Statements[0];
+        ContinueStatementSyntax continueStatement =
+            (ContinueStatementSyntax)root.Statements[1];
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(breakStatement.LevelToken?.Kind, Is.EqualTo(TokenKind.IntegerLiteral));
+            Assert.That(breakStatement.LevelSignToken?.Kind, Is.EqualTo(TokenKind.Plus));
+            Assert.That(continueStatement.LevelToken?.Kind, Is.EqualTo(TokenKind.IntegerLiteral));
+            Assert.That(tree.Diagnostics, Is.Empty);
+        }
+    }
+
+    [Test]
     public void ReportsPureExpressionUsedAsStatement()
     {
         SyntaxTree tree = Parser.Parse(
