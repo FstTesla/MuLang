@@ -910,8 +910,7 @@ The provider supplies an immutable static environment containing:
 - global variable declarations;
 - function declarations;
 - structured object declarations;
-- stable symbolic identifiers;
-- the language profile supported by the provider.
+- stable symbolic identifiers.
 
 Every structured object type referenced directly or indirectly by a global, function parameter, function return type, array element, nullable type, or structured property MUST be registered in the static environment. Every reference to the same stable type identifier MUST resolve to the same type declaration.
 
@@ -1046,26 +1045,118 @@ The compiler SHOULD continue after recoverable errors to report multiple indepen
 
 No executable artifact may be produced when error diagnostics are present.
 
-## 18. Language version and profiles
+## 18. Language profiles
 
-Every compilation MUST identify a language version.
+Every compilation MUST select a language profile independently from its static environment and compilation mode.
 
-The first implementation MAY expose only one language version.
+A language profile is immutable and contains:
 
-The architecture MUST allow a future immutable language profile to configure:
+- a language version;
+- one independently typed enum value for each configurable concern;
+- a deterministic language-profile fingerprint.
 
+A profile may be created directly or through a fluent builder. The builder may start from the standard profile or an existing profile, validates each change immediately, and produces independent immutable profile snapshots.
+
+The standard version-one profile preserves all language syntax, capabilities, and policies described by the rest of this specification unless this section explicitly permits a restriction. It enables user-defined functions, recursion, both loop kinds, provider function calls, open objects, every mutation kind, optional access, explicit loop-control levels, and trailing commas. It uses strict Boolean conditions and prohibits variable shadowing.
+
+The profile options and stable numeric values are:
+
+| Property | Values |
+|---|---|
+| `UserDefinedFunctions` | `Disabled = 0`, `Enabled = 1` |
+| `Recursion` | `Disabled = 0`, `Enabled = 1` |
+| `Loops` | `None = 0`, `While = 1`, `For = 2` |
+| `ProviderFunctionCalls` | `Disabled = 0`, `Enabled = 1` |
+| `OpenObjects` | `Disabled = 0`, `Enabled = 1` |
+| `Mutations` | `None = 0`, `ObjectProperties = 1`, `ArrayElements = 2`, `PropertyRemoval = 4` |
+| `OptionalAccess` | `Disabled = 0`, `Enabled = 1` |
+| `MultiLevelLoopControl` | `Disabled = 0`, `Enabled = 1` |
+| `TrailingCommas` | `Disabled = 0`, `Enabled = 1` |
+| `ConditionSemantics` | `StrictBoolean = 0`, `Truthiness = 1` |
+| `Shadowing` | `None = 0`, `NestedScopes = 1`, `Globals = 2` |
+
+`Loops`, `Mutations`, and `Shadowing` are independently combinable flag enums. The remaining options are ordinary enums.
+
+`Truthiness` is reserved but unsupported in version one. Profile construction MUST reject it, unknown enum values, unknown flag bits, and unsupported language versions. A dependent option MAY be enabled while its prerequisite is disabled; it remains dormant rather than making the profile invalid.
+
+### 18.1. Profile fingerprint and compilation identity
+
+The language-profile fingerprint MUST be deterministic. Its canonical input MUST include the stable label and numeric value of the language version and every profile option. It MUST NOT depend on enum declaration order, collection iteration order, process-specific hashes, or object identity.
+
+Compilation cache identity consists of:
+
+- source text;
 - compilation mode;
-- enabled syntax features;
-- semantic policies;
-- provider restrictions.
+- language-profile fingerprint;
+- environment fingerprint.
 
-The initial version does not expose general-purpose feature flags.
+The language-profile and environment fingerprints remain separate.
 
-Future configurable behavior SHOULD use named enum policies rather than unrelated Boolean flags.
+### 18.2. User-defined functions and recursion
 
-Language version, compilation mode, semantic options, syntax features, and environment fingerprint MUST participate in compiled-artifact compatibility and cache identity.
+When user-defined functions are disabled, function declarations remain recognizable for recovery but are rejected with a dedicated diagnostic. Calls resolved to a user-defined function are also rejected. Provider calls remain independently configurable.
 
-A disabled recognized feature SHOULD produce a dedicated feature-disabled diagnostic rather than an unrelated syntax error.
+When recursion is disabled and user-defined functions are enabled, the compiler MUST reject every strongly connected component in the user-function call graph that contains more than one function or a self-edge. Each participating function receives one useful diagnostic without diagnostics for every possible call path. Provider calls do not create recursion edges.
+
+The recursion option is dormant when user-defined functions are disabled.
+
+### 18.3. Loops and loop control
+
+`Loops.While` independently permits `while`, and `Loops.For` independently permits `for`. A disabled loop body MUST still be analyzed for independent diagnostics and normal `break` and `continue` context validation.
+
+When multi-level loop control is disabled, explicitly written levels on `break` and `continue` are rejected, including level `1`. Plain `break;` and `continue;` remain available. The option is dormant when `Loops` is `None`.
+
+### 18.4. Provider calls
+
+When provider function calls are disabled, a call resolved to a provider function is rejected. Provider function declarations remain valid in the environment and may be unused.
+
+### 18.5. Open objects
+
+The open-objects option controls:
+
+- `@{ ... }` literals;
+- dynamic member and element access;
+- dynamic `has` tests;
+- dynamic property assignment and removal;
+- provider-declared open structured types.
+
+When open objects are disabled, compilation rejects an environment containing any open structured type, including an unused type.
+
+The generic `object` type remains a valid abstract supertype. With open objects disabled, it exposes no dynamic member access, element access, `has`, assignment, or removal. It remains valid for assignment, argument passing, return values, arrays and properties, equality, identity equality, `is`, and `as`.
+
+Closed structured types remain valid. Their statically known properties remain accessible.
+
+### 18.6. Mutations
+
+`Mutations.ObjectProperties` independently permits assignment to an object property through member or element syntax.
+
+`Mutations.ArrayElements` independently permits assignment to an array element.
+
+`Mutations.PropertyRemoval` independently permits postfix `~` property-removal statements. Property removal does not depend on object-property assignment.
+
+Mutation restrictions apply regardless of whether the value originated from a literal, global, parameter, property, array element, or function result.
+
+### 18.7. Optional access and trailing commas
+
+When optional access is disabled, `?.` and `?.[` are recognized for recovery and rejected with a dedicated diagnostic. Nullable types and ordinary nullable runtime validation remain available.
+
+When trailing commas are disabled, a trailing comma is rejected in array, closed-object, and open-object literals. Trailing commas in argument and parameter lists remain unconditional grammar errors.
+
+### 18.8. Shadowing
+
+Same-scope duplicate declarations are invalid under every shadowing policy.
+
+`Shadowing.NestedScopes` permits a declaration in a nested lexical scope to shadow an enclosing local variable or function parameter. It does not permit shadowing a global.
+
+`Shadowing.Globals` permits locals and function parameters to shadow globals. It does not permit shadowing enclosing locals or parameters.
+
+Combining both values permits both forms. `None` prohibits both and preserves the standard version-one policy.
+
+### 18.9. Conditions and diagnostics
+
+Version one supports only strict Boolean conditions. Every condition is required to have type `bool`.
+
+Each disabled feature or independently controllable member MUST use its dedicated stable diagnostic code. Diagnostics do not carry separate feature metadata. Recognized disabled syntax SHOULD be retained sufficiently for later phases to recover and report independent diagnostics.
 
 ## 19. Portable intermediate representation
 
@@ -1073,6 +1164,9 @@ The compiler MUST lower validated source into a runtime-independent typed interm
 
 The portable IR compilation unit SHOULD contain:
 
+- compilation mode metadata;
+- the language-profile fingerprint;
+- the environment fingerprint;
 - a distinguished top-level entry function;
 - zero or more user-defined functions;
 - independent parameter, local, and temporary slot spaces for each function;

@@ -9,16 +9,31 @@ internal sealed class Parser
 {
     private readonly SourceText source;
     private readonly IReadOnlyList<SyntaxToken> tokens;
+    private readonly LanguageProfile profile;
     private readonly ICollection<Diagnostic> diagnostics = [ ];
     private int position;
 
-    private Parser(SourceText source, IReadOnlyList<SyntaxToken> tokens)
+    private Parser(
+        SourceText source,
+        IReadOnlyList<SyntaxToken> tokens,
+        LanguageProfile profile
+    )
     {
         this.source = source;
         this.tokens = tokens;
+        this.profile = profile;
     }
 
     public static SyntaxTree Parse(SourceText source, CompilationMode compilationMode)
+    {
+        return Parse(source, compilationMode, LanguageProfiles.Version1);
+    }
+
+    public static SyntaxTree Parse(
+        SourceText source,
+        CompilationMode compilationMode,
+        LanguageProfile profile
+    )
     {
         if (source is null)
         {
@@ -30,8 +45,13 @@ internal sealed class Parser
             throw new ArgumentOutOfRangeException(nameof(compilationMode));
         }
 
-        LexResult lexResult = Lexer.Lex(source);
-        Parser parser = new (source, lexResult.Tokens);
+        if (profile is null)
+        {
+            throw new ArgumentNullException(nameof(profile));
+        }
+
+        LexResult lexResult = Lexer.Lex(source, profile);
+        Parser parser = new (source, lexResult.Tokens, profile);
         RootSyntax root = compilationMode switch
         {
             CompilationMode.Expression => parser.Current.Kind == TokenKind.FuncKeyword
@@ -44,7 +64,7 @@ internal sealed class Parser
             lexResult.Diagnostics.Concat(parser.diagnostics)
         );
 
-        return new SyntaxTree(source, compilationMode, root, diagnostics);
+        return new SyntaxTree(source, compilationMode, profile, root, diagnostics);
     }
 
     private SyntaxToken Current => Peek(0);
@@ -81,6 +101,7 @@ internal sealed class Parser
     private ExpressionRootSyntax ParseRejectedFunctionDeclarationExpressionRoot()
     {
         SyntaxToken funcKeyword = Current;
+        ReportDisabledUserDefinedFunctions(funcKeyword);
         Report(
             DiagnosticCodes.FunctionDeclarationNotAllowed,
             funcKeyword.Span,
@@ -112,6 +133,8 @@ internal sealed class Parser
 
             if (Current.Kind == TokenKind.FuncKeyword)
             {
+                ReportDisabledUserDefinedFunctions(Current);
+
                 if (hasExecutableStatement)
                 {
                     Report(
@@ -234,10 +257,10 @@ internal sealed class Parser
     {
         while (
             Current.Kind is not
-                TokenKind.CloseParenthesis and not
-                TokenKind.OpenBrace and not
-                TokenKind.FuncKeyword and not
-                TokenKind.EndOfFile
+            TokenKind.CloseParenthesis and not
+            TokenKind.OpenBrace and not
+            TokenKind.FuncKeyword and not
+            TokenKind.EndOfFile
         )
         {
             ParseToken();
@@ -247,6 +270,7 @@ internal sealed class Parser
     private StatementSyntax ParseInvalidNestedFunctionDeclaration()
     {
         FunctionDeclarationSyntax declaration = ParseFunctionDeclaration();
+        ReportDisabledUserDefinedFunctions(declaration.FuncKeyword);
         Report(
             DiagnosticCodes.FunctionDeclarationNotAllowed,
             declaration.FuncKeyword.Span,
@@ -353,6 +377,15 @@ internal sealed class Parser
         else if (Current.Kind == TokenKind.Tilde)
         {
             SyntaxToken tildeToken = ParseToken();
+
+            if (!profile.Mutations.HasFlag(MutationFeatures.PropertyRemoval))
+            {
+                Report(
+                    DiagnosticCodes.DisabledPropertyRemoval,
+                    tildeToken.Span,
+                    "Property removal is disabled by the language profile."
+                );
+            }
 
             if (!SyntaxFacts.IsRemovalTarget(expression))
             {
@@ -506,6 +539,7 @@ internal sealed class Parser
         SyntaxToken breakKeyword = Match(TokenKind.BreakKeyword);
         (SyntaxToken? levelSignToken, SyntaxToken? levelToken) =
             ParseOptionalIntegerLiteral();
+        ReportDisabledLoopLevel(levelSignToken, levelToken);
         SyntaxToken semicolonToken = Match(TokenKind.Semicolon);
 
         return new BreakStatementSyntax(
@@ -521,6 +555,7 @@ internal sealed class Parser
         SyntaxToken continueKeyword = Match(TokenKind.ContinueKeyword);
         (SyntaxToken? levelSignToken, SyntaxToken? levelToken) =
             ParseOptionalIntegerLiteral();
+        ReportDisabledLoopLevel(levelSignToken, levelToken);
         SyntaxToken semicolonToken = Match(TokenKind.Semicolon);
 
         return new ContinueStatementSyntax(
@@ -713,6 +748,7 @@ internal sealed class Parser
 
             if (Current.Kind == TokenKind.CloseBracket)
             {
+                ReportDisabledTrailingComma(commaTokens[^1]);
                 break;
             }
         }
@@ -730,6 +766,19 @@ internal sealed class Parser
     private ObjectLiteralExpressionSyntax ParseObjectLiteralExpression()
     {
         SyntaxToken openBraceToken = ParseToken();
+
+        if (
+            openBraceToken.Kind == TokenKind.OpenObjectBrace &&
+            profile.OpenObjects == OpenObjectsFeature.Disabled
+        )
+        {
+            Report(
+                DiagnosticCodes.DisabledOpenObjects,
+                openBraceToken.Span,
+                "Open object literals are disabled by the language profile."
+            );
+        }
+
         IList<ObjectPropertyInitializerSyntax> properties = [ ];
         IList<SyntaxToken> commaTokens = [ ];
 
@@ -759,6 +808,7 @@ internal sealed class Parser
 
             if (Current.Kind == TokenKind.CloseBrace)
             {
+                ReportDisabledTrailingComma(commaTokens[^1]);
                 break;
             }
         }
@@ -789,6 +839,7 @@ internal sealed class Parser
                 case TokenKind.OptionalDot:
                 {
                     SyntaxToken operatorToken = ParseToken();
+                    ReportDisabledOptionalAccess(operatorToken);
                     SyntaxToken nameToken = Match(TokenKind.Identifier);
                     expression = new MemberAccessExpressionSyntax(
                         expression,
@@ -802,6 +853,7 @@ internal sealed class Parser
                 case TokenKind.OptionalOpenBracket:
                 {
                     SyntaxToken openBracketToken = ParseToken();
+                    ReportDisabledOptionalAccess(openBracketToken);
                     ExpressionSyntax index = ParseExpression();
                     SyntaxToken closeBracketToken = Match(TokenKind.CloseBracket);
                     expression = new ElementAccessExpressionSyntax(
@@ -868,7 +920,7 @@ internal sealed class Parser
         SyntaxToken nameToken =
             SyntaxFacts.IsTypeName(Current.Kind) ||
             allowVoid && Current.Kind == TokenKind.VoidKeyword
-            ? ParseToken() : Match(TokenKind.Identifier);
+                ? ParseToken() : Match(TokenKind.Identifier);
 
         IList<SyntaxToken> suffixTokens = [ ];
 
@@ -1002,6 +1054,74 @@ internal sealed class Parser
                 span,
                 message
             )
+        );
+    }
+
+    private void ReportDisabledUserDefinedFunctions(SyntaxToken funcKeyword)
+    {
+        if (profile.UserDefinedFunctions == UserDefinedFunctionsFeature.Enabled)
+        {
+            return;
+        }
+
+        Report(
+            DiagnosticCodes.DisabledUserDefinedFunctions,
+            funcKeyword.Span,
+            "User-defined functions are disabled by the language profile."
+        );
+    }
+
+    private void ReportDisabledLoopLevel(
+        SyntaxToken? levelSignToken,
+        SyntaxToken? levelToken
+    )
+    {
+        if (
+            levelToken is null ||
+            profile.Loops == LoopFeatures.None ||
+            profile.MultiLevelLoopControl == MultiLevelLoopControlFeature.Enabled
+        )
+        {
+            return;
+        }
+
+        Report(
+            DiagnosticCodes.DisabledMultiLevelLoopControl,
+            (levelSignToken ?? levelToken).Span,
+            "Explicit loop-control levels are disabled by the language profile."
+        );
+    }
+
+    private void ReportDisabledOptionalAccess(SyntaxToken operatorToken)
+    {
+        if (
+            operatorToken.Kind is not
+                TokenKind.OptionalDot and not
+                TokenKind.OptionalOpenBracket ||
+            profile.OptionalAccess == OptionalAccessFeature.Enabled
+        )
+        {
+            return;
+        }
+
+        Report(
+            DiagnosticCodes.DisabledOptionalAccess,
+            operatorToken.Span,
+            "Optional access is disabled by the language profile."
+        );
+    }
+
+    private void ReportDisabledTrailingComma(SyntaxToken commaToken)
+    {
+        if (profile.TrailingCommas == TrailingCommasFeature.Enabled)
+        {
+            return;
+        }
+
+        Report(
+            DiagnosticCodes.DisabledTrailingCommas,
+            commaToken.Span,
+            "Trailing commas in literals are disabled by the language profile."
         );
     }
 

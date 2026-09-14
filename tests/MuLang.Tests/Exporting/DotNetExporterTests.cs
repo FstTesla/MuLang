@@ -237,10 +237,10 @@ public sealed class DotNetExporterTests
     public void DynamicPropertyCanBePresentWithNullValue()
     {
         const string source = """
-            var item = @{ };
-            item.value = null;
-            return item has "value";
-            """;
+                              var item = @{ };
+                              item.value = null;
+                              return item has "value";
+                              """;
         EnvironmentSchema environment = CreateEmptyEnvironment();
         Func<DotNetRuntimeContext, object?> compiled = CompileProgram(
             source,
@@ -752,7 +752,7 @@ public sealed class DotNetExporterTests
     [Test]
     public void DeeplyValidatesGlobalValuesAtTheBoundary()
     {
-        ObjectTypeSymbol containerType = new(
+        ObjectTypeSymbol containerType = new (
             "type.container",
             "Container",
             false,
@@ -767,11 +767,11 @@ public sealed class DotNetExporterTests
             .AddType(containerType)
             .AddGlobal("global.container", "container", containerType)
             .Build();
-        MutableObjectValue container = new(
+        MutableObjectValue container = new (
             [
                 new KeyValuePair<string, object?>(
                     "values",
-                    new MutableArrayValue(["invalid"])
+                    new MutableArrayValue([ "invalid" ])
                 ),
             ]
         );
@@ -781,7 +781,7 @@ public sealed class DotNetExporterTests
         );
         DotNetRuntimeContext context = CreateContext(
             environment,
-            [new KeyValuePair<string, object?>("global.container", container)]
+            [ new KeyValuePair<string, object?>("global.container", container) ]
         );
 
         MuLangRuntimeException exception = RequireRuntimeException(
@@ -797,8 +797,8 @@ public sealed class DotNetExporterTests
         EnvironmentSchema environment = new EnvironmentBuilder()
             .AddGlobal("global.item", "item", TypeSymbols.Object)
             .Build();
-        MutableObjectValue item = new(
-            [new KeyValuePair<string, object?>("value", null)]
+        MutableObjectValue item = new (
+            [ new KeyValuePair<string, object?>("value", null) ]
         );
         Func<DotNetRuntimeContext, object?> compiled = CompileExpression(
             "item has \"value\"",
@@ -806,7 +806,7 @@ public sealed class DotNetExporterTests
         );
         DotNetRuntimeContext context = CreateContext(
             environment,
-            [new KeyValuePair<string, object?>("global.item", item)]
+            [ new KeyValuePair<string, object?>("global.item", item) ]
         );
 
         Assert.That(compiled(context), Is.True);
@@ -822,8 +822,8 @@ public sealed class DotNetExporterTests
                 TypeSymbols.Array(TypeSymbols.Array(TypeSymbols.Int))
             )
             .Build();
-        MutableArrayValue values = new(
-            [new MutableArrayValue([1L])]
+        MutableArrayValue values = new (
+            [ new MutableArrayValue([ 1L ]) ]
         );
         Func<DotNetRuntimeContext, object?> compiled = CompileExpression(
             "values",
@@ -831,7 +831,7 @@ public sealed class DotNetExporterTests
         );
         DotNetRuntimeContext context = CreateContext(
             environment,
-            [new KeyValuePair<string, object?>("global.values", values)],
+            [ new KeyValuePair<string, object?>("global.values", values) ],
             maximumTraversalDepth: 0
         );
 
@@ -1078,6 +1078,8 @@ public sealed class DotNetExporterTests
         EnvironmentSchema environment = CreateEmptyEnvironment();
         IrProgram program = new (
             environment.Fingerprint,
+            CompilationMode.Expression,
+            LanguageProfiles.Version1.Fingerprint,
             new IrFunction(
                 "$entry",
                 TypeSymbols.Int,
@@ -1111,6 +1113,8 @@ public sealed class DotNetExporterTests
         EnvironmentSchema environment = CreateEmptyEnvironment();
         IrProgram program = new (
             environment.Fingerprint,
+            CompilationMode.Program,
+            LanguageProfiles.Version1.Fingerprint,
             new IrFunction(
                 "$entry",
                 TypeSymbols.Void,
@@ -1144,6 +1148,8 @@ public sealed class DotNetExporterTests
         );
         IrProgram program = new (
             environment.Fingerprint,
+            CompilationMode.Expression,
+            LanguageProfiles.Version1.Fingerprint,
             new IrFunction(
                 "$entry",
                 objectType,

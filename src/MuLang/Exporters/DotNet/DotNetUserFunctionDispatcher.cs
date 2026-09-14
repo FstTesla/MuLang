@@ -1,5 +1,6 @@
 using MuLang.Core.Runtime;
 using MuLang.Core.Text;
+using MuLang.Core.Types;
 using MuLang.IR;
 
 namespace MuLang.Exporters.DotNet;
@@ -14,8 +15,7 @@ internal sealed class DotNetUserFunctionDispatcher
         IReadOnlyDictionary<string, DotNetUserFunction> delegates
     )
     {
-        IrFunction[] functionArray = functions.ToArray();
-        this.functions = functionArray.ToDictionary(
+        this.functions = functions.ToDictionary(
             static function => function.Id,
             StringComparer.Ordinal
         );
@@ -49,9 +49,8 @@ internal sealed class DotNetUserFunctionDispatcher
             );
         }
 
-        IReadOnlyList<IrSlot> parameters = function.Slots
-            .Where(static slot => slot.Kind == IrSlotKind.Parameter)
-            .ToArray();
+        IReadOnlyList<IrSlot> parameters =
+            [ .. function.Slots.Where(static slot => slot.Kind == IrSlotKind.Parameter) ];
 
         if (arguments.Length != parameters.Count)
         {
@@ -65,11 +64,11 @@ internal sealed class DotNetUserFunctionDispatcher
         for (int index = 0; index < parameters.Count; index++)
         {
             if (!DotNetRuntimeOperations.IsValueOfTypeDeep(
-                context,
-                arguments[index],
-                parameters[index].Type,
-                span
-            ))
+                    context,
+                    arguments[index],
+                    parameters[index].Type,
+                    span
+                ))
             {
                 throw new MuLangRuntimeException(
                     DotNetRuntimeErrorCodes.InvalidRuntimeValue,
@@ -97,7 +96,7 @@ internal sealed class DotNetUserFunctionDispatcher
             object? result = functionDelegate(context, execution, arguments);
 
             if (
-                function.ReturnType.Kind != Core.Types.TypeKind.Void &&
+                function.ReturnType.Kind != TypeKind.Void &&
                 !DotNetRuntimeOperations.IsValueOfTypeDeep(
                     context,
                     result,

@@ -1,3 +1,4 @@
+using MuLang.Core;
 using MuLang.Core.Diagnostics;
 using MuLang.Core.Environment;
 using MuLang.Core.Text;
@@ -152,6 +153,7 @@ internal static class DotNetExporter
         typeof(object),
         typeof(TextSpan)
     );
+
     private static readonly MethodInfo invokeUserFunctionMethod =
         typeof(DotNetUserFunctionExecution).GetMethod(
             nameof(DotNetUserFunctionExecution.Invoke),
@@ -171,7 +173,22 @@ internal static class DotNetExporter
         EnvironmentSchema environment
     )
     {
-        DiagnosticCollection diagnostics = IrValidator.Validate(program, environment);
+        return Export(program, environment, null, null);
+    }
+
+    public static DotNetExportResult Export(
+        IrProgram program,
+        EnvironmentSchema environment,
+        CompilationMode? expectedCompilationMode,
+        LanguageProfileFingerprint? expectedLanguageProfileFingerprint
+    )
+    {
+        DiagnosticCollection diagnostics = IrValidator.Validate(
+            program,
+            environment,
+            expectedCompilationMode,
+            expectedLanguageProfileFingerprint
+        );
 
         if (diagnostics.HasErrors)
         {
@@ -186,7 +203,7 @@ internal static class DotNetExporter
     private static Func<DotNetRuntimeContext, object?> Compile(IrProgram program)
     {
         Dictionary<string, DotNetUserFunction> compiledFunctions =
-            new(StringComparer.Ordinal);
+            new (StringComparer.Ordinal);
 
         foreach (IrFunction function in program.UserFunctions)
         {
@@ -196,7 +213,7 @@ internal static class DotNetExporter
             );
         }
 
-        DotNetUserFunctionDispatcher dispatcher = new(
+        DotNetUserFunctionDispatcher dispatcher = new (
             program.UserFunctions,
             compiledFunctions
         );
@@ -209,7 +226,7 @@ internal static class DotNetExporter
         return context => entryFunction(
             context,
             dispatcher.CreateExecution(),
-            []
+            [ ]
         );
     }
 

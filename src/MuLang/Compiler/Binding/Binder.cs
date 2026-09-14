@@ -14,10 +14,14 @@ internal sealed class Binder
 {
     private readonly SourceText source;
     private readonly EnvironmentSchema environment;
+    private readonly LanguageProfile profile;
     private readonly TypeSymbol expectedResultType;
     private readonly IDictionary<string, UserFunctionSymbol> userFunctions;
+    private readonly IDictionary<string, ISet<string>> userFunctionCalls;
     private readonly ICollection<Diagnostic> diagnostics;
+    private readonly ISet<(string Code, int Start, int Length)> featureDiagnostics;
     private readonly string returnContext;
+    private readonly string? currentFunctionId;
     private BindingScope scope = new (null);
     private FlowState currentFlowState = new ([ ]);
     private readonly Stack<LoopFlowContext> loopContexts = [ ];
@@ -26,18 +30,28 @@ internal sealed class Binder
     private Binder(
         SourceText source,
         EnvironmentSchema environment,
+        LanguageProfile profile,
         TypeSymbol expectedResultType,
         IDictionary<string, UserFunctionSymbol>? userFunctions = null,
+        IDictionary<string, ISet<string>>? userFunctionCalls = null,
         ICollection<Diagnostic>? diagnostics = null,
+        ISet<(string Code, int Start, int Length)>? featureDiagnostics = null,
+        string? currentFunctionId = null,
         string returnContext = "program"
     )
     {
         this.source = source;
         this.environment = environment;
+        this.profile = profile;
         this.expectedResultType = expectedResultType;
         this.userFunctions = userFunctions ??
             new Dictionary<string, UserFunctionSymbol>(StringComparer.Ordinal);
+        this.userFunctionCalls = userFunctionCalls ??
+            new Dictionary<string, ISet<string>>(StringComparer.Ordinal);
         this.diagnostics = diagnostics ?? [ ];
+        this.featureDiagnostics = featureDiagnostics ??
+            new HashSet<(string Code, int Start, int Length)>();
+        this.currentFunctionId = currentFunctionId;
         this.returnContext = returnContext;
     }
 
@@ -72,12 +86,32 @@ internal sealed class Binder
         }
 
         ICollection<Diagnostic> reportedDiagnostics = [ ];
+        ISet<(string Code, int Start, int Length)> featureDiagnostics =
+            new HashSet<(string Code, int Start, int Length)>(
+                syntaxTree.Diagnostics
+                    .Where(
+                        static diagnostic => diagnostic.Code.StartsWith(
+                            "MUL7",
+                            StringComparison.Ordinal
+                        )
+                    )
+                    .Select(
+                        static diagnostic => (
+                            diagnostic.Code,
+                            diagnostic.Span.Start,
+                            diagnostic.Span.Length
+                        )
+                    )
+            );
         Binder binder = new (
             syntaxTree.Source,
             environment,
+            syntaxTree.LanguageProfile,
             resultType,
-            diagnostics: reportedDiagnostics
+            diagnostics: reportedDiagnostics,
+            featureDiagnostics: featureDiagnostics
         );
+        binder.ValidateEnvironmentCompatibility();
         BoundRoot root = syntaxTree.Root switch
         {
             ExpressionRootSyntax expressionRoot => binder.BindExpressionRoot(
@@ -91,7 +125,12 @@ internal sealed class Binder
             syntaxTree.Diagnostics.Concat(reportedDiagnostics)
         );
 
-        return new BindingResult(root, allDiagnostics);
+        return new BindingResult(
+            root,
+            allDiagnostics,
+            syntaxTree.CompilationMode,
+            syntaxTree.LanguageProfile.Fingerprint
+        );
     }
 
     private BoundRoot BindExpressionRoot(
@@ -132,6 +171,17 @@ internal sealed class Binder
             functions.Add(BindFunction(function));
         }
 
+        if (
+            profile is
+            {
+                UserDefinedFunctions: UserDefinedFunctionsFeature.Enabled,
+                Recursion: RecursionFeature.Disabled,
+            }
+        )
+        {
+            ReportRecursiveFunctions(functionSymbols);
+        }
+
         FlowState state = new ([ ]);
         IList<BoundStatement> statements = [ ];
 
@@ -170,6 +220,18 @@ internal sealed class Binder
         for (int ordinal = 0; ordinal < declarations.Count; ordinal++)
         {
             FunctionDeclarationSyntax declaration = declarations[ordinal];
+            if (
+                profile.UserDefinedFunctions ==
+                UserDefinedFunctionsFeature.Disabled
+            )
+            {
+                ReportFeature(
+                    DiagnosticCodes.DisabledUserDefinedFunctions,
+                    declaration.FuncKeyword.Span,
+                    "User-defined functions are disabled by the language profile."
+                );
+            }
+
             string name = GetText(declaration.IdentifierToken);
             IList<UserParameterSymbol> parameters = [ ];
             ISet<string> parameterNames = new HashSet<string>(StringComparer.Ordinal);
@@ -199,7 +261,10 @@ internal sealed class Binder
                     );
                 }
 
-                if (environment.TryGetGlobal(parameterName, out _))
+                if (
+                    environment.TryGetGlobal(parameterName, out _) &&
+                    !profile.Shadowing.HasFlag(ShadowingPolicy.Globals)
+                )
                 {
                     Report(
                         DiagnosticCodes.ShadowedVariable,
@@ -259,10 +324,18 @@ internal sealed class Binder
         Binder functionBinder = new (
             source,
             environment,
+            profile,
             function.ReturnType,
             userFunctions,
+            userFunctionCalls,
             diagnostics,
+            featureDiagnostics,
+            function.Id,
             $"function '{function.Name}'"
+        );
+        userFunctionCalls.TryAdd(
+            function.Id,
+            new HashSet<string>(StringComparer.Ordinal)
         );
         FlowState state = new (function.Parameters);
 
@@ -377,8 +450,19 @@ internal sealed class Binder
         bool hasCurrentLocal = scope.ContainsVariable(name);
         bool hasVisibleLocal = scope.TryLookup(name, out _);
         bool hasVisibleGlobal = environment.TryGetGlobal(name, out _);
+        bool disallowedNestedShadowing =
+            hasVisibleLocal &&
+            !hasCurrentLocal &&
+            !profile.Shadowing.HasFlag(ShadowingPolicy.NestedScopes);
+        bool disallowedGlobalShadowing =
+            hasVisibleGlobal &&
+            !profile.Shadowing.HasFlag(ShadowingPolicy.Globals);
 
-        if (hasVisibleLocal || hasVisibleGlobal)
+        if (
+            hasCurrentLocal ||
+            disallowedNestedShadowing ||
+            disallowedGlobalShadowing
+        )
         {
             Report(
                 hasCurrentLocal
@@ -430,6 +514,40 @@ internal sealed class Binder
         BoundExpression target = BindAssignmentTarget(syntax.Target, state);
         BoundExpression value = BindExpression(syntax.Value, target.Type);
 
+        if (
+            target is BoundExpression.MemberAccess { IsArrayLength: false } &&
+            !profile.Mutations.HasFlag(MutationFeatures.ObjectProperties)
+        )
+        {
+            ReportFeature(
+                DiagnosticCodes.DisabledObjectPropertyMutation,
+                syntax.EqualToken.Span,
+                "Object property assignment is disabled by the language profile."
+            );
+        }
+        else if (
+            target is BoundExpression.ElementAccess { IsObjectAccess: true } &&
+            !profile.Mutations.HasFlag(MutationFeatures.ObjectProperties)
+        )
+        {
+            ReportFeature(
+                DiagnosticCodes.DisabledObjectPropertyMutation,
+                syntax.EqualToken.Span,
+                "Object property assignment is disabled by the language profile."
+            );
+        }
+        else if (
+            target is BoundExpression.ElementAccess { IsObjectAccess: false } &&
+            !profile.Mutations.HasFlag(MutationFeatures.ArrayElements)
+        )
+        {
+            ReportFeature(
+                DiagnosticCodes.DisabledArrayElementMutation,
+                syntax.EqualToken.Span,
+                "Array element assignment is disabled by the language profile."
+            );
+        }
+
         if (target is BoundExpression.MemberAccess { IsArrayLength: true })
         {
             Report(
@@ -453,6 +571,16 @@ internal sealed class Binder
     )
     {
         BoundExpression target = BindAssignmentTarget(syntax.Target, state);
+
+        if (!profile.Mutations.HasFlag(MutationFeatures.PropertyRemoval))
+        {
+            ReportFeature(
+                DiagnosticCodes.DisabledPropertyRemoval,
+                syntax.TildeToken.Span,
+                "Property removal is disabled by the language profile."
+            );
+        }
+
         bool isRemovable = target switch
         {
             BoundExpression.MemberAccess member =>
@@ -511,6 +639,15 @@ internal sealed class Binder
         FlowState state
     )
     {
+        if (!profile.Loops.HasFlag(LoopFeatures.While))
+        {
+            ReportFeature(
+                DiagnosticCodes.DisabledWhileLoop,
+                syntax.WhileKeyword.Span,
+                "While loops are disabled by the language profile."
+            );
+        }
+
         bool wasReachable = state.CanCompleteNormally;
         BoundExpression condition = BindExpression(syntax.Condition, TypeSymbols.Bool);
         FlowState bodyState = state.Clone();
@@ -539,6 +676,15 @@ internal sealed class Binder
         FlowState state
     )
     {
+        if (!profile.Loops.HasFlag(LoopFeatures.For))
+        {
+            ReportFeature(
+                DiagnosticCodes.DisabledForLoop,
+                syntax.ForKeyword.Span,
+                "For loops are disabled by the language profile."
+            );
+        }
+
         bool wasReachable = state.CanCompleteNormally;
         BindingScope parentScope = scope;
         BindingScope forScope = new (parentScope);
@@ -644,6 +790,10 @@ internal sealed class Binder
         FlowState state
     )
     {
+        ReportDisabledLoopLevel(
+            syntax.LevelSignToken,
+            syntax.LevelToken
+        );
         int level = BindLoopLevel(syntax.LevelSignToken, syntax.LevelToken);
 
         if (loopContexts.Count == 0)
@@ -674,6 +824,10 @@ internal sealed class Binder
         FlowState state
     )
     {
+        ReportDisabledLoopLevel(
+            syntax.LevelSignToken,
+            syntax.LevelToken
+        );
         int level = BindLoopLevel(syntax.LevelSignToken, syntax.LevelToken);
 
         if (loopContexts.Count == 0)
@@ -973,6 +1127,10 @@ internal sealed class Binder
         TypeSymbol? expectedType
     )
     {
+        ReportDisabledTrailingComma(
+            syntax.CommaTokens,
+            syntax.CommaTokens.Count == syntax.Elements.Count
+        );
         ArrayTypeSymbol? expectedArray = GetNonNullable(expectedType) as ArrayTypeSymbol;
         IList<BoundExpression> elements = [ ];
         TypeSymbol? elementType = null;
@@ -1068,6 +1226,23 @@ internal sealed class Binder
         TypeSymbol? expectedType
     )
     {
+        ReportDisabledTrailingComma(
+            syntax.CommaTokens,
+            syntax.CommaTokens.Count == syntax.Properties.Count
+        );
+
+        if (
+            syntax.IsOpen &&
+            profile.OpenObjects == OpenObjectsFeature.Disabled
+        )
+        {
+            ReportFeature(
+                DiagnosticCodes.DisabledOpenObjects,
+                syntax.OpenBraceToken.Span,
+                "Open object literals are disabled by the language profile."
+            );
+        }
+
         ObjectTypeSymbol? expectedObject = GetNonNullable(expectedType) as ObjectTypeSymbol;
         IList<BoundExpression.ObjectProperty> properties = [ ];
         ICollection<ObjectPropertySymbol> propertySymbols = [ ];
@@ -1415,6 +1590,27 @@ internal sealed class Binder
         BoundExpression target = BindExpression(syntax.Target);
         BoundExpression key = BindExpression(syntax.Key, TypeSymbols.String);
         TypeSymbol targetType = GetNonNullable(target.Type);
+        bool isKnownPropertyTest =
+            targetType is ObjectTypeSymbol objectType &&
+            key is BoundExpression.Literal
+            {
+                Type.Kind: TypeKind.String,
+                Value: string propertyName,
+            } &&
+            objectType.TryGetProperty(propertyName, out _);
+
+        if (
+            profile.OpenObjects == OpenObjectsFeature.Disabled &&
+            targetType.Kind is TypeKind.Object or TypeKind.StructuredObject &&
+            !isKnownPropertyTest
+        )
+        {
+            ReportFeature(
+                DiagnosticCodes.DisabledOpenObjects,
+                syntax.HasKeyword.Span,
+                "Dynamic object property tests are disabled by the language profile."
+            );
+        }
 
         if (
             target.Type.Kind != TypeKind.Error &&
@@ -1501,7 +1697,7 @@ internal sealed class Binder
                 userFunction is not null && index < userFunction.Parameters.Count
                     ? userFunction.Parameters[index].Type
                     : providerFunction is not null &&
-                        index < providerFunction.Parameters.Count
+                    index < providerFunction.Parameters.Count
                         ? providerFunction.Parameters[index].Type
                         : null;
             arguments.Add(BindExpression(syntax.Arguments[index], parameterType));
@@ -1528,6 +1724,41 @@ internal sealed class Binder
             );
         }
 
+        if (
+            userFunction is not null &&
+            profile.UserDefinedFunctions == UserDefinedFunctionsFeature.Disabled
+        )
+        {
+            ReportFeature(
+                DiagnosticCodes.DisabledUserDefinedFunctions,
+                syntax.Target.Span,
+                "User-defined function calls are disabled by the language profile."
+            );
+        }
+        else if (
+            providerFunction is not null &&
+            profile.ProviderFunctionCalls == ProviderFunctionCallsFeature.Disabled
+        )
+        {
+            ReportFeature(
+                DiagnosticCodes.DisabledProviderFunctionCalls,
+                syntax.Target.Span,
+                "Provider function calls are disabled by the language profile."
+            );
+        }
+
+        if (
+            currentFunctionId is not null &&
+            userFunction is not null &&
+            userFunctionCalls.TryGetValue(
+                currentFunctionId,
+                out ISet<string>? calledFunctions
+            )
+        )
+        {
+            calledFunctions.Add(userFunction.Id);
+        }
+
         return userFunction is not null
             ? new BoundExpression.UserCall(
                 syntax,
@@ -1537,13 +1768,25 @@ internal sealed class Binder
             : new BoundExpression.ProviderCall(
                 syntax,
                 providerFunction ??
-                    throw new InvalidOperationException("Expected a provider function."),
+                throw new InvalidOperationException("Expected a provider function."),
                 arguments.AsReadOnly()
             );
     }
 
     private BoundExpression BindMemberAccess(MemberAccessExpressionSyntax syntax)
     {
+        if (
+            syntax.IsOptional &&
+            profile.OptionalAccess == OptionalAccessFeature.Disabled
+        )
+        {
+            ReportFeature(
+                DiagnosticCodes.DisabledOptionalAccess,
+                syntax.OperatorToken.Span,
+                "Optional access is disabled by the language profile."
+            );
+        }
+
         BoundExpression target = BindExpression(syntax.Target);
         string name = GetText(syntax.NameToken);
         TypeSymbol targetType = GetNonNullable(target.Type);
@@ -1596,6 +1839,15 @@ internal sealed class Binder
 
             if (objectType.IsOpen)
             {
+                if (profile.OpenObjects == OpenObjectsFeature.Disabled)
+                {
+                    ReportFeature(
+                        DiagnosticCodes.DisabledOpenObjects,
+                        syntax.NameToken.Span,
+                        "Dynamic object member access is disabled by the language profile."
+                    );
+                }
+
                 return new BoundExpression.MemberAccess(
                     syntax,
                     TypeSymbols.Nullable(TypeSymbols.Unknown),
@@ -1610,6 +1862,15 @@ internal sealed class Binder
         }
         else if (targetType.Kind == TypeKind.Object)
         {
+            if (profile.OpenObjects == OpenObjectsFeature.Disabled)
+            {
+                ReportFeature(
+                    DiagnosticCodes.DisabledOpenObjects,
+                    syntax.NameToken.Span,
+                    "Dynamic object member access is disabled by the language profile."
+                );
+            }
+
             return new BoundExpression.MemberAccess(
                 syntax,
                 TypeSymbols.Nullable(TypeSymbols.Unknown),
@@ -1636,6 +1897,18 @@ internal sealed class Binder
 
     private BoundExpression BindElementAccess(ElementAccessExpressionSyntax syntax)
     {
+        if (
+            syntax.IsOptional &&
+            profile.OptionalAccess == OptionalAccessFeature.Disabled
+        )
+        {
+            ReportFeature(
+                DiagnosticCodes.DisabledOptionalAccess,
+                syntax.OpenBracketToken.Span,
+                "Optional access is disabled by the language profile."
+            );
+        }
+
         BoundExpression target = BindExpression(syntax.Target);
         TypeSymbol targetType = GetNonNullable(target.Type);
 
@@ -1664,6 +1937,18 @@ internal sealed class Binder
             BoundExpression index = BindExpression(syntax.Index, TypeSymbols.String);
             ObjectPropertySymbol? property = TryResolveLiteralProperty(index, objectType);
             bool isDynamic = property is null && objectType.IsOpen;
+
+            if (
+                isDynamic &&
+                profile.OpenObjects == OpenObjectsFeature.Disabled
+            )
+            {
+                ReportFeature(
+                    DiagnosticCodes.DisabledOpenObjects,
+                    syntax.OpenBracketToken.Span,
+                    "Dynamic object element access is disabled by the language profile."
+                );
+            }
 
             if (property is null && !isDynamic)
             {
@@ -1700,6 +1985,15 @@ internal sealed class Binder
         if (targetType.Kind == TypeKind.Object)
         {
             BoundExpression index = BindExpression(syntax.Index, TypeSymbols.String);
+
+            if (profile.OpenObjects == OpenObjectsFeature.Disabled)
+            {
+                ReportFeature(
+                    DiagnosticCodes.DisabledOpenObjects,
+                    syntax.OpenBracketToken.Span,
+                    "Dynamic object element access is disabled by the language profile."
+                );
+            }
 
             return new BoundExpression.ElementAccess(
                 syntax,
@@ -1935,6 +2229,93 @@ internal sealed class Binder
             Type.Kind: TypeKind.Bool,
             Value: true,
         };
+    }
+
+    private void ValidateEnvironmentCompatibility()
+    {
+        if (
+            profile.OpenObjects == OpenObjectsFeature.Disabled &&
+            environment.Types.Any(static type => type.IsOpen)
+        )
+        {
+            ReportFeature(
+                DiagnosticCodes.DisabledOpenObjects,
+                new TextSpan(0, 0),
+                "The environment contains an open structured type, but open objects are disabled by the language profile."
+            );
+        }
+    }
+
+    private void ReportRecursiveFunctions(
+        IReadOnlyCollection<UserFunctionSymbol> functions
+    )
+    {
+        IReadOnlyDictionary<string, ISet<string>> calls =
+            new Dictionary<string, ISet<string>>(userFunctionCalls);
+        IReadOnlyCollection<string> recursiveFunctionIds =
+            UserFunctionRecursionAnalyzer.FindRecursiveFunctions(
+                [ .. functions.Select(static function => function.Id) ],
+                calls
+            );
+        IReadOnlyDictionary<string, UserFunctionSymbol> functionsById =
+            functions.ToDictionary(
+                static function => function.Id,
+                StringComparer.Ordinal
+            );
+
+        foreach (string functionId in recursiveFunctionIds)
+        {
+            UserFunctionSymbol function = functionsById[functionId];
+            ReportFeature(
+                DiagnosticCodes.DisabledRecursion,
+                function.Declaration.IdentifierToken.Span,
+                $"Function '{function.Name}' participates in recursion, which is disabled by the language profile."
+            );
+        }
+    }
+
+    private void ReportDisabledLoopLevel(
+        SyntaxToken? levelSignToken,
+        SyntaxToken? levelToken
+    )
+    {
+        if (
+            levelToken is null ||
+            profile.Loops == LoopFeatures.None ||
+            profile.MultiLevelLoopControl == MultiLevelLoopControlFeature.Enabled
+        )
+        {
+            return;
+        }
+
+        ReportFeature(
+            DiagnosticCodes.DisabledMultiLevelLoopControl,
+            (levelSignToken ?? levelToken).Span,
+            "Explicit loop-control levels are disabled by the language profile."
+        );
+    }
+
+    private void ReportDisabledTrailingComma(
+        IReadOnlyCollection<SyntaxToken> commaTokens,
+        bool hasTrailingComma
+    )
+    {
+        if (
+            profile.TrailingCommas == TrailingCommasFeature.Enabled ||
+            commaTokens.Count == 0 ||
+            !hasTrailingComma
+        )
+        {
+            return;
+        }
+
+        SyntaxToken lastComma = commaTokens.Last();
+
+        ReportFeature(
+            DiagnosticCodes.DisabledTrailingCommas,
+            lastComma.Span,
+            "Trailing commas in literals are disabled by the language profile."
+        );
     }
 
     private static void ApplyBinaryConversions(
@@ -2205,5 +2586,15 @@ internal sealed class Binder
                 message
             )
         );
+    }
+
+    private void ReportFeature(string code, TextSpan span, string message)
+    {
+        if (!featureDiagnostics.Add((code, span.Start, span.Length)))
+        {
+            return;
+        }
+
+        Report(code, span, message);
     }
 }

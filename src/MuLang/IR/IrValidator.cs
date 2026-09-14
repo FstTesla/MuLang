@@ -1,3 +1,4 @@
+using MuLang.Core;
 using MuLang.Core.Diagnostics;
 using MuLang.Core.Environment;
 using MuLang.Core.Symbols;
@@ -14,6 +15,16 @@ internal static class IrValidator
         EnvironmentSchema environment
     )
     {
+        return Validate(program, environment, null, null);
+    }
+
+    public static DiagnosticCollection Validate(
+        IrProgram program,
+        EnvironmentSchema environment,
+        CompilationMode? expectedCompilationMode,
+        LanguageProfileFingerprint? expectedLanguageProfileFingerprint
+    )
+    {
         if (program is null)
         {
             throw new ArgumentNullException(nameof(program));
@@ -26,6 +37,16 @@ internal static class IrValidator
 
         ICollection<Diagnostic> diagnostics = [ ];
 
+        if (!Enum.IsDefined(program.CompilationMode))
+        {
+            Report(
+                diagnostics,
+                IrDiagnosticCodes.CompilationMetadataMismatch,
+                default,
+                "The IR compilation mode is invalid."
+            );
+        }
+
         if (program.EnvironmentFingerprint != environment.Fingerprint)
         {
             Report(
@@ -33,6 +54,32 @@ internal static class IrValidator
                 IrDiagnosticCodes.EnvironmentMismatch,
                 default,
                 "The IR environment fingerprint does not match the supplied environment."
+            );
+        }
+
+        if (
+            expectedCompilationMode is not null &&
+            program.CompilationMode != expectedCompilationMode
+        )
+        {
+            Report(
+                diagnostics,
+                IrDiagnosticCodes.CompilationMetadataMismatch,
+                default,
+                "The IR compilation mode does not match the expected compilation mode."
+            );
+        }
+
+        if (
+            expectedLanguageProfileFingerprint is not null &&
+            program.LanguageProfileFingerprint != expectedLanguageProfileFingerprint
+        )
+        {
+            Report(
+                diagnostics,
+                IrDiagnosticCodes.CompilationMetadataMismatch,
+                default,
+                "The IR language profile fingerprint does not match the expected language profile."
             );
         }
 
@@ -73,6 +120,8 @@ internal static class IrValidator
     {
         IrProgram functionProgram = new (
             program.EnvironmentFingerprint,
+            program.CompilationMode,
+            program.LanguageProfileFingerprint,
             function,
             program.UserFunctions
         );
@@ -951,7 +1000,7 @@ internal static class IrValidator
             call.Arguments,
             function.Name,
             function.ReturnType,
-            function.Parameters.Select(static parameter => parameter.Type).ToArray(),
+            [ .. function.Parameters.Select(static parameter => parameter.Type) ],
             call.Span,
             diagnostics
         );

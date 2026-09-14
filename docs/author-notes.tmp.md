@@ -4,7 +4,7 @@
   - Comments
   - User-defined types
   - First-class functions and function types
-- Feature configuration/flags:
+- Feature flags:
   - Truthiness
   - User-defined functions
   - Comments

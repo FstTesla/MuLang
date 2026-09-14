@@ -2,5 +2,5 @@ namespace MuLang.Core;
 
 public enum LanguageVersion
 {
-    Version1,
+    Version1 = 0,
 }

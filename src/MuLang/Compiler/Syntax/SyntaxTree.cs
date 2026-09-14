@@ -7,6 +7,7 @@ namespace MuLang.Compiler.Syntax;
 internal sealed record SyntaxTree(
     SourceText Source,
     CompilationMode CompilationMode,
+    LanguageProfile LanguageProfile,
     RootSyntax Root,
     DiagnosticCollection Diagnostics
 );

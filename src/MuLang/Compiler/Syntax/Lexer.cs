@@ -1,4 +1,5 @@
 using MuLang.Compiler.Diagnostics;
+using MuLang.Core;
 using MuLang.Core.Diagnostics;
 using MuLang.Core.Text;
 using System.Globalization;
@@ -13,19 +14,32 @@ internal sealed class Lexer
     private readonly IList<Diagnostic> diagnostics = [ ];
     private int position;
 
-    private Lexer(SourceText source)
+    private Lexer(SourceText source, LanguageProfile profile)
     {
         this.source = source;
+        Profile = profile;
     }
 
+    public LanguageProfile Profile { get; }
+
     public static LexResult Lex(SourceText source)
+    {
+        return Lex(source, LanguageProfiles.Version1);
+    }
+
+    public static LexResult Lex(SourceText source, LanguageProfile profile)
     {
         if (source is null)
         {
             throw new ArgumentNullException(nameof(source));
         }
 
-        Lexer lexer = new (source);
+        if (profile is null)
+        {
+            throw new ArgumentNullException(nameof(profile));
+        }
+
+        Lexer lexer = new (source, profile);
         lexer.LexTokens();
 
         return new LexResult(

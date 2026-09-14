@@ -1,4 +1,3 @@
-using MuLang.Core.Environment;
 using MuLang.Core.Types;
 using MuLang.IR;
 

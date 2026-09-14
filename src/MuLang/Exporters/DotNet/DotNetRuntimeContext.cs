@@ -91,11 +91,11 @@ public sealed class DotNetRuntimeContext
         }
 
         if (!DotNetRuntimeOperations.IsValueOfTypeDeep(
-            this,
-            value,
-            expectedType,
-            span
-        ))
+                this,
+                value,
+                expectedType,
+                span
+            ))
         {
             throw new MuLangRuntimeException(
                 DotNetRuntimeErrorCodes.InvalidRuntimeValue,

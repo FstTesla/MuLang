@@ -57,16 +57,18 @@ public sealed class UserFunctionTests
     public void RecoversLaterTopLevelFunctionAfterMalformedDeclaration()
     {
         const string source = """
-            func broken(a: int b: int): int { return 0; }
-            func good(): int { return 1; }
-            return good();
-            """;
+                              func broken(a: int b: int): int { return 0; }
+                              func good(): int { return 1; }
+                              return good();
+                              """;
         SyntaxTree tree = ParseProgram(source);
         ProgramRootSyntax root = (ProgramRootSyntax)tree.Root;
 
         Assert.That(
-            root.Functions.Select(static function =>
-                function.IdentifierToken),
+            root.Functions.Select(
+                static function =>
+                    function.IdentifierToken
+            ),
             Has.Some.Matches<SyntaxToken>(
                 token => tree.Source.GetText(token.Span) == "good"
             )
@@ -77,18 +79,18 @@ public sealed class UserFunctionTests
     public void BindsForwardCallsAndMutualRecursion()
     {
         const string source = """
-            func even(value: int): bool {
-                if (value == 0)
-                    return true;
-                return odd(value - 1);
-            }
-            func odd(value: int): bool {
-                if (value == 0)
-                    return false;
-                return even(value - 1);
-            }
-            return even(6);
-            """;
+                              func even(value: int): bool {
+                                  if (value == 0)
+                                      return true;
+                                  return odd(value - 1);
+                              }
+                              func odd(value: int): bool {
+                                  if (value == 0)
+                                      return false;
+                                  return even(value - 1);
+                              }
+                              return even(6);
+                              """;
         BindingResult result = BindProgram(source, CreateEmptyEnvironment(), TypeSymbols.Bool);
 
         Assert.That(result.Diagnostics, Is.Empty);
@@ -98,18 +100,18 @@ public sealed class UserFunctionTests
     public void ExecutesForwardCallsAndMutualRecursion()
     {
         const string source = """
-            func even(value: int): bool {
-                if (value == 0)
-                    return true;
-                return odd(value - 1);
-            }
-            func odd(value: int): bool {
-                if (value == 0)
-                    return false;
-                return even(value - 1);
-            }
-            return even(7);
-            """;
+                              func even(value: int): bool {
+                                  if (value == 0)
+                                      return true;
+                                  return odd(value - 1);
+                              }
+                              func odd(value: int): bool {
+                                  if (value == 0)
+                                      return false;
+                                  return even(value - 1);
+                              }
+                              return even(7);
+                              """;
         EnvironmentSchema environment = CreateEmptyEnvironment();
         Func<DotNetRuntimeContext, object?> compiled = CompileProgram(
             source,
@@ -124,13 +126,13 @@ public sealed class UserFunctionTests
     public void ExecutesDirectRecursion()
     {
         const string source = """
-            func factorial(value: int): int {
-                if (value <= 1)
-                    return 1;
-                return value * factorial(value - 1);
-            }
-            return factorial(5);
-            """;
+                              func factorial(value: int): int {
+                                  if (value <= 1)
+                                      return 1;
+                                  return value * factorial(value - 1);
+                              }
+                              return factorial(5);
+                              """;
         EnvironmentSchema environment = CreateEmptyEnvironment();
         Func<DotNetRuntimeContext, object?> compiled = CompileProgram(
             source,
@@ -145,17 +147,17 @@ public sealed class UserFunctionTests
     public void ExecutesVoidFunctionAndProviderCall()
     {
         const string source = """
-            func write(value: int): void {
-                log(value);
-            }
-            write(42);
-            """;
+                              func write(value: int): void {
+                                  log(value);
+                              }
+                              write(42);
+                              """;
         long observed = 0;
         EnvironmentSchema environment = new EnvironmentBuilder()
             .AddFunction(
                 "function.log",
                 "log",
-                [new ParameterSymbol("value", TypeSymbols.Int)],
+                [ new ParameterSymbol("value", TypeSymbols.Int) ],
                 TypeSymbols.Void
             )
             .Build();
@@ -191,9 +193,9 @@ public sealed class UserFunctionTests
     public void ValidatesDeclarationAndParameterRules()
     {
         const string source = """
-            func duplicate(value: int, value: int): int { return value; }
-            func duplicate(): int { return 1; }
-            """;
+                              func duplicate(value: int, value: int): int { return value; }
+                              func duplicate(): int { return 1; }
+                              """;
         BindingResult result = BindProgram(source, CreateEmptyEnvironment(), TypeSymbols.Void);
 
         AssertDiagnostic(result.Diagnostics, DiagnosticCodes.DuplicateParameter);
@@ -233,7 +235,7 @@ public sealed class UserFunctionTests
     public void RejectsProviderFunctionConflicts()
     {
         EnvironmentSchema environment = new EnvironmentBuilder()
-            .AddFunction("function.value", "value", [], TypeSymbols.Int)
+            .AddFunction("function.value", "value", [ ], TypeSymbols.Int)
             .Build();
         BindingResult result = BindProgram(
             "func value(): int { return 1; }",
@@ -248,12 +250,12 @@ public sealed class UserFunctionTests
     public void RejectsParameterAssignmentAndShadowing()
     {
         const string source = """
-            func invalid(value: int): int {
-                value = 2;
-                var value = 3;
-                return value;
-            }
-            """;
+                              func invalid(value: int): int {
+                                  value = 2;
+                                  var value = 3;
+                                  return value;
+                              }
+                              """;
         BindingResult result = BindProgram(source, CreateEmptyEnvironment(), TypeSymbols.Void);
 
         AssertDiagnostic(result.Diagnostics, DiagnosticCodes.CannotAssignParameter);
@@ -276,10 +278,10 @@ public sealed class UserFunctionTests
     public void FunctionCannotAccessTopLevelLocals()
     {
         const string source = """
-            func read(): int { return value; }
-            var value = 1;
-            return read();
-            """;
+                              func read(): int { return value; }
+                              var value = 1;
+                              return read();
+                              """;
         BindingResult result = BindProgram(source, CreateEmptyEnvironment(), TypeSymbols.Int);
 
         AssertDiagnostic(result.Diagnostics, DiagnosticCodes.UndefinedName);
@@ -289,11 +291,11 @@ public sealed class UserFunctionTests
     public void LoopControlCannotCrossFunctionBoundary()
     {
         const string source = """
-            func invalid(): void {
-                while (true)
-                    break 2;
-            }
-            """;
+                              func invalid(): void {
+                                  while (true)
+                                      break 2;
+                              }
+                              """;
         BindingResult result = BindProgram(source, CreateEmptyEnvironment(), TypeSymbols.Void);
 
         AssertDiagnostic(result.Diagnostics, DiagnosticCodes.InvalidLoopLevel);
@@ -303,15 +305,15 @@ public sealed class UserFunctionTests
     public void UserCallArgumentsEvaluateLeftToRight()
     {
         const string source = """
-            func combine(left: int, right: int): int {
-                return left * 10 + right;
-            }
-            return combine(first(), second());
-            """;
-        List<string> calls = [];
+                              func combine(left: int, right: int): int {
+                                  return left * 10 + right;
+                              }
+                              return combine(first(), second());
+                              """;
+        List<string> calls = [ ];
         EnvironmentSchema environment = new EnvironmentBuilder()
-            .AddFunction("function.first", "first", [], TypeSymbols.Int)
-            .AddFunction("function.second", "second", [], TypeSymbols.Int)
+            .AddFunction("function.first", "first", [ ], TypeSymbols.Int)
+            .AddFunction("function.second", "second", [ ], TypeSymbols.Int)
             .Build();
         Func<DotNetRuntimeContext, object?> compiled = CompileProgram(
             source,
@@ -344,7 +346,7 @@ public sealed class UserFunctionTests
         using (Assert.EnterMultipleScope())
         {
             Assert.That(compiled(context), Is.EqualTo(12L));
-            Assert.That(calls, Is.EqualTo(new[] { "first", "second" }));
+            Assert.That(calls, Is.EqualTo([ "first", "second" ]));
         }
     }
 
@@ -352,9 +354,9 @@ public sealed class UserFunctionTests
     public void LowersIndependentFunctionFramesAndUserCalls()
     {
         const string source = """
-            func add(value: int): int { return value + 1; }
-            return add(2);
-            """;
+                              func add(value: int): int { return value + 1; }
+                              return add(2);
+                              """;
         EnvironmentSchema environment = CreateEmptyEnvironment();
         IrProgram program = LowerProgram(source, environment, TypeSymbols.Int);
 
@@ -381,9 +383,9 @@ public sealed class UserFunctionTests
     public void EnforcesMaximumUserFunctionCallDepth()
     {
         const string source = """
-            func recurse(): int { return recurse(); }
-            return recurse();
-            """;
+                              func recurse(): int { return recurse(); }
+                              return recurse();
+                              """;
         EnvironmentSchema environment = CreateEmptyEnvironment();
         Func<DotNetRuntimeContext, object?> compiled = CompileProgram(
             source,
@@ -406,9 +408,9 @@ public sealed class UserFunctionTests
     public void ChargesUserFunctionCallsToExecutionBudget()
     {
         const string source = """
-            func recurse(): int { return recurse(); }
-            return recurse();
-            """;
+                              func recurse(): int { return recurse(); }
+                              return recurse();
+                              """;
         EnvironmentSchema environment = CreateEmptyEnvironment();
         Func<DotNetRuntimeContext, object?> compiled = CompileProgram(
             source,
@@ -432,11 +434,11 @@ public sealed class UserFunctionTests
     public void CallDepthIsIndependentForReentrantExecutions()
     {
         const string source = """
-            func value(): int { return reenter(); }
-            return value();
-            """;
+                              func value(): int { return reenter(); }
+                              return value();
+                              """;
         EnvironmentSchema environment = new EnvironmentBuilder()
-            .AddFunction("function.reenter", "reenter", [], TypeSymbols.Int)
+            .AddFunction("function.reenter", "reenter", [ ], TypeSymbols.Int)
             .Build();
         Func<DotNetRuntimeContext, object?> compiled = CompileProgram(
             source,
@@ -456,8 +458,10 @@ public sealed class UserFunctionTests
                         invocationCount++;
 
                         return invocationCount == 1
-                            ? compiled(context ??
-                                throw new AssertionException("Expected a context."))
+                            ? compiled(
+                                context ??
+                                throw new AssertionException("Expected a context.")
+                            )
                             : 42L;
                     }
                 ),
@@ -476,22 +480,24 @@ public sealed class UserFunctionTests
     public void ValidatorRejectsEntryFunctionParameters()
     {
         EnvironmentSchema environment = CreateEmptyEnvironment();
-        IrProgram program = new(
+        IrProgram program = new (
             environment.Fingerprint,
+            CompilationMode.Program,
+            LanguageProfiles.Version1.Fingerprint,
             new IrFunction(
                 "$entry",
                 TypeSymbols.Int,
                 0,
-                [new IrSlot(0, IrSlotKind.Parameter, TypeSymbols.Int, "value")],
+                [ new IrSlot(0, IrSlotKind.Parameter, TypeSymbols.Int, "value") ],
                 [
                     new IrBasicBlock(
                         0,
-                        [],
+                        [ ],
                         new IrTerminator.Return(default, 0)
                     ),
                 ]
             ),
-            []
+            [ ]
         );
 
         DiagnosticCollection diagnostics = IrValidator.Validate(program, environment);
@@ -558,11 +564,11 @@ public sealed class UserFunctionTests
     {
         return new DotNetRuntimeContext(
             environment,
-            globals ?? [],
-            functions ?? [],
+            globals ?? [ ],
+            functions ?? [ ],
             executionBudget,
             maximumTraversalDepth,
-            default,
+            CancellationToken.None,
             maximumUserFunctionCallDepth
         );
     }

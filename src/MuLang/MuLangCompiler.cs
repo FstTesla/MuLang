@@ -29,6 +29,31 @@ public static class MuLangCompiler
         return Compile(
             source,
             environment,
+            LanguageProfiles.Version1,
+            CompilationMode.Expression,
+            expectedType
+        );
+    }
+
+    public static CompilationResult CompileExpression(
+        string source,
+        EnvironmentSchema environment,
+        TypeSymbol? expectedType,
+        LanguageProfile profile
+    )
+    {
+        if (expectedType?.Kind == TypeKind.Void)
+        {
+            throw new ArgumentException(
+                "Expression mode cannot have void as its expected result type.",
+                nameof(expectedType)
+            );
+        }
+
+        return Compile(
+            source,
+            environment,
+            profile,
             CompilationMode.Expression,
             expectedType
         );
@@ -48,6 +73,28 @@ public static class MuLangCompiler
         return Compile(
             source,
             environment,
+            LanguageProfiles.Version1,
+            CompilationMode.Program,
+            resultType
+        );
+    }
+
+    public static CompilationResult CompileProgram(
+        string source,
+        EnvironmentSchema environment,
+        TypeSymbol resultType,
+        LanguageProfile profile
+    )
+    {
+        if (resultType is null)
+        {
+            throw new ArgumentNullException(nameof(resultType));
+        }
+
+        return Compile(
+            source,
+            environment,
+            profile,
             CompilationMode.Program,
             resultType
         );
@@ -56,6 +103,7 @@ public static class MuLangCompiler
     private static CompilationResult Compile(
         string source,
         EnvironmentSchema environment,
+        LanguageProfile profile,
         CompilationMode compilationMode,
         TypeSymbol? expectedType
     )
@@ -70,7 +118,24 @@ public static class MuLangCompiler
             throw new ArgumentNullException(nameof(environment));
         }
 
-        SyntaxTree syntaxTree = Parser.Parse(SourceText.From(source), compilationMode);
+        if (profile is null)
+        {
+            throw new ArgumentNullException(nameof(profile));
+        }
+
+        if (environment.LanguageVersion != profile.LanguageVersion)
+        {
+            throw new ArgumentException(
+                "The language profile version must match the environment language version.",
+                nameof(profile)
+            );
+        }
+
+        SyntaxTree syntaxTree = Parser.Parse(
+            SourceText.From(source),
+            compilationMode,
+            profile
+        );
         BindingResult binding = Binder.Bind(syntaxTree, environment, expectedType);
 
         if (binding.Diagnostics.HasErrors)
@@ -87,7 +152,9 @@ public static class MuLangCompiler
 
         DotNetExportResult export = DotNetExporter.Export(
             lowering.Program,
-            environment
+            environment,
+            compilationMode,
+            profile.Fingerprint
         );
         DiagnosticCollection diagnostics =
             DiagnosticCollection.Create(

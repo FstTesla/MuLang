@@ -2,7 +2,7 @@
 
 ## Status
 
-This document is a temporary implementation plan for language feature configuration. It does not yet modify the normative language specification.
+Completed on 2026-09-14. The normative language specification now includes the implemented language-profile system.
 
 The implementation must preserve the complete current language behavior when the default profile is used.
 
@@ -50,6 +50,13 @@ The profile should be accepted by:
 
 Existing overloads should remain and use the standard profile by default.
 
+Profile-aware overloads place `LanguageProfile` last:
+
+- `CompileExpression(source, environment, expectedType, profile)`;
+- `CompileProgram(source, environment, resultType, profile)`.
+
+The expected expression type remains a required argument in the profile-aware overload so existing three-argument calls with `null` remain unambiguous.
+
 The standard profile must enable every currently implemented feature and preserve all current policies.
 
 ## 4. Profile options
@@ -95,6 +102,7 @@ These future options must not be added to the public `LanguageProfile` construct
 Add:
 
 - public `LanguageProfile`;
+- public fluent `LanguageProfileBuilder`;
 - the enum types listed in Section 4.1;
 - `LanguageProfiles.Version1` as the standard profile;
 - profile-aware compilation overloads.
@@ -105,7 +113,18 @@ Construction should validate:
 - unsupported language versions;
 - option values not implemented by the selected version.
 
-The profile exposes read-only state only and is created through one public constructor that validates the complete configuration. No builder is included initially.
+The profile exposes read-only state only and may be created directly through its public constructor or through `LanguageProfileBuilder`.
+
+The builder provides:
+
+- a parameterless constructor initialized from `LanguageProfiles.Version1`;
+- a constructor initialized from an existing `LanguageProfile`;
+- one `With...` method for every profile option;
+- `Enable...` and `Disable...` methods for `LoopFeatures`, `MutationFeatures`, and `ShadowingPolicy`;
+- immediate validation in every fluent method;
+- `Build()` returning an independent immutable profile snapshot.
+
+The builder remains reusable after `Build()`.
 
 ## 6. Profile identity
 
@@ -399,6 +418,11 @@ Test:
 
 - immutability;
 - default profile behavior;
+- default builder behavior;
+- copy construction from an existing profile;
+- whole-value and granular combinable-option methods;
+- immediate builder validation;
+- independent immutable snapshots from a reused builder;
 - deterministic fingerprint;
 - fingerprint changes for every option;
 - invalid enum values;
@@ -497,7 +521,7 @@ Run Debug and Release suites without warnings.
 
 ### 15.7. Profile construction
 
-**Settled:** use one public constructor accepting all immutable profile values. No builder is included initially.
+**Settled:** retain the public `LanguageProfile` constructor and add a public fluent `LanguageProfileBuilder`. The builder has parameterless and copy constructors, validates every method immediately, supports whole values plus granular methods for combinable options, and produces reusable immutable snapshots.
 
 ### 15.8. Profile placement
 

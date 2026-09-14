@@ -66,4 +66,18 @@ public sealed class MuLangCompilerTests
             Throws.ArgumentException.With.Property("ParamName").EqualTo("expectedType")
         );
     }
+
+    [Test]
+    public void PreservesExplicitNullExpectedTypeOverload()
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder().Build();
+
+        CompilationResult result = MuLangCompiler.CompileExpression(
+            "1",
+            environment,
+            null
+        );
+
+        Assert.That(result.Diagnostics, Is.Empty);
+    }
 }

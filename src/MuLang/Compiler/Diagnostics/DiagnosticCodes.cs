@@ -52,4 +52,16 @@ internal static class DiagnosticCodes
     public const string InvalidParameterType = "MUL3025";
     public const string InvalidReturnType = "MUL3026";
     public const string CannotAssignParameter = "MUL3027";
+    public const string DisabledUserDefinedFunctions = "MUL7001";
+    public const string DisabledRecursion = "MUL7002";
+    public const string DisabledWhileLoop = "MUL7003";
+    public const string DisabledForLoop = "MUL7004";
+    public const string DisabledProviderFunctionCalls = "MUL7005";
+    public const string DisabledOpenObjects = "MUL7006";
+    public const string DisabledObjectPropertyMutation = "MUL7007";
+    public const string DisabledArrayElementMutation = "MUL7008";
+    public const string DisabledPropertyRemoval = "MUL7009";
+    public const string DisabledOptionalAccess = "MUL7010";
+    public const string DisabledMultiLevelLoopControl = "MUL7011";
+    public const string DisabledTrailingCommas = "MUL7012";
 }

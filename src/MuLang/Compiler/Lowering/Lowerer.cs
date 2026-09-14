@@ -1,5 +1,6 @@
 using MuLang.Compiler.Binding;
 using MuLang.Compiler.Syntax;
+using MuLang.Core;
 using MuLang.Core.Diagnostics;
 using MuLang.Core.Environment;
 using MuLang.Core.Types;
@@ -10,6 +11,8 @@ namespace MuLang.Compiler.Lowering;
 internal sealed class Lowerer
 {
     private readonly EnvironmentSchema environment;
+    private readonly CompilationMode compilationMode;
+    private readonly LanguageProfileFingerprint languageProfileFingerprint;
     private IrBuilder builder = new ();
 
     private readonly IDictionary<LocalSymbol, int> localSlots =
@@ -20,9 +23,15 @@ internal sealed class Lowerer
 
     private readonly Stack<LoweringLoopContext> loopContexts = [ ];
 
-    private Lowerer(EnvironmentSchema environment)
+    private Lowerer(
+        EnvironmentSchema environment,
+        CompilationMode compilationMode,
+        LanguageProfileFingerprint languageProfileFingerprint
+    )
     {
         this.environment = environment;
+        this.compilationMode = compilationMode;
+        this.languageProfileFingerprint = languageProfileFingerprint;
     }
 
     public static LoweringResult Lower(
@@ -45,7 +54,11 @@ internal sealed class Lowerer
             return new LoweringResult(null, bindingResult.Diagnostics);
         }
 
-        Lowerer lowerer = new (environment);
+        Lowerer lowerer = new (
+            environment,
+            bindingResult.CompilationMode,
+            bindingResult.LanguageProfileFingerprint
+        );
         IrProgram program = lowerer.LowerRoot(bindingResult.Root);
 
         return new LoweringResult(program, DiagnosticCollection.Empty);
@@ -66,6 +79,8 @@ internal sealed class Lowerer
 
                 return new IrProgram(
                     environment.Fingerprint,
+                    compilationMode,
+                    languageProfileFingerprint,
                     entryFunction,
                     [ ]
                 );
@@ -95,6 +110,8 @@ internal sealed class Lowerer
 
                 return new IrProgram(
                     environment.Fingerprint,
+                    compilationMode,
+                    languageProfileFingerprint,
                     entryFunction,
                     functions.AsReadOnly()
                 );
@@ -735,20 +752,21 @@ internal sealed class Lowerer
     private int LowerConversion(BoundExpression.Conversion expression)
     {
         if (
-            expression.Expression is BoundExpression.Literal
-            {
-                Type.Kind: TypeKind.Null,
-            } &&
-            expression.Type is NullableTypeSymbol
+            expression is {
+                Expression: BoundExpression.Literal { Type.Kind: TypeKind.Null },
+                Type: NullableTypeSymbol,
+            }
         )
         {
             int nullDestination = CreateTemporary(expression.Type);
-            builder.Emit(new IrInstruction.Constant(
-                expression.Span,
-                nullDestination,
-                expression.Type,
-                null
-            ));
+            builder.Emit(
+                new IrInstruction.Constant(
+                    expression.Span,
+                    nullDestination,
+                    expression.Type,
+                    null
+                )
+            );
 
             return nullDestination;
         }

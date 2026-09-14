@@ -1014,6 +1014,7 @@ internal static class DotNetRuntimeOperations
             GetNonNullable(sourceType).Kind == TypeKind.Number &&
             value is double number &&
             double.IsFinite(number) &&
+            // ReSharper disable once CompareOfFloatsByEqualityOperator
             Math.Truncate(number) == number &&
             number is >= long.MinValue and <= long.MaxValue
         )
