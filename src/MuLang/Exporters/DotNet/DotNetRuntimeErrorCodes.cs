@@ -18,4 +18,6 @@ internal static class DotNetRuntimeErrorCodes
     public const string ProviderFailure = "MUL6014";
     public const string InvalidRuntimeValue = "MUL6015";
     public const string Cancelled = "MUL6016";
+    public const string CallDepthExceeded = "MUL6017";
+    public const string MissingUserFunction = "MUL6018";
 }

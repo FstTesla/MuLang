@@ -1,0 +1,13 @@
+- Split projects and adjust type visibility for future publishing of MuLang
+- New features:
+  - Unreachable code detection and warnings
+  - Comments
+  - User-defined types
+  - First-class functions and function types
+- Feature configuration/flags:
+  - Truthiness
+  - User-defined functions
+  - Comments
+  - User-defined types
+  - First-class functions and function types
+  - Other existing features?

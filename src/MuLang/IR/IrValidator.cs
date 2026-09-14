@@ -36,27 +36,116 @@ internal static class IrValidator
             );
         }
 
-        ValidateSlots(program, diagnostics);
-        IReadOnlyDictionary<int, IrBasicBlock> blocksById = ValidateBlocks(program, diagnostics);
+        ISet<string> functionIds = new HashSet<string>(StringComparer.Ordinal)
+        {
+            program.EntryFunction.Id,
+        };
 
-        if (!blocksById.ContainsKey(program.EntryBlock))
+        foreach (IrFunction function in program.UserFunctions)
+        {
+            if (!functionIds.Add(function.Id))
+            {
+                Report(
+                    diagnostics,
+                    IrDiagnosticCodes.InvalidStructure,
+                    default,
+                    $"IR function '{function.Id}' is declared more than once."
+                );
+            }
+        }
+
+        ValidateFunction(program, program.EntryFunction, environment, diagnostics);
+
+        foreach (IrFunction function in program.UserFunctions)
+        {
+            ValidateFunction(program, function, environment, diagnostics);
+        }
+
+        return DiagnosticCollection.Create(diagnostics);
+    }
+
+    private static void ValidateFunction(
+        IrProgram program,
+        IrFunction function,
+        EnvironmentSchema environment,
+        ICollection<Diagnostic> diagnostics
+    )
+    {
+        IrProgram functionProgram = new (
+            program.EnvironmentFingerprint,
+            function,
+            program.UserFunctions
+        );
+        ValidateSlots(functionProgram, diagnostics);
+        IReadOnlyDictionary<int, IrBasicBlock> blocksById = ValidateBlocks(
+            functionProgram,
+            diagnostics
+        );
+
+        if (!blocksById.ContainsKey(functionProgram.EntryBlock))
         {
             Report(
                 diagnostics,
                 IrDiagnosticCodes.InvalidStructure,
                 default,
-                $"Entry block {program.EntryBlock} does not exist."
+                $"Entry block {functionProgram.EntryBlock} does not exist in function '{function.Id}'."
             );
         }
 
-        foreach (IrBasicBlock block in program.Blocks)
+        ValidateParameterSlots(
+            function,
+            ReferenceEquals(function, program.EntryFunction),
+            diagnostics
+        );
+
+        foreach (IrBasicBlock block in functionProgram.Blocks)
         {
-            ValidateBlock(program, environment, blocksById, block, diagnostics);
+            ValidateBlock(functionProgram, environment, blocksById, block, diagnostics);
         }
 
-        ValidateDefinitions(program, blocksById, diagnostics);
+        ValidateDefinitions(functionProgram, blocksById, diagnostics);
+    }
 
-        return DiagnosticCollection.Create(diagnostics);
+    private static void ValidateParameterSlots(
+        IrFunction function,
+        bool isEntryFunction,
+        ICollection<Diagnostic> diagnostics
+    )
+    {
+        bool hasNonParameter = false;
+        int parameterCount = 0;
+
+        foreach (IrSlot slot in function.Slots)
+        {
+            if (slot.Kind == IrSlotKind.Parameter)
+            {
+                parameterCount++;
+
+                if (hasNonParameter)
+                {
+                    Report(
+                        diagnostics,
+                        IrDiagnosticCodes.InvalidSlot,
+                        default,
+                        $"Parameter slot {slot.Id} in function '{function.Id}' is not contiguous."
+                    );
+                }
+            }
+            else
+            {
+                hasNonParameter = true;
+            }
+        }
+
+        if (isEntryFunction && parameterCount != 0)
+        {
+            Report(
+                diagnostics,
+                IrDiagnosticCodes.InvalidSlot,
+                default,
+                "The IR entry function cannot declare parameter slots."
+            );
+        }
     }
 
     private static void ValidateSlots(
@@ -459,9 +548,15 @@ internal static class IrValidator
                 break;
             }
 
-            case IrInstruction.Call call:
+            case IrInstruction.ProviderCall call:
             {
-                ValidateCall(program, environment, call, diagnostics);
+                ValidateProviderCall(program, environment, call, diagnostics);
+                break;
+            }
+
+            case IrInstruction.UserCall call:
+            {
+                ValidateUserCall(program, call, diagnostics);
                 break;
             }
         }
@@ -831,10 +926,10 @@ internal static class IrValidator
             : TypeSymbols.Nullable(type);
     }
 
-    private static void ValidateCall(
+    private static void ValidateProviderCall(
         IrProgram program,
         EnvironmentSchema environment,
-        IrInstruction.Call call,
+        IrInstruction.ProviderCall call,
         ICollection<Diagnostic> diagnostics
     )
     {
@@ -849,60 +944,126 @@ internal static class IrValidator
             return;
         }
 
+        ValidateCallShape(
+            program,
+            call.Destination,
+            call.ReturnType,
+            call.Arguments,
+            function.Name,
+            function.ReturnType,
+            function.Parameters.Select(static parameter => parameter.Type).ToArray(),
+            call.Span,
+            diagnostics
+        );
+    }
+
+    private static void ValidateUserCall(
+        IrProgram program,
+        IrInstruction.UserCall call,
+        ICollection<Diagnostic> diagnostics
+    )
+    {
+        IrFunction? function = program.UserFunctions.FirstOrDefault(
+            candidate => candidate.Id == call.FunctionId
+        );
+
+        if (function is null)
+        {
+            Report(
+                diagnostics,
+                IrDiagnosticCodes.UndefinedUserFunction,
+                call.Span,
+                $"User function '{call.FunctionId}' is not declared."
+            );
+            return;
+        }
+
+        IReadOnlyList<TypeSymbol> parameterTypes =
+        [
+            .. function.Slots
+                .Where(static slot => slot.Kind == IrSlotKind.Parameter)
+                .Select(static slot => slot.Type),
+        ];
+
+        ValidateCallShape(
+            program,
+            call.Destination,
+            call.ReturnType,
+            call.Arguments,
+            function.Id,
+            function.ReturnType,
+            parameterTypes,
+            call.Span,
+            diagnostics
+        );
+    }
+
+    private static void ValidateCallShape(
+        IrProgram program,
+        int? destination,
+        TypeSymbol returnType,
+        IReadOnlyList<int> arguments,
+        string functionName,
+        TypeSymbol expectedReturnType,
+        IReadOnlyList<TypeSymbol> parameterTypes,
+        TextSpan span,
+        ICollection<Diagnostic> diagnostics
+    )
+    {
         if (
-            call.ReturnType.Kind == TypeKind.Void &&
-            call.Destination is not null ||
-            call.ReturnType.Kind != TypeKind.Void &&
-            call.Destination is null
+            returnType.Kind == TypeKind.Void &&
+            destination is not null ||
+            returnType.Kind != TypeKind.Void &&
+            destination is null
         )
         {
             Report(
                 diagnostics,
                 IrDiagnosticCodes.TypeMismatch,
-                call.Span,
+                span,
                 "IR call destination does not match the function return type."
             );
         }
 
-        if (!TypeRelations.AreEquivalent(call.ReturnType, function.ReturnType))
+        if (!TypeRelations.AreEquivalent(returnType, expectedReturnType))
         {
             Report(
                 diagnostics,
                 IrDiagnosticCodes.TypeMismatch,
-                call.Span,
-                $"IR call return type does not match function '{function.Name}'."
+                span,
+                $"IR call return type does not match function '{functionName}'."
             );
         }
 
-        if (call.Destination is not null)
+        if (destination is not null)
         {
             ValidateSlotType(
                 program,
-                call.Destination.Value,
-                function.ReturnType,
-                call.Span,
+                destination.Value,
+                expectedReturnType,
+                span,
                 diagnostics
             );
         }
 
-        if (call.Arguments.Count != function.Parameters.Count)
+        if (arguments.Count != parameterTypes.Count)
         {
             Report(
                 diagnostics,
                 IrDiagnosticCodes.TypeMismatch,
-                call.Span,
-                $"IR call to '{function.Name}' has an invalid argument count."
+                span,
+                $"IR call to '{functionName}' has an invalid argument count."
             );
             return;
         }
 
-        for (int index = 0; index < call.Arguments.Count; index++)
+        for (int index = 0; index < arguments.Count; index++)
         {
             ValidateSlotType(
                 program,
-                call.Arguments[index],
-                function.Parameters[index].Type,
-                call.Span,
+                arguments[index],
+                parameterTypes[index],
+                span,
                 diagnostics
             );
         }
@@ -922,13 +1083,22 @@ internal static class IrValidator
         IReadOnlyCollection<int> reachable = GetReachableBlocks(program.EntryBlock, blocksById);
         IReadOnlyDictionary<int, IReadOnlyList<int>> predecessors = GetPredecessors(reachable, blocksById);
         IReadOnlySet<int> allSlots = new HashSet<int>(program.Slots.Select(static slot => slot.Id));
+        IReadOnlySet<int> parameterSlots = new HashSet<int>(
+            program.Slots
+                .Where(static slot => slot.Kind == IrSlotKind.Parameter)
+                .Select(static slot => slot.Id)
+        );
         Dictionary<int, IReadOnlySet<int>> outgoing = [ ];
 
         foreach (int blockId in reachable)
         {
+            IReadOnlySet<int> initialDefinitions =
+                blockId == program.EntryBlock
+                    ? parameterSlots
+                    : new HashSet<int>(allSlots);
             outgoing.Add(
                 blockId,
-                blockId == program.EntryBlock ? ReadOnlySet<int>.Empty : [ .. allSlots ]
+                initialDefinitions
             );
         }
 
@@ -944,7 +1114,8 @@ internal static class IrValidator
                     blockId,
                     program.EntryBlock,
                     predecessors,
-                    outgoing
+                    outgoing,
+                    parameterSlots
                 );
                 IReadOnlySet<int> definitions = ApplyDefinitions(
                     blocksById[blockId],
@@ -966,7 +1137,8 @@ internal static class IrValidator
                 blockId,
                 program.EntryBlock,
                 predecessors,
-                outgoing
+                outgoing,
+                parameterSlots
             );
             ValidateUses(blocksById[blockId], defined, diagnostics);
         }
@@ -1032,10 +1204,16 @@ internal static class IrValidator
         int blockId,
         int entryBlock,
         IReadOnlyDictionary<int, IReadOnlyList<int>> predecessors,
-        IReadOnlyDictionary<int, IReadOnlySet<int>> outgoing
+        IReadOnlyDictionary<int, IReadOnlySet<int>> outgoing,
+        IReadOnlySet<int> entryDefinitions
     )
     {
-        if (blockId == entryBlock || predecessors[blockId].Count == 0)
+        if (blockId == entryBlock)
+        {
+            return entryDefinitions;
+        }
+
+        if (predecessors[blockId].Count == 0)
         {
             return ReadOnlySet<int>.Empty;
         }
@@ -1132,7 +1310,8 @@ internal static class IrValidator
             IrInstruction.CreateObject objectValue => objectValue.Destination,
             IrInstruction.GetProperty property => property.Destination,
             IrInstruction.GetElement element => element.Destination,
-            IrInstruction.Call call => call.Destination,
+            IrInstruction.ProviderCall call => call.Destination,
+            IrInstruction.UserCall call => call.Destination,
             _ => null,
         };
     }
@@ -1160,7 +1339,8 @@ internal static class IrValidator
                 [ element.Target, element.Index, element.Value ],
             IrInstruction.RemoveElementProperty property =>
                 [ property.Target, property.Key ],
-            IrInstruction.Call call => call.Arguments,
+            IrInstruction.ProviderCall call => call.Arguments,
+            IrInstruction.UserCall call => call.Arguments,
             _ => [ ],
         };
     }

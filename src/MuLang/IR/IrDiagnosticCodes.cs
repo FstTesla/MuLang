@@ -8,4 +8,5 @@ internal static class IrDiagnosticCodes
     public const string UndefinedProviderSymbol = "MUL5004";
     public const string UseBeforeDefinition = "MUL5005";
     public const string EnvironmentMismatch = "MUL5006";
+    public const string UndefinedUserFunction = "MUL5007";
 }

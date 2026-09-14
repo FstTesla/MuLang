@@ -27,7 +27,6 @@ MuLang uses C# as its primary reference for lexical conventions, expressions, st
 
 The first language version does not provide:
 
-- user-defined functions;
 - user-defined structured types;
 - classes, inheritance, interfaces, or generics;
 - function values or delegates;
@@ -59,6 +58,8 @@ Statements, including `return`, are not valid in expression mode.
 ### 3.2. Program mode
 
 Program mode accepts a sequence of statements followed by the end of the source text.
+
+Program mode MAY begin with zero or more top-level function declarations. All function declarations MUST precede executable statements.
 
 A pure expression is not a statement. A function call is the only expression permitted as an expression statement.
 
@@ -103,6 +104,7 @@ The first language version reserves:
 - `else`
 - `false`
 - `float`
+- `func`
 - `for`
 - `has`
 - `if`
@@ -283,6 +285,7 @@ Every array type implicitly defines a read-only intrinsic property named `length
 `void` is permitted only as:
 
 - the return type of a provider function;
+- the return type of a user-defined function;
 - the declared result of a program compilation.
 
 `void` is not a value type, cannot be nullable, and cannot be used for variables, properties, array elements, or function parameters.
@@ -413,6 +416,12 @@ A local variable name MUST NOT match any local or global variable name visible a
 Local variable shadowing is not supported, including shadowing of global variables.
 
 Function names and variable names occupy distinct namespaces because functions are not first-class values and can only occur in call position.
+
+Top-level user-defined functions are visible throughout the complete program, including within functions declared earlier. Direct and mutual recursion are supported.
+
+Function parameters establish the root variable scope of their function body. Parameters are definitely assigned, immutable, and cannot be shadowed by local or global variables.
+
+Function bodies cannot access locals declared by top-level executable statements or by other functions.
 
 ### 9.3. Global variables
 
@@ -552,11 +561,15 @@ The intrinsic `length` property is not considered an object property and is not 
 
 ### 10.8. Function calls
 
-Functions are declared exclusively by the provider.
+Functions may be declared by the provider or by leading top-level `func` declarations in program mode.
 
 Function names are resolved only in call position.
 
 Functions are synchronous, cannot be overloaded, and require exactly the declared number of arguments.
+
+User-defined functions require explicit parameter and return types. They may return `void`, support forward calls and recursion, and are not first-class values.
+
+User-defined function names MUST NOT conflict with provider function names. User-defined functions cannot be nested.
 
 Arguments MUST be assignable to their corresponding parameter types.
 
@@ -564,7 +577,7 @@ A void-returning call can only be used as a call statement.
 
 A non-void call MAY be used as an expression or discarded as a call statement.
 
-The compiler MUST assume that every provider function can have observable side effects.
+The compiler MUST assume that every function call can have observable side effects.
 
 ### 10.9. Nullable operands
 
@@ -878,13 +891,15 @@ When the selected loop is a `for` statement, `continue` transfers control to tha
 
 ### 12.12. Return
 
-`return` exits the program.
+`return` exits the current user-defined function or the top-level program.
 
-A non-void program requires a return expression assignable to the declared program result type.
+A non-void function or program requires a return expression assignable to its declared result type.
 
-A void program permits only `return` without an expression.
+A void function or program permits only `return` without an expression.
 
-Every reachable path of a non-void program MUST return a value.
+Every reachable path of a non-void function or program MUST return a value.
+
+`break` and `continue` cannot cross a function boundary.
 
 ## 13. Provider environment
 
@@ -976,6 +991,7 @@ Runtime errors include:
 - exhausted execution budget;
 - cancellation;
 - provider function failure.
+- exhausted user-function call depth.
 
 Provider exceptions MUST be wrapped while preserving the original exception as the inner cause where the host runtime supports it.
 
@@ -1000,11 +1016,13 @@ Execution MUST support a configurable budget.
 
 The .NET runtime represents an unlimited budget with a null execution-budget value. When a budget is present, each instruction, terminator, provider call, and deeply traversed value currently has a fixed unit cost.
 
-The budget is charged for executed portable IR instructions and provider function calls. Implementations MAY assign different fixed costs to different instruction categories, but the cost model MUST be deterministic for a given language version and profile.
+The budget is charged for executed portable IR instructions, provider function calls, user-defined function calls, and deep value traversal. Implementations MAY assign different fixed costs to different instruction categories, but the cost model MUST be deterministic for a given language version and profile.
 
 Budget exhaustion produces a runtime error.
 
-Cancellation MUST be observed at deterministic safe points, including loop back-edges and provider function boundaries.
+Cancellation MUST be observed at deterministic safe points, including loop back-edges, provider function boundaries, and user-defined function boundaries.
+
+The .NET runtime MUST enforce a configurable maximum active user-function call depth. The top-level program and provider calls do not count toward this limit.
 
 ## 17. Diagnostics
 
@@ -1053,7 +1071,11 @@ A disabled recognized feature SHOULD produce a dedicated feature-disabled diagno
 
 The compiler MUST lower validated source into a runtime-independent typed intermediate representation before export.
 
-The portable IR SHOULD contain:
+The portable IR compilation unit SHOULD contain:
+
+- a distinguished top-level entry function;
+- zero or more user-defined functions;
+- independent parameter, local, and temporary slot spaces for each function;
 
 - constants;
 - local slots;
@@ -1064,6 +1086,7 @@ The portable IR SHOULD contain:
 - intrinsic array-length reads;
 - property removal;
 - provider calls by stable symbolic identifier;
+- user-defined calls by compiler-assigned stable identifier;
 - explicit conversions;
 - branches and jumps;
 - returns;
@@ -1082,7 +1105,23 @@ expression-root
     = expression end-of-file ;
 
 program-root
-    = statement* end-of-file ;
+    = function-declaration* statement* end-of-file ;
+
+function-declaration
+    = "func" identifier
+      "(" parameter-list? ")"
+      ":" function-return-type
+      block ;
+
+parameter-list
+    = parameter ("," parameter)* ;
+
+parameter
+    = identifier ":" type ;
+
+function-return-type
+    = type
+    | "void" ;
 
 statement
     = block

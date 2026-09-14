@@ -15,6 +15,8 @@ internal static class DiagnosticCodes
     public const string InvalidForClause = "MUL2007";
     public const string TrailingSeparator = "MUL2008";
     public const string RepeatedNullableAnnotation = "MUL2009";
+    public const string FunctionDeclarationNotAllowed = "MUL2010";
+    public const string FunctionDeclarationAfterStatement = "MUL2011";
     public const string UndefinedName = "MUL3001";
     public const string UndefinedFunction = "MUL3002";
     public const string UndefinedType = "MUL3003";
@@ -44,4 +46,10 @@ internal static class DiagnosticCodes
     public const string ReadOnlyTarget = "MUL3019";
     public const string MissingObjectProperty = "MUL3020";
     public const string InvalidEmbeddedDeclaration = "MUL3021";
+    public const string DuplicateFunction = "MUL3022";
+    public const string FunctionConflict = "MUL3023";
+    public const string DuplicateParameter = "MUL3024";
+    public const string InvalidParameterType = "MUL3025";
+    public const string InvalidReturnType = "MUL3026";
+    public const string CannotAssignParameter = "MUL3027";
 }

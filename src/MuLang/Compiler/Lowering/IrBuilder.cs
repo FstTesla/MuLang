@@ -73,15 +73,15 @@ internal sealed class IrBuilder
         block.Terminator = terminator;
     }
 
-    public IrProgram Build(
-        EnvironmentFingerprint environmentFingerprint,
+    public IrFunction Build(
+        string id,
         TypeSymbol resultType
     )
     {
         IReadOnlyList<IrBasicBlock> immutableBlocks = [ .. blocks.Select(static block => block.Build()) ];
 
-        return new IrProgram(
-            environmentFingerprint,
+        return new IrFunction(
+            id,
             resultType,
             EntryBlock,
             slots.AsReadOnly(),

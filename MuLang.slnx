@@ -11,7 +11,7 @@
   </Folder>
   <Folder Name="/Solution Items/docs/">
     <File Path="docs/author-notes.tmp.md" />
-    <File Path="docs/autopilot-choices.tmp.md" />
+    <File Path="docs/feature-flags.tmp.md" />
     <File Path="docs/language-specification.md" />
   </Folder>
   <Folder Name="/src/">

@@ -15,7 +15,9 @@ internal sealed class Binder
     private readonly SourceText source;
     private readonly EnvironmentSchema environment;
     private readonly TypeSymbol expectedResultType;
-    private readonly ICollection<Diagnostic> diagnostics = [ ];
+    private readonly IDictionary<string, UserFunctionSymbol> userFunctions;
+    private readonly ICollection<Diagnostic> diagnostics;
+    private readonly string returnContext;
     private BindingScope scope = new (null);
     private FlowState currentFlowState = new ([ ]);
     private readonly Stack<LoopFlowContext> loopContexts = [ ];
@@ -24,12 +26,19 @@ internal sealed class Binder
     private Binder(
         SourceText source,
         EnvironmentSchema environment,
-        TypeSymbol expectedResultType
+        TypeSymbol expectedResultType,
+        IDictionary<string, UserFunctionSymbol>? userFunctions = null,
+        ICollection<Diagnostic>? diagnostics = null,
+        string returnContext = "program"
     )
     {
         this.source = source;
         this.environment = environment;
         this.expectedResultType = expectedResultType;
+        this.userFunctions = userFunctions ??
+            new Dictionary<string, UserFunctionSymbol>(StringComparer.Ordinal);
+        this.diagnostics = diagnostics ?? [ ];
+        this.returnContext = returnContext;
     }
 
     public static BindingResult Bind(
@@ -62,7 +71,13 @@ internal sealed class Binder
             );
         }
 
-        Binder binder = new (syntaxTree.Source, environment, resultType);
+        ICollection<Diagnostic> reportedDiagnostics = [ ];
+        Binder binder = new (
+            syntaxTree.Source,
+            environment,
+            resultType,
+            diagnostics: reportedDiagnostics
+        );
         BoundRoot root = syntaxTree.Root switch
         {
             ExpressionRootSyntax expressionRoot => binder.BindExpressionRoot(
@@ -72,11 +87,11 @@ internal sealed class Binder
             ProgramRootSyntax programRoot => binder.BindProgramRoot(programRoot),
             _ => throw new InvalidOperationException("Unknown syntax root."),
         };
-        DiagnosticCollection diagnostics = DiagnosticCollection.Create(
-            syntaxTree.Diagnostics.Concat(binder.diagnostics)
+        DiagnosticCollection allDiagnostics = DiagnosticCollection.Create(
+            syntaxTree.Diagnostics.Concat(reportedDiagnostics)
         );
 
-        return new BindingResult(root, diagnostics);
+        return new BindingResult(root, allDiagnostics);
     }
 
     private BoundRoot BindExpressionRoot(
@@ -108,6 +123,15 @@ internal sealed class Binder
 
     private BoundRoot BindProgramRoot(ProgramRootSyntax syntax)
     {
+        IReadOnlyList<UserFunctionSymbol> functionSymbols =
+            DeclareUserFunctions(syntax.Functions);
+        IList<BoundFunction> functions = [ ];
+
+        foreach (UserFunctionSymbol function in functionSymbols)
+        {
+            functions.Add(BindFunction(function));
+        }
+
         FlowState state = new ([ ]);
         IList<BoundStatement> statements = [ ];
 
@@ -131,9 +155,142 @@ internal sealed class Binder
 
         return new BoundRoot.Program(
             syntax,
+            functions.AsReadOnly(),
             statements.AsReadOnly(),
             expectedResultType
         );
+    }
+
+    private IReadOnlyList<UserFunctionSymbol> DeclareUserFunctions(
+        IReadOnlyList<FunctionDeclarationSyntax> declarations
+    )
+    {
+        IList<UserFunctionSymbol> symbols = [ ];
+
+        for (int ordinal = 0; ordinal < declarations.Count; ordinal++)
+        {
+            FunctionDeclarationSyntax declaration = declarations[ordinal];
+            string name = GetText(declaration.IdentifierToken);
+            IList<UserParameterSymbol> parameters = [ ];
+            ISet<string> parameterNames = new HashSet<string>(StringComparer.Ordinal);
+
+            for (int index = 0; index < declaration.Parameters.Count; index++)
+            {
+                ParameterSyntax parameter = declaration.Parameters[index];
+                string parameterName = GetText(parameter.IdentifierToken);
+                TypeSymbol parameterType = BindType(parameter.Type);
+
+                if (parameterType.Kind == TypeKind.Void)
+                {
+                    Report(
+                        DiagnosticCodes.InvalidParameterType,
+                        parameter.Type.Span,
+                        "A function parameter cannot have type 'void'."
+                    );
+                    parameterType = TypeSymbols.Error;
+                }
+
+                if (!parameterNames.Add(parameterName))
+                {
+                    Report(
+                        DiagnosticCodes.DuplicateParameter,
+                        parameter.IdentifierToken.Span,
+                        $"Parameter '{parameterName}' is declared more than once."
+                    );
+                }
+
+                if (environment.TryGetGlobal(parameterName, out _))
+                {
+                    Report(
+                        DiagnosticCodes.ShadowedVariable,
+                        parameter.IdentifierToken.Span,
+                        $"Parameter '{parameterName}' cannot shadow a global variable."
+                    );
+                }
+
+                parameters.Add(new UserParameterSymbol(parameterName, parameterType, index));
+            }
+
+            TypeSymbol returnType = BindType(declaration.ReturnType);
+
+            if (returnType.Kind is TypeKind.Null or TypeKind.Error)
+            {
+                Report(
+                    DiagnosticCodes.InvalidReturnType,
+                    declaration.ReturnType.Span,
+                    $"Type '{returnType.DisplayName}' cannot be used as a function return type."
+                );
+            }
+
+            UserFunctionSymbol symbol = new (
+                $"user:{ordinal}",
+                name,
+                parameters.AsReadOnly(),
+                returnType,
+                declaration,
+                ordinal
+            );
+            symbols.Add(symbol);
+
+            if (environment.TryGetFunction(name, out _))
+            {
+                Report(
+                    DiagnosticCodes.FunctionConflict,
+                    declaration.IdentifierToken.Span,
+                    $"User function '{name}' conflicts with a provider function."
+                );
+            }
+
+            if (!userFunctions.TryAdd(name, symbol))
+            {
+                Report(
+                    DiagnosticCodes.DuplicateFunction,
+                    declaration.IdentifierToken.Span,
+                    $"User function '{name}' is declared more than once."
+                );
+            }
+        }
+
+        return symbols.AsReadOnly();
+    }
+
+    private BoundFunction BindFunction(UserFunctionSymbol function)
+    {
+        Binder functionBinder = new (
+            source,
+            environment,
+            function.ReturnType,
+            userFunctions,
+            diagnostics,
+            $"function '{function.Name}'"
+        );
+        FlowState state = new (function.Parameters);
+
+        foreach (UserParameterSymbol parameter in function.Parameters)
+        {
+            functionBinder.scope.TryDeclare(parameter);
+        }
+
+        BoundStatement body = functionBinder.BindStatement(function.Declaration.Body, state);
+
+        if (
+            function.ReturnType.Kind is not TypeKind.Void and not TypeKind.Error &&
+            state.CanCompleteNormally
+        )
+        {
+            Report(
+                DiagnosticCodes.NotAllPathsReturn,
+                function.Declaration.Body.Span,
+                $"Not all paths in function '{function.Name}' return '{function.ReturnType.DisplayName}'.",
+                DiagnosticCategory.ControlFlow
+            );
+        }
+
+        IReadOnlyList<BoundStatement> statements = body is BoundStatement.Block block
+            ? [ .. block.Statements ]
+            : [ body ];
+
+        return new BoundFunction(function, statements);
     }
 
     private void BindStatementWithReachability(
@@ -193,9 +350,9 @@ internal sealed class Binder
             BindStatementWithReachability(statementSyntax, state, statements);
         }
 
-        foreach (LocalSymbol local in blockScope.Locals)
+        foreach (BoundVariableSymbol variable in blockScope.Variables)
         {
-            state.Assigned.Remove(local);
+            state.Assigned.Remove(variable);
         }
 
         scope = parentScope;
@@ -217,7 +374,7 @@ internal sealed class Binder
         TypeSymbol localType = declaredType ?? InferLocalType(syntax, initializer);
         string name = GetText(syntax.IdentifierToken);
         LocalSymbol local = new (name, localType, nextLocalSlot++);
-        bool hasCurrentLocal = scope.ContainsLocal(name);
+        bool hasCurrentLocal = scope.ContainsVariable(name);
         bool hasVisibleLocal = scope.TryLookup(name, out _);
         bool hasVisibleGlobal = environment.TryGetGlobal(name, out _);
 
@@ -433,9 +590,9 @@ internal sealed class Binder
             }
         }
 
-        foreach (LocalSymbol local in forScope.Locals)
+        foreach (BoundVariableSymbol variable in forScope.Variables)
         {
-            state.Assigned.Remove(local);
+            state.Assigned.Remove(variable);
         }
 
         scope = parentScope;
@@ -473,9 +630,9 @@ internal sealed class Binder
         scope = embeddedScope;
         BoundStatement statement = BindStatement(syntax, state);
 
-        foreach (LocalSymbol local in embeddedScope.Locals)
+        foreach (BoundVariableSymbol variable in embeddedScope.Variables)
         {
-            state.Assigned.Remove(local);
+            state.Assigned.Remove(variable);
         }
 
         scope = parentScope;
@@ -621,7 +778,7 @@ internal sealed class Binder
             Report(
                 DiagnosticCodes.InvalidReturn,
                 syntax.Span,
-                "A void program cannot return a value.",
+                $"A void {returnContext} cannot return a value.",
                 DiagnosticCategory.ControlFlow
             );
         }
@@ -630,7 +787,7 @@ internal sealed class Binder
             Report(
                 DiagnosticCodes.InvalidReturn,
                 syntax.Span,
-                $"The program must return '{expectedResultType.DisplayName}'.",
+                $"The {returnContext} must return '{expectedResultType.DisplayName}'.",
                 DiagnosticCategory.ControlFlow
             );
         }
@@ -773,11 +930,11 @@ internal sealed class Binder
     {
         string name = GetText(syntax.IdentifierToken);
 
-        if (scope.TryLookup(name, out LocalSymbol? local))
+        if (scope.TryLookup(name, out BoundVariableSymbol? variable))
         {
             if (
                 currentFlowState.CanCompleteNormally &&
-                !currentFlowState.Assigned.Contains(local)
+                !currentFlowState.Assigned.Contains(variable)
             )
             {
                 Report(
@@ -788,7 +945,13 @@ internal sealed class Binder
                 );
             }
 
-            return new BoundExpression.Local(syntax, local);
+            return variable switch
+            {
+                LocalSymbol local => new BoundExpression.Local(syntax, local),
+                UserParameterSymbol parameter =>
+                    new BoundExpression.Parameter(syntax, parameter),
+                _ => throw new InvalidOperationException("Unknown bound variable symbol."),
+            };
         }
 
         if (environment.TryGetGlobal(name, out GlobalSymbol? global))
@@ -1303,13 +1466,15 @@ internal sealed class Binder
 
     private BoundExpression BindCallExpression(CallExpressionSyntax syntax)
     {
-        FunctionSymbol? function = null;
+        FunctionSymbol? providerFunction = null;
+        UserFunctionSymbol? userFunction = null;
 
         if (syntax.Target is NameExpressionSyntax nameSyntax)
         {
             string name = GetText(nameSyntax.IdentifierToken);
 
-            if (!environment.TryGetFunction(name, out function))
+            if (!userFunctions.TryGetValue(name, out userFunction) &&
+                !environment.TryGetFunction(name, out providerFunction))
             {
                 Report(
                     DiagnosticCodes.UndefinedFunction,
@@ -1324,7 +1489,7 @@ internal sealed class Binder
             Report(
                 DiagnosticCodes.InvalidCallTarget,
                 syntax.Target.Span,
-                "Only a provider function name can be called."
+                "Only a function name can be called."
             );
         }
 
@@ -1333,27 +1498,48 @@ internal sealed class Binder
         for (int index = 0; index < syntax.Arguments.Count; index++)
         {
             TypeSymbol? parameterType =
-                function is not null && index < function.Parameters.Count
-                    ? function.Parameters[index].Type
-                    : null;
+                userFunction is not null && index < userFunction.Parameters.Count
+                    ? userFunction.Parameters[index].Type
+                    : providerFunction is not null &&
+                        index < providerFunction.Parameters.Count
+                        ? providerFunction.Parameters[index].Type
+                        : null;
             arguments.Add(BindExpression(syntax.Arguments[index], parameterType));
         }
 
-        if (function is null)
+        if (userFunction is null && providerFunction is null)
         {
             return new BoundExpression.Error(syntax);
         }
 
-        if (syntax.Arguments.Count != function.Parameters.Count)
+        int parameterCount = userFunction?.Parameters.Count ??
+            providerFunction?.Parameters.Count ??
+            0;
+        string functionName = userFunction?.Name ??
+            providerFunction?.Name ??
+            "";
+
+        if (syntax.Arguments.Count != parameterCount)
         {
             Report(
                 DiagnosticCodes.ArgumentCountMismatch,
                 syntax.Span,
-                $"Function '{function.Name}' expects {function.Parameters.Count} arguments but received {syntax.Arguments.Count}."
+                $"Function '{functionName}' expects {parameterCount} arguments but received {syntax.Arguments.Count}."
             );
         }
 
-        return new BoundExpression.Call(syntax, function, arguments.AsReadOnly());
+        return userFunction is not null
+            ? new BoundExpression.UserCall(
+                syntax,
+                userFunction,
+                arguments.AsReadOnly()
+            )
+            : new BoundExpression.ProviderCall(
+                syntax,
+                providerFunction ??
+                    throw new InvalidOperationException("Expected a provider function."),
+                arguments.AsReadOnly()
+            );
     }
 
     private BoundExpression BindMemberAccess(MemberAccessExpressionSyntax syntax)
@@ -1552,9 +1738,23 @@ internal sealed class Binder
         {
             string name = GetText(nameSyntax.IdentifierToken);
 
-            if (scope.TryLookup(name, out LocalSymbol? local))
+            if (scope.TryLookup(name, out BoundVariableSymbol? variable))
             {
-                return new BoundExpression.Local(nameSyntax, local);
+                if (variable is UserParameterSymbol parameter)
+                {
+                    Report(
+                        DiagnosticCodes.CannotAssignParameter,
+                        syntax.Span,
+                        $"Parameter '{name}' cannot be assigned."
+                    );
+
+                    return new BoundExpression.Parameter(nameSyntax, parameter);
+                }
+
+                return new BoundExpression.Local(
+                    nameSyntax,
+                    (LocalSymbol)variable
+                );
             }
 
             if (environment.TryGetGlobal(name, out GlobalSymbol? global))
@@ -1602,6 +1802,7 @@ internal sealed class Binder
             TokenKind.StringKeyword => TypeSymbols.String,
             TokenKind.UnknownKeyword => TypeSymbols.Unknown,
             TokenKind.ObjectKeyword => TypeSymbols.Object,
+            TokenKind.VoidKeyword => TypeSymbols.Void,
             TokenKind.Identifier
                 when environment.TryGetType(name, out ObjectTypeSymbol? objectType) =>
                 objectType,
@@ -1621,6 +1822,16 @@ internal sealed class Binder
         for (int index = 0; index < syntax.SuffixTokens.Count; index++)
         {
             SyntaxToken suffix = syntax.SuffixTokens[index];
+
+            if (type.Kind == TypeKind.Void)
+            {
+                Report(
+                    DiagnosticCodes.InvalidReturnType,
+                    syntax.Span,
+                    "Type 'void' cannot have nullable or array suffixes."
+                );
+                return TypeSymbols.Error;
+            }
 
             if (suffix.Kind == TokenKind.Question)
             {

@@ -2,18 +2,10 @@ using MuLang.Core.Types;
 
 namespace MuLang.Compiler.Binding;
 
-internal sealed class LocalSymbol
+internal sealed class LocalSymbol : BoundVariableSymbol
 {
     public LocalSymbol(string name, TypeSymbol type, int slot)
+        : base(name, type, slot)
     {
-        Name = name;
-        Type = type;
-        Slot = slot;
     }
-
-    public string Name { get; }
-
-    public TypeSymbol Type { get; }
-
-    public int Slot { get; }
 }

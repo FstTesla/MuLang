@@ -450,6 +450,7 @@ internal sealed class Lexer
             "false" => TokenKind.FalseKeyword,
             "float" => TokenKind.FloatKeyword,
             "for" => TokenKind.ForKeyword,
+            "func" => TokenKind.FuncKeyword,
             "has" => TokenKind.HasKeyword,
             "if" => TokenKind.IfKeyword,
             "int" => TokenKind.IntKeyword,

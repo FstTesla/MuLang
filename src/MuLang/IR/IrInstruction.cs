@@ -128,7 +128,15 @@ internal abstract record IrInstruction(TextSpan Span)
         int Key
     ) : IrInstruction(Span);
 
-    internal sealed record Call(
+    internal sealed record ProviderCall(
+        TextSpan Span,
+        int? Destination,
+        string FunctionId,
+        TypeSymbol ReturnType,
+        IReadOnlyList<int> Arguments
+    ) : IrInstruction(Span);
+
+    internal sealed record UserCall(
         TextSpan Span,
         int? Destination,
         string FunctionId,

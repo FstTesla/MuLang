@@ -23,6 +23,11 @@ internal abstract record BoundExpression(
         LocalSymbol Symbol
     ) : BoundExpression(Syntax, Symbol.Type);
 
+    internal sealed record Parameter(
+        SyntaxNode Syntax,
+        UserParameterSymbol Symbol
+    ) : BoundExpression(Syntax, Symbol.Type);
+
     internal sealed record Global(
         SyntaxNode Syntax,
         GlobalSymbol Symbol
@@ -87,10 +92,16 @@ internal abstract record BoundExpression(
         BoundExpression WhenFalse
     ) : BoundExpression(Syntax, Type);
 
-    internal sealed record Call(
+    internal sealed record ProviderCall(
         SyntaxNode Syntax,
         FunctionSymbol Function,
-        IReadOnlyCollection<BoundExpression> Arguments
+        IReadOnlyList<BoundExpression> Arguments
+    ) : BoundExpression(Syntax, Function.ReturnType);
+
+    internal sealed record UserCall(
+        SyntaxNode Syntax,
+        UserFunctionSymbol Function,
+        IReadOnlyList<BoundExpression> Arguments
     ) : BoundExpression(Syntax, Function.ReturnType);
 
     internal sealed record MemberAccess(

@@ -4,7 +4,7 @@ namespace MuLang.Compiler.Binding;
 
 internal sealed class BindingScope
 {
-    private readonly Dictionary<string, LocalSymbol> locals = new (StringComparer.Ordinal);
+    private readonly Dictionary<string, BoundVariableSymbol> variables = new (StringComparer.Ordinal);
 
     public BindingScope(BindingScope? parent)
     {
@@ -13,28 +13,28 @@ internal sealed class BindingScope
 
     public BindingScope? Parent { get; }
 
-    public IReadOnlyCollection<LocalSymbol> Locals => locals.Values;
+    public IReadOnlyCollection<BoundVariableSymbol> Variables => variables.Values;
 
-    public bool TryDeclare(LocalSymbol local)
+    public bool TryDeclare(BoundVariableSymbol variable)
     {
-        return locals.TryAdd(local.Name, local);
+        return variables.TryAdd(variable.Name, variable);
     }
 
-    public bool ContainsLocal(string name)
+    public bool ContainsVariable(string name)
     {
-        return locals.ContainsKey(name);
+        return variables.ContainsKey(name);
     }
 
     public bool TryLookup(
         string name,
-        [NotNullWhen(true)] out LocalSymbol? local
+        [NotNullWhen(true)] out BoundVariableSymbol? variable
     )
     {
         BindingScope? scope = this;
 
         while (scope is not null)
         {
-            if (scope.locals.TryGetValue(name, out local))
+            if (scope.variables.TryGetValue(name, out variable))
             {
                 return true;
             }
@@ -42,7 +42,7 @@ internal sealed class BindingScope
             scope = scope.Parent;
         }
 
-        local = null;
+        variable = null;
         return false;
     }
 }

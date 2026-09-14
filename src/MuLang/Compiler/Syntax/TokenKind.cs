@@ -15,6 +15,7 @@ internal enum TokenKind
     FalseKeyword,
     FloatKeyword,
     ForKeyword,
+    FuncKeyword,
     HasKeyword,
     IfKeyword,
     IntKeyword,

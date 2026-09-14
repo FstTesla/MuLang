@@ -1062,7 +1062,7 @@ public sealed class DotNetExporterTests
         [
             .. program.Blocks
                 .SelectMany(static block => block.Instructions)
-                .OfType<IrInstruction.Call>()
+                .OfType<IrInstruction.ProviderCall>()
                 .Select(static call => call.FunctionId),
         ];
 
@@ -1078,19 +1078,23 @@ public sealed class DotNetExporterTests
         EnvironmentSchema environment = CreateEmptyEnvironment();
         IrProgram program = new (
             environment.Fingerprint,
-            TypeSymbols.Int,
-            0,
-            [
-                new IrSlot(0, IrSlotKind.Temporary, TypeSymbols.Int, null),
-                new IrSlot(1, IrSlotKind.Temporary, TypeSymbols.Int, null),
-            ],
-            [
-                new IrBasicBlock(
-                    0,
-                    [ new IrInstruction.Copy(default, 1, 0) ],
-                    new IrTerminator.Return(default, 1)
-                ),
-            ]
+            new IrFunction(
+                "$entry",
+                TypeSymbols.Int,
+                0,
+                [
+                    new IrSlot(0, IrSlotKind.Temporary, TypeSymbols.Int, null),
+                    new IrSlot(1, IrSlotKind.Temporary, TypeSymbols.Int, null),
+                ],
+                [
+                    new IrBasicBlock(
+                        0,
+                        [ new IrInstruction.Copy(default, 1, 0) ],
+                        new IrTerminator.Return(default, 1)
+                    ),
+                ]
+            ),
+            [ ]
         );
 
         DiagnosticCollection diagnostics = IrValidator.Validate(program, environment);
@@ -1107,16 +1111,20 @@ public sealed class DotNetExporterTests
         EnvironmentSchema environment = CreateEmptyEnvironment();
         IrProgram program = new (
             environment.Fingerprint,
-            TypeSymbols.Void,
-            0,
-            [ ],
-            [
-                new IrBasicBlock(
-                    0,
-                    [ ],
-                    new IrTerminator.Jump(default, 1)
-                ),
-            ]
+            new IrFunction(
+                "$entry",
+                TypeSymbols.Void,
+                0,
+                [ ],
+                [
+                    new IrBasicBlock(
+                        0,
+                        [ ],
+                        new IrTerminator.Jump(default, 1)
+                    ),
+                ]
+            ),
+            [ ]
         );
 
         DiagnosticCollection diagnostics = IrValidator.Validate(program, environment);
@@ -1136,35 +1144,39 @@ public sealed class DotNetExporterTests
         );
         IrProgram program = new (
             environment.Fingerprint,
-            objectType,
-            0,
-            [
-                new IrSlot(0, IrSlotKind.Temporary, TypeSymbols.Int, null),
-                new IrSlot(1, IrSlotKind.Temporary, objectType, null),
-            ],
-            [
-                new IrBasicBlock(
-                    0,
-                    [
-                        new IrInstruction.Constant(
-                            default,
-                            0,
-                            TypeSymbols.Int,
-                            1L
-                        ),
-                        new IrInstruction.CreateObject(
-                            default,
-                            1,
-                            objectType,
-                            [
-                                new IrInstruction.ObjectPropertyValue("value", 0),
-                                new IrInstruction.ObjectPropertyValue("value", 0),
-                            ]
-                        ),
-                    ],
-                    new IrTerminator.Return(default, 1)
-                ),
-            ]
+            new IrFunction(
+                "$entry",
+                objectType,
+                0,
+                [
+                    new IrSlot(0, IrSlotKind.Temporary, TypeSymbols.Int, null),
+                    new IrSlot(1, IrSlotKind.Temporary, objectType, null),
+                ],
+                [
+                    new IrBasicBlock(
+                        0,
+                        [
+                            new IrInstruction.Constant(
+                                default,
+                                0,
+                                TypeSymbols.Int,
+                                1L
+                            ),
+                            new IrInstruction.CreateObject(
+                                default,
+                                1,
+                                objectType,
+                                [
+                                    new IrInstruction.ObjectPropertyValue("value", 0),
+                                    new IrInstruction.ObjectPropertyValue("value", 0),
+                                ]
+                            ),
+                        ],
+                        new IrTerminator.Return(default, 1)
+                    ),
+                ]
+            ),
+            [ ]
         );
 
         DiagnosticCollection diagnostics = IrValidator.Validate(program, environment);
@@ -1263,6 +1275,7 @@ public sealed class DotNetExporterTests
         IEnumerable<KeyValuePair<string, DotNetFunction>>? functions = null,
         long? executionBudget = null,
         int maximumTraversalDepth = 256,
+        int maximumUserFunctionCallDepth = 256,
         CancellationToken cancellationToken = default
     )
     {
@@ -1272,7 +1285,8 @@ public sealed class DotNetExporterTests
             functions ?? [ ],
             executionBudget,
             maximumTraversalDepth,
-            cancellationToken
+            cancellationToken,
+            maximumUserFunctionCallDepth
         );
     }
 

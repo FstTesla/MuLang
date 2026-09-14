@@ -19,7 +19,8 @@ public sealed class DotNetRuntimeContext
         IEnumerable<KeyValuePair<string, DotNetFunction>> functions,
         long? executionBudget = null,
         int maximumTraversalDepth = 256,
-        CancellationToken cancellationToken = default
+        CancellationToken cancellationToken = default,
+        int maximumUserFunctionCallDepth = 256
     )
     {
         if (environment is null)
@@ -47,6 +48,11 @@ public sealed class DotNetRuntimeContext
             throw new ArgumentOutOfRangeException(nameof(maximumTraversalDepth));
         }
 
+        if (maximumUserFunctionCallDepth < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(maximumUserFunctionCallDepth));
+        }
+
         EnvironmentFingerprint = environment.Fingerprint;
         this.globals = globals.ToFrozenDictionary(
             static pair => pair.Key,
@@ -61,6 +67,7 @@ public sealed class DotNetRuntimeContext
         hasExecutionBudget = executionBudget is not null;
         remainingBudget = executionBudget ?? 0;
         MaximumTraversalDepth = maximumTraversalDepth;
+        MaximumUserFunctionCallDepth = maximumUserFunctionCallDepth;
         CancellationToken = cancellationToken;
     }
 
@@ -69,6 +76,8 @@ public sealed class DotNetRuntimeContext
     public CancellationToken CancellationToken { get; }
 
     public int MaximumTraversalDepth { get; }
+
+    public int MaximumUserFunctionCallDepth { get; }
 
     internal object? GetGlobal(string id, TypeSymbol expectedType, TextSpan span)
     {

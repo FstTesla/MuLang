@@ -10,10 +10,13 @@ namespace MuLang.Compiler.Lowering;
 internal sealed class Lowerer
 {
     private readonly EnvironmentSchema environment;
-    private readonly IrBuilder builder = new ();
+    private IrBuilder builder = new ();
 
     private readonly IDictionary<LocalSymbol, int> localSlots =
         new Dictionary<LocalSymbol, int>(ReferenceEqualityComparer.Instance);
+
+    private readonly IDictionary<UserParameterSymbol, int> parameterSlots =
+        new Dictionary<UserParameterSymbol, int>(ReferenceEqualityComparer.Instance);
 
     private readonly Stack<LoweringLoopContext> loopContexts = [ ];
 
@@ -43,16 +46,12 @@ internal sealed class Lowerer
         }
 
         Lowerer lowerer = new (environment);
-        TypeSymbol resultType = lowerer.LowerRoot(bindingResult.Root);
-        IrProgram program = lowerer.builder.Build(
-            environment.Fingerprint,
-            resultType
-        );
+        IrProgram program = lowerer.LowerRoot(bindingResult.Root);
 
         return new LoweringResult(program, DiagnosticCollection.Empty);
     }
 
-    private TypeSymbol LowerRoot(BoundRoot root)
+    private IrProgram LowerRoot(BoundRoot root)
     {
         switch (root)
         {
@@ -60,11 +59,28 @@ internal sealed class Lowerer
             {
                 int value = LowerExpression(expression.Value);
                 builder.Terminate(new IrTerminator.Return(expression.Span, value));
-                return expression.Value.Type;
+                IrFunction entryFunction = builder.Build(
+                    "$entry",
+                    expression.Value.Type
+                );
+
+                return new IrProgram(
+                    environment.Fingerprint,
+                    entryFunction,
+                    [ ]
+                );
             }
 
             case BoundRoot.Program program:
             {
+                IList<IrFunction> functions = [ ];
+
+                foreach (BoundFunction function in program.Functions)
+                {
+                    functions.Add(LowerFunction(function));
+                }
+
+                ResetFunctionState();
                 LowerStatements(program.Statements);
 
                 if (builder.CurrentBlock is not null)
@@ -72,7 +88,16 @@ internal sealed class Lowerer
                     builder.Terminate(new IrTerminator.Return(program.Span, null));
                 }
 
-                return program.ResultType;
+                IrFunction entryFunction = builder.Build(
+                    "$entry",
+                    program.ResultType
+                );
+
+                return new IrProgram(
+                    environment.Fingerprint,
+                    entryFunction,
+                    functions.AsReadOnly()
+                );
             }
 
             default:
@@ -80,6 +105,40 @@ internal sealed class Lowerer
                 throw new InvalidOperationException("Unknown bound root.");
             }
         }
+    }
+
+    private IrFunction LowerFunction(BoundFunction function)
+    {
+        ResetFunctionState();
+
+        foreach (UserParameterSymbol parameter in function.Symbol.Parameters)
+        {
+            int slot = builder.CreateSlot(
+                IrSlotKind.Parameter,
+                parameter.Type,
+                parameter.Name
+            );
+            parameterSlots.Add(parameter, slot);
+        }
+
+        LowerStatements(function.Statements);
+
+        if (builder.CurrentBlock is not null)
+        {
+            builder.Terminate(
+                new IrTerminator.Return(function.Symbol.Declaration.Body.Span, null)
+            );
+        }
+
+        return builder.Build(function.Symbol.Id, function.Symbol.ReturnType);
+    }
+
+    private void ResetFunctionState()
+    {
+        builder = new IrBuilder();
+        localSlots.Clear();
+        parameterSlots.Clear();
+        loopContexts.Clear();
     }
 
     private void LowerStatements(IEnumerable<BoundStatement> statements)
@@ -490,6 +549,7 @@ internal sealed class Lowerer
         {
             BoundExpression.Literal literal => LowerLiteral(literal),
             BoundExpression.Local local => GetLocalSlot(local.Symbol),
+            BoundExpression.Parameter parameter => GetParameterSlot(parameter.Symbol),
             BoundExpression.Global global => LowerGlobal(global),
             BoundExpression.Array array => LowerArray(array),
             BoundExpression.Object objectValue => LowerObject(objectValue),
@@ -499,7 +559,8 @@ internal sealed class Lowerer
             BoundExpression.TypeTest typeTest => LowerTypeTest(typeTest),
             BoundExpression.PropertyTest propertyTest => LowerPropertyTest(propertyTest),
             BoundExpression.Conditional conditional => LowerConditional(conditional),
-            BoundExpression.Call call => LowerCall(call),
+            BoundExpression.ProviderCall call => LowerProviderCall(call),
+            BoundExpression.UserCall call => LowerUserCall(call),
             BoundExpression.MemberAccess member => LowerMemberAccess(member),
             BoundExpression.ElementAccess element => LowerElementAccess(element),
             BoundExpression.Error => throw new InvalidOperationException(
@@ -770,7 +831,7 @@ internal sealed class Lowerer
         return result;
     }
 
-    private int LowerCall(BoundExpression.Call expression)
+    private int LowerProviderCall(BoundExpression.ProviderCall expression)
     {
         IList<int> arguments = [ ];
 
@@ -783,7 +844,32 @@ internal sealed class Lowerer
             ? null
             : CreateTemporary(expression.Type);
         builder.Emit(
-            new IrInstruction.Call(
+            new IrInstruction.ProviderCall(
+                expression.Span,
+                destination,
+                expression.Function.Id,
+                expression.Type,
+                arguments.AsReadOnly()
+            )
+        );
+
+        return destination ?? -1;
+    }
+
+    private int LowerUserCall(BoundExpression.UserCall expression)
+    {
+        IList<int> arguments = [ ];
+
+        foreach (BoundExpression argument in expression.Arguments)
+        {
+            arguments.Add(LowerExpression(argument));
+        }
+
+        int? destination = expression.Type.Kind == TypeKind.Void
+            ? null
+            : CreateTemporary(expression.Type);
+        builder.Emit(
+            new IrInstruction.UserCall(
                 expression.Span,
                 destination,
                 expression.Function.Id,
@@ -904,6 +990,15 @@ internal sealed class Lowerer
         localSlots.Add(local, slot);
 
         return slot;
+    }
+
+    private int GetParameterSlot(UserParameterSymbol parameter)
+    {
+        return parameterSlots.TryGetValue(parameter, out int slot)
+            ? slot
+            : throw new InvalidOperationException(
+                $"Parameter '{parameter.Name}' does not have an IR slot."
+            );
     }
 
     private int CreateTemporary(TypeSymbol type)

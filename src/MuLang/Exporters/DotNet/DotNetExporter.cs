@@ -152,6 +152,19 @@ internal static class DotNetExporter
         typeof(object),
         typeof(TextSpan)
     );
+    private static readonly MethodInfo invokeUserFunctionMethod =
+        typeof(DotNetUserFunctionExecution).GetMethod(
+            nameof(DotNetUserFunctionExecution.Invoke),
+            BindingFlags.Public | BindingFlags.Instance,
+            [
+                typeof(DotNetRuntimeContext),
+                typeof(string),
+                typeof(object[]),
+                typeof(TextSpan),
+            ]
+        ) ?? throw new InvalidOperationException(
+            "User-function dispatcher invocation method was not found."
+        );
 
     public static DotNetExportResult Export(
         IrProgram program,
@@ -172,29 +185,97 @@ internal static class DotNetExporter
 
     private static Func<DotNetRuntimeContext, object?> Compile(IrProgram program)
     {
+        Dictionary<string, DotNetUserFunction> compiledFunctions =
+            new(StringComparer.Ordinal);
+
+        foreach (IrFunction function in program.UserFunctions)
+        {
+            compiledFunctions.Add(
+                function.Id,
+                CompileFunction(function, program.EnvironmentFingerprint, false)
+            );
+        }
+
+        DotNetUserFunctionDispatcher dispatcher = new(
+            program.UserFunctions,
+            compiledFunctions
+        );
+        DotNetUserFunction entryFunction = CompileFunction(
+            program.EntryFunction,
+            program.EnvironmentFingerprint,
+            true
+        );
+
+        return context => entryFunction(
+            context,
+            dispatcher.CreateExecution(),
+            []
+        );
+    }
+
+    private static DotNetUserFunction CompileFunction(
+        IrFunction function,
+        EnvironmentFingerprint environmentFingerprint,
+        bool validateEnvironment
+    )
+    {
         ParameterExpression context = Expression.Parameter(
             typeof(DotNetRuntimeContext),
             "context"
         );
+        ParameterExpression execution = Expression.Parameter(
+            typeof(DotNetUserFunctionExecution),
+            "execution"
+        );
+        ParameterExpression arguments = Expression.Parameter(
+            typeof(object[]),
+            "arguments"
+        );
         IReadOnlyList<ParameterExpression> slots =
-            [ .. program.Slots.Select(static slot => Expression.Variable(typeof(object), $"slot{slot.Id}")) ];
+            [ .. function.Slots.Select(static slot => Expression.Variable(typeof(object), $"slot{slot.Id}")) ];
         IReadOnlyList<LabelTarget> blockLabels =
-            [ .. program.Blocks.Select(static block => Expression.Label($"block{block.Id}")) ];
+            [ .. function.Blocks.Select(static block => Expression.Label($"block{block.Id}")) ];
         LabelTarget returnLabel = Expression.Label(typeof(object), "return");
         ICollection<Expression> expressions = [ ];
-        TextSpan entrySpan = program.Blocks[program.EntryBlock].Terminator.Span;
+        TextSpan entrySpan = function.Blocks[function.EntryBlock].Terminator.Span;
 
-        expressions.Add(
-            Expression.Call(
-                validateEnvironmentMethod,
-                context,
-                Expression.Constant(program.EnvironmentFingerprint),
-                Expression.Constant(entrySpan)
-            )
-        );
-        expressions.Add(Expression.Goto(blockLabels[program.EntryBlock]));
+        if (validateEnvironment)
+        {
+            expressions.Add(
+                Expression.Call(
+                    validateEnvironmentMethod,
+                    context,
+                    Expression.Constant(environmentFingerprint),
+                    Expression.Constant(entrySpan)
+                )
+            );
+        }
 
-        foreach (IrBasicBlock block in program.Blocks)
+        int parameterIndex = 0;
+
+        foreach (IrSlot slot in function.Slots)
+        {
+            if (slot.Kind != IrSlotKind.Parameter)
+            {
+                break;
+            }
+
+            expressions.Add(
+                Assign(
+                    slots,
+                    slot.Id,
+                    Expression.ArrayIndex(
+                        arguments,
+                        Expression.Constant(parameterIndex)
+                    )
+                )
+            );
+            parameterIndex++;
+        }
+
+        expressions.Add(Expression.Goto(blockLabels[function.EntryBlock]));
+
+        foreach (IrBasicBlock block in function.Blocks)
         {
             expressions.Add(Expression.Label(blockLabels[block.Id]));
 
@@ -204,8 +285,9 @@ internal static class DotNetExporter
                 expressions.Add(
                     CreateInstructionExpression(
                         context,
+                        execution,
                         slots,
-                        program.Slots,
+                        function.Slots,
                         instruction
                     )
                 );
@@ -229,14 +311,20 @@ internal static class DotNetExporter
             )
         );
         BlockExpression body = Expression.Block(slots, expressions);
-        Expression<Func<DotNetRuntimeContext, object?>> lambda =
-            Expression.Lambda<Func<DotNetRuntimeContext, object?>>(body, context);
+        Expression<DotNetUserFunction> lambda =
+            Expression.Lambda<DotNetUserFunction>(
+                body,
+                context,
+                execution,
+                arguments
+            );
 
         return lambda.Compile();
     }
 
     private static Expression CreateInstructionExpression(
         ParameterExpression context,
+        ParameterExpression execution,
         IReadOnlyList<ParameterExpression> slots,
         IReadOnlyList<IrSlot> slotMetadata,
         IrInstruction instruction
@@ -406,15 +494,18 @@ internal static class DotNetExporter
                 slots[property.Key],
                 Expression.Constant(property.Span)
             ),
-            IrInstruction.Call call => CreateCallExpression(context, slots, call),
+            IrInstruction.ProviderCall call =>
+                CreateProviderCallExpression(context, slots, call),
+            IrInstruction.UserCall call =>
+                CreateUserCallExpression(context, execution, slots, call),
             _ => throw new InvalidOperationException("Unknown IR instruction."),
         };
     }
 
-    private static Expression CreateCallExpression(
+    private static Expression CreateProviderCallExpression(
         ParameterExpression context,
         IReadOnlyList<ParameterExpression> slots,
-        IrInstruction.Call call
+        IrInstruction.ProviderCall call
     )
     {
         MethodCallExpression invocation = Expression.Call(
@@ -426,6 +517,30 @@ internal static class DotNetExporter
                 call.Arguments.Select(argument => slots[argument])
             ),
             Expression.Constant(call.ReturnType),
+            Expression.Constant(call.Span)
+        );
+
+        return call.Destination is null
+            ? invocation
+            : Assign(slots, call.Destination.Value, invocation);
+    }
+
+    private static Expression CreateUserCallExpression(
+        ParameterExpression context,
+        ParameterExpression execution,
+        IReadOnlyList<ParameterExpression> slots,
+        IrInstruction.UserCall call
+    )
+    {
+        MethodCallExpression invocation = Expression.Call(
+            execution,
+            invokeUserFunctionMethod,
+            context,
+            Expression.Constant(call.FunctionId),
+            Expression.NewArrayInit(
+                typeof(object),
+                call.Arguments.Select(argument => slots[argument])
+            ),
             Expression.Constant(call.Span)
         );
 

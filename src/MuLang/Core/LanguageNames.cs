@@ -16,6 +16,7 @@ internal static class LanguageNames
         "false",
         "float",
         "for",
+        "func",
         "has",
         "if",
         "int",

@@ -34,7 +34,9 @@ internal sealed class Parser
         Parser parser = new (source, lexResult.Tokens);
         RootSyntax root = compilationMode switch
         {
-            CompilationMode.Expression => parser.ParseExpressionRoot(),
+            CompilationMode.Expression => parser.Current.Kind == TokenKind.FuncKeyword
+                ? parser.ParseRejectedFunctionDeclarationExpressionRoot()
+                : parser.ParseExpressionRoot(),
             CompilationMode.Program => parser.ParseProgramRoot(),
             _ => throw new ArgumentOutOfRangeException(nameof(compilationMode)),
         };
@@ -76,14 +78,56 @@ internal sealed class Parser
         return new ExpressionRootSyntax(expression, endOfFileToken);
     }
 
+    private ExpressionRootSyntax ParseRejectedFunctionDeclarationExpressionRoot()
+    {
+        SyntaxToken funcKeyword = Current;
+        Report(
+            DiagnosticCodes.FunctionDeclarationNotAllowed,
+            funcKeyword.Span,
+            "Function declarations are only valid at the start of a program."
+        );
+        ParseFunctionDeclaration();
+        SyntaxToken endOfFileToken = Match(TokenKind.EndOfFile);
+        SyntaxToken missingToken = new (
+            TokenKind.Identifier,
+            new TextSpan(funcKeyword.Span.Start, 0),
+            IsMissing: true
+        );
+
+        return new ExpressionRootSyntax(
+            new MissingExpressionSyntax(missingToken),
+            endOfFileToken
+        );
+    }
+
     private ProgramRootSyntax ParseProgramRoot()
     {
+        IList<FunctionDeclarationSyntax> functions = [ ];
         IList<StatementSyntax> statements = [ ];
+        bool hasExecutableStatement = false;
 
         while (Current.Kind != TokenKind.EndOfFile)
         {
             int start = position;
-            statements.Add(ParseStatement());
+
+            if (Current.Kind == TokenKind.FuncKeyword)
+            {
+                if (hasExecutableStatement)
+                {
+                    Report(
+                        DiagnosticCodes.FunctionDeclarationAfterStatement,
+                        Current.Span,
+                        "Function declarations must appear before executable statements."
+                    );
+                }
+
+                functions.Add(ParseFunctionDeclaration());
+            }
+            else
+            {
+                hasExecutableStatement = true;
+                statements.Add(ParseStatement());
+            }
 
             if (position == start)
             {
@@ -93,7 +137,79 @@ internal sealed class Parser
 
         SyntaxToken endOfFileToken = Match(TokenKind.EndOfFile);
 
-        return new ProgramRootSyntax(statements.AsReadOnly(), endOfFileToken);
+        return new ProgramRootSyntax(
+            functions.AsReadOnly(),
+            statements.AsReadOnly(),
+            endOfFileToken
+        );
+    }
+
+    private FunctionDeclarationSyntax ParseFunctionDeclaration()
+    {
+        SyntaxToken funcKeyword = Match(TokenKind.FuncKeyword);
+        SyntaxToken identifierToken = Match(TokenKind.Identifier);
+        SyntaxToken openParenthesisToken = Match(TokenKind.OpenParenthesis);
+        IList<ParameterSyntax> parameters = [ ];
+        IList<SyntaxToken> commaTokens = [ ];
+
+        while (Current.Kind is not TokenKind.CloseParenthesis and not TokenKind.EndOfFile)
+        {
+            int start = position;
+            SyntaxToken parameterName = Match(TokenKind.Identifier);
+            SyntaxToken parameterColonToken = Match(TokenKind.Colon);
+            TypeSyntax parameterType = ParseType(allowVoid: true);
+            parameters.Add(
+                new ParameterSyntax(
+                    parameterName,
+                    parameterColonToken,
+                    parameterType
+                )
+            );
+
+            if (Current.Kind != TokenKind.Comma)
+            {
+                break;
+            }
+
+            commaTokens.Add(ParseToken());
+
+            if (Current.Kind == TokenKind.CloseParenthesis)
+            {
+                Report(
+                    DiagnosticCodes.TrailingSeparator,
+                    commaTokens[^1].Span,
+                    "A trailing comma is not permitted in a parameter list."
+                );
+                break;
+            }
+
+            if (position == start)
+            {
+                ParseToken();
+            }
+        }
+
+        if (Current.Kind != TokenKind.CloseParenthesis)
+        {
+            SynchronizeFunctionHeader();
+        }
+
+        SyntaxToken closeParenthesisToken = Match(TokenKind.CloseParenthesis);
+        SyntaxToken returnColonToken = Match(TokenKind.Colon);
+        TypeSyntax returnType = ParseType(allowVoid: true);
+        BlockStatementSyntax body = ParseBlockStatement(true);
+
+        return new FunctionDeclarationSyntax(
+            funcKeyword,
+            identifierToken,
+            openParenthesisToken,
+            parameters.AsReadOnly(),
+            commaTokens.AsReadOnly(),
+            closeParenthesisToken,
+            returnColonToken,
+            returnType,
+            body
+        );
     }
 
     private StatementSyntax ParseStatement()
@@ -108,17 +224,49 @@ internal sealed class Parser
             TokenKind.BreakKeyword => ParseBreakStatement(),
             TokenKind.ContinueKeyword => ParseContinueStatement(),
             TokenKind.ReturnKeyword => ParseReturnStatement(),
+            TokenKind.FuncKeyword => ParseInvalidNestedFunctionDeclaration(),
             TokenKind.Semicolon => new EmptyStatementSyntax(ParseToken()),
             _ => ParseSimpleStatement(true),
         };
     }
 
-    private BlockStatementSyntax ParseBlockStatement()
+    private void SynchronizeFunctionHeader()
+    {
+        while (
+            Current.Kind is not
+                TokenKind.CloseParenthesis and not
+                TokenKind.OpenBrace and not
+                TokenKind.FuncKeyword and not
+                TokenKind.EndOfFile
+        )
+        {
+            ParseToken();
+        }
+    }
+
+    private StatementSyntax ParseInvalidNestedFunctionDeclaration()
+    {
+        FunctionDeclarationSyntax declaration = ParseFunctionDeclaration();
+        Report(
+            DiagnosticCodes.FunctionDeclarationNotAllowed,
+            declaration.FuncKeyword.Span,
+            "Function declarations are not valid inside another function or statement."
+        );
+
+        return new EmptyStatementSyntax(declaration.FuncKeyword);
+    }
+
+    private BlockStatementSyntax ParseBlockStatement(
+        bool stopAtFunctionDeclaration = false
+    )
     {
         SyntaxToken openBraceToken = Match(TokenKind.OpenBrace);
         IList<StatementSyntax> statements = [ ];
 
-        while (Current.Kind is not TokenKind.CloseBrace and not TokenKind.EndOfFile)
+        while (
+            Current.Kind is not TokenKind.CloseBrace and not TokenKind.EndOfFile &&
+            !(stopAtFunctionDeclaration && Current.Kind == TokenKind.FuncKeyword)
+        )
         {
             int start = position;
             statements.Add(ParseStatement());
@@ -712,9 +860,14 @@ internal sealed class Parser
         );
     }
 
-    private TypeSyntax ParseType(bool isOperatorType = false)
+    private TypeSyntax ParseType(
+        bool isOperatorType = false,
+        bool allowVoid = false
+    )
     {
-        SyntaxToken nameToken = SyntaxFacts.IsTypeName(Current.Kind)
+        SyntaxToken nameToken =
+            SyntaxFacts.IsTypeName(Current.Kind) ||
+            allowVoid && Current.Kind == TokenKind.VoidKeyword
             ? ParseToken() : Match(TokenKind.Identifier);
 
         IList<SyntaxToken> suffixTokens = [ ];

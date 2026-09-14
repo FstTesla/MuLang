@@ -12,6 +12,7 @@ internal abstract record BoundRoot(SyntaxNode Syntax) : BoundNode(Syntax)
 
     internal sealed record Program(
         SyntaxNode Syntax,
+        IReadOnlyList<BoundFunction> Functions,
         IReadOnlyList<BoundStatement> Statements,
         TypeSymbol ResultType
     ) : BoundRoot(Syntax);
