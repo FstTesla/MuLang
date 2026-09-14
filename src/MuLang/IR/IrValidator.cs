@@ -451,6 +451,41 @@ internal static class IrValidator
                 break;
             }
 
+            case IrInstruction.Truthiness truthiness:
+            {
+                ValidateSlotType(
+                    program,
+                    truthiness.Destination,
+                    TypeSymbols.Bool,
+                    truthiness.Span,
+                    diagnostics
+                );
+                IrSlot? source = GetSlot(program, truthiness.Source);
+
+                if (source is null)
+                {
+                    ValidateSlot(
+                        program,
+                        truthiness.Source,
+                        truthiness.Span,
+                        diagnostics
+                    );
+                    break;
+                }
+
+                if (source.Type.Kind == TypeKind.Void)
+                {
+                    Report(
+                        diagnostics,
+                        IrDiagnosticCodes.TypeMismatch,
+                        truthiness.Span,
+                        "IR truthiness source cannot have type 'void'."
+                    );
+                }
+
+                break;
+            }
+
             case IrInstruction.TypeTest typeTest:
             {
                 ValidateSlotType(
@@ -1352,6 +1387,7 @@ internal static class IrValidator
             IrInstruction.Unary unary => unary.Destination,
             IrInstruction.Binary binary => binary.Destination,
             IrInstruction.Convert conversion => conversion.Destination,
+            IrInstruction.Truthiness truthiness => truthiness.Destination,
             IrInstruction.TypeTest typeTest => typeTest.Destination,
             IrInstruction.IsNull isNull => isNull.Destination,
             IrInstruction.HasProperty propertyTest => propertyTest.Destination,
@@ -1373,6 +1409,7 @@ internal static class IrValidator
             IrInstruction.Unary unary => [ unary.Operand ],
             IrInstruction.Binary binary => [ binary.Left, binary.Right ],
             IrInstruction.Convert conversion => [ conversion.Source ],
+            IrInstruction.Truthiness truthiness => [ truthiness.Source ],
             IrInstruction.TypeTest typeTest => [ typeTest.Source ],
             IrInstruction.IsNull isNull => [ isNull.Source ],
             IrInstruction.HasProperty propertyTest =>

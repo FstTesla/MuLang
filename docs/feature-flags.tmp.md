@@ -2,7 +2,7 @@
 
 ## Status
 
-Completed on 2026-09-14. The normative language specification now includes the implemented language-profile system.
+The language-profile infrastructure and the truthiness extension described in Section 17 were completed on 2026-09-14.
 
 The implementation must preserve the complete current language behavior when the default profile is used.
 
@@ -21,9 +21,9 @@ The feature-configuration system should:
 
 ## 2. Non-goals
 
-The first implementation should not:
+The profile-infrastructure milestone should not:
 
-- add comments, user-defined types, first-class functions, or truthiness;
+- add comments, user-defined types, or first-class functions;
 - introduce multiple language versions;
 - make operator precedence or core value semantics configurable;
 - change the environment fingerprint;
@@ -83,7 +83,7 @@ Enums whose values represent independently combinable permissions use `[Flags]`.
 | `ConditionSemantics` | `ConditionSemantics` | No | `StrictBoolean = 0`, `Truthiness = 1` | `StrictBoolean` |
 | `Shadowing` | `ShadowingPolicy` | Yes | `None = 0`, `NestedScopes = 1`, `Globals = 2` | `None` |
 
-`Truthiness` is a reserved public value but is not implemented by the first profile infrastructure milestone. Constructing a profile with this unsupported value must fail explicitly.
+`Truthiness` is implemented as described in Section 17.
 
 ### 4.2. Future option types
 
@@ -548,4 +548,230 @@ The infrastructure is complete when:
 - the IR records the profile fingerprint;
 - the runtime remains profile-independent;
 - existing compiler overloads remain compatible;
+- Debug and Release test suites pass without warnings.
+
+## 17. Truthiness extension plan — completed
+
+Completed on 2026-09-14. The normative language specification includes the implemented semantics.
+
+### 17.1. Settled semantics
+
+`ConditionSemantics.Truthiness` applies to:
+
+- `if` conditions;
+- `while` conditions;
+- `for` conditions;
+- conditional-expression conditions;
+- logical negation `!`;
+- short-circuit operators `&&` and `||`.
+
+The eager operators `&`, `|`, and `^` remain unchanged. They continue to require homogeneous `bool` or `int` operands according to their existing rules.
+
+`&&` and `||` continue to return `bool`. They do not return one of their operand values.
+
+The falsy values are:
+
+| Type | Falsy values |
+|---|---|
+| `null` | `null` |
+| `bool` | `false` |
+| `int` | `0` |
+| `float` | positive zero, negative zero, and NaN |
+| `number` | the falsy value of its concrete runtime `int` or `float` kind |
+| `string` | the empty string |
+
+Every non-null object and array is truthy, including empty objects and arrays.
+
+`unknown` and `unknown?` are accepted in truthy contexts. Their Boolean interpretation is selected from the concrete runtime value.
+
+Object and array adapters cannot customize truthiness.
+
+`void` remains invalid in every truthy context.
+
+Truthiness is contextual language behavior and does not introduce:
+
+- a general implicit conversion to `bool`;
+- a source-level cast to `bool`;
+- flow-sensitive type narrowing;
+- changes to equality or identity operators.
+
+### 17.2. Profile validation
+
+`LanguageProfile` and `LanguageProfileBuilder` must accept both:
+
+- `ConditionSemantics.StrictBoolean`;
+- `ConditionSemantics.Truthiness`.
+
+Unknown enum values remain invalid.
+
+`LanguageProfiles.Version1` continues to use `StrictBoolean`, preserving all existing source behavior.
+
+The profile fingerprint already includes `ConditionSemantics`; no fingerprint-format redesign is required.
+
+### 17.3. Bound representation
+
+Introduce a dedicated internal bound operation that converts a value to a Boolean condition according to the selected condition semantics.
+
+The operation should not use the existing general conversion classification because truthiness is not an assignability or cast rule.
+
+Under `StrictBoolean`:
+
+- existing `bool` expressions remain unchanged;
+- every non-`bool` condition produces the existing type diagnostic.
+
+Under `Truthiness`:
+
+- every non-void value type is accepted;
+- the binder inserts the dedicated Boolean-condition operation;
+- the resulting bound expression has type `bool`.
+
+The binder should normalize all truthy contexts to Boolean bound expressions so control-flow analysis and lowering do not need to branch on the profile.
+
+### 17.4. Operator binding
+
+For `!` under truthiness:
+
+- bind the operand without requiring static `bool`;
+- reject `void`;
+- normalize the operand through the truthiness operation;
+- apply the existing logical-not operation to the normalized Boolean.
+
+For `&&` and `||` under truthiness:
+
+- bind both operands without requiring static `bool`;
+- reject `void`;
+- normalize each operand independently to `bool`;
+- preserve left-to-right short-circuit evaluation;
+- retain static result type `bool`.
+
+The right operand must not be evaluated when short-circuiting selects the result.
+
+### 17.5. Portable IR
+
+Add a dedicated typed IR instruction converting one source slot to a Boolean destination slot using truthiness semantics.
+
+The IR instruction:
+
+- has one source slot;
+- has one `bool` destination slot;
+- retains the source span;
+- does not carry the complete language profile.
+
+The IR validator must verify:
+
+- the destination is `bool`;
+- the source is not `void`;
+- both slots exist;
+- the source is definitely defined.
+
+Strict-Boolean programs should not require this instruction when the source expression is already `bool`.
+
+### 17.6. .NET runtime
+
+Add one centralized runtime operation that maps MuLang runtime values to Boolean truthiness:
+
+- `null` returns `false`;
+- `bool` returns its value;
+- `long` returns whether it is nonzero;
+- `double` returns `false` for positive zero, negative zero, and NaN, otherwise `true`;
+- `string` returns whether its length is nonzero;
+- `IDotNetObjectValue` returns `true`;
+- `IDotNetArrayValue` returns `true`;
+- unsupported CLR representations produce a MuLang runtime-value error.
+
+The operation must not enumerate object properties or array elements and must not invoke adapter members merely to determine truthiness.
+
+The operation consumes only its normal IR-instruction budget cost. It does not perform deep traversal.
+
+### 17.7. Lowering and exporter
+
+Lower the dedicated bound condition operation directly to the truthiness IR instruction.
+
+The .NET exporter maps the IR instruction to the centralized runtime operation.
+
+Existing branch terminators continue to consume a slot already typed as `bool`.
+
+Short-circuit and conditional lowering remain structurally unchanged because their conditions are normalized during binding.
+
+### 17.8. Diagnostics
+
+Under `StrictBoolean`, preserve the existing diagnostics for non-Boolean conditions and logical operands.
+
+Under `Truthiness`, no diagnostic is produced solely because a condition has a non-Boolean type.
+
+`void` expressions continue to produce an invalid-void or operator-not-defined diagnostic consistent with the current context.
+
+Runtime values inconsistent with their declared MuLang type continue to fail at provider/runtime boundaries before truthiness is applied where possible.
+
+### 17.9. Test plan
+
+Add profile tests proving:
+
+- `Truthiness` is accepted by `LanguageProfile`;
+- `Truthiness` is accepted immediately by `LanguageProfileBuilder`;
+- the fingerprint differs from `StrictBoolean`;
+- the standard profile remains strict.
+
+Add binder tests for:
+
+- every control-flow condition context;
+- `!`, `&&`, and `||`;
+- `unknown` and nullable operands;
+- `void` rejection;
+- normalized Boolean bound nodes.
+
+Add runtime tests for every falsy value:
+
+- `null`;
+- `false`;
+- integer zero;
+- positive floating-point zero;
+- negative floating-point zero;
+- NaN;
+- empty string.
+
+Add runtime tests for representative truthy values:
+
+- `true`;
+- nonzero positive and negative integers;
+- finite nonzero positive and negative floats;
+- infinity;
+- nonempty strings;
+- empty and nonempty objects;
+- empty and nonempty arrays.
+
+Add short-circuit tests proving that provider calls in skipped operands are not invoked.
+
+Add tests proving:
+
+- `&&` and `||` return `bool`;
+- eager `&`, `|`, and `^` behavior is unchanged;
+- adapters cannot customize truthiness;
+- unsupported runtime representations fail explicitly;
+- existing strict-Boolean tests remain unchanged.
+
+### 17.10. Implementation order
+
+1. Permit `ConditionSemantics.Truthiness` in profile validation and builder validation.
+2. Add the bound truthiness operation.
+3. Normalize control-flow conditions in the binder.
+4. Extend `!`, `&&`, and `||` binding.
+5. Add the truthiness IR instruction and validation.
+6. Extend lowering.
+7. Add the centralized .NET runtime operation.
+8. Extend the .NET exporter.
+9. Add layered tests.
+10. Update the normative language specification only after implementation.
+11. Run full Debug and Release regression suites.
+
+### 17.11. Completion criteria
+
+Truthiness is complete when:
+
+- every settled falsy/truthy rule is implemented;
+- all condition contexts share one normalized Boolean representation;
+- `&&` and `||` remain Boolean and short-circuit correctly;
+- eager Boolean operators remain unchanged;
+- `unknown`, nullable values, objects, and arrays behave as specified;
+- the standard strict profile preserves current diagnostics;
 - Debug and Release test suites pass without warnings.

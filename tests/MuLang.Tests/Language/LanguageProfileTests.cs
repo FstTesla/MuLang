@@ -221,6 +221,7 @@ public sealed class LanguageProfileTests
     [TestCase("optionalAccess")]
     [TestCase("loopControl")]
     [TestCase("trailingCommas")]
+    [TestCase("conditions")]
     [TestCase("shadowing")]
     public void FingerprintChangesForEveryConfigurableSupportedConcern(string concern)
     {
@@ -250,6 +251,9 @@ public sealed class LanguageProfileTests
             ),
             "trailingCommas" => TestLanguageProfileFactory.Create(
                 trailingCommas: TrailingCommasFeature.Disabled
+            ),
+            "conditions" => TestLanguageProfileFactory.Create(
+                conditionSemantics: ConditionSemantics.Truthiness
             ),
             "shadowing" => TestLanguageProfileFactory.Create(
                 shadowing: ShadowingPolicy.Globals
@@ -290,15 +294,46 @@ public sealed class LanguageProfileTests
     }
 
     [Test]
-    public void RejectsTruthiness()
+    public void AcceptsTruthinessInProfileAndBuilder()
     {
-        Assert.That(
-            static () => TestLanguageProfileFactory.Create(
-                conditionSemantics: ConditionSemantics.Truthiness
-            ),
-            Throws.ArgumentException.With.Property("ParamName")
-                .EqualTo("conditionSemantics")
+        LanguageProfile direct = new (
+            LanguageVersion.Version1,
+            UserDefinedFunctionsFeature.Enabled,
+            RecursionFeature.Enabled,
+            LoopFeatures.While | LoopFeatures.For,
+            ProviderFunctionCallsFeature.Enabled,
+            OpenObjectsFeature.Enabled,
+            MutationFeatures.ObjectProperties |
+            MutationFeatures.ArrayElements |
+            MutationFeatures.PropertyRemoval,
+            OptionalAccessFeature.Enabled,
+            MultiLevelLoopControlFeature.Enabled,
+            TrailingCommasFeature.Enabled,
+            ConditionSemantics.Truthiness,
+            ShadowingPolicy.None
         );
+        LanguageProfileBuilder builder = new ();
+
+        Assert.DoesNotThrow(
+            () => builder.WithConditionSemantics(ConditionSemantics.Truthiness)
+        );
+        LanguageProfile built = builder.Build();
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(
+                direct.ConditionSemantics,
+                Is.EqualTo(ConditionSemantics.Truthiness)
+            );
+            Assert.That(
+                built.ConditionSemantics,
+                Is.EqualTo(ConditionSemantics.Truthiness)
+            );
+            Assert.That(
+                direct.Fingerprint,
+                Is.Not.EqualTo(LanguageProfiles.Version1.Fingerprint)
+            );
+        }
     }
 
     [TestCaseSource(nameof(InvalidConfigurations))]
@@ -386,7 +421,7 @@ public sealed class LanguageProfileTests
         yield return static builder =>
             builder.WithTrailingCommas((TrailingCommasFeature)99);
         yield return static builder =>
-            builder.WithConditionSemantics(ConditionSemantics.Truthiness);
+            builder.WithConditionSemantics((ConditionSemantics)99);
         yield return static builder =>
             builder.WithShadowing((ShadowingPolicy)4);
         yield return static builder =>

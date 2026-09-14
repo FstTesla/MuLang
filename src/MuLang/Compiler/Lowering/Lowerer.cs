@@ -489,6 +489,11 @@ internal sealed class Lowerer
 
         if (isInfinite)
         {
+            if (loop.Condition is not null)
+            {
+                LowerExpression(loop.Condition);
+            }
+
             builder.Terminate(new IrTerminator.Jump(loop.Span, bodyBlock));
         }
         else
@@ -573,6 +578,7 @@ internal sealed class Lowerer
             BoundExpression.Unary unary => LowerUnary(unary),
             BoundExpression.Binary binary => LowerBinary(binary),
             BoundExpression.Conversion conversion => LowerConversion(conversion),
+            BoundExpression.Truthiness truthiness => LowerTruthiness(truthiness),
             BoundExpression.TypeTest typeTest => LowerTypeTest(typeTest),
             BoundExpression.PropertyTest propertyTest => LowerPropertyTest(propertyTest),
             BoundExpression.Conditional conditional => LowerConditional(conditional),
@@ -752,7 +758,8 @@ internal sealed class Lowerer
     private int LowerConversion(BoundExpression.Conversion expression)
     {
         if (
-            expression is {
+            expression is
+            {
                 Expression: BoundExpression.Literal { Type.Kind: TypeKind.Null },
                 Type: NullableTypeSymbol,
             }
@@ -780,6 +787,39 @@ internal sealed class Lowerer
                 sourceSlot,
                 expression.Type,
                 expression.ConversionKind == ConversionKind.Checked
+            )
+        );
+
+        return destination;
+    }
+
+    private int LowerTruthiness(BoundExpression.Truthiness expression)
+    {
+        if (
+            expression.Expression is BoundExpression.Literal &&
+            BoundTruthinessFacts.TryEvaluate(expression, out bool value)
+        )
+        {
+            int constantDestination = CreateTemporary(TypeSymbols.Bool);
+            builder.Emit(
+                new IrInstruction.Constant(
+                    expression.Span,
+                    constantDestination,
+                    TypeSymbols.Bool,
+                    value
+                )
+            );
+
+            return constantDestination;
+        }
+
+        int source = LowerExpression(expression.Expression);
+        int destination = CreateTemporary(TypeSymbols.Bool);
+        builder.Emit(
+            new IrInstruction.Truthiness(
+                expression.Span,
+                destination,
+                source
             )
         );
 
@@ -1026,11 +1066,7 @@ internal sealed class Lowerer
 
     private static bool IsConstantTrue(BoundExpression expression)
     {
-        return expression is BoundExpression.Literal
-        {
-            Type.Kind: TypeKind.Bool,
-            Value: true,
-        };
+        return BoundTruthinessFacts.TryEvaluate(expression, out bool value) && value;
     }
 
     private static IrUnaryOperator MapUnaryOperator(TokenKind kind)

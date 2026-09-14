@@ -5,9 +5,6 @@
   - User-defined types
   - First-class functions and function types
 - Feature flags:
-  - Truthiness
-  - User-defined functions
   - Comments
   - User-defined types
   - First-class functions and function types
-  - Other existing features?

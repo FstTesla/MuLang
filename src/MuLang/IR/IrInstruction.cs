@@ -47,6 +47,12 @@ internal abstract record IrInstruction(TextSpan Span)
         bool IsChecked
     ) : IrInstruction(Span);
 
+    internal sealed record Truthiness(
+        TextSpan Span,
+        int Destination,
+        int Source
+    ) : IrInstruction(Span);
+
     internal sealed record TypeTest(
         TextSpan Span,
         int Destination,

@@ -72,6 +72,11 @@ internal abstract record BoundExpression(
         ConversionKind ConversionKind
     ) : BoundExpression(Syntax, Type);
 
+    internal sealed record Truthiness(
+        SyntaxNode Syntax,
+        BoundExpression Expression
+    ) : BoundExpression(Syntax, TypeSymbols.Bool);
+
     internal sealed record TypeTest(
         SyntaxNode Syntax,
         BoundExpression Expression,

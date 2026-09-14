@@ -593,7 +593,7 @@ Comparisons explicitly defined for `null` do not require non-null operands.
 
 The conditional expression follows C# precedence and right associativity.
 
-Its condition MUST have type `bool`.
+Its condition MUST satisfy the selected condition semantics in Section 18.9.
 
 Its branches MUST have a common type according to the language conversion rules.
 
@@ -607,7 +607,7 @@ Operator behavior is defined by MuLang types and MUST NOT be delegated directly 
 
 No user-defined operators exist.
 
-The initial language version uses strict Boolean conditions and does not use truthiness.
+The selected language profile determines whether Boolean contexts use strict Boolean conditions or truthiness.
 
 ### 11.2. Precedence
 
@@ -709,9 +709,13 @@ The key expression is evaluated exactly once. The `has` operator does not read t
 
 ### 11.7. Boolean operators
 
-`!`, `&&`, and `||` require Boolean operands.
+Under strict Boolean condition semantics, `!`, `&&`, and `||` require Boolean operands.
+
+Under truthiness condition semantics, each non-void operand is normalized to `bool` according to Section 18.9 before the operator is applied.
 
 `&&` and `||` short-circuit and evaluate operands from left to right.
+
+`&&` and `||` always produce `bool`; they never return an operand value.
 
 ### 11.8. Structural equality
 
@@ -844,13 +848,13 @@ No other expression can be used as a statement.
 
 ### 12.8. Conditional statements
 
-An `if` condition MUST have type `bool`.
+An `if` condition MUST satisfy the selected condition semantics in Section 18.9.
 
 The `else` branch is optional and associates with the nearest unmatched `if`.
 
 ### 12.9. While statements
 
-A `while` condition MUST have type `bool`.
+A `while` condition MUST satisfy the selected condition semantics in Section 18.9.
 
 The condition is evaluated before every iteration.
 
@@ -866,6 +870,8 @@ The initializer MAY be:
 - one function call without its terminating semicolon.
 
 The condition MAY be absent. An absent condition is equivalent to `true`.
+
+A present condition MUST satisfy the selected condition semantics in Section 18.9.
 
 The iterator MAY be:
 
@@ -959,6 +965,8 @@ Adapters define:
 - array length;
 - logical identity;
 - conversion between runtime values and MuLang values.
+
+Adapters do not define or customize truthiness. Determining truthiness MUST NOT enumerate properties or elements, access adapter members, or perform deep traversal.
 
 Static mutability is intentionally not represented in the first-version type system.
 
@@ -1077,7 +1085,7 @@ The profile options and stable numeric values are:
 
 `Loops`, `Mutations`, and `Shadowing` are independently combinable flag enums. The remaining options are ordinary enums.
 
-`Truthiness` is reserved but unsupported in version one. Profile construction MUST reject it, unknown enum values, unknown flag bits, and unsupported language versions. A dependent option MAY be enabled while its prerequisite is disabled; it remains dormant rather than making the profile invalid.
+Both condition-semantics values are supported in version one. Profile construction MUST reject unknown enum values, unknown flag bits, and unsupported language versions. A dependent option MAY be enabled while its prerequisite is disabled; it remains dormant rather than making the profile invalid.
 
 ### 18.1. Profile fingerprint and compilation identity
 
@@ -1154,7 +1162,24 @@ Combining both values permits both forms. `None` prohibits both and preserves th
 
 ### 18.9. Conditions and diagnostics
 
-Version one supports only strict Boolean conditions. Every condition is required to have type `bool`.
+`ConditionSemantics.StrictBoolean` requires `if`, `while`, `for`, and conditional-expression conditions to have type `bool`. It also requires `!`, `&&`, and `||` operands to have type `bool`. Non-Boolean values produce the existing type or operator diagnostic.
+
+`ConditionSemantics.Truthiness` accepts every non-void type in those contexts and normalizes the value to `bool` with these rules:
+
+| Runtime value | Boolean result |
+|---|---|
+| `null` | `false` |
+| `false` | `false` |
+| `int` zero | `false` |
+| `float` positive zero, negative zero, or NaN | `false` |
+| empty `string` | `false` |
+| every other supported value | `true` |
+
+A value with static type `number` dispatches according to its concrete runtime `int` or `float` representation. Values with static type `unknown` or `unknown?` dispatch according to their concrete runtime value. Every non-null object and array is truthy, including empty values.
+
+Truthiness is contextual. It does not add an implicit conversion to `bool`, a source-level Boolean cast, flow-sensitive narrowing, or changes to equality and identity. `void` remains invalid. Unsupported runtime representations produce a MuLang invalid-runtime-value error.
+
+The standard `LanguageProfiles.Version1` profile uses `StrictBoolean`.
 
 Each disabled feature or independently controllable member MUST use its dedicated stable diagnostic code. Diagnostics do not carry separate feature metadata. Recognized disabled syntax SHOULD be retained sufficiently for later phases to recover and report independent diagnostics.
 
@@ -1182,11 +1207,14 @@ The portable IR compilation unit SHOULD contain:
 - provider calls by stable symbolic identifier;
 - user-defined calls by compiler-assigned stable identifier;
 - explicit conversions;
+- truthiness normalization from one non-void source slot to one `bool` destination slot;
 - branches and jumps;
 - returns;
 - source-span associations.
 
 The IR MUST encode evaluation order and short-circuit behavior explicitly.
+
+The IR validator MUST require a truthiness-normalization destination to have type `bool`, its source to have a non-void type, both slots to exist, and the source to be definitely defined.
 
 Runtime exporters MUST NOT perform name resolution, type inference, overload resolution, or high-level control-flow interpretation.
 

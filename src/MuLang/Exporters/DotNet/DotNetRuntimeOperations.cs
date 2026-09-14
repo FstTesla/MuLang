@@ -59,6 +59,24 @@ internal static class DotNetRuntimeOperations
             : throw InvalidValue("Expected a Boolean value.", span);
     }
 
+    public static bool Truthiness(object? value, TextSpan span)
+    {
+        return value switch
+        {
+            null => false,
+            bool boolean => boolean,
+            long integer => integer != 0,
+            double number => number != 0 && !double.IsNaN(number),
+            string text => text.Length != 0,
+            IDotNetObjectValue => true,
+            IDotNetArrayValue => true,
+            _ => throw InvalidValue(
+                "Runtime value has an unsupported truthiness representation.",
+                span
+            ),
+        };
+    }
+
     public static object? Unary(
         IrUnaryOperator operation,
         object? operand,

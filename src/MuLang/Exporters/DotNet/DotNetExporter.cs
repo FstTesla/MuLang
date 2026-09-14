@@ -47,6 +47,12 @@ internal static class DotNetExporter
         typeof(TextSpan)
     );
 
+    private static readonly MethodInfo truthinessMethod = GetMethod(
+        nameof(DotNetRuntimeOperations.Truthiness),
+        typeof(object),
+        typeof(TextSpan)
+    );
+
     private static readonly MethodInfo unaryMethod = GetMethod(
         nameof(DotNetRuntimeOperations.Unary),
         typeof(IrUnaryOperator),
@@ -402,6 +408,15 @@ internal static class DotNetExporter
                     Expression.Constant(slotMetadata[conversion.Source].Type),
                     Expression.Constant(conversion.TargetType),
                     Expression.Constant(conversion.Span)
+                )
+            ),
+            IrInstruction.Truthiness truthiness => AssignBoxed(
+                slots,
+                truthiness.Destination,
+                Expression.Call(
+                    truthinessMethod,
+                    slots[truthiness.Source],
+                    Expression.Constant(truthiness.Span)
                 )
             ),
             IrInstruction.TypeTest typeTest => AssignBoxed(

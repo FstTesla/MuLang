@@ -103,14 +103,6 @@ public sealed record LanguageProfile
     )
     {
         ValidateDefined(value, parameterName);
-
-        if (value != ConditionSemantics.StrictBoolean)
-        {
-            throw new ArgumentException(
-                $"Condition semantics '{value}' are not supported.",
-                parameterName
-            );
-        }
     }
 
     internal static void ValidateDefined<T>(T value, string parameterName)

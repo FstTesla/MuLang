@@ -613,7 +613,7 @@ internal sealed class Binder
 
     private BoundStatement BindIfStatement(IfStatementSyntax syntax, FlowState state)
     {
-        BoundExpression condition = BindExpression(syntax.Condition, TypeSymbols.Bool);
+        BoundExpression condition = BindCondition(syntax.Condition);
         FlowState thenState = state.Clone();
         BoundStatement thenStatement = BindEmbeddedStatement(
             syntax.ThenStatement,
@@ -649,7 +649,7 @@ internal sealed class Binder
         }
 
         bool wasReachable = state.CanCompleteNormally;
-        BoundExpression condition = BindExpression(syntax.Condition, TypeSymbols.Bool);
+        BoundExpression condition = BindCondition(syntax.Condition);
         FlowState bodyState = state.Clone();
         LoopFlowContext loopContext = new ();
         loopContexts.Push(loopContext);
@@ -694,7 +694,7 @@ internal sealed class Binder
             : BindStatement(syntax.Initializer, state);
         BoundExpression? condition = syntax.Condition is null
             ? null
-            : BindExpression(syntax.Condition, TypeSymbols.Bool);
+            : BindCondition(syntax.Condition);
         FlowState bodyState = state.Clone();
         LoopFlowContext loopContext = new ();
         loopContexts.Push(loopContext);
@@ -1366,6 +1366,36 @@ internal sealed class Binder
     private BoundExpression BindUnaryExpression(UnaryExpressionSyntax syntax)
     {
         BoundExpression operand = BindExpression(syntax.Operand);
+
+        if (
+            syntax.OperatorToken.Kind == TokenKind.Bang &&
+            profile.ConditionSemantics == ConditionSemantics.Truthiness
+        )
+        {
+            if (operand.Type.Kind == TypeKind.Error)
+            {
+                return new BoundExpression.Error(syntax);
+            }
+
+            if (operand.Type.Kind == TypeKind.Void)
+            {
+                ReportOperatorNotDefined(
+                    syntax.OperatorToken,
+                    operand.Type
+                );
+                return new BoundExpression.Error(syntax);
+            }
+
+            operand = NormalizeTruthiness(operand);
+
+            return new BoundExpression.Unary(
+                syntax,
+                TypeSymbols.Bool,
+                syntax.OperatorToken.Kind,
+                operand
+            );
+        }
+
         TypeSymbol operandType = GetNonNullable(operand.Type);
         TypeSymbol? resultType = syntax.OperatorToken.Kind switch
         {
@@ -1410,6 +1440,35 @@ internal sealed class Binder
         if (left.Type.Kind == TypeKind.Error || right.Type.Kind == TypeKind.Error)
         {
             return new BoundExpression.Error(syntax);
+        }
+
+        if (
+            syntax.OperatorToken.Kind is
+                TokenKind.AmpersandAmpersand or
+                TokenKind.PipePipe &&
+            profile.ConditionSemantics == ConditionSemantics.Truthiness
+        )
+        {
+            if (
+                left.Type.Kind == TypeKind.Void ||
+                right.Type.Kind == TypeKind.Void
+            )
+            {
+                ReportOperatorNotDefined(
+                    syntax.OperatorToken,
+                    left.Type,
+                    right.Type
+                );
+                return new BoundExpression.Error(syntax);
+            }
+
+            return new BoundExpression.Binary(
+                syntax,
+                TypeSymbols.Bool,
+                NormalizeTruthiness(left),
+                syntax.OperatorToken.Kind,
+                NormalizeTruthiness(right)
+            );
         }
 
         TypeSymbol leftType = GetNonNullable(left.Type);
@@ -1632,7 +1691,7 @@ internal sealed class Binder
         TypeSymbol? expectedType
     )
     {
-        BoundExpression condition = BindExpression(syntax.Condition, TypeSymbols.Bool);
+        BoundExpression condition = BindCondition(syntax.Condition);
         BoundExpression whenTrue = BindExpression(syntax.WhenTrue, expectedType);
         BoundExpression whenFalse = BindExpression(syntax.WhenFalse, expectedType);
         TypeSymbol? resultType = expectedType ??
@@ -1658,6 +1717,36 @@ internal sealed class Binder
             whenTrue,
             whenFalse
         );
+    }
+
+    private BoundExpression BindCondition(ExpressionSyntax syntax)
+    {
+        if (profile.ConditionSemantics == ConditionSemantics.StrictBoolean)
+        {
+            return BindExpression(syntax, TypeSymbols.Bool);
+        }
+
+        BoundExpression expression = BindExpression(syntax);
+
+        if (expression.Type.Kind == TypeKind.Error)
+        {
+            return expression;
+        }
+
+        if (expression.Type.Kind == TypeKind.Void)
+        {
+            ReportTypeMismatch(syntax.Span, expression.Type, TypeSymbols.Bool);
+            return expression;
+        }
+
+        return NormalizeTruthiness(expression);
+    }
+
+    private static BoundExpression NormalizeTruthiness(BoundExpression expression)
+    {
+        return expression.Type.Kind == TypeKind.Bool
+            ? expression
+            : new BoundExpression.Truthiness(expression.Syntax, expression);
     }
 
     private BoundExpression BindCallExpression(CallExpressionSyntax syntax)
@@ -2224,11 +2313,7 @@ internal sealed class Binder
 
     private static bool IsConstantTrue(BoundExpression expression)
     {
-        return expression is BoundExpression.Literal
-        {
-            Type.Kind: TypeKind.Bool,
-            Value: true,
-        };
+        return BoundTruthinessFacts.TryEvaluate(expression, out bool value) && value;
     }
 
     private void ValidateEnvironmentCompatibility()
