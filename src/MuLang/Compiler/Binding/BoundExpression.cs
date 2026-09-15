@@ -65,6 +65,13 @@ internal abstract record BoundExpression(
         BoundExpression Right
     ) : BoundExpression(Syntax, Type);
 
+    internal sealed record Coalescing(
+        SyntaxNode Syntax,
+        TypeSymbol Type,
+        BoundExpression Left,
+        BoundExpression Right
+    ) : BoundExpression(Syntax, Type);
+
     internal sealed record Conversion(
         SyntaxNode Syntax,
         TypeSymbol Type,

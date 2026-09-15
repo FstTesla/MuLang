@@ -5,6 +5,10 @@ applyTo: '**'
 
 # Conversation behavior
 
+Preserve per-file line endings and encoding. For new files, deduce them from the rest of the solution; as a fallback, assume CRLF and UTF-8 without BOM.
+
+---
+
 Be concise. Do not repeat yourself. Avoid unnecessary explanations and enthusiastic language.
 
 ---

@@ -20,8 +20,9 @@ The initial release target is `0.1.0-alpha.1`. Release versions are derived from
 | Tag format | `v<major>.<minor>.<patch>[-<prerelease>]` |
 | Package structure | One package for the initial releases |
 | API compatibility | Automatically enforced |
+| Assembly signing | Strong-name sign every assembly with the root `MuLang.snk` key |
 | Symbols and sources | Publish a symbol package with Source Link |
-| Package icon | Deferred |
+| Package icon | `MuLang.png`, generated from `MuLang.svg` |
 
 ## 1. Establish Package Identity and Legal Metadata
 
@@ -36,18 +37,20 @@ The initial release target is `0.1.0-alpha.1`. Release versions are derived from
    - project URL;
    - repository URL and repository type;
    - package tags;
+   - package icon;
    - README;
    - copyright;
    - package release notes source.
 4. Set `PackageRequireLicenseAcceptance` to `false`, consistently with common Apache-2.0 package distribution.
-5. Keep the package icon unset until an approved asset exists rather than publishing a placeholder.
-6. Ensure the README and license are included at the package root.
+5. Configure `MuLang.png` as the package icon and include it at the package root.
+6. Retain `MuLang.svg` as the editable vector source without including it in the package.
+7. Ensure the README and license are included at the package root.
 
 Completion criteria:
 
 - `dotnet pack` emits no package metadata warnings.
 - The generated manifest contains all decided metadata.
-- NuGet clients display the README and license correctly.
+- NuGet clients display the README, license, and icon correctly.
 
 ## 2. Introduce Git-Derived Versioning
 
@@ -120,19 +123,23 @@ Completion criteria:
 - Package validation detects binary or source compatibility regressions against the configured baseline.
 - Intentional prerelease breaks remain visible in version control and release notes.
 
-## 5. Configure Symbols, Determinism, and Source Link
+## 5. Configure Assembly Signing, Symbols, Determinism, and Source Link
 
-1. Preserve deterministic and continuous-integration build settings already defined in `Directory.Build.props`.
-2. Configure repository metadata required by Source Link.
-3. Confirm whether the .NET 10 SDK provides the required GitHub Source Link integration without an additional package; add a private Source Link dependency only if validation proves it necessary.
-4. Produce portable PDB files.
-5. Generate a `.snupkg` symbol package.
-6. Include source revision information in assembly informational metadata.
-7. Verify that published PDB documents resolve to immutable commit-specific GitHub URLs.
-8. Verify source debugging from a clean consumer project using only the `.nupkg` and `.snupkg`.
+1. Preserve strong-name signing for every project through `Directory.Build.targets` and the root `MuLang.snk` key.
+2. Keep signed friend-assembly declarations tied to the full public key rather than only the assembly name.
+3. Preserve deterministic and continuous-integration build settings already defined in `Directory.Build.props`.
+4. Configure repository metadata required by Source Link.
+5. Confirm whether the .NET 10 SDK provides the required GitHub Source Link integration without an additional package; add a private Source Link dependency only if validation proves it necessary.
+6. Produce portable PDB files.
+7. Generate a `.snupkg` symbol package.
+8. Include source revision information in assembly informational metadata.
+9. Verify that published PDB documents resolve to immutable commit-specific GitHub URLs.
+10. Verify source debugging from a clean consumer project using only the `.nupkg` and `.snupkg`.
 
 Completion criteria:
 
+- Every produced assembly has the expected public key token.
+- `InternalsVisibleTo` remains valid for the signed test assembly.
 - Packing produces both `.nupkg` and `.snupkg`.
 - The symbol package is accepted by NuGet.org validation.
 - A debugger can retrieve the matching source for a packaged assembly.
@@ -181,6 +188,7 @@ Expected main package contents:
 - `lib\net10.0\MuLang.dll`;
 - `lib\net10.0\MuLang.xml`;
 - `README.md`;
+- `MuLang.png`;
 - `LICENSE`.
 
 Expected symbol package contents:
@@ -278,5 +286,4 @@ The following operational values become available during execution:
 - development-build prerelease identifier;
 - exact floating major versions for MinVer and PublicApiAnalyzers;
 - NuGet.org package ownership and trusted-publishing configuration;
-- package icon for a later release;
 - previous-package baseline selection after `0.1.0-alpha.1` is published.

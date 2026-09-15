@@ -91,7 +91,7 @@ public sealed class LanguageProfileIrTests
         EnvironmentSchema environment = new EnvironmentBuilder().Build();
         LanguageProfile firstProfile = LanguageProfiles.Version1;
         LanguageProfile secondProfile = TestLanguageProfileFactory.Create(
-            optionalAccess: OptionalAccessFeature.Disabled
+            loops: LoopFeatures.For
         );
         IrProgram first = LowerExpression("1", environment, firstProfile);
         IrProgram second = LowerExpression("1", environment, secondProfile);

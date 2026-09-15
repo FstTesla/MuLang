@@ -61,6 +61,8 @@ Program mode accepts a sequence of statements followed by the end of the source 
 
 Program mode MAY begin with zero or more top-level function declarations. All function declarations MUST precede executable statements.
 
+The availability of user-defined function declarations and recursion depends on the language profile as defined in Section 18.2.
+
 A pure expression is not a statement. A function call is the only expression permitted as an expression statement.
 
 A non-void program MUST return a value on every reachable path. A void program MAY complete without an explicit `return`.
@@ -233,6 +235,8 @@ Equality, identity comparison, assignment to another compatible location, argume
 
 It represents a non-null object with dynamically named properties whose values have type `unknown?`.
 
+The dynamic operations exposed by `object` depend on the open-objects profile option as defined in Section 18.5.
+
 Arrays and primitive values are not objects.
 
 `object?` additionally accepts `null`.
@@ -254,6 +258,8 @@ Structured objects are closed by default.
 A closed object rejects access to, assignment to, and removal of properties not declared by its schema.
 
 An open structured object retains its known properties and permits additional dynamic properties.
+
+The availability of open structured objects and their dynamic operations depends on the language profile as defined in Section 18.5.
 
 Additional properties always have type `unknown?`.
 
@@ -415,9 +421,13 @@ A local variable name MUST NOT match any local or global variable name visible a
 
 Local variable shadowing is not supported, including shadowing of global variables.
 
+The permitted forms of shadowing depend on the language profile as defined in Section 18.8.
+
 Function names and variable names occupy distinct namespaces because functions are not first-class values and can only occur in call position.
 
 Top-level user-defined functions are visible throughout the complete program, including within functions declared earlier. Direct and mutual recursion are supported.
+
+The availability of user-defined functions and recursion depends on the language profile as defined in Section 18.2.
 
 Function parameters establish the root variable scope of their function body. Parameters are definitely assigned, immutable, and cannot be shadowed by local or global variables.
 
@@ -428,6 +438,8 @@ Function bodies cannot access locals declared by top-level executable statements
 Global variables are declared by the provider.
 
 Global bindings are read-only from MuLang source. If a global value is an object or array, its contents MAY still be mutated through the supported property and element operations.
+
+The availability of those mutation operations depends on the language profile as defined in Section 18.6.
 
 ## 10. Expressions
 
@@ -444,6 +456,7 @@ The language supports:
 - function calls;
 - unary operations;
 - binary operations;
+- null-coalescing expressions;
 - conditional expressions;
 - explicit checked conversions;
 - runtime type checks;
@@ -473,6 +486,8 @@ An array literal contains zero or more comma-separated expressions enclosed in s
 
 A non-empty array literal MAY contain one trailing comma after its final expression.
 
+The availability of trailing commas depends on the language profile as defined in Section 18.7.
+
 All elements MUST have a common type under the implicit conversion rules. Each element is converted to that common type.
 
 Numeric elements use the numeric conversion hierarchy to determine their common type: `int` with `float` produces `float`, while a static `number` element produces `number`.
@@ -489,7 +504,11 @@ A closed object literal contains zero or more comma-separated property initializ
 
 An open object literal contains the same contents enclosed in `@{` and `}`.
 
+The availability of open object literals depends on the language profile as defined in Section 18.5.
+
 A non-empty object literal MAY contain one trailing comma after its final property initializer.
+
+The availability of trailing commas depends on the language profile as defined in Section 18.7.
 
 Each property initializer consists of an identifier or string literal property name, either the `:` token or the optional-property `?:` token, and a required expression.
 
@@ -521,6 +540,8 @@ Access to a known property has the type declared by the structured object schema
 
 Access to a dynamic property of an open object has type `unknown?`.
 
+The availability of dynamic property access depends on the language profile as defined in Section 18.5.
+
 A dynamic property may be present with the value `null`. Property absence remains distinct from a present null value and can be tested with `has`.
 
 Access to an absent optional or dynamic property produces a runtime error unless optional access is used.
@@ -531,7 +552,9 @@ Access to a member through a nullable value is statically permitted but produces
 
 Optional property access uses `target?.property`.
 
-Optional element access uses `target?.[index]`. The dot before the opening bracket is required to keep optional element access unambiguous with a conditional expression whose true branch begins with an array literal.
+Optional element access uses `target?.[index]`.
+
+Optional access is always available and is not controlled by the language profile.
 
 When the target is `null`, optional access:
 
@@ -563,11 +586,15 @@ The intrinsic `length` property is not considered an object property and is not 
 
 Functions may be declared by the provider or by leading top-level `func` declarations in program mode.
 
+The declaration and invocation of user-defined functions are controlled as defined in Section 18.2. Calls to provider functions are independently controlled as defined in Section 18.4.
+
 Function names are resolved only in call position.
 
 Functions are synchronous, cannot be overloaded, and require exactly the declared number of arguments.
 
 User-defined functions require explicit parameter and return types. They may return `void`, support forward calls and recursion, and are not first-class values.
+
+The availability of recursion depends on the language profile as defined in Section 18.2.
 
 User-defined function names MUST NOT conflict with provider function names. User-defined functions cannot be nested.
 
@@ -589,6 +616,8 @@ The operation MUST validate the operand at runtime and produce a MuLang runtime 
 
 Comparisons explicitly defined for `null` do not require non-null operands.
 
+Null coalescing is explicitly defined for nullable operands in Section 11.8.
+
 ### 10.10. Conditional expression
 
 The conditional expression follows C# precedence and right associativity.
@@ -607,7 +636,7 @@ Operator behavior is defined by MuLang types and MUST NOT be delegated directly 
 
 No user-defined operators exist.
 
-The selected language profile determines whether Boolean contexts use strict Boolean conditions or truthiness.
+The selected language profile determines whether Boolean contexts use strict Boolean conditions or truthiness as defined in Section 18.9.
 
 ### 11.2. Precedence
 
@@ -625,9 +654,10 @@ Operators are listed from highest to lowest precedence.
 | Equality | `==`, `!=`, `===`, `!==` | None |
 | Bitwise AND | `&` | Left |
 | Bitwise XOR | `^` | Left |
-| Bitwise OR | `|` | Left |
+| Bitwise OR | <code>&#124;</code> | Left |
 | Conditional AND | `&&` | Left |
-| Conditional OR | `||` | Left |
+| Conditional OR | <code>&#124;&#124;</code> | Left |
+| Null coalescing | `??` | Right |
 | Conditional | `? :` | Right |
 
 The postfix property-removal token `~` is a statement terminator and is not part of expression precedence.
@@ -701,6 +731,8 @@ For `null`, `is` evaluates to `true` only when the tested type is nullable. The 
 
 `target has key` checks whether an object currently contains a property. The key expression MUST have type `string`.
 
+Dynamic property-existence tests depend on the open-objects profile option as defined in Section 18.5.
+
 The target of `has` MUST have `object`, structured object, or a nullable form of either as its static type. A `null` target produces a runtime error.
 
 `has` evaluates to `true` when the property is present, regardless of whether its value is `null`. It evaluates to `false` when the property is absent.
@@ -717,7 +749,23 @@ Under truthiness condition semantics, each non-void operand is normalized to `bo
 
 `&&` and `||` always produce `bool`; they never return an operand value.
 
-### 11.8. Structural equality
+### 11.8. Null-coalescing operator
+
+The null-coalescing expression `left ?? right` evaluates `left` exactly once.
+
+Null coalescing is always available and is not controlled by the language profile.
+
+The left operand MUST have a nullable type or be the `null` literal. The right operand MUST have a non-void type.
+
+If the left operand is not `null`, its value is converted to the result type and returned without evaluating the right operand. Otherwise, the right operand is evaluated, converted to the result type, and returned.
+
+For the `null` literal on the left, the result type is the type of the right operand.
+
+For a left operand of type `T?`, the result type is the common type of non-null `T` and the right operand. The left operand does not by itself make the result nullable: the result is nullable only when the right operand and the common-type rules require it.
+
+An expression whose non-null left value and right operand have no common result type is invalid.
+
+### 11.9. Structural equality
 
 `==` performs recursive structural equality.
 
@@ -735,7 +783,7 @@ Structural equality MUST safely handle cyclic object and array graphs by trackin
 
 `null` is structurally equal only to `null`.
 
-### 11.9. Identity equality
+### 11.10. Identity equality
 
 `===` performs identity equality.
 
@@ -804,6 +852,8 @@ Valid assignment targets are:
 - a known or dynamic object property;
 - an array element.
 
+The availability of object-property and array-element assignment depends on the language profile as defined in Section 18.6. Dynamic object-property assignment additionally depends on Section 18.5.
+
 The intrinsic array `length` property is not an assignment target.
 
 Global bindings cannot be assigned.
@@ -817,6 +867,8 @@ Compound assignments are not included in the first language version.
 ### 12.6. Property removal
 
 Property removal uses postfix `~` followed by a semicolon.
+
+The availability of property removal depends on the language profile as defined in Section 18.6. Removal through the additional-property space of an open object additionally depends on Section 18.5.
 
 The operand MUST be a property access or string-keyed element access.
 
@@ -856,11 +908,15 @@ The `else` branch is optional and associates with the nearest unmatched `if`.
 
 A `while` condition MUST satisfy the selected condition semantics in Section 18.9.
 
+The availability of `while` statements depends on the language profile as defined in Section 18.3.
+
 The condition is evaluated before every iteration.
 
 ### 12.10. For statements
 
 The `for` statement uses C#-style initializer, condition, and iterator clauses.
+
+The availability of `for` statements depends on the language profile as defined in Section 18.3.
 
 The initializer MAY be:
 
@@ -888,6 +944,8 @@ Multiple comma-separated initializers or iterators are not supported.
 `break` and `continue` are valid only within `while` or `for`.
 
 Each statement MAY include one positive integer literal indicating the number of enclosing loops affected. The literal defaults to `1` when omitted and MUST NOT exceed the number of loops enclosing the statement.
+
+The availability of explicit loop-control levels depends on the language profile as defined in Section 18.3.
 
 `break` terminates the selected enclosing loop.
 
@@ -919,6 +977,8 @@ The provider supplies an immutable static environment containing:
 - stable symbolic identifiers.
 
 Every structured object type referenced directly or indirectly by a global, function parameter, function return type, array element, nullable type, or structured property MUST be registered in the static environment. Every reference to the same stable type identifier MUST resolve to the same type declaration.
+
+Profile compatibility requirements for provider-declared open structured types are defined in Section 18.5.
 
 The compiler resolves source names exclusively against local declarations and the static environment.
 
@@ -967,6 +1027,8 @@ Adapters define:
 - conversion between runtime values and MuLang values.
 
 Adapters do not define or customize truthiness. Determining truthiness MUST NOT enumerate properties or elements, access adapter members, or perform deep traversal.
+
+The condition-semantics profile option and truthiness rules are defined in Section 18.9.
 
 Static mutability is intentionally not represented in the first-version type system.
 
@@ -1051,6 +1113,8 @@ Every diagnostic MUST contain:
 
 The compiler SHOULD continue after recoverable errors to report multiple independent diagnostics.
 
+Diagnostics for syntax or capabilities disabled by the selected language profile are defined in Section 18.10.
+
 No executable artifact may be produced when error diagnostics are present.
 
 ## 18. Language profiles
@@ -1063,27 +1127,22 @@ A language profile is immutable and contains:
 - one independently typed enum value for each configurable concern;
 - a deterministic language-profile fingerprint.
 
-A profile may be created directly or through a fluent builder. The builder may start from the standard profile or an existing profile, validates each change immediately, and produces independent immutable profile snapshots.
-
-The standard version-one profile preserves all language syntax, capabilities, and policies described by the rest of this specification unless this section explicitly permits a restriction. It enables user-defined functions, recursion, both loop kinds, provider function calls, open objects, every mutation kind, optional access, explicit loop-control levels, and trailing commas. It uses strict Boolean conditions and prohibits variable shadowing.
+The standard version-one profile preserves all language syntax, capabilities, and policies described by the rest of this specification unless this section explicitly permits a restriction. It enables user-defined functions, recursion, both loop kinds, provider function calls, open objects, every mutation kind, explicit loop-control levels, and trailing commas. It uses strict Boolean conditions and prohibits variable shadowing.
 
 The profile options and stable numeric values are:
 
-| Property | Values |
-|---|---|
-| `UserDefinedFunctions` | `Disabled = 0`, `Enabled = 1` |
-| `Recursion` | `Disabled = 0`, `Enabled = 1` |
-| `Loops` | `None = 0`, `While = 1`, `For = 2` |
-| `ProviderFunctionCalls` | `Disabled = 0`, `Enabled = 1` |
-| `OpenObjects` | `Disabled = 0`, `Enabled = 1` |
-| `Mutations` | `None = 0`, `ObjectProperties = 1`, `ArrayElements = 2`, `PropertyRemoval = 4` |
-| `OptionalAccess` | `Disabled = 0`, `Enabled = 1` |
-| `MultiLevelLoopControl` | `Disabled = 0`, `Enabled = 1` |
-| `TrailingCommas` | `Disabled = 0`, `Enabled = 1` |
-| `ConditionSemantics` | `StrictBoolean = 0`, `Truthiness = 1` |
-| `Shadowing` | `None = 0`, `NestedScopes = 1`, `Globals = 2` |
-
-`Loops`, `Mutations`, and `Shadowing` are independently combinable flag enums. The remaining options are ordinary enums.
+| Property | Values | Combinable |
+|---|---|---|
+| `UserDefinedFunctions` | `Disabled = 0`, `Enabled = 1` | No |
+| `Recursion` | `Disabled = 0`, `Enabled = 1` | No |
+| `Loops` | `None = 0`, `While = 1`, `For = 2` | Yes |
+| `ProviderFunctionCalls` | `Disabled = 0`, `Enabled = 1` | No |
+| `OpenObjects` | `Disabled = 0`, `Enabled = 1` | No |
+| `Mutations` | `None = 0`, `ObjectProperties = 1`, `ArrayElements = 2`, `PropertyRemoval = 4` | Yes |
+| `MultiLevelLoopControl` | `Disabled = 0`, `Enabled = 1` | No |
+| `TrailingCommas` | `Disabled = 0`, `Enabled = 1` | No |
+| `ConditionSemantics` | `StrictBoolean = 0`, `Truthiness = 1` | No |
+| `Shadowing` | `None = 0`, `NestedScopes = 1`, `Globals = 2` | Yes |
 
 Both condition-semantics values are supported in version one. Profile construction MUST reject unknown enum values, unknown flag bits, and unsupported language versions. A dependent option MAY be enabled while its prerequisite is disabled; it remains dormant rather than making the profile invalid.
 
@@ -1144,9 +1203,7 @@ Closed structured types remain valid. Their statically known properties remain a
 
 Mutation restrictions apply regardless of whether the value originated from a literal, global, parameter, property, array element, or function result.
 
-### 18.7. Optional access and trailing commas
-
-When optional access is disabled, `?.` and `?.[` are recognized for recovery and rejected with a dedicated diagnostic. Nullable types and ordinary nullable runtime validation remain available.
+### 18.7. Trailing commas
 
 When trailing commas are disabled, a trailing comma is rejected in array, closed-object, and open-object literals. Trailing commas in argument and parameter lists remain unconditional grammar errors.
 
@@ -1160,7 +1217,7 @@ Same-scope duplicate declarations are invalid under every shadowing policy.
 
 Combining both values permits both forms. `None` prohibits both and preserves the standard version-one policy.
 
-### 18.9. Conditions and diagnostics
+### 18.9. Conditions
 
 `ConditionSemantics.StrictBoolean` requires `if`, `while`, `for`, and conditional-expression conditions to have type `bool`. It also requires `!`, `&&`, and `||` operands to have type `bool`. Non-Boolean values produce the existing type or operator diagnostic.
 
@@ -1180,6 +1237,8 @@ A value with static type `number` dispatches according to its concrete runtime `
 Truthiness is contextual. It does not add an implicit conversion to `bool`, a source-level Boolean cast, flow-sensitive narrowing, or changes to equality and identity. `void` remains invalid. Unsupported runtime representations produce a MuLang invalid-runtime-value error.
 
 The standard `LanguageProfiles.Version1` profile uses `StrictBoolean`.
+
+### 18.10. Diagnostics
 
 Each disabled feature or independently controllable member MUST use its dedicated stable diagnostic code. Diagnostics do not carry separate feature metadata. Recognized disabled syntax SHOULD be retained sufficiently for later phases to recover and report independent diagnostics.
 
@@ -1207,6 +1266,7 @@ The portable IR compilation unit SHOULD contain:
 - provider calls by stable symbolic identifier;
 - user-defined calls by compiler-assigned stable identifier;
 - explicit conversions;
+- explicit null tests and branches for null-coalescing evaluation;
 - truthiness normalization from one non-void source slot to one `bool` destination slot;
 - branches and jumps;
 - returns;
@@ -1221,6 +1281,8 @@ Runtime exporters MUST NOT perform name resolution, type inference, overload res
 The first language version does not require the IR to be public or serializable.
 
 ## 20. Grammar summary
+
+This grammar describes the complete version-one syntax. A selected language profile may reject otherwise recognized function, loop, mutation, open-object, or trailing-comma constructs as defined in Sections 18.2 through 18.7.
 
 ```ebnf
 expression-root
@@ -1363,3 +1425,4 @@ The following choices are made by this draft and require explicit review before 
 12. Open object literals use `@{`, while closed object literals use `{`.
 13. Arrays expose a read-only intrinsic `length` property that is not an object property.
 14. Checked conversion success and runtime mutation capabilities cannot always be queried before performing the corresponding operation.
+15. Null coalescing uses C# precedence and associativity, requires a nullable left operand, and derives its result from the non-null left type and the right operand.

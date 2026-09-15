@@ -61,7 +61,6 @@ internal static class DiagnosticCodes
     public const string DisabledObjectPropertyMutation = "MUL7007";
     public const string DisabledArrayElementMutation = "MUL7008";
     public const string DisabledPropertyRemoval = "MUL7009";
-    public const string DisabledOptionalAccess = "MUL7010";
     public const string DisabledMultiLevelLoopControl = "MUL7011";
     public const string DisabledTrailingCommas = "MUL7012";
 }

@@ -728,6 +728,104 @@ public sealed class BinderTests
     }
 
     [Test]
+    public void InfersNullCoalescingCommonTypeFromNonNullLeftValue()
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddGlobal(
+                "global.value",
+                "value",
+                TypeSymbols.Nullable(TypeSymbols.Int)
+            )
+            .Build();
+        BindingResult result = BindExpression("value ?? 2.5", environment);
+        BoundRoot.Expression root = (BoundRoot.Expression)result.Root;
+        BoundExpression.Coalescing coalescing =
+            (BoundExpression.Coalescing)root.Value;
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(coalescing.Type, Is.SameAs(TypeSymbols.Float));
+            Assert.That(result.Diagnostics, Is.Empty);
+        }
+    }
+
+    [Test]
+    public void PreservesNullabilityWhenNullCoalescingRightOperandIsNullable()
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddGlobal(
+                "global.value",
+                "value",
+                TypeSymbols.Nullable(TypeSymbols.Int)
+            )
+            .Build();
+        BindingResult result = BindExpression("value ?? null", environment);
+        BoundRoot.Expression root = (BoundRoot.Expression)result.Root;
+        BoundExpression.Coalescing coalescing =
+            (BoundExpression.Coalescing)root.Value;
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(
+                TypeRelations.AreEquivalent(
+                    coalescing.Type,
+                    TypeSymbols.Nullable(TypeSymbols.Int)
+                ),
+                Is.True
+            );
+            Assert.That(result.Diagnostics, Is.Empty);
+        }
+    }
+
+    [Test]
+    public void ReportsNonNullableNullCoalescingLeftOperand()
+    {
+        BindingResult result = BindExpression(
+            "1 ?? 2",
+            new EnvironmentBuilder().Build()
+        );
+
+        AssertDiagnostic(result, DiagnosticCodes.OperatorNotDefined);
+    }
+
+    [Test]
+    public void ReportsNonLiteralNullCoalescingLeftOperand()
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddGlobal("global.condition", "condition", TypeSymbols.Bool)
+            .Build();
+        BindingResult result = BindExpression(
+            "(condition ? null : null) ?? 2",
+            environment
+        );
+
+        AssertDiagnostic(result, DiagnosticCodes.OperatorNotDefined);
+    }
+
+    [Test]
+    public void ReportsContextualNullCoalescingTypeMismatch()
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddGlobal(
+                "global.value",
+                "value",
+                TypeSymbols.Nullable(TypeSymbols.Int)
+            )
+            .Build();
+        BindingResult result = BindExpression(
+            "value ?? 1",
+            environment,
+            TypeSymbols.String
+        );
+
+        AssertDiagnostic(result, DiagnosticCodes.TypeMismatch);
+        Assert.That(
+            result.Diagnostics.Select(static diagnostic => diagnostic.Message),
+            Has.None.Contains("have no common result type")
+        );
+    }
+
+    [Test]
     public void NormalizesNullableOperatorOperandsWithCheckedConversions()
     {
         EnvironmentSchema environment = new EnvironmentBuilder()

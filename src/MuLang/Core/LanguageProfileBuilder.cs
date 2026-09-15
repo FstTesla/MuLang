@@ -9,7 +9,6 @@ public sealed class LanguageProfileBuilder
     private ProviderFunctionCallsFeature providerFunctionCalls;
     private OpenObjectsFeature openObjects;
     private MutationFeatures mutations;
-    private OptionalAccessFeature optionalAccess;
     private MultiLevelLoopControlFeature multiLevelLoopControl;
     private TrailingCommasFeature trailingCommas;
     private ConditionSemantics conditionSemantics;
@@ -32,7 +31,6 @@ public sealed class LanguageProfileBuilder
         providerFunctionCalls = profile.ProviderFunctionCalls;
         openObjects = profile.OpenObjects;
         mutations = profile.Mutations;
-        optionalAccess = profile.OptionalAccess;
         multiLevelLoopControl = profile.MultiLevelLoopControl;
         trailingCommas = profile.TrailingCommas;
         conditionSemantics = profile.ConditionSemantics;
@@ -142,16 +140,6 @@ public sealed class LanguageProfileBuilder
         return this;
     }
 
-    public LanguageProfileBuilder WithOptionalAccess(
-        OptionalAccessFeature optionalAccess
-    )
-    {
-        LanguageProfile.ValidateDefined(optionalAccess, nameof(optionalAccess));
-        this.optionalAccess = optionalAccess;
-
-        return this;
-    }
-
     public LanguageProfileBuilder WithMultiLevelLoopControl(
         MultiLevelLoopControlFeature multiLevelLoopControl
     )
@@ -222,7 +210,6 @@ public sealed class LanguageProfileBuilder
             providerFunctionCalls,
             openObjects,
             mutations,
-            optionalAccess,
             multiLevelLoopControl,
             trailingCommas,
             conditionSemantics,

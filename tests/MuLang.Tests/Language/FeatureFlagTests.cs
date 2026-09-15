@@ -477,37 +477,6 @@ public sealed class FeatureFlagTests
         );
     }
 
-    [TestCase("item?.value")]
-    [TestCase("item?.[\"value\"]")]
-    public void DisablesOptionalAccessWithRecovery(string source)
-    {
-        ObjectTypeSymbol itemType = new (
-            "type.item",
-            "Item",
-            false,
-            [ new ObjectPropertySymbol("value", TypeSymbols.Int) ]
-        );
-        EnvironmentSchema environment = new EnvironmentBuilder()
-            .AddType(itemType)
-            .AddGlobal(
-                "global.item",
-                "item",
-                TypeSymbols.Nullable(itemType)
-            )
-            .Build();
-        LanguageProfile profile = TestLanguageProfileFactory.Create(
-            optionalAccess: OptionalAccessFeature.Disabled
-        );
-        CompilationResult result = MuLangCompiler.CompileExpression(
-            source,
-            environment,
-            null,
-            profile
-        );
-
-        AssertDiagnosticCount(result, DiagnosticCodes.DisabledOptionalAccess, 1);
-    }
-
     [TestCase("var values: int[] = [1,];")]
     [TestCase("var value = { item: 1, };")]
     [TestCase("var value = @{ item: 1, };")]

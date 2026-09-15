@@ -967,6 +967,8 @@ internal sealed class Binder
             ObjectLiteralExpressionSyntax objectLiteral =>
                 BindObjectExpression(objectLiteral, expectedType),
             UnaryExpressionSyntax unary => BindUnaryExpression(unary),
+            BinaryExpressionSyntax { OperatorToken.Kind: TokenKind.QuestionQuestion }
+                binary => BindCoalescingExpression(binary, expectedType),
             BinaryExpressionSyntax binary => BindBinaryExpression(binary),
             ConversionExpressionSyntax conversion => BindConversionExpression(conversion),
             TypeTestExpressionSyntax typeTest => BindTypeTestExpression(typeTest),
@@ -1505,6 +1507,100 @@ internal sealed class Binder
         );
     }
 
+    private BoundExpression BindCoalescingExpression(
+        BinaryExpressionSyntax syntax,
+        TypeSymbol? expectedType
+    )
+    {
+        BoundExpression left = BindExpression(syntax.Left);
+        BoundExpression right = BindExpression(syntax.Right, expectedType);
+
+        if (left.Type.Kind == TypeKind.Error || right.Type.Kind == TypeKind.Error)
+        {
+            return new BoundExpression.Error(syntax);
+        }
+
+        TypeSymbol? leftValueType = left switch
+        {
+            { Type: NullableTypeSymbol nullable } => nullable.UnderlyingType,
+            BoundExpression.Literal { Type.Kind: TypeKind.Null } => null,
+            _ => TypeSymbols.Error,
+        };
+
+        if (ReferenceEquals(leftValueType, TypeSymbols.Error))
+        {
+            ReportOperatorNotDefined(
+                syntax.OperatorToken,
+                left.Type,
+                right.Type
+            );
+            return new BoundExpression.Error(syntax);
+        }
+
+        if (right.Type.Kind == TypeKind.Void)
+        {
+            ReportOperatorNotDefined(
+                syntax.OperatorToken,
+                left.Type,
+                right.Type
+            );
+            return new BoundExpression.Error(syntax);
+        }
+
+        if (expectedType is not null)
+        {
+            bool leftIsAssignable = true;
+            bool rightIsAssignable = TypeRelations.IsAssignable(
+                right.Type,
+                expectedType
+            );
+
+            if (
+                leftValueType is not null &&
+                !TypeRelations.IsAssignable(leftValueType, expectedType)
+            )
+            {
+                ReportTypeMismatch(
+                    syntax.Left.Span,
+                    leftValueType,
+                    expectedType
+                );
+                leftIsAssignable = false;
+            }
+
+            if (!leftIsAssignable || !rightIsAssignable)
+            {
+                return new BoundExpression.Error(syntax);
+            }
+        }
+
+        TypeSymbol? resultType = expectedType ??
+            (
+                leftValueType is null
+                    ? right.Type
+                    : TypeRelations.GetCommonType(leftValueType, right.Type)
+            );
+
+        if (resultType is null)
+        {
+            Report(
+                DiagnosticCodes.TypeMismatch,
+                syntax.Span,
+                $"Null-coalescing operands '{left.Type.DisplayName}' and '{right.Type.DisplayName}' have no common result type."
+            );
+            return new BoundExpression.Error(syntax);
+        }
+
+        right = ConvertImplicit(right, resultType);
+
+        return new BoundExpression.Coalescing(
+            syntax,
+            resultType,
+            left,
+            right
+        );
+    }
+
     private static TypeSymbol? GetBinaryResultType(
         TokenKind operatorKind,
         TypeSymbol left,
@@ -1864,18 +1960,6 @@ internal sealed class Binder
 
     private BoundExpression BindMemberAccess(MemberAccessExpressionSyntax syntax)
     {
-        if (
-            syntax.IsOptional &&
-            profile.OptionalAccess == OptionalAccessFeature.Disabled
-        )
-        {
-            ReportFeature(
-                DiagnosticCodes.DisabledOptionalAccess,
-                syntax.OperatorToken.Span,
-                "Optional access is disabled by the language profile."
-            );
-        }
-
         BoundExpression target = BindExpression(syntax.Target);
         string name = GetText(syntax.NameToken);
         TypeSymbol targetType = GetNonNullable(target.Type);
@@ -1986,18 +2070,6 @@ internal sealed class Binder
 
     private BoundExpression BindElementAccess(ElementAccessExpressionSyntax syntax)
     {
-        if (
-            syntax.IsOptional &&
-            profile.OptionalAccess == OptionalAccessFeature.Disabled
-        )
-        {
-            ReportFeature(
-                DiagnosticCodes.DisabledOptionalAccess,
-                syntax.OpenBracketToken.Span,
-                "Optional access is disabled by the language profile."
-            );
-        }
-
         BoundExpression target = BindExpression(syntax.Target);
         TypeSymbol targetType = GetNonNullable(target.Type);
 

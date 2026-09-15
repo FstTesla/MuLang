@@ -24,6 +24,59 @@ public sealed class ParserTests
     }
 
     [Test]
+    public void ParsesNullCoalescingWithCSharpPrecedenceAndAssociativity()
+    {
+        SyntaxTree tree = ParseExpression("a || b ?? c ?? d ? e : f");
+        ExpressionRootSyntax root = (ExpressionRootSyntax)tree.Root;
+        ConditionalExpressionSyntax conditional =
+            (ConditionalExpressionSyntax)root.Expression;
+        BinaryExpressionSyntax firstCoalescing =
+            (BinaryExpressionSyntax)conditional.Condition;
+        BinaryExpressionSyntax conditionalOr =
+            (BinaryExpressionSyntax)firstCoalescing.Left;
+        BinaryExpressionSyntax secondCoalescing =
+            (BinaryExpressionSyntax)firstCoalescing.Right;
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(
+                firstCoalescing.OperatorToken.Kind,
+                Is.EqualTo(TokenKind.QuestionQuestion)
+            );
+            Assert.That(
+                conditionalOr.OperatorToken.Kind,
+                Is.EqualTo(TokenKind.PipePipe)
+            );
+            Assert.That(
+                secondCoalescing.OperatorToken.Kind,
+                Is.EqualTo(TokenKind.QuestionQuestion)
+            );
+            Assert.That(tree.Diagnostics, Is.Empty);
+        }
+    }
+
+    [Test]
+    public void DistinguishesNullableTypeSuffixFromNullCoalescing()
+    {
+        SyntaxTree tree = ParseExpression("value as int? ?? 0");
+        ExpressionRootSyntax root = (ExpressionRootSyntax)tree.Root;
+        BinaryExpressionSyntax coalescing =
+            (BinaryExpressionSyntax)root.Expression;
+        ConversionExpressionSyntax conversion =
+            (ConversionExpressionSyntax)coalescing.Left;
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(
+                coalescing.OperatorToken.Kind,
+                Is.EqualTo(TokenKind.QuestionQuestion)
+            );
+            Assert.That(conversion.Type.SuffixTokens, Has.Count.EqualTo(1));
+            Assert.That(tree.Diagnostics, Is.Empty);
+        }
+    }
+
+    [Test]
     public void CombinesLeadingSignWithNumericLiteral()
     {
         SyntaxTree tree = ParseExpression("- 9223372036854775808");

@@ -93,6 +93,93 @@ public sealed class DotNetExporterTests
         }
     }
 
+    [Test]
+    public void NullCoalescingEvaluatesFallbackOnlyForNull()
+    {
+        int invocationCount = 0;
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddGlobal(
+                "global.value",
+                "value",
+                TypeSymbols.Nullable(TypeSymbols.Int)
+            )
+            .AddFunction("function.fallback", "fallback", [ ], TypeSymbols.Int)
+            .Build();
+        Func<DotNetRuntimeContext, object?> compiled = CompileExpression(
+            "value ?? fallback()",
+            environment
+        );
+        IEnumerable<KeyValuePair<string, DotNetFunction>> functions =
+        [
+            new KeyValuePair<string, DotNetFunction>(
+                "function.fallback",
+                _ =>
+                {
+                    invocationCount++;
+                    return 42L;
+                }
+            ),
+        ];
+        DotNetRuntimeContext nonNullContext = CreateContext(
+            environment,
+            [ new KeyValuePair<string, object?>("global.value", 7L) ],
+            functions
+        );
+        DotNetRuntimeContext nullContext = CreateContext(
+            environment,
+            [ new KeyValuePair<string, object?>("global.value", null) ],
+            functions
+        );
+
+        object? nonNullResult = compiled(nonNullContext);
+        object? nullResult = compiled(nullContext);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(nonNullResult, Is.EqualTo(7L));
+            Assert.That(nullResult, Is.EqualTo(42L));
+            Assert.That(invocationCount, Is.EqualTo(1));
+        }
+    }
+
+    [Test]
+    public void NullCoalescingEvaluatesRightOperandForNullLiteral()
+    {
+        EnvironmentSchema environment = CreateEmptyEnvironment();
+        Func<DotNetRuntimeContext, object?> compiled = CompileExpression(
+            "null ?? 42",
+            environment
+        );
+
+        Assert.That(compiled(CreateContext(environment)), Is.EqualTo(42L));
+    }
+
+    [TestCase(1L, 1.0)]
+    [TestCase(null, 2.5)]
+    public void NullCoalescingConvertsToTheCommonNumericType(
+        object? value,
+        double expected
+    )
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddGlobal(
+                "global.value",
+                "value",
+                TypeSymbols.Nullable(TypeSymbols.Int)
+            )
+            .Build();
+        Func<DotNetRuntimeContext, object?> compiled = CompileExpression(
+            "value ?? 2.5",
+            environment
+        );
+        DotNetRuntimeContext context = CreateContext(
+            environment,
+            [ new KeyValuePair<string, object?>("global.value", value) ]
+        );
+
+        Assert.That(compiled(context), Is.EqualTo(expected));
+    }
+
     [TestCase("false & touch()", false)]
     [TestCase("true | touch()", true)]
     [TestCase("true ^ touch()", false)]

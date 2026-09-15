@@ -12,7 +12,6 @@ public static class LanguageProfiles
         MutationFeatures.ObjectProperties |
         MutationFeatures.ArrayElements |
         MutationFeatures.PropertyRemoval,
-        OptionalAccessFeature.Enabled,
         MultiLevelLoopControlFeature.Enabled,
         TrailingCommasFeature.Enabled,
         ConditionSemantics.StrictBoolean,

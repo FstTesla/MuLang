@@ -642,7 +642,13 @@ internal sealed class Parser
 
                 default:
                 {
-                    ExpressionSyntax right = ParseExpression(precedence);
+                    int rightPrecedence =
+                        SyntaxFacts.IsRightAssociativeBinaryOperator(
+                            operatorToken.Kind
+                        )
+                            ? precedence - 1
+                            : precedence;
+                    ExpressionSyntax right = ParseExpression(rightPrecedence);
                     left = operatorToken.Kind == TokenKind.HasKeyword
                         ? new PropertyTestExpressionSyntax(left, operatorToken, right)
                         : new BinaryExpressionSyntax(left, operatorToken, right);
@@ -651,7 +657,7 @@ internal sealed class Parser
             }
         }
 
-        if (parentPrecedence == 0 && Current.Kind == TokenKind.Question)
+        if (parentPrecedence < 1 && Current.Kind == TokenKind.Question)
         {
             SyntaxToken questionToken = ParseToken();
             ExpressionSyntax whenTrue = ParseExpression();
@@ -839,7 +845,6 @@ internal sealed class Parser
                 case TokenKind.OptionalDot:
                 {
                     SyntaxToken operatorToken = ParseToken();
-                    ReportDisabledOptionalAccess(operatorToken);
                     SyntaxToken nameToken = Match(TokenKind.Identifier);
                     expression = new MemberAccessExpressionSyntax(
                         expression,
@@ -853,7 +858,6 @@ internal sealed class Parser
                 case TokenKind.OptionalOpenBracket:
                 {
                     SyntaxToken openBracketToken = ParseToken();
-                    ReportDisabledOptionalAccess(openBracketToken);
                     ExpressionSyntax index = ParseExpression();
                     SyntaxToken closeBracketToken = Match(TokenKind.CloseBracket);
                     expression = new ElementAccessExpressionSyntax(
@@ -973,6 +977,53 @@ internal sealed class Parser
         bool isOperatorType
     )
     {
+        if (!isOperatorType && Current.Kind == TokenKind.QuestionQuestion)
+        {
+            SyntaxToken combinedToken = ParseToken();
+            SyntaxToken firstQuestion = new (
+                TokenKind.Question,
+                new TextSpan(combinedToken.Span.Start, 1)
+            );
+            SyntaxToken secondQuestion = new (
+                TokenKind.Question,
+                new TextSpan(combinedToken.Span.Start + 1, 1)
+            );
+            suffixTokens.Add(firstQuestion);
+            suffixTokens.Add(secondQuestion);
+            ReportRepeatedNullableAnnotation(secondQuestion);
+
+            while (
+                Current.Kind is
+                    TokenKind.Question or
+                    TokenKind.QuestionQuestion
+            )
+            {
+                SyntaxToken repeatedToken = ParseToken();
+
+                if (repeatedToken.Kind == TokenKind.Question)
+                {
+                    suffixTokens.Add(repeatedToken);
+                    ReportRepeatedNullableAnnotation(repeatedToken);
+                    continue;
+                }
+
+                SyntaxToken repeatedFirstQuestion = new (
+                    TokenKind.Question,
+                    new TextSpan(repeatedToken.Span.Start, 1)
+                );
+                SyntaxToken repeatedSecondQuestion = new (
+                    TokenKind.Question,
+                    new TextSpan(repeatedToken.Span.Start + 1, 1)
+                );
+                suffixTokens.Add(repeatedFirstQuestion);
+                suffixTokens.Add(repeatedSecondQuestion);
+                ReportRepeatedNullableAnnotation(repeatedFirstQuestion);
+                ReportRepeatedNullableAnnotation(repeatedSecondQuestion);
+            }
+
+            return;
+        }
+
         if (!ShouldConsumeNullableSuffix(isOperatorType))
         {
             return;
@@ -984,12 +1035,17 @@ internal sealed class Parser
         {
             SyntaxToken questionToken = ParseToken();
             suffixTokens.Add(questionToken);
-            Report(
-                DiagnosticCodes.RepeatedNullableAnnotation,
-                questionToken.Span,
-                "A type construction cannot have more than one nullable annotation."
-            );
+            ReportRepeatedNullableAnnotation(questionToken);
         }
+    }
+
+    private void ReportRepeatedNullableAnnotation(SyntaxToken questionToken)
+    {
+        Report(
+            DiagnosticCodes.RepeatedNullableAnnotation,
+            questionToken.Span,
+            "A type construction cannot have more than one nullable annotation."
+        );
     }
 
     private bool ShouldConsumeNullableSuffix(bool isOperatorType)
@@ -1089,25 +1145,6 @@ internal sealed class Parser
             DiagnosticCodes.DisabledMultiLevelLoopControl,
             (levelSignToken ?? levelToken).Span,
             "Explicit loop-control levels are disabled by the language profile."
-        );
-    }
-
-    private void ReportDisabledOptionalAccess(SyntaxToken operatorToken)
-    {
-        if (
-            operatorToken.Kind is not
-                TokenKind.OptionalDot and not
-                TokenKind.OptionalOpenBracket ||
-            profile.OptionalAccess == OptionalAccessFeature.Enabled
-        )
-        {
-            return;
-        }
-
-        Report(
-            DiagnosticCodes.DisabledOptionalAccess,
-            operatorToken.Span,
-            "Optional access is disabled by the language profile."
         );
     }
 

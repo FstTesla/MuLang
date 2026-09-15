@@ -44,6 +44,7 @@ internal enum TokenKind
     OptionalPropertyColon,
     Semicolon,
     Question,
+    QuestionQuestion,
     OptionalDot,
     OptionalOpenBracket,
     Plus,

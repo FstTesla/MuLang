@@ -577,6 +577,7 @@ internal sealed class Lowerer
             BoundExpression.Object objectValue => LowerObject(objectValue),
             BoundExpression.Unary unary => LowerUnary(unary),
             BoundExpression.Binary binary => LowerBinary(binary),
+            BoundExpression.Coalescing coalescing => LowerCoalescing(coalescing),
             BoundExpression.Conversion conversion => LowerConversion(conversion),
             BoundExpression.Truthiness truthiness => LowerTruthiness(truthiness),
             BoundExpression.TypeTest typeTest => LowerTypeTest(typeTest),
@@ -883,6 +884,66 @@ internal sealed class Lowerer
         builder.SwitchTo(falseBlock);
         int falseValue = LowerExpression(expression.WhenFalse);
         builder.Emit(new IrInstruction.Copy(expression.WhenFalse.Span, result, falseValue));
+        builder.Terminate(new IrTerminator.Jump(expression.Span, mergeBlock));
+        builder.SwitchTo(mergeBlock);
+
+        return result;
+    }
+
+    private int LowerCoalescing(BoundExpression.Coalescing expression)
+    {
+        if (expression.Left.Type.Kind == TypeKind.Null)
+        {
+            return LowerExpression(expression.Right);
+        }
+
+        int result = CreateTemporary(expression.Type);
+        int left = LowerExpression(expression.Left);
+        int isNull = CreateTemporary(TypeSymbols.Bool);
+        builder.Emit(
+            new IrInstruction.IsNull(
+                expression.Left.Span,
+                isNull,
+                left
+            )
+        );
+
+        int rightBlock = builder.CreateBlock();
+        int leftBlock = builder.CreateBlock();
+        int mergeBlock = builder.CreateBlock();
+        builder.Terminate(
+            new IrTerminator.Branch(
+                expression.Left.Span,
+                isNull,
+                rightBlock,
+                leftBlock
+            )
+        );
+
+        builder.SwitchTo(leftBlock);
+
+        if (TypeRelations.AreEquivalent(expression.Left.Type, expression.Type))
+        {
+            builder.Emit(new IrInstruction.Copy(expression.Left.Span, result, left));
+        }
+        else
+        {
+            builder.Emit(
+                new IrInstruction.Convert(
+                    expression.Left.Span,
+                    result,
+                    left,
+                    expression.Type,
+                    false
+                )
+            );
+        }
+
+        builder.Terminate(new IrTerminator.Jump(expression.Span, mergeBlock));
+
+        builder.SwitchTo(rightBlock);
+        int right = LowerExpression(expression.Right);
+        builder.Emit(new IrInstruction.Copy(expression.Right.Span, result, right));
         builder.Terminate(new IrTerminator.Jump(expression.Span, mergeBlock));
         builder.SwitchTo(mergeBlock);
 

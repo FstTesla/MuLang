@@ -10,7 +10,6 @@ public sealed record LanguageProfile
         ProviderFunctionCallsFeature providerFunctionCalls,
         OpenObjectsFeature openObjects,
         MutationFeatures mutations,
-        OptionalAccessFeature optionalAccess,
         MultiLevelLoopControlFeature multiLevelLoopControl,
         TrailingCommasFeature trailingCommas,
         ConditionSemantics conditionSemantics,
@@ -30,7 +29,6 @@ public sealed record LanguageProfile
             MutationFeatures.PropertyRemoval,
             nameof(mutations)
         );
-        ValidateDefined(optionalAccess, nameof(optionalAccess));
         ValidateDefined(multiLevelLoopControl, nameof(multiLevelLoopControl));
         ValidateDefined(trailingCommas, nameof(trailingCommas));
         ValidateConditionSemantics(conditionSemantics, nameof(conditionSemantics));
@@ -47,7 +45,6 @@ public sealed record LanguageProfile
         ProviderFunctionCalls = providerFunctionCalls;
         OpenObjects = openObjects;
         Mutations = mutations;
-        OptionalAccess = optionalAccess;
         MultiLevelLoopControl = multiLevelLoopControl;
         TrailingCommas = trailingCommas;
         ConditionSemantics = conditionSemantics;
@@ -68,8 +65,6 @@ public sealed record LanguageProfile
     public OpenObjectsFeature OpenObjects { get; }
 
     public MutationFeatures Mutations { get; }
-
-    public OptionalAccessFeature OptionalAccess { get; }
 
     public MultiLevelLoopControlFeature MultiLevelLoopControl { get; }
 

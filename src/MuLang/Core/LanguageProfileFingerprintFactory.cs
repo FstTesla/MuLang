@@ -16,7 +16,6 @@ internal static class LanguageProfileFingerprintFactory
         Append(canonical, "ProviderFunctionCalls", profile.ProviderFunctionCalls);
         Append(canonical, "OpenObjects", profile.OpenObjects);
         Append(canonical, "Mutations", profile.Mutations);
-        Append(canonical, "OptionalAccess", profile.OptionalAccess);
         Append(canonical, "MultiLevelLoopControl", profile.MultiLevelLoopControl);
         Append(canonical, "TrailingCommas", profile.TrailingCommas);
         Append(canonical, "ConditionSemantics", profile.ConditionSemantics);

@@ -6,10 +6,10 @@ internal static class SyntaxFacts
     {
         return kind switch
         {
-            TokenKind.Plus => 13,
-            TokenKind.Minus => 13,
-            TokenKind.Bang => 13,
-            TokenKind.Tilde => 13,
+            TokenKind.Plus => 14,
+            TokenKind.Minus => 14,
+            TokenKind.Bang => 14,
+            TokenKind.Tilde => 14,
             _ => 0,
         };
     }
@@ -18,29 +18,30 @@ internal static class SyntaxFacts
     {
         return kind switch
         {
-            TokenKind.Asterisk => 12,
-            TokenKind.Slash => 12,
-            TokenKind.Percent => 12,
-            TokenKind.Plus => 11,
-            TokenKind.Minus => 11,
-            TokenKind.LeftShift => 10,
-            TokenKind.RightShift => 10,
-            TokenKind.AsKeyword => 9,
-            TokenKind.LessThan => 8,
-            TokenKind.LessThanOrEqual => 8,
-            TokenKind.GreaterThan => 8,
-            TokenKind.GreaterThanOrEqual => 8,
-            TokenKind.IsKeyword => 8,
-            TokenKind.HasKeyword => 8,
-            TokenKind.EqualEqual => 7,
-            TokenKind.BangEqual => 7,
-            TokenKind.EqualEqualEqual => 7,
-            TokenKind.BangEqualEqual => 7,
-            TokenKind.Ampersand => 6,
-            TokenKind.Caret => 5,
-            TokenKind.Pipe => 4,
-            TokenKind.AmpersandAmpersand => 3,
-            TokenKind.PipePipe => 2,
+            TokenKind.Asterisk => 13,
+            TokenKind.Slash => 13,
+            TokenKind.Percent => 13,
+            TokenKind.Plus => 12,
+            TokenKind.Minus => 12,
+            TokenKind.LeftShift => 11,
+            TokenKind.RightShift => 11,
+            TokenKind.AsKeyword => 10,
+            TokenKind.LessThan => 9,
+            TokenKind.LessThanOrEqual => 9,
+            TokenKind.GreaterThan => 9,
+            TokenKind.GreaterThanOrEqual => 9,
+            TokenKind.IsKeyword => 9,
+            TokenKind.HasKeyword => 9,
+            TokenKind.EqualEqual => 8,
+            TokenKind.BangEqual => 8,
+            TokenKind.EqualEqualEqual => 8,
+            TokenKind.BangEqualEqual => 8,
+            TokenKind.Ampersand => 7,
+            TokenKind.Caret => 6,
+            TokenKind.Pipe => 5,
+            TokenKind.AmpersandAmpersand => 4,
+            TokenKind.PipePipe => 3,
+            TokenKind.QuestionQuestion => 2,
             _ => 0,
         };
     }
@@ -49,7 +50,12 @@ internal static class SyntaxFacts
     {
         int precedence = GetBinaryPrecedence(kind);
 
-        return precedence is 7 or 8;
+        return precedence is 8 or 9;
+    }
+
+    public static bool IsRightAssociativeBinaryOperator(TokenKind kind)
+    {
+        return kind == TokenKind.QuestionQuestion;
     }
 
     public static bool IsTypeName(TokenKind kind)

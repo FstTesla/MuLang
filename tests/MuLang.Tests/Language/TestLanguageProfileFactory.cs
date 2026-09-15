@@ -11,7 +11,6 @@ internal static class TestLanguageProfileFactory
         ProviderFunctionCallsFeature? providerFunctionCalls = null,
         OpenObjectsFeature? openObjects = null,
         MutationFeatures? mutations = null,
-        OptionalAccessFeature? optionalAccess = null,
         MultiLevelLoopControlFeature? multiLevelLoopControl = null,
         TrailingCommasFeature? trailingCommas = null,
         ConditionSemantics? conditionSemantics = null,
@@ -48,11 +47,6 @@ internal static class TestLanguageProfileFactory
         if (mutations is not null)
         {
             builder.WithMutations(mutations.Value);
-        }
-
-        if (optionalAccess is not null)
-        {
-            builder.WithOptionalAccess(optionalAccess.Value);
         }
 
         if (multiLevelLoopControl is not null)

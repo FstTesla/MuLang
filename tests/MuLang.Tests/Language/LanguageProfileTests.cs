@@ -35,10 +35,6 @@ public sealed class LanguageProfileTests
                 )
             );
             Assert.That(
-                profile.OptionalAccess,
-                Is.EqualTo(OptionalAccessFeature.Enabled)
-            );
-            Assert.That(
                 profile.MultiLevelLoopControl,
                 Is.EqualTo(MultiLevelLoopControlFeature.Enabled)
             );
@@ -85,8 +81,6 @@ public sealed class LanguageProfileTests
             Assert.That((int)ProviderFunctionCallsFeature.Enabled, Is.EqualTo(1));
             Assert.That((int)OpenObjectsFeature.Disabled, Is.Zero);
             Assert.That((int)OpenObjectsFeature.Enabled, Is.EqualTo(1));
-            Assert.That((int)OptionalAccessFeature.Disabled, Is.Zero);
-            Assert.That((int)OptionalAccessFeature.Enabled, Is.EqualTo(1));
             Assert.That((int)MultiLevelLoopControlFeature.Disabled, Is.Zero);
             Assert.That((int)MultiLevelLoopControlFeature.Enabled, Is.EqualTo(1));
             Assert.That((int)TrailingCommasFeature.Disabled, Is.Zero);
@@ -206,7 +200,7 @@ public sealed class LanguageProfileTests
             Assert.That(
                 first.Fingerprint.Value,
                 Is.EqualTo(
-                    "ea845d7090c3e6eb09c86fe7c811f6b401e98c69f3b0e04c8f2551a0c1c97a85"
+                    "faff81dabb1a06023bce73b9dc87ec09101c14d5359f6c57e52946e2ecbcf416"
                 )
             );
         }
@@ -218,7 +212,6 @@ public sealed class LanguageProfileTests
     [TestCase("provider")]
     [TestCase("openObjects")]
     [TestCase("mutations")]
-    [TestCase("optionalAccess")]
     [TestCase("loopControl")]
     [TestCase("trailingCommas")]
     [TestCase("conditions")]
@@ -242,9 +235,6 @@ public sealed class LanguageProfileTests
             ),
             "mutations" => TestLanguageProfileFactory.Create(
                 mutations: MutationFeatures.ArrayElements
-            ),
-            "optionalAccess" => TestLanguageProfileFactory.Create(
-                optionalAccess: OptionalAccessFeature.Disabled
             ),
             "loopControl" => TestLanguageProfileFactory.Create(
                 multiLevelLoopControl: MultiLevelLoopControlFeature.Disabled
@@ -306,7 +296,6 @@ public sealed class LanguageProfileTests
             MutationFeatures.ObjectProperties |
             MutationFeatures.ArrayElements |
             MutationFeatures.PropertyRemoval,
-            OptionalAccessFeature.Enabled,
             MultiLevelLoopControlFeature.Enabled,
             TrailingCommasFeature.Enabled,
             ConditionSemantics.Truthiness,
@@ -352,7 +341,6 @@ public sealed class LanguageProfileTests
             ProviderFunctionCallsFeature.Enabled,
             OpenObjectsFeature.Enabled,
             MutationFeatures.ObjectProperties,
-            OptionalAccessFeature.Enabled,
             MultiLevelLoopControlFeature.Enabled,
             TrailingCommasFeature.Enabled,
             ConditionSemantics.StrictBoolean,
@@ -375,9 +363,6 @@ public sealed class LanguageProfileTests
         );
         yield return static () => TestLanguageProfileFactory.Create(
             mutations: (MutationFeatures)8
-        );
-        yield return static () => TestLanguageProfileFactory.Create(
-            optionalAccess: (OptionalAccessFeature)99
         );
         yield return static () => TestLanguageProfileFactory.Create(
             multiLevelLoopControl: (MultiLevelLoopControlFeature)99
@@ -414,8 +399,6 @@ public sealed class LanguageProfileTests
             builder.WithMutations((MutationFeatures)8);
         yield return static builder =>
             builder.DisableMutations((MutationFeatures)8);
-        yield return static builder =>
-            builder.WithOptionalAccess((OptionalAccessFeature)99);
         yield return static builder =>
             builder.WithMultiLevelLoopControl((MultiLevelLoopControlFeature)99);
         yield return static builder =>
