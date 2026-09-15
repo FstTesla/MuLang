@@ -7,7 +7,7 @@ public enum LoopFeatures
     /// <summary>Enables no loop constructs.</summary>
     None = 0,
     /// <summary>Enables <c>while</c> loops.</summary>
-    While = 1,
+    While = 1 << 0,
     /// <summary>Enables <c>for</c> loops.</summary>
-    For = 2,
+    For = 1 << 1,
 }

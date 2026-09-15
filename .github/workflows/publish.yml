@@ -1,0 +1,150 @@
+name: Publish NuGet package
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+concurrency:
+  group: nuget-publish-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  pack:
+    name: Build, test, and pack
+    runs-on: ubuntu-latest
+
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+
+    steps:
+      - name: Check out tagged commit
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Derive package version
+        id: version
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          $version = $env:RELEASE_TAG.Substring(1)
+          $semVerPattern = '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*)?$'
+
+          if ($version -notmatch $semVerPattern) {
+            throw "Tag '$env:RELEASE_TAG' does not contain a valid release version."
+          }
+
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "## NuGet release" >> $env:GITHUB_STEP_SUMMARY
+          "- Tag: ``$env:RELEASE_TAG``" >> $env:GITHUB_STEP_SUMMARY
+          "- Version: ``$version``" >> $env:GITHUB_STEP_SUMMARY
+          "- Commit: ``${{ github.sha }}``" >> $env:GITHUB_STEP_SUMMARY
+
+      - name: Restore
+        run: dotnet restore MuLang.slnx --locked-mode
+
+      - name: Build
+        run: dotnet build MuLang.slnx --configuration Release --no-restore --nologo --verbosity minimal -p:Version=${{ steps.version.outputs.version }}
+
+      - name: Test
+        run: dotnet test MuLang.slnx --configuration Release --no-build --no-restore --nologo --verbosity minimal
+
+      - name: Pack
+        run: dotnet pack MuLang.slnx --configuration Release --no-build --no-restore --nologo --verbosity minimal --output artifacts/packages -p:Version=${{ steps.version.outputs.version }}
+
+      - name: Verify package artifacts
+        shell: pwsh
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          $packages = @(Get-ChildItem artifacts/packages -File)
+          $expectedPackage = "MuLang.$env:VERSION.nupkg"
+
+          if ($packages.Count -eq 0) {
+            throw 'No package artifacts were produced.'
+          }
+
+          if ($expectedPackage -notin $packages.Name) {
+            throw "Expected package '$expectedPackage' was not produced."
+          }
+
+          $unexpectedPackages = @(
+            $packages |
+              Where-Object {
+                $_.Extension -notin '.nupkg', '.snupkg'
+              }
+          )
+
+          if ($unexpectedPackages.Count -ne 0) {
+            throw "Unexpected artifacts: $($unexpectedPackages.Name -join ', ')."
+          }
+
+          "### Artifact hashes" >> $env:GITHUB_STEP_SUMMARY
+
+          foreach ($package in $packages) {
+            $hash = (Get-FileHash $package.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+            "- ``$($package.Name)``: ``$hash``" >> $env:GITHUB_STEP_SUMMARY
+          }
+
+      - name: Upload package artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: NuGet-${{ steps.version.outputs.version }}
+          path: artifacts/packages/*
+          if-no-files-found: error
+
+  publish:
+    name: Publish to NuGet.org
+    needs: pack
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Download package artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: NuGet-${{ needs.pack.outputs.version }}
+          path: artifacts/packages
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Authenticate with NuGet.org
+        id: login
+        uses: NuGet/login@v1
+        with:
+          user: FstTesla
+
+      - name: Publish packages
+        shell: pwsh
+        env:
+          NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
+        run: |
+          $packages = @(Get-ChildItem artifacts/packages -Filter *.nupkg -File)
+
+          if ($packages.Count -eq 0) {
+            throw 'No NuGet packages are available for publication.'
+          }
+
+          foreach ($package in $packages) {
+            dotnet nuget push $package.FullName `
+              --api-key $env:NUGET_API_KEY `
+              --source https://api.nuget.org/v3/index.json
+
+            if ($LASTEXITCODE -ne 0) {
+              exit $LASTEXITCODE
+            }
+          }

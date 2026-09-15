@@ -2,7 +2,7 @@
 
 ## Goal
 
-Prepare `MuLang` for an initial public release to NuGet.org as a single package, with complete public API documentation, deterministic Git-derived versioning, package metadata, source debugging support, automated API compatibility checks, and repeatable package validation.
+Prepare `MuLang` for an initial public release to NuGet.org as a single package, with complete public API documentation, deterministic tag-derived versioning, package metadata, source debugging support, automated API compatibility checks, and repeatable package validation.
 
 The initial release target is `0.1.0-alpha.1`. Release versions are derived from Git tags using the format `v<major>.<minor>.<patch>` with an optional SemVer prerelease suffix.
 
@@ -16,8 +16,12 @@ The initial release target is `0.1.0-alpha.1`. Release versions are derived from
 | License | Apache-2.0 |
 | Repository and project URL | `https://github.com/FstTesla/MuLang` |
 | Initial version | `0.1.0-alpha.1` |
-| Version source | Git tags |
+| Version source | GitHub Actions tag workflow |
 | Tag format | `v<major>.<minor>.<patch>[-<prerelease>]` |
+| Release workflow | `.github\workflows\publish.yml` |
+| NuGet.org user | `FstTesla` |
+| GitHub Environment | None |
+| Duplicate publication | Fail |
 | Package structure | One package for the initial releases |
 | API compatibility | Automatically enforced |
 | Assembly signing | Strong-name sign every assembly with the root `MuLang.snk` key |
@@ -52,25 +56,27 @@ Completion criteria:
 - The generated manifest contains all decided metadata.
 - NuGet clients display the README, license, and icon correctly.
 
-## 2. Introduce Git-Derived Versioning
+## 2. Introduce Tag-Derived Versioning
 
-1. Adopt MinVer as a private build dependency because the required versioning model is tag-based and does not require generated version files.
-2. Use a floating major package version, consistently with the repository dependency policy, and commit the resulting lock-file update.
-3. Configure `v` as the tag prefix.
-4. Define the prerelease identifier used by ordinary untagged development builds.
-5. Treat a SemVer tag on the commit being built as the source of truth for an official package version.
-6. Verify the following cases:
-   - repository state before the first release tag;
-   - exact prerelease tag such as `v0.1.0-alpha.1`;
-   - commits after a release tag;
-   - stable tag such as `v1.0.0`;
-   - shallow CI checkout with sufficient Git history and tags.
-7. Document the release-tag convention and prohibit manually overriding `PackageVersion` in normal release builds.
+1. Do not add a Git-derived versioning package such as MinVer.
+2. Create official versioned packages only in the GitHub Actions release workflow.
+3. Trigger the workflow only for Git tags whose names begin with `v`.
+4. Remove exactly the initial `v` from `github.ref_name` and use the remaining suffix as the package `Version`.
+5. Validate the suffix as a complete SemVer version before restore, build, test, or pack proceeds.
+6. Accept stable and prerelease versions, including:
+   - `v0.1.0-alpha.1`, producing version `0.1.0-alpha.1`;
+   - `v0.1.0`, producing version `0.1.0`;
+   - `v1.0.0`, producing version `1.0.0`.
+7. Reject tags that begin with `v` but do not contain an accepted complete SemVer version, including incomplete or textual values.
+8. Pass the derived value to `dotnet pack` through the `Version` MSBuild property so package and assembly version metadata originate from the same release version.
+9. Do not produce officially versioned release packages from branch or pull-request workflows.
+10. Document the release-tag convention and prohibit independent manual version overrides in the release workflow.
 
 Completion criteria:
 
-- Local and CI builds calculate the same version for the same commit.
 - A build of `v0.1.0-alpha.1` produces `MuLang.0.1.0-alpha.1.nupkg`.
+- Stable and prerelease tags produce the corresponding package and assembly metadata.
+- Invalid `v` tags fail before package creation.
 - Untagged commits cannot accidentally produce a stable release version.
 
 ## 3. Document the Public API
@@ -125,7 +131,7 @@ Completion criteria:
 
 ## 5. Configure Assembly Signing, Symbols, Determinism, and Source Link
 
-1. Preserve strong-name signing for every project through `Directory.Build.targets` and the root `MuLang.snk` key.
+1. Preserve strong-name signing for every project through `Directory.Build.props` and the root `MuLang.snk` key.
 2. Keep signed friend-assembly declarations tied to the full public key rather than only the assembly name.
 3. Preserve deterministic and continuous-integration build settings already defined in `Directory.Build.props`.
 4. Configure repository metadata required by Source Link.
@@ -205,19 +211,25 @@ Completion criteria:
 
 ## 8. Add the Public Release Workflow
 
-1. Add a GitHub Actions workflow triggered by matching version tags.
-2. Use a full checkout with tags available for version calculation.
-3. Restore in locked mode, build, test, pack, and run package verification.
-4. Upload `.nupkg` and `.snupkg` as immutable workflow artifacts.
-5. Publish through NuGet.org trusted publishing when the repository and NuGet.org package ownership are configured.
-6. Protect the publishing environment with explicit approval until the release process is established.
-7. Prevent duplicate publication from reruns while preserving idempotent build and verification steps.
-8. Record the package version, commit, and artifact hashes in the workflow summary.
-9. Keep pull-request validation separate from publication; pull requests must build and validate packaging but never push packages.
+1. Add a GitHub Actions workflow triggered only by tags matching `v*`.
+2. Derive and validate the release version as defined in Section 2.
+3. Use the tagged commit as the source checkout; additional Git history is not required for version calculation.
+4. Restore in locked mode, build, and test in Release configuration.
+5. Pack every packable project into a clean artifact directory using the derived `Version`.
+6. Run package verification against the generated artifacts.
+7. Upload `.nupkg` and `.snupkg` as immutable workflow artifacts.
+8. Keep package creation and publication in separate jobs so publication consumes the exact artifacts produced and verified by the pack job.
+9. Publish through NuGet.org trusted publishing when the repository and NuGet.org package ownership are configured.
+10. Protect the publishing environment with explicit approval until the release process is established.
+11. Prevent duplicate publication from reruns while preserving idempotent build and verification steps.
+12. Record the derived version, source tag, commit, and artifact hashes in the workflow summary.
+13. Keep branch and pull-request validation separate from publication; those workflows may validate packability but MUST NOT publish or produce official release versions.
 
 Completion criteria:
 
-- A version tag produces verified downloadable artifacts.
+- A valid `v` version tag produces verified downloadable artifacts with the version obtained by removing the initial `v`.
+- An invalid `v` tag fails without producing package artifacts.
+- The publication job uses the exact artifacts emitted by the pack job.
 - Publication requires the intended repository, workflow, environment, and tag.
 - No long-lived NuGet API key is stored if trusted publishing is available.
 
@@ -265,7 +277,7 @@ A split should proceed only when at least one concrete consumer scenario require
 ## Recommended Execution Order
 
 1. Package identity, license, and metadata.
-2. Git-derived versioning.
+2. Tag-derived workflow versioning.
 3. Public API review and XML documentation.
 4. API compatibility baseline.
 5. Symbols and Source Link.
@@ -283,7 +295,6 @@ The following operational values become available during execution:
 
 - approved copyright text and year;
 - package description and tags after editorial review;
-- development-build prerelease identifier;
-- exact floating major versions for MinVer and PublicApiAnalyzers;
+- exact floating major version for PublicApiAnalyzers;
 - NuGet.org package ownership and trusted-publishing configuration;
 - previous-package baseline selection after `0.1.0-alpha.1` is published.

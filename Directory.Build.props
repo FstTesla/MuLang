@@ -11,14 +11,30 @@
 
   <PropertyGroup>
     <IsPackable Condition="!$(MSBuildProjectName.EndsWith('.Tests'))">true</IsPackable>
-    <IsPackable Condition="'$(IsPackable)' == ''">false</IsPackable>
-    <GenerateDocumentationFile>$(IsPackable)</GenerateDocumentationFile>
   </PropertyGroup>
 
-  <PropertyGroup>
-    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true' Or '$(TF_BUILD)' == 'true'">true</ContinuousIntegrationBuild>
-    <RestoreLockedMode Condition="'$(ContinuousIntegrationBuild)' == 'true'">true</RestoreLockedMode>
+  <PropertyGroup Condition="'$(IsPackable)' == 'true'">
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
   </PropertyGroup>
+
+  <Choose>
+    <When Condition="'$(GITHUB_ACTIONS)' == 'true'">
+      <PropertyGroup>
+        <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+        <RestoreLockedMode>true</RestoreLockedMode>
+      </PropertyGroup>
+    </When>
+    <Otherwise>
+      <PropertyGroup>
+        <EnableSourceLink>false</EnableSourceLink>
+        <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+      </PropertyGroup>
+    </Otherwise>
+  </Choose>
 
   <PropertyGroup>
     <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)MuLang.snk</AssemblyOriginatorKeyFile>
