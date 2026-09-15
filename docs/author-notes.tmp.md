@@ -1,6 +1,11 @@
-- Split projects and adjust type visibility for future publishing of MuLang
+- Split projects and adjust type visibility for future package
+- Public symbol XML documentation
+- Package:
+  - README
+  - Description, icon, metadata, license
+  - Versioning
+  - Other stuff?
 - New features:
-  - Unreachable code detection and warnings
   - Comments
   - User-defined types
   - First-class functions and function types

@@ -6,13 +6,15 @@
     <File Path="global.json" />
     <File Path="README.md" />
   </Folder>
-  <Folder Name="/Solution Items/.github/">
-    <File Path=".github/copilot-instructions.md" />
+  <Folder Name="/Solution Items/.github/" />
+  <Folder Name="/Solution Items/.github/instructions/">
+    <File Path=".github/instructions/csharp.instructions.md" />
+    <File Path=".github/instructions/general.instructions.md" />
   </Folder>
   <Folder Name="/Solution Items/docs/">
     <File Path="docs/author-notes.tmp.md" />
-    <File Path="docs/feature-flags.tmp.md" />
     <File Path="docs/language-specification.md" />
+    <File Path="docs/package-readiness.tmp.md" />
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/MuLang/MuLang.csproj" />
