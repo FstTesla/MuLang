@@ -10,8 +10,16 @@ using MuLang.Exporters.DotNet;
 
 namespace MuLang;
 
+/// <summary>Provides methods for compiling MuLang source code.</summary>
 public static class MuLangCompiler
 {
+    /// <summary>Compiles a MuLang expression using the default language profile.</summary>
+    /// <param name="source">The MuLang source code.</param>
+    /// <param name="environment">The environment schema available to the compiled code.</param>
+    /// <param name="expectedType">The expected expression result type, or <c>null</c> to infer it.</param>
+    /// <returns>The compilation result.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="source" /> or <paramref name="environment" /> is <c>null</c>.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="expectedType" /> is void or the environment language version is incompatible.</exception>
     public static CompilationResult CompileExpression(
         string source,
         EnvironmentSchema environment,
@@ -35,6 +43,14 @@ public static class MuLangCompiler
         );
     }
 
+    /// <summary>Compiles a MuLang expression using the specified language profile.</summary>
+    /// <param name="source">The MuLang source code.</param>
+    /// <param name="environment">The environment schema available to the compiled code.</param>
+    /// <param name="expectedType">The expected expression result type, or <c>null</c> to infer it.</param>
+    /// <param name="profile">The language profile used for compilation.</param>
+    /// <returns>The compilation result.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="source" />, <paramref name="environment" />, or <paramref name="profile" /> is <c>null</c>.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="expectedType" /> is void or the profile language version does not match the environment.</exception>
     public static CompilationResult CompileExpression(
         string source,
         EnvironmentSchema environment,
@@ -59,6 +75,13 @@ public static class MuLangCompiler
         );
     }
 
+    /// <summary>Compiles a MuLang program using the default language profile.</summary>
+    /// <param name="source">The MuLang source code.</param>
+    /// <param name="environment">The environment schema available to the compiled code.</param>
+    /// <param name="resultType">The required program result type.</param>
+    /// <returns>The compilation result.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when an argument is <c>null</c>.</exception>
+    /// <exception cref="ArgumentException">Thrown when the environment language version is incompatible.</exception>
     public static CompilationResult CompileProgram(
         string source,
         EnvironmentSchema environment,
@@ -79,6 +102,14 @@ public static class MuLangCompiler
         );
     }
 
+    /// <summary>Compiles a MuLang program using the specified language profile.</summary>
+    /// <param name="source">The MuLang source code.</param>
+    /// <param name="environment">The environment schema available to the compiled code.</param>
+    /// <param name="resultType">The required program result type.</param>
+    /// <param name="profile">The language profile used for compilation.</param>
+    /// <returns>The compilation result.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when an argument is <c>null</c>.</exception>
+    /// <exception cref="ArgumentException">Thrown when the profile language version does not match the environment.</exception>
     public static CompilationResult CompileProgram(
         string source,
         EnvironmentSchema environment,

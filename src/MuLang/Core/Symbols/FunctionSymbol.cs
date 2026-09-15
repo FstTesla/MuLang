@@ -2,8 +2,16 @@ using MuLang.Core.Types;
 
 namespace MuLang.Core.Symbols;
 
+/// <summary>Represents a function exposed by a MuLang environment.</summary>
 public sealed class FunctionSymbol
 {
+    /// <summary>Initializes a new instance of the <see cref="FunctionSymbol" /> class.</summary>
+    /// <param name="id">The provider identifier.</param>
+    /// <param name="name">The language name.</param>
+    /// <param name="parameters">The function parameters.</param>
+    /// <param name="returnType">The function return type.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="parameters" /> or <paramref name="returnType" /> is <c>null</c>.</exception>
+    /// <exception cref="ArgumentException">Thrown when a symbol value is invalid or a parameter name is duplicated.</exception>
     public FunctionSymbol(
         string id,
         string name,
@@ -52,11 +60,15 @@ public sealed class FunctionSymbol
         ReturnType = returnType;
     }
 
+    /// <summary>Gets the provider identifier.</summary>
     public string Id { get; }
 
+    /// <summary>Gets the language name.</summary>
     public string Name { get; }
 
+    /// <summary>Gets the ordered function parameters.</summary>
     public IReadOnlyList<ParameterSymbol> Parameters { get; }
 
+    /// <summary>Gets the return type.</summary>
     public TypeSymbol ReturnType { get; }
 }

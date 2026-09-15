@@ -1,7 +1,9 @@
 namespace MuLang.Core;
 
+/// <summary>Provides predefined MuLang language profiles.</summary>
 public static class LanguageProfiles
 {
+    /// <summary>Gets the default profile for MuLang language version 1.</summary>
     public static LanguageProfile Version1 { get; } = new (
         LanguageVersion.Version1,
         UserDefinedFunctionsFeature.Enabled,

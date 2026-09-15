@@ -3,6 +3,7 @@ using System.Text;
 
 namespace MuLang.Core.Text;
 
+/// <summary>Represents MuLang source text indexed by Unicode scalar values.</summary>
 public sealed class SourceText
 {
     private readonly int[] scalarOffsets;
@@ -15,12 +16,20 @@ public sealed class SourceText
         this.lineStarts = lineStarts;
     }
 
+    /// <summary>Gets the underlying MuLang source string.</summary>
     public string Text { get; }
 
+    /// <summary>Gets the length in Unicode scalar values.</summary>
     public int Length => scalarOffsets.Length - 1;
 
+    /// <summary>Gets the number of source lines.</summary>
     public int LineCount => lineStarts.Length;
 
+    /// <summary>Creates source text from a MuLang source string.</summary>
+    /// <param name="text">The source text.</param>
+    /// <returns>The source-text representation.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="text" /> is <c>null</c>.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="text" /> contains invalid UTF-16.</exception>
     public static SourceText From(string text)
     {
         if (text is null)
@@ -72,6 +81,10 @@ public sealed class SourceText
         return new SourceText(text, [ .. scalarOffsets ], [ .. lineStarts ]);
     }
 
+    /// <summary>Gets the line and column for a Unicode scalar offset.</summary>
+    /// <param name="offset">The Unicode scalar offset.</param>
+    /// <returns>The corresponding source position.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="offset" /> is outside the source-text bounds.</exception>
     public TextPosition GetPosition(int offset)
     {
         ValidateOffset(offset);
@@ -89,6 +102,11 @@ public sealed class SourceText
         );
     }
 
+    /// <summary>Gets the text within a source span.</summary>
+    /// <param name="span">The source span.</param>
+    /// <returns>The text contained in the span.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when the span is outside the source-text bounds.</exception>
+    /// <exception cref="OverflowException">Thrown when the span end exceeds <see cref="int.MaxValue" />.</exception>
     public string GetText(TextSpan span)
     {
         ValidateOffset(span.Start);
@@ -100,6 +118,11 @@ public sealed class SourceText
         return Text[utf16Start..utf16End];
     }
 
+    /// <summary>Gets the Unicode scalar value at an offset.</summary>
+    /// <param name="offset">The Unicode scalar offset.</param>
+    /// <returns>The Unicode scalar value at the specified offset.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="offset" /> does not identify a scalar value.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when the stored source text contains invalid UTF-16.</exception>
     public Rune GetRune(int offset)
     {
         if (offset < 0 || offset >= Length)

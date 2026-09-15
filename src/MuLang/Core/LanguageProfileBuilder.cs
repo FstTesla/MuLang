@@ -1,5 +1,6 @@
 namespace MuLang.Core;
 
+/// <summary>Builds a MuLang language profile.</summary>
 public sealed class LanguageProfileBuilder
 {
     private LanguageVersion languageVersion;
@@ -14,9 +15,13 @@ public sealed class LanguageProfileBuilder
     private ConditionSemantics conditionSemantics;
     private ShadowingPolicy shadowing;
 
+    /// <summary>Initializes a new instance of the <see cref="LanguageProfileBuilder" /> class.</summary>
     public LanguageProfileBuilder()
         : this(LanguageProfiles.Version1) { }
 
+    /// <summary>Initializes a new instance of the <see cref="LanguageProfileBuilder" /> class.</summary>
+    /// <param name="profile">The language profile used for compilation.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="profile" /> is <c>null</c>.</exception>
     public LanguageProfileBuilder(LanguageProfile profile)
     {
         if (profile is null)
@@ -37,6 +42,11 @@ public sealed class LanguageProfileBuilder
         shadowing = profile.Shadowing;
     }
 
+    /// <summary>Sets the language version setting.</summary>
+    /// <param name="languageVersion">The language version.</param>
+    /// <returns>The same <see cref="LanguageProfileBuilder" /> instance, for chaining.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="languageVersion" /> is not defined.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="languageVersion" /> is not supported.</exception>
     public LanguageProfileBuilder WithLanguageVersion(
         LanguageVersion languageVersion
     )
@@ -50,6 +60,10 @@ public sealed class LanguageProfileBuilder
         return this;
     }
 
+    /// <summary>Sets the user-defined functions feature setting.</summary>
+    /// <param name="userDefinedFunctions">The user-defined functions feature setting.</param>
+    /// <returns>The same <see cref="LanguageProfileBuilder" /> instance, for chaining.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="userDefinedFunctions" /> is not defined.</exception>
     public LanguageProfileBuilder WithUserDefinedFunctions(
         UserDefinedFunctionsFeature userDefinedFunctions
     )
@@ -63,6 +77,10 @@ public sealed class LanguageProfileBuilder
         return this;
     }
 
+    /// <summary>Sets the recursion setting.</summary>
+    /// <param name="recursion">The recursion feature setting.</param>
+    /// <returns>The same <see cref="LanguageProfileBuilder" /> instance, for chaining.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="recursion" /> is not defined.</exception>
     public LanguageProfileBuilder WithRecursion(RecursionFeature recursion)
     {
         LanguageProfile.ValidateDefined(recursion, nameof(recursion));
@@ -71,6 +89,10 @@ public sealed class LanguageProfileBuilder
         return this;
     }
 
+    /// <summary>Sets the loops setting.</summary>
+    /// <param name="loops">The loop features.</param>
+    /// <returns>The same <see cref="LanguageProfileBuilder" /> instance, for chaining.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="loops" /> contains unsupported flags.</exception>
     public LanguageProfileBuilder WithLoops(LoopFeatures loops)
     {
         ValidateLoops(loops);
@@ -79,6 +101,10 @@ public sealed class LanguageProfileBuilder
         return this;
     }
 
+    /// <summary>Enables the specified loops.</summary>
+    /// <param name="loops">The loop features.</param>
+    /// <returns>The same <see cref="LanguageProfileBuilder" /> instance, for chaining.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="loops" /> contains unsupported flags.</exception>
     public LanguageProfileBuilder EnableLoops(LoopFeatures loops)
     {
         ValidateLoops(loops);
@@ -87,6 +113,10 @@ public sealed class LanguageProfileBuilder
         return this;
     }
 
+    /// <summary>Disables the specified loops.</summary>
+    /// <param name="loops">The loop features.</param>
+    /// <returns>The same <see cref="LanguageProfileBuilder" /> instance, for chaining.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="loops" /> contains unsupported flags.</exception>
     public LanguageProfileBuilder DisableLoops(LoopFeatures loops)
     {
         ValidateLoops(loops);
@@ -95,6 +125,10 @@ public sealed class LanguageProfileBuilder
         return this;
     }
 
+    /// <summary>Sets the provider function calls setting.</summary>
+    /// <param name="providerFunctionCalls">The provider function calls feature setting.</param>
+    /// <returns>The same <see cref="LanguageProfileBuilder" /> instance, for chaining.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="providerFunctionCalls" /> is not defined.</exception>
     public LanguageProfileBuilder WithProviderFunctionCalls(
         ProviderFunctionCallsFeature providerFunctionCalls
     )
@@ -108,6 +142,10 @@ public sealed class LanguageProfileBuilder
         return this;
     }
 
+    /// <summary>Sets the open objects setting.</summary>
+    /// <param name="openObjects">The open objects feature setting.</param>
+    /// <returns>The same <see cref="LanguageProfileBuilder" /> instance, for chaining.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="openObjects" /> is not defined.</exception>
     public LanguageProfileBuilder WithOpenObjects(OpenObjectsFeature openObjects)
     {
         LanguageProfile.ValidateDefined(openObjects, nameof(openObjects));
@@ -116,6 +154,10 @@ public sealed class LanguageProfileBuilder
         return this;
     }
 
+    /// <summary>Sets the mutations setting.</summary>
+    /// <param name="mutations">The mutation features.</param>
+    /// <returns>The same <see cref="LanguageProfileBuilder" /> instance, for chaining.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="mutations" /> contains unsupported flags.</exception>
     public LanguageProfileBuilder WithMutations(MutationFeatures mutations)
     {
         ValidateMutations(mutations);
@@ -124,6 +166,10 @@ public sealed class LanguageProfileBuilder
         return this;
     }
 
+    /// <summary>Enables the specified mutations.</summary>
+    /// <param name="mutations">The mutation features.</param>
+    /// <returns>The same <see cref="LanguageProfileBuilder" /> instance, for chaining.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="mutations" /> contains unsupported flags.</exception>
     public LanguageProfileBuilder EnableMutations(MutationFeatures mutations)
     {
         ValidateMutations(mutations);
@@ -132,6 +178,10 @@ public sealed class LanguageProfileBuilder
         return this;
     }
 
+    /// <summary>Disables the specified mutations.</summary>
+    /// <param name="mutations">The mutation features.</param>
+    /// <returns>The same <see cref="LanguageProfileBuilder" /> instance, for chaining.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="mutations" /> contains unsupported flags.</exception>
     public LanguageProfileBuilder DisableMutations(MutationFeatures mutations)
     {
         ValidateMutations(mutations);
@@ -140,6 +190,10 @@ public sealed class LanguageProfileBuilder
         return this;
     }
 
+    /// <summary>Sets the multi-level loop control feature setting.</summary>
+    /// <param name="multiLevelLoopControl">The multi-level loop control feature setting.</param>
+    /// <returns>The same <see cref="LanguageProfileBuilder" /> instance, for chaining.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="multiLevelLoopControl" /> is not defined.</exception>
     public LanguageProfileBuilder WithMultiLevelLoopControl(
         MultiLevelLoopControlFeature multiLevelLoopControl
     )
@@ -153,6 +207,10 @@ public sealed class LanguageProfileBuilder
         return this;
     }
 
+    /// <summary>Sets the trailing commas setting.</summary>
+    /// <param name="trailingCommas">The trailing commas feature setting.</param>
+    /// <returns>The same <see cref="LanguageProfileBuilder" /> instance, for chaining.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="trailingCommas" /> is not defined.</exception>
     public LanguageProfileBuilder WithTrailingCommas(
         TrailingCommasFeature trailingCommas
     )
@@ -163,6 +221,10 @@ public sealed class LanguageProfileBuilder
         return this;
     }
 
+    /// <summary>Sets the condition semantics setting.</summary>
+    /// <param name="conditionSemantics">The condition semantics.</param>
+    /// <returns>The same <see cref="LanguageProfileBuilder" /> instance, for chaining.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="conditionSemantics" /> is not defined.</exception>
     public LanguageProfileBuilder WithConditionSemantics(
         ConditionSemantics conditionSemantics
     )
@@ -176,6 +238,10 @@ public sealed class LanguageProfileBuilder
         return this;
     }
 
+    /// <summary>Sets the shadowing setting.</summary>
+    /// <param name="shadowing">The shadowing policy.</param>
+    /// <returns>The same <see cref="LanguageProfileBuilder" /> instance, for chaining.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="shadowing" /> contains unsupported flags.</exception>
     public LanguageProfileBuilder WithShadowing(ShadowingPolicy shadowing)
     {
         ValidateShadowing(shadowing);
@@ -184,6 +250,10 @@ public sealed class LanguageProfileBuilder
         return this;
     }
 
+    /// <summary>Enables the specified shadowing.</summary>
+    /// <param name="shadowing">The shadowing policy.</param>
+    /// <returns>The same <see cref="LanguageProfileBuilder" /> instance, for chaining.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="shadowing" /> contains unsupported flags.</exception>
     public LanguageProfileBuilder EnableShadowing(ShadowingPolicy shadowing)
     {
         ValidateShadowing(shadowing);
@@ -192,6 +262,10 @@ public sealed class LanguageProfileBuilder
         return this;
     }
 
+    /// <summary>Disables the specified shadowing.</summary>
+    /// <param name="shadowing">The shadowing policy.</param>
+    /// <returns>The same <see cref="LanguageProfileBuilder" /> instance, for chaining.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="shadowing" /> contains unsupported flags.</exception>
     public LanguageProfileBuilder DisableShadowing(ShadowingPolicy shadowing)
     {
         ValidateShadowing(shadowing);
@@ -200,6 +274,8 @@ public sealed class LanguageProfileBuilder
         return this;
     }
 
+    /// <summary>Creates an immutable language profile from the current settings.</summary>
+    /// <returns>The immutable language profile.</returns>
     public LanguageProfile Build()
     {
         return new LanguageProfile(

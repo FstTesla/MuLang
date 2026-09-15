@@ -1,7 +1,13 @@
 namespace MuLang.Core.Types;
 
+/// <summary>Provides operations for comparing and converting MuLang types.</summary>
 public static class TypeRelations
 {
+    /// <summary>Determines whether two types have equivalent structure and semantics.</summary>
+    /// <param name="left">The first type.</param>
+    /// <param name="right">The second type.</param>
+    /// <returns><c>true</c> if the types are equivalent; otherwise, <c>false</c>.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when either type is <c>null</c>.</exception>
     public static bool AreEquivalent(TypeSymbol left, TypeSymbol right)
     {
         ValidateTypes(left, right);
@@ -28,6 +34,11 @@ public static class TypeRelations
         };
     }
 
+    /// <summary>Determines whether a value of one type can be assigned to another type.</summary>
+    /// <param name="source">The source type.</param>
+    /// <param name="target">The target type.</param>
+    /// <returns><c>true</c> if a value of the source type is assignable to the target type; otherwise, <c>false</c>.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when either type is <c>null</c>.</exception>
     public static bool IsAssignable(TypeSymbol source, TypeSymbol target)
     {
         ValidateTypes(source, target);
@@ -90,6 +101,11 @@ public static class TypeRelations
             IsObjectAssignable(sourceObject, targetObject);
     }
 
+    /// <summary>Classifies the conversion from one type to another.</summary>
+    /// <param name="source">The source type.</param>
+    /// <param name="target">The target type.</param>
+    /// <returns>The classified conversion kind.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when either type is <c>null</c>.</exception>
     public static ConversionKind ClassifyConversion(TypeSymbol source, TypeSymbol target)
     {
         ValidateTypes(source, target);
@@ -103,6 +119,11 @@ public static class TypeRelations
                     : ConversionKind.None;
     }
 
+    /// <summary>Gets the most specific type that can represent values of both types.</summary>
+    /// <param name="left">The first type.</param>
+    /// <param name="right">The second type.</param>
+    /// <returns>The common type, or <c>null</c> when no common type exists.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when either type is <c>null</c>.</exception>
     public static TypeSymbol? GetCommonType(TypeSymbol left, TypeSymbol right)
     {
         ValidateTypes(left, right);

@@ -10,6 +10,12 @@
   </PropertyGroup>
 
   <PropertyGroup>
+    <IsPackable Condition="!$(MSBuildProjectName.EndsWith('.Tests'))">true</IsPackable>
+    <IsPackable Condition="'$(IsPackable)' == ''">false</IsPackable>
+    <GenerateDocumentationFile>$(IsPackable)</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <PropertyGroup>
     <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true' Or '$(TF_BUILD)' == 'true'">true</ContinuousIntegrationBuild>
     <RestoreLockedMode Condition="'$(ContinuousIntegrationBuild)' == 'true'">true</RestoreLockedMode>
   </PropertyGroup>

@@ -6,6 +6,7 @@ using System.Collections.Frozen;
 
 namespace MuLang.Exporters.DotNet;
 
+/// <summary>Provides runtime values, functions, and execution limits for compiled MuLang code.</summary>
 public sealed class DotNetRuntimeContext
 {
     private readonly IReadOnlyDictionary<string, object?> globals;
@@ -13,6 +14,17 @@ public sealed class DotNetRuntimeContext
     private readonly bool hasExecutionBudget;
     private long remainingBudget;
 
+    /// <summary>Initializes a new instance of the <see cref="DotNetRuntimeContext" /> class.</summary>
+    /// <param name="environment">The environment schema available to the compiled code.</param>
+    /// <param name="globals">The runtime global values, keyed by provider identifier.</param>
+    /// <param name="functions">The runtime provider functions, keyed by provider identifier.</param>
+    /// <param name="executionBudget">The maximum number of budgeted runtime operations, or <c>null</c> for no limit.</param>
+    /// <param name="maximumTraversalDepth">The maximum depth used when traversing runtime values.</param>
+    /// <param name="cancellationToken">The token used to cancel execution.</param>
+    /// <param name="maximumUserFunctionCallDepth">The maximum user-defined function call depth.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="environment" />, <paramref name="globals" />, or <paramref name="functions" /> is <c>null</c>.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when an execution limit is negative.</exception>
+    /// <exception cref="ArgumentException">Thrown when a runtime value or function identifier is duplicated.</exception>
     public DotNetRuntimeContext(
         EnvironmentSchema environment,
         IEnumerable<KeyValuePair<string, object?>> globals,
@@ -71,12 +83,16 @@ public sealed class DotNetRuntimeContext
         CancellationToken = cancellationToken;
     }
 
+    /// <summary>Gets the environment fingerprint.</summary>
     public EnvironmentFingerprint EnvironmentFingerprint { get; }
 
+    /// <summary>Gets the cancellation token.</summary>
     public CancellationToken CancellationToken { get; }
 
+    /// <summary>Gets the maximum traversal depth.</summary>
     public int MaximumTraversalDepth { get; }
 
+    /// <summary>Gets the maximum user function call depth.</summary>
     public int MaximumUserFunctionCallDepth { get; }
 
     internal object? GetGlobal(string id, TypeSymbol expectedType, TextSpan span)

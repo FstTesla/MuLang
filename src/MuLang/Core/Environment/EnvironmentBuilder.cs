@@ -3,6 +3,7 @@ using MuLang.Core.Types;
 
 namespace MuLang.Core.Environment;
 
+/// <summary>Builds an environment schema for MuLang compilation and execution.</summary>
 public sealed class EnvironmentBuilder
 {
     private readonly IDictionary<string, ObjectTypeSymbol> typesByName =
@@ -23,6 +24,11 @@ public sealed class EnvironmentBuilder
     private readonly IDictionary<string, FunctionSymbol> functionsById =
         new Dictionary<string, FunctionSymbol>(StringComparer.Ordinal);
 
+    /// <summary>Adds a structured type to the environment.</summary>
+    /// <param name="type">The type.</param>
+    /// <returns>The same <see cref="EnvironmentBuilder" /> instance, for chaining.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="type" /> is <c>null</c>.</exception>
+    /// <exception cref="ArgumentException">Thrown when the type is anonymous or its name or identifier is already registered.</exception>
     public EnvironmentBuilder AddType(ObjectTypeSymbol type)
     {
         if (type is null)
@@ -46,6 +52,13 @@ public sealed class EnvironmentBuilder
         return this;
     }
 
+    /// <summary>Adds a global value to the environment.</summary>
+    /// <param name="id">The provider identifier.</param>
+    /// <param name="name">The language name.</param>
+    /// <param name="type">The type.</param>
+    /// <returns>The same <see cref="EnvironmentBuilder" /> instance, for chaining.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="type" /> is <c>null</c>.</exception>
+    /// <exception cref="ArgumentException">Thrown when a symbol value is invalid or its name or identifier is already registered.</exception>
     public EnvironmentBuilder AddGlobal(string id, string name, TypeSymbol type)
     {
         GlobalSymbol global = new (id, name, type);
@@ -57,6 +70,14 @@ public sealed class EnvironmentBuilder
         return this;
     }
 
+    /// <summary>Adds a provider function to the environment.</summary>
+    /// <param name="id">The provider identifier.</param>
+    /// <param name="name">The language name.</param>
+    /// <param name="parameters">The function parameters.</param>
+    /// <param name="returnType">The function return type.</param>
+    /// <returns>The same <see cref="EnvironmentBuilder" /> instance, for chaining.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="parameters" /> or <paramref name="returnType" /> is <c>null</c>.</exception>
+    /// <exception cref="ArgumentException">Thrown when a symbol value is invalid or its name or identifier is already registered.</exception>
     public EnvironmentBuilder AddFunction(
         string id,
         string name,
@@ -73,6 +94,11 @@ public sealed class EnvironmentBuilder
         return this;
     }
 
+    /// <summary>Creates an immutable environment schema from the registered symbols.</summary>
+    /// <param name="languageVersion">The language version.</param>
+    /// <returns>The immutable environment schema.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="languageVersion" /> is not defined.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when a referenced structured type is not registered by the same instance.</exception>
     public EnvironmentSchema Build(LanguageVersion languageVersion = LanguageVersion.Version1)
     {
         if (!Enum.IsDefined(languageVersion))

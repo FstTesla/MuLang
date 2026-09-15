@@ -1,7 +1,22 @@
 namespace MuLang.Core;
 
+/// <summary>Represents the language features and semantics enabled for MuLang compilation.</summary>
 public sealed record LanguageProfile
 {
+    /// <summary>Initializes a new instance of the <see cref="LanguageProfile" /> class.</summary>
+    /// <param name="languageVersion">The language version.</param>
+    /// <param name="userDefinedFunctions">The user-defined functions feature setting.</param>
+    /// <param name="recursion">The recursion feature setting.</param>
+    /// <param name="loops">The loop features.</param>
+    /// <param name="providerFunctionCalls">The provider function calls feature setting.</param>
+    /// <param name="openObjects">The open objects feature setting.</param>
+    /// <param name="mutations">The mutation features.</param>
+    /// <param name="multiLevelLoopControl">The multi-level loop control feature setting.</param>
+    /// <param name="trailingCommas">The trailing commas feature setting.</param>
+    /// <param name="conditionSemantics">The condition semantics.</param>
+    /// <param name="shadowing">The shadowing policy.</param>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when a feature setting or flags value is not defined.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="languageVersion" /> is not supported.</exception>
     public LanguageProfile(
         LanguageVersion languageVersion,
         UserDefinedFunctionsFeature userDefinedFunctions,
@@ -52,28 +67,40 @@ public sealed record LanguageProfile
         Fingerprint = LanguageProfileFingerprintFactory.Create(this);
     }
 
+    /// <summary>Gets the language version.</summary>
     public LanguageVersion LanguageVersion { get; }
 
+    /// <summary>Gets the user-defined functions feature setting.</summary>
     public UserDefinedFunctionsFeature UserDefinedFunctions { get; }
 
+    /// <summary>Gets the recursion feature setting.</summary>
     public RecursionFeature Recursion { get; }
 
+    /// <summary>Gets the enabled loop features.</summary>
     public LoopFeatures Loops { get; }
 
+    /// <summary>Gets the provider function calls feature setting.</summary>
     public ProviderFunctionCallsFeature ProviderFunctionCalls { get; }
 
+    /// <summary>Gets the open objects feature setting.</summary>
     public OpenObjectsFeature OpenObjects { get; }
 
+    /// <summary>Gets the enabled mutation features.</summary>
     public MutationFeatures Mutations { get; }
 
+    /// <summary>Gets the multi-level loop control feature setting.</summary>
     public MultiLevelLoopControlFeature MultiLevelLoopControl { get; }
 
+    /// <summary>Gets the trailing commas feature setting.</summary>
     public TrailingCommasFeature TrailingCommas { get; }
 
+    /// <summary>Gets the condition semantics.</summary>
     public ConditionSemantics ConditionSemantics { get; }
 
+    /// <summary>Gets the shadowing policy.</summary>
     public ShadowingPolicy Shadowing { get; }
 
+    /// <summary>Gets the stable fingerprint of the profile.</summary>
     public LanguageProfileFingerprint Fingerprint { get; }
 
     internal static void ValidateLanguageVersion(
