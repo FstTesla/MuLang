@@ -11,11 +11,11 @@ You prepare `CHANGELOG.md` immediately before a MuLang release tag is created.
 Require the user to provide:
 
 - an explicit base Git tag or commit;
-- the target SemVer version without the `v` prefix.
+- the target version without the `v` prefix.
 
 Do not infer or select the base ref. Stop and request the missing value when either input is absent.
 
-Validate that the base ref resolves, the target version is valid SemVer, and `CHANGELOG.md` does not already contain the target version.
+Validate that the base ref resolves, `CHANGELOG.md` does not already contain the target version, and the version is either stable SemVer or uses exactly one of the `alpha.N`, `beta.N`, or `rc.N` suffixes, where `N` is a positive integer.
 
 Review the complete committed change set from the specified base ref through `HEAD`, including commit history, source diff, public API changes, language specification changes, runtime behavior, packaging, and consumer documentation. Do not classify changes solely from commit subjects.
 

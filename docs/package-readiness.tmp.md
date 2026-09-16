@@ -4,7 +4,7 @@
 
 Prepare `MuLang` for an initial public release to NuGet.org as a single package, with complete public API documentation, deterministic tag-derived versioning, package metadata, source debugging support, automated API compatibility checks, and repeatable package validation.
 
-The initial release target is `0.1.0-alpha.1`. Release versions are derived from Git tags using the format `v<major>.<minor>.<patch>` with an optional SemVer prerelease suffix.
+The initial release target is `0.1.0-alpha.1`. Release versions are derived from Git tags using the format `v<major>.<minor>.<patch>` with an optional `alpha.N`, `beta.N`, or `rc.N` suffix, where `N` is a positive integer.
 
 ## Decisions
 
@@ -19,7 +19,7 @@ The initial release target is `0.1.0-alpha.1`. Release versions are derived from
 | Repository and project URL | `https://github.com/FstTesla/MuLang` |
 | Initial version | `0.1.0-alpha.1` |
 | Version source | GitHub Actions tag workflow |
-| Tag format | `v<major>.<minor>.<patch>[-<prerelease>]` |
+| Tag format | <code>v&lt;major&gt;.&lt;minor&gt;.&lt;patch&gt;[-(alpha&#124;beta&#124;rc).N]</code>, with `N >= 1` |
 | Release workflow | `.github\workflows\publish.yml` |
 | NuGet.org user | `FstTesla` |
 | GitHub Environment | None |
@@ -72,9 +72,11 @@ Completion criteria:
 2. Create official versioned packages only in the GitHub Actions release workflow.
 3. Trigger the workflow only for Git tags whose names begin with `v`.
 4. Remove exactly the initial `v` from `github.ref_name` and use the remaining suffix as the package `Version`.
-5. Validate the suffix as a complete SemVer version before restore, build, test, or pack proceeds.
+5. Validate the version before restore, build, test, or pack proceeds. It MUST be stable SemVer or use exactly one of the `alpha.N`, `beta.N`, or `rc.N` suffixes, where `N` is a positive integer.
 6. Accept stable and prerelease versions, including:
    - `v0.1.0-alpha.1`, producing version `0.1.0-alpha.1`;
+   - `v0.1.0-beta.1`, producing version `0.1.0-beta.1`;
+   - `v0.1.0-rc.1`, producing version `0.1.0-rc.1`;
    - `v0.1.0`, producing version `0.1.0`;
    - `v1.0.0`, producing version `1.0.0`.
 7. Reject tags that begin with `v` but do not contain an accepted complete SemVer version, including incomplete or textual values.

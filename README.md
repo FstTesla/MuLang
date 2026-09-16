@@ -10,11 +10,11 @@ MuLang currently targets .NET 10 and is under active development. Version suffix
 
 | Suffix | Maturity |
 |---|---|
-| `alpha` | Experimental |
-| `beta` | Prerelease |
-| `rc` | Preview |
+| `alpha.N` | Experimental |
+| `beta.N` | Prerelease |
+| `rc.N` | Preview |
 
-Language behavior and public APIs may change before version 1.0.
+`N` is a positive integer. Language behavior and public APIs may change before version 1.0.
 
 ## Getting started
 

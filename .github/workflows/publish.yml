@@ -37,9 +37,9 @@ jobs:
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
           $version = $env:RELEASE_TAG.Substring(1)
-          $semVerPattern = '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*)?$'
+          $versionPattern = '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-(alpha|beta|rc)\.([1-9][0-9]*))?$'
 
-          if ($version -notmatch $semVerPattern) {
+          if ($version -notmatch $versionPattern) {
             throw "Tag '$env:RELEASE_TAG' does not contain a valid release version."
           }
 
@@ -102,6 +102,7 @@ jobs:
         run: |
           $packages = @(Get-ChildItem artifacts/packages -File)
           $expectedPackage = "MuLang.$env:VERSION.nupkg"
+          $expectedSymbolPackage = "MuLang.$env:VERSION.snupkg"
 
           if ($packages.Count -eq 0) {
             throw 'No package artifacts were produced.'
@@ -109,6 +110,10 @@ jobs:
 
           if ($expectedPackage -notin $packages.Name) {
             throw "Expected package '$expectedPackage' was not produced."
+          }
+
+          if ($expectedSymbolPackage -notin $packages.Name) {
+            throw "Expected symbol package '$expectedSymbolPackage' was not produced."
           }
 
           $unexpectedPackages = @(

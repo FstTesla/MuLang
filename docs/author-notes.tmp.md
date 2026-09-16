@@ -1,7 +1,6 @@
 - Split projects and adjust type visibility for future package
+- Publish xmldoc (to github pages?)
 - Package:
-  - Metadata
-  - Versioning
   - Other stuff?
 - New features:
   - Comments
