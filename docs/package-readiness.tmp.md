@@ -24,8 +24,8 @@ The initial release target is `0.1.0-alpha.1`. Release versions are derived from
 | NuGet.org user | `FstTesla` |
 | GitHub Environment | None |
 | Duplicate publication | Fail |
-| Temporary publication target | Azure Artifacts feed `MuLang` in project `MuLang` |
-| Temporary authentication | GitHub secret `AZURE_ARTIFACTS_TOKEN` containing an Azure DevOps PAT |
+| Temporary publication target | GitHub Packages under the `FstTesla` namespace |
+| Temporary authentication | Workflow-scoped `GITHUB_TOKEN` |
 | Package structure | One package for the initial releases |
 | API compatibility | Automatically enforced |
 | Assembly signing | Strong-name sign every assembly with the root `MuLang.snk` key |
@@ -236,9 +236,9 @@ Completion criteria:
 6. Run package verification against the generated artifacts.
 7. Upload `.nupkg` and `.snupkg` as immutable workflow artifacts.
 8. Keep package creation and publication in separate jobs so publication consumes the exact artifacts produced and verified by the pack job.
-9. Temporarily publish to the Azure Artifacts feed at `https://pkgs.dev.azure.com/filippomineo-ms/MuLang/_packaging/MuLang/nuget/v3/index.json`.
-10. Authenticate to the temporary feed through `actions/setup-dotnet`, using `NUGET_AUTH_TOKEN` populated from the `AZURE_ARTIFACTS_TOKEN` GitHub secret. The PAT MUST have permission to publish packages to the feed.
-11. Replace the temporary Azure Artifacts authentication with NuGet.org trusted publishing when the repository and NuGet.org package ownership are configured.
+9. Temporarily publish to GitHub Packages at `https://nuget.pkg.github.com/FstTesla/index.json`.
+10. Authenticate to GitHub Packages through `actions/setup-dotnet`, using `NUGET_AUTH_TOKEN` populated from the workflow-scoped `GITHUB_TOKEN` and granting the publish job `packages: write`.
+11. Replace the temporary GitHub Packages publication with NuGet.org trusted publishing when the repository and NuGet.org package ownership are configured.
 12. Protect the publishing environment with explicit approval until the release process is established.
 13. Prevent duplicate publication from reruns while preserving idempotent build and verification steps.
 14. Record the derived version, source tag, commit, and artifact hashes in the workflow summary.
@@ -252,7 +252,7 @@ Completion criteria:
 - A valid `v` version tag produces verified downloadable artifacts with the version obtained by removing the initial `v`.
 - An invalid `v` tag fails without producing package artifacts.
 - The publication job uses the exact artifacts emitted by the pack job.
-- Temporary publication requires the intended repository, workflow, tag, feed, and PAT secret.
+- Temporary publication requires the intended repository, workflow, tag, GitHub Packages namespace, and workflow token permissions.
 - Final NuGet.org publication requires the intended repository, workflow, environment, and tag.
 - No long-lived NuGet.org API key is stored when trusted publishing replaces the temporary feed.
 
