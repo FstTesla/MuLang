@@ -1,0 +1,80 @@
+name: Verify published package
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Package version without the v prefix
+        required: true
+        default: 0.1.0-alpha.1
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  verify:
+    name: Verify MuLang ${{ inputs.version }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out verification tooling
+        uses: actions/checkout@v4
+        with:
+          path: tooling
+
+      - name: Check out release tag
+        uses: actions/checkout@v4
+        with:
+          ref: v${{ inputs.version }}
+          path: source
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: source/global.json
+          source-url: https://nuget.pkg.github.com/FstTesla/index.json
+        env:
+          NUGET_AUTH_TOKEN: ${{ github.token }}
+
+      - name: Restore tools
+        run: dotnet tool restore --tool-manifest tooling/.config/dotnet-tools.json
+
+      - name: Restore
+        run: dotnet restore MuLang.slnx --locked-mode
+        working-directory: source
+
+      - name: Build
+        run: dotnet build MuLang.slnx --configuration Release --no-restore --nologo --verbosity minimal -p:Version=${{ inputs.version }}
+        working-directory: source
+
+      - name: Test
+        run: dotnet test MuLang.slnx --configuration Release --no-build --no-restore --nologo --verbosity minimal
+        working-directory: source
+
+      - name: Pack
+        run: dotnet pack MuLang.slnx --configuration Release --no-build --no-restore --nologo --verbosity minimal --output ../artifacts/packages -p:Version=${{ inputs.version }}
+        working-directory: source
+
+      - name: Verify local and published package
+        shell: pwsh
+        working-directory: tooling
+        env:
+          GITHUB_PACKAGE_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          $commit = git -C ../source rev-parse HEAD
+          ./eng/Verify-Package.ps1 `
+            -PackagePath "../artifacts/packages/MuLang.$env:VERSION.nupkg" `
+            -SymbolPackagePath "../artifacts/packages/MuLang.$env:VERSION.snupkg" `
+            -Version $env:VERSION `
+            -RepositoryRoot '../source' `
+            -ExpectedRepositoryCommit $commit `
+            -TestSourceLinkUrls `
+            -FeedUrl 'https://nuget.pkg.github.com/FstTesla/index.json' `
+            -FeedUsername '${{ github.actor }}' `
+            -FeedToken $env:GITHUB_PACKAGE_TOKEN `
+            -GitHubOwner 'FstTesla' `
+            -GitHubRepository 'MuLang' `
+            -GitHubToken $env:GITHUB_PACKAGE_TOKEN `
+            -ExpectedGitHubVisibility 'private'

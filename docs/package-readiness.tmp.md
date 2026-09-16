@@ -26,6 +26,7 @@ The initial release target is `0.1.0-alpha.1`. Release versions are derived from
 | Duplicate publication | Fail |
 | Temporary publication target | GitHub Packages under the `FstTesla` namespace |
 | Temporary authentication | Workflow-scoped `GITHUB_TOKEN` |
+| Temporary package visibility | Private |
 | Package structure | One package for the initial releases |
 | API compatibility | Automatically enforced |
 | Assembly signing | Strong-name sign every assembly with the root `MuLang.snk` key |
@@ -205,6 +206,8 @@ Completion criteria:
 6. Compile and run a minimal consumer smoke test against the package rather than a project reference.
 7. Verify XML IntelliSense availability and Source Link metadata.
 8. Run the existing test suite before accepting the packed artifacts.
+9. Verify the published GitHub Package is associated with `FstTesla/MuLang`, remains private, and exposes the expected version.
+10. Restore and execute a consumer project against the authenticated published feed, with retry for registry propagation.
 
 Expected main package contents:
 
@@ -226,6 +229,8 @@ Completion criteria:
 
 - Package verification is automated and reproducible locally and in CI.
 - The isolated consumer uses no repository project reference.
+- The published-package consumer uses the registry package rather than the workflow artifact.
+- Package association, visibility, and version are verified through the GitHub Packages API.
 - Verification fails when package shape, metadata, or basic consumption regresses.
 
 ## 8. Add the Public Release Workflow
@@ -235,19 +240,21 @@ Completion criteria:
 3. Use the tagged commit as the source checkout; additional Git history is not required for version calculation.
 4. Restore in locked mode, build, and test in Release configuration.
 5. Pack every packable project into a clean artifact directory using the derived `Version`.
-6. Run package verification against the generated artifacts.
+6. Run package verification against the generated artifacts, including metadata, contents, strong-name, XML documentation, Source Link, and an isolated local consumer.
 7. Upload `.nupkg` and `.snupkg` as immutable workflow artifacts.
 8. Keep package creation and publication in separate jobs so publication consumes the exact artifacts produced and verified by the pack job.
 9. Temporarily publish to GitHub Packages at `https://nuget.pkg.github.com/FstTesla/index.json`.
 10. Authenticate to GitHub Packages through `actions/setup-dotnet`, using `NUGET_AUTH_TOKEN` populated from the workflow-scoped `GITHUB_TOKEN` and granting the publish job `packages: write`.
-11. Replace the temporary GitHub Packages publication with NuGet.org trusted publishing when the repository and NuGet.org package ownership are configured.
-12. Protect the publishing environment with explicit approval until the release process is established.
-13. Prevent duplicate publication from reruns while preserving idempotent build and verification steps.
-14. Record the derived version, source tag, commit, and artifact hashes in the workflow summary.
-15. Keep branch and pull-request validation separate from publication; those workflows may validate packability but MUST NOT publish or produce official release versions.
-16. Fail before package publication when a beta, RC, or stable tag does not contain a non-empty changelog section for the derived version.
-17. Allow alpha package publication without a changelog section or GitHub Release.
-18. Create the matching GitHub Release after successful beta, RC, or stable package publication using the committed changelog section.
+11. After publication, verify repository association, private visibility, exact version availability, and an authenticated consumer restore from GitHub Packages.
+12. Provide a manual workflow that rebuilds a selected tag and verifies its package against GitHub Packages without publishing a new version.
+13. Replace the temporary GitHub Packages publication with NuGet.org trusted publishing when the repository and NuGet.org package ownership are configured.
+14. Protect the publishing environment with explicit approval until the release process is established.
+15. Prevent duplicate publication from reruns while preserving idempotent build and verification steps.
+16. Record the derived version, source tag, commit, and artifact hashes in the workflow summary.
+17. Keep branch and pull-request validation separate from publication; those workflows may validate packability but MUST NOT publish or produce official release versions.
+18. Fail before package publication when a beta, RC, or stable tag does not contain a non-empty changelog section for the derived version.
+19. Allow alpha package publication without a changelog section or GitHub Release.
+20. Create the matching GitHub Release after successful beta, RC, or stable package publication using the committed changelog section.
 
 Completion criteria:
 

@@ -16,6 +16,7 @@
   <Folder Name="/Solution Items/.github/workflows/">
     <File Path=".github/workflows/documentation.yml" />
     <File Path=".github/workflows/publish.yml" />
+    <File Path=".github/workflows/verify-package.yml" />
   </Folder>
   <Folder Name="/Solution Items/.github/instructions/">
     <File Path=".github/instructions/csharp.instructions.md" />
@@ -55,6 +56,9 @@
     <File Path="docs/public/language/21-draft-review-decisions.md" />
     <File Path="docs/public/language/index.md" />
     <File Path="docs/public/language/toc.yml" />
+  </Folder>
+  <Folder Name="/Solution Items/eng/">
+    <File Path="eng/Verify-Package.ps1" />
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/MuLang/MuLang.csproj" />

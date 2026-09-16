@@ -30,6 +30,9 @@ jobs:
         with:
           global-json-file: global.json
 
+      - name: Restore tools
+        run: dotnet tool restore
+
       - name: Derive package version
         id: version
         shell: pwsh
@@ -100,34 +103,15 @@ jobs:
         env:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
-          $packages = @(Get-ChildItem artifacts/packages -File)
-          $expectedPackage = "MuLang.$env:VERSION.nupkg"
-          $expectedSymbolPackage = "MuLang.$env:VERSION.snupkg"
-
-          if ($packages.Count -eq 0) {
-            throw 'No package artifacts were produced.'
-          }
-
-          if ($expectedPackage -notin $packages.Name) {
-            throw "Expected package '$expectedPackage' was not produced."
-          }
-
-          if ($expectedSymbolPackage -notin $packages.Name) {
-            throw "Expected symbol package '$expectedSymbolPackage' was not produced."
-          }
-
-          $unexpectedPackages = @(
-            $packages |
-              Where-Object {
-                $_.Extension -notin '.nupkg', '.snupkg'
-              }
-          )
-
-          if ($unexpectedPackages.Count -ne 0) {
-            throw "Unexpected artifacts: $($unexpectedPackages.Name -join ', ')."
-          }
+          ./eng/Verify-Package.ps1 `
+            -PackagePath "artifacts/packages/MuLang.$env:VERSION.nupkg" `
+            -SymbolPackagePath "artifacts/packages/MuLang.$env:VERSION.snupkg" `
+            -Version $env:VERSION `
+            -ExpectedRepositoryCommit "${{ github.sha }}" `
+            -TestSourceLinkUrls
 
           "### Artifact hashes" >> $env:GITHUB_STEP_SUMMARY
+          $packages = @(Get-ChildItem artifacts/packages -File)
 
           foreach ($package in $packages) {
             $hash = (Get-FileHash $package.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -195,6 +179,9 @@ jobs:
         env:
           NUGET_AUTH_TOKEN: ${{ github.token }}
 
+      - name: Restore tools
+        run: dotnet tool restore
+
       - name: Publish packages
         shell: pwsh
         env:
@@ -215,6 +202,26 @@ jobs:
               exit $LASTEXITCODE
             }
           }
+
+      - name: Verify published package
+        shell: pwsh
+        env:
+          GITHUB_PACKAGE_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.pack.outputs.version }}
+        run: |
+          ./eng/Verify-Package.ps1 `
+            -PackagePath "artifacts/packages/MuLang.$env:VERSION.nupkg" `
+            -SymbolPackagePath "artifacts/packages/MuLang.$env:VERSION.snupkg" `
+            -Version $env:VERSION `
+            -ExpectedRepositoryCommit "${{ github.sha }}" `
+            -TestSourceLinkUrls `
+            -FeedUrl 'https://nuget.pkg.github.com/FstTesla/index.json' `
+            -FeedUsername '${{ github.actor }}' `
+            -FeedToken $env:GITHUB_PACKAGE_TOKEN `
+            -GitHubOwner 'FstTesla' `
+            -GitHubRepository 'MuLang' `
+            -GitHubToken $env:GITHUB_PACKAGE_TOKEN `
+            -ExpectedGitHubVisibility 'private'
 
       - name: Create GitHub release
         if: needs.pack.outputs.create_github_release == 'true'
