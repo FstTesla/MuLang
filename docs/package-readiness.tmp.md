@@ -13,6 +13,8 @@ The initial release target is `0.1.0-alpha.1`. Release versions are derived from
 | Distribution | Public package on NuGet.org |
 | Package ID | `MuLang` |
 | Authors | `FstTesla` |
+| Copyright | `Copyright (c) 2026 Filippo Mineo` |
+| Package tags | `compiler;dsl;embedded-language;expression-language;static-typing;type-checking;dotnet;micro-language` |
 | License | Apache-2.0 |
 | Repository and project URL | `https://github.com/FstTesla/MuLang` |
 | Initial version | `0.1.0-alpha.1` |
@@ -29,6 +31,12 @@ The initial release target is `0.1.0-alpha.1`. Release versions are derived from
 | Assembly signing | Strong-name sign every assembly with the root `MuLang.snk` key |
 | Symbols and sources | Publish a symbol package with Source Link |
 | Package icon | `MuLang.png`, generated from `MuLang.svg` |
+| Consumer examples | `docs\examples.md` |
+| Release maturity | `alpha` is experimental, `beta` is prerelease, and `rc` is preview |
+| Changelog source | Reviewed diff from an explicitly specified base tag or commit |
+| Changelog preparation | Use `.github\agents\release-changelog.agent.md`, then review and commit `CHANGELOG.md` before tagging |
+| Changelog categories | `Breaking changes`, `New features`, and `Fixes` |
+| GitHub Release policy | Create releases for beta, RC, and stable versions; exclude alpha versions |
 
 ## 1. Establish Package Identity and Legal Metadata
 
@@ -154,7 +162,7 @@ Completion criteria:
 
 ## 6. Improve Consumer Documentation
 
-1. Expand the root README from a repository overview into the package landing page.
+1. Use the root README as the concise repository and package landing page.
 2. Document:
    - package purpose and current prerelease status;
    - supported target framework;
@@ -164,8 +172,15 @@ Completion criteria:
    - compatibility and versioning expectations;
    - license and repository links.
 3. Keep detailed language semantics in `docs\language-specification.md` and avoid duplicating normative content in the README.
-4. Add release notes for `0.1.0-alpha.1`, focused on supported capabilities and known prerelease limitations.
-5. Verify links both from the GitHub repository and from NuGet's rendered package README.
+4. Keep complete C# usage examples in `docs\examples.md` and link them from the README.
+5. Prepare release notes by invoking the repository release-changelog agent with an explicit base tag or commit and the target version.
+6. Have the agent inspect the complete diff rather than relying only on commit subjects.
+7. Classify consumer-visible changes as `Breaking changes`, `New features`, or `Fixes`, omitting empty categories and internal-only work.
+8. Review and commit the generated `CHANGELOG.md` section before creating the version tag.
+9. Require beta, RC, and stable tagged commits to contain the matching changelog section. Alpha tags may omit it.
+10. Create a GitHub Release after package publication for beta, RC, and stable versions, using the changelog section as its notes. Beta and RC versions are marked as prereleases.
+11. For alpha packages, link `PackageReleaseNotes` to the tagged changelog only when a matching section exists; otherwise omit the metadata.
+12. Verify links and the externally hosted logo both from the GitHub repository and from NuGet's rendered package README.
 
 Completion criteria:
 
@@ -228,6 +243,9 @@ Completion criteria:
 13. Prevent duplicate publication from reruns while preserving idempotent build and verification steps.
 14. Record the derived version, source tag, commit, and artifact hashes in the workflow summary.
 15. Keep branch and pull-request validation separate from publication; those workflows may validate packability but MUST NOT publish or produce official release versions.
+16. Fail before package publication when a beta, RC, or stable tag does not contain a non-empty changelog section for the derived version.
+17. Allow alpha package publication without a changelog section or GitHub Release.
+18. Create the matching GitHub Release after successful beta, RC, or stable package publication using the committed changelog section.
 
 Completion criteria:
 
@@ -298,8 +316,6 @@ There are no design decisions blocking implementation.
 
 The following operational values become available during execution:
 
-- approved copyright text and year;
-- package description and tags after editorial review;
 - exact floating major version for PublicApiAnalyzers;
 - NuGet.org package ownership and trusted-publishing configuration;
 - previous-package baseline selection after `0.1.0-alpha.1` is published.

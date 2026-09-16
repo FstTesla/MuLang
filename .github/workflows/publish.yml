@@ -19,6 +19,7 @@ jobs:
 
     outputs:
       version: ${{ steps.version.outputs.version }}
+      create_github_release: ${{ steps.release.outputs.create_github_release }}
 
     steps:
       - name: Check out tagged commit
@@ -48,6 +49,40 @@ jobs:
           "- Version: ``$version``" >> $env:GITHUB_STEP_SUMMARY
           "- Commit: ``${{ github.sha }}``" >> $env:GITHUB_STEP_SUMMARY
 
+      - name: Determine release metadata
+        id: release
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          $prerelease = $env:VERSION.IndexOf('-', [StringComparison]::Ordinal)
+          $channel = if ($prerelease -lt 0) {
+            ''
+          } else {
+            $env:VERSION.Substring($prerelease + 1).Split('.')[0]
+          }
+          $createGitHubRelease = $channel -in '', 'beta', 'rc'
+          $changelog = [System.IO.File]::ReadAllText('CHANGELOG.md')
+          $escapedVersion = [regex]::Escape($env:VERSION)
+          $pattern = "(?ms)^## \[$escapedVersion\] - [^\r\n]+\r?\n\r?\n(?<notes>.*?)(?=^## |\z)"
+          $hasReleaseNotes = [regex]::IsMatch($changelog, $pattern)
+
+          if ($createGitHubRelease -and !$hasReleaseNotes) {
+            throw "CHANGELOG.md does not contain release notes for version '$env:VERSION'."
+          }
+
+          $packageReleaseNotes = if ($createGitHubRelease) {
+            "https://github.com/FstTesla/MuLang/releases/tag/$env:RELEASE_TAG"
+          } elseif ($hasReleaseNotes) {
+            "https://github.com/FstTesla/MuLang/blob/$env:RELEASE_TAG/CHANGELOG.md"
+          } else {
+            ''
+          }
+
+          "create_github_release=$($createGitHubRelease.ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
+          "package_release_notes=$packageReleaseNotes" >> $env:GITHUB_OUTPUT
+
       - name: Restore
         run: dotnet restore MuLang.slnx --locked-mode
 
@@ -58,7 +93,7 @@ jobs:
         run: dotnet test MuLang.slnx --configuration Release --no-build --no-restore --nologo --verbosity minimal
 
       - name: Pack
-        run: dotnet pack MuLang.slnx --configuration Release --no-build --no-restore --nologo --verbosity minimal --output artifacts/packages -p:Version=${{ steps.version.outputs.version }}
+        run: dotnet pack MuLang.slnx --configuration Release --no-build --no-restore --nologo --verbosity minimal --output artifacts/packages -p:Version=${{ steps.version.outputs.version }} -p:PackageReleaseNotes="${{ steps.release.outputs.package_release_notes }}"
 
       - name: Verify package artifacts
         shell: pwsh
@@ -107,14 +142,44 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
-      contents: read
+      contents: write
 
     steps:
+      - name: Check out tagged commit
+        uses: actions/checkout@v4
+
       - name: Download package artifacts
         uses: actions/download-artifact@v4
         with:
           name: NuGet-${{ needs.pack.outputs.version }}
           path: artifacts/packages
+
+      - name: Prepare GitHub release notes
+        if: needs.pack.outputs.create_github_release == 'true'
+        shell: pwsh
+        env:
+          VERSION: ${{ needs.pack.outputs.version }}
+        run: |
+          $changelog = [System.IO.File]::ReadAllText('CHANGELOG.md')
+          $escapedVersion = [regex]::Escape($env:VERSION)
+          $pattern = "(?ms)^## \[$escapedVersion\] - [^\r\n]+\r?\n\r?\n(?<notes>.*?)(?=^## |\z)"
+          $match = [regex]::Match($changelog, $pattern)
+
+          if (!$match.Success) {
+            throw "CHANGELOG.md does not contain release notes for version '$env:VERSION'."
+          }
+
+          $notes = $match.Groups['notes'].Value.Trim()
+
+          if ([string]::IsNullOrWhiteSpace($notes)) {
+            throw "Release notes for version '$env:VERSION' are empty."
+          }
+
+          [System.IO.File]::WriteAllText(
+            'artifacts/release-notes.md',
+            $notes,
+            [System.Text.UTF8Encoding]::new($false)
+          )
 
       - name: Set up .NET
         uses: actions/setup-dotnet@v4
@@ -143,4 +208,33 @@ jobs:
             if ($LASTEXITCODE -ne 0) {
               exit $LASTEXITCODE
             }
+          }
+
+      - name: Create GitHub release
+        if: needs.pack.outputs.create_github_release == 'true'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+          VERSION: ${{ needs.pack.outputs.version }}
+        run: |
+          $arguments = @(
+            'release',
+            'create',
+            $env:RELEASE_TAG,
+            '--verify-tag',
+            '--title',
+            "MuLang $env:VERSION",
+            '--notes-file',
+            'artifacts/release-notes.md'
+          )
+
+          if ($env:VERSION.Contains('-', [StringComparison]::Ordinal)) {
+            $arguments += '--prerelease'
+          }
+
+          & gh @arguments
+
+          if ($LASTEXITCODE -ne 0) {
+            exit $LASTEXITCODE
           }
