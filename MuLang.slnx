@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/Solution Items/">
     <File Path=".gitignore" />
+    <File Path=".config/dotnet-tools.json" />
     <File Path="Directory.Build.props" />
     <File Path="Directory.Build.targets" />
     <File Path="global.json" />
@@ -13,6 +14,7 @@
   </Folder>
   <Folder Name="/Solution Items/.github/" />
   <Folder Name="/Solution Items/.github/workflows/">
+    <File Path=".github/workflows/documentation.yml" />
     <File Path=".github/workflows/publish.yml" />
   </Folder>
   <Folder Name="/Solution Items/.github/instructions/">
@@ -21,9 +23,18 @@
   </Folder>
   <Folder Name="/Solution Items/docs/">
     <File Path="docs/author-notes.tmp.md" />
-    <File Path="docs/examples.md" />
-    <File Path="docs/language-specification.md" />
+    <File Path="docs/docfx.json" />
     <File Path="docs/package-readiness.tmp.md" />
+  </Folder>
+  <Folder Name="/Solution Items/docs/public/">
+    <File Path="docs/public/examples.md" />
+    <File Path="docs/public/index.md" />
+    <File Path="docs/public/toc.yml" />
+  </Folder>
+  <Folder Name="/Solution Items/docs/public/language/">
+    <File Path="docs/public/language/index.md" />
+    <File Path="docs/public/language/specification.md" />
+    <File Path="docs/public/language/toc.yml" />
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/MuLang/MuLang.csproj" />

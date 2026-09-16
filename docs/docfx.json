@@ -1,0 +1,55 @@
+{
+  "$schema": "https://raw.githubusercontent.com/dotnet/docfx/main/schemas/docfx.schema.json",
+  "metadata": [
+    {
+      "src": [
+        {
+          "files": [
+            "src/MuLang/bin/Release/net10.0/MuLang.dll"
+          ],
+          "src": ".."
+        }
+      ],
+      "dest": "../artifacts/docs/api"
+    }
+  ],
+  "build": {
+    "content": [
+      {
+        "files": [
+          "**/*.md",
+          "**/toc.yml"
+        ],
+        "src": "public"
+      },
+      {
+        "files": [
+          "**/*.yml"
+        ],
+        "src": "../artifacts/docs/api",
+        "dest": "api"
+      }
+    ],
+    "resource": [
+      {
+        "files": [
+          "MuLang.png"
+        ],
+        "src": "..",
+        "dest": "images"
+      }
+    ],
+    "output": "../artifacts/docs/site",
+    "template": [
+      "default",
+      "modern"
+    ],
+    "globalMetadata": {
+      "_appBasePath": "/MuLang/",
+      "_appLogoPath": "images/MuLang.png",
+      "_appName": "MuLang",
+      "_appTitle": "MuLang Documentation",
+      "_enableSearch": true
+    }
+  }
+}

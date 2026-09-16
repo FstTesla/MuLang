@@ -31,7 +31,7 @@ The initial release target is `0.1.0-alpha.1`. Release versions are derived from
 | Assembly signing | Strong-name sign every assembly with the root `MuLang.snk` key |
 | Symbols and sources | Publish a symbol package with Source Link |
 | Package icon | `MuLang.png`, generated from `MuLang.svg` |
-| Consumer examples | `docs\examples.md` |
+| Consumer examples | `docs\public\examples.md` |
 | Release maturity | `alpha` is experimental, `beta` is prerelease, and `rc` is preview |
 | Changelog source | Reviewed diff from an explicitly specified base tag or commit |
 | Changelog preparation | Use `.github\agents\release-changelog.agent.md`, then review and commit `CHANGELOG.md` before tagging |
@@ -173,8 +173,8 @@ Completion criteria:
    - links to the normative language specification;
    - compatibility and versioning expectations;
    - license and repository links.
-3. Keep detailed language semantics in `docs\language-specification.md` and avoid duplicating normative content in the README.
-4. Keep complete C# usage examples in `docs\examples.md` and link them from the README.
+3. Keep detailed language semantics in `docs\public\language\specification.md` and avoid duplicating normative content in the README.
+4. Keep complete C# usage examples in `docs\public\examples.md` and link them from the README.
 5. Prepare release notes by invoking the repository release-changelog agent with an explicit base tag or commit and the target version.
 6. Have the agent inspect the complete diff rather than relying only on commit subjects.
 7. Classify consumer-visible changes as `Breaking changes`, `New features`, or `Fixes`, omitting empty categories and internal-only work.

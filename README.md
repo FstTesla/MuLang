@@ -31,12 +31,13 @@ A MuLang host:
 3. Checks compilation diagnostics before obtaining the executable delegate.
 4. Supplies runtime values and provider functions through `DotNetRuntimeContext`.
 
-See the [examples](https://github.com/FstTesla/MuLang/blob/main/docs/examples.md) for a complete compilation and execution flow.
+See the [examples](https://github.com/FstTesla/MuLang/blob/main/docs/public/examples.md) for a complete compilation and execution flow.
 
 ## Documentation
 
-- [Language specification](https://github.com/FstTesla/MuLang/blob/main/docs/language-specification.md)
-- [Examples](https://github.com/FstTesla/MuLang/blob/main/docs/examples.md)
+- [Documentation site](https://fsttesla.github.io/MuLang/)
+- [Language specification](https://github.com/FstTesla/MuLang/blob/main/docs/public/language/specification.md)
+- [Examples](https://github.com/FstTesla/MuLang/blob/main/docs/public/examples.md)
 - [Changelog](https://github.com/FstTesla/MuLang/blob/main/CHANGELOG.md)
 
 ## Feedback
