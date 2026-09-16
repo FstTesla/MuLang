@@ -15,11 +15,20 @@
 
   <PropertyGroup Condition="'$(IsPackable)' == 'true'">
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <PackageDescription>
+MuLang is a small, embeddable, statically checked language for expressions and imperative programs.
+Providers define the available global variables, functions, and structured types, while the compiler produces an executable delegate for a compatible runtime environment.
+    </PackageDescription>
+    <PackageIcon>MuLang.png</PackageIcon>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
   </PropertyGroup>
+
+  <ItemGroup Condition="'$(IsPackable)' == 'true'">
+    <None Include="$(MSBuildThisFileDirectory)MuLang.png" Pack="true" PackagePath="\" />
+  </ItemGroup>
 
   <Choose>
     <When Condition="'$(GITHUB_ACTIONS)' == 'true'">

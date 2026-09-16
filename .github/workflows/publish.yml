@@ -102,13 +102,12 @@ jobs:
           if-no-files-found: error
 
   publish:
-    name: Publish to NuGet.org
+    name: Publish to Azure Artifacts
     needs: pack
     runs-on: ubuntu-latest
 
     permissions:
       contents: read
-      id-token: write
 
     steps:
       - name: Download package artifacts
@@ -121,17 +120,14 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
-
-      - name: Authenticate with NuGet.org
-        id: login
-        uses: NuGet/login@v1
-        with:
-          user: FstTesla
+          source-url: https://pkgs.dev.azure.com/filippomineo-ms/MuLang/_packaging/MuLang/nuget/v3/index.json
+        env:
+          NUGET_AUTH_TOKEN: ${{ secrets.AZURE_ARTIFACTS_TOKEN }}
 
       - name: Publish packages
         shell: pwsh
         env:
-          NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
+          NUGET_AUTH_TOKEN: ${{ secrets.AZURE_ARTIFACTS_TOKEN }}
         run: |
           $packages = @(Get-ChildItem artifacts/packages -Filter *.nupkg -File)
 
@@ -141,8 +137,8 @@ jobs:
 
           foreach ($package in $packages) {
             dotnet nuget push $package.FullName `
-              --api-key $env:NUGET_API_KEY `
-              --source https://api.nuget.org/v3/index.json
+              --api-key AzureArtifacts `
+              --source https://pkgs.dev.azure.com/filippomineo-ms/MuLang/_packaging/MuLang/nuget/v3/index.json
 
             if ($LASTEXITCODE -ne 0) {
               exit $LASTEXITCODE
