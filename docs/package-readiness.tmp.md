@@ -173,7 +173,7 @@ Completion criteria:
    - links to the normative language specification;
    - compatibility and versioning expectations;
    - license and repository links.
-3. Keep detailed language semantics in `docs\public\language\specification.md` and avoid duplicating normative content in the README.
+3. Keep detailed language semantics under `docs\public\language` and avoid duplicating normative content in the README.
 4. Keep complete C# usage examples in `docs\public\examples.md` and link them from the README.
 5. Prepare release notes by invoking the repository release-changelog agent with an explicit base tag or commit and the target version.
 6. Have the agent inspect the complete diff rather than relying only on commit subjects.

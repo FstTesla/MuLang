@@ -5,7 +5,7 @@ MuLang is a small, embeddable, statically checked language for expressions and i
 ## Documentation
 
 - [Get started with MuLang](examples.md).
-- Read the [language specification](language/specification.md).
+- Read the [language specification](language/index.md).
 - Browse the [API reference](xref:MuLang).
 
 MuLang currently targets .NET 10 and remains under active development. Language behavior and public APIs may change before version 1.0.

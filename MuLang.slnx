@@ -32,8 +32,28 @@
     <File Path="docs/public/toc.yml" />
   </Folder>
   <Folder Name="/Solution Items/docs/public/language/">
+    <File Path="docs/public/language/01-design-goals.md" />
+    <File Path="docs/public/language/02-non-goals.md" />
+    <File Path="docs/public/language/03-compilation-modes.md" />
+    <File Path="docs/public/language/04-source-text.md" />
+    <File Path="docs/public/language/05-lexical-structure.md" />
+    <File Path="docs/public/language/06-grammar-conventions.md" />
+    <File Path="docs/public/language/07-types.md" />
+    <File Path="docs/public/language/08-assignability-and-conversions.md" />
+    <File Path="docs/public/language/09-variables-and-scope.md" />
+    <File Path="docs/public/language/10-expressions.md" />
+    <File Path="docs/public/language/11-operators.md" />
+    <File Path="docs/public/language/12-statements.md" />
+    <File Path="docs/public/language/13-provider-environment.md" />
+    <File Path="docs/public/language/14-runtime-value-adapters.md" />
+    <File Path="docs/public/language/15-runtime-errors.md" />
+    <File Path="docs/public/language/16-execution-controls.md" />
+    <File Path="docs/public/language/17-diagnostics.md" />
+    <File Path="docs/public/language/18-language-profiles.md" />
+    <File Path="docs/public/language/19-portable-intermediate-representation.md" />
+    <File Path="docs/public/language/20-grammar-summary.md" />
+    <File Path="docs/public/language/21-draft-review-decisions.md" />
     <File Path="docs/public/language/index.md" />
-    <File Path="docs/public/language/specification.md" />
     <File Path="docs/public/language/toc.yml" />
   </Folder>
   <Folder Name="/src/">

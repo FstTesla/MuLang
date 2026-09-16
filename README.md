@@ -36,7 +36,7 @@ See the [examples](https://github.com/FstTesla/MuLang/blob/main/docs/public/exam
 ## Documentation
 
 - [Documentation site](https://fsttesla.github.io/MuLang/)
-- [Language specification](https://github.com/FstTesla/MuLang/blob/main/docs/public/language/specification.md)
+- [Language specification](https://github.com/FstTesla/MuLang/blob/main/docs/public/language/index.md)
 - [Examples](https://github.com/FstTesla/MuLang/blob/main/docs/public/examples.md)
 - [Changelog](https://github.com/FstTesla/MuLang/blob/main/CHANGELOG.md)
 
