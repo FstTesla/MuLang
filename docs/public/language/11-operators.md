@@ -101,7 +101,7 @@ For `null`, `is` evaluates to `true` only when the tested type is nullable. The 
 
 `target has key` checks whether an object currently contains a property. The key expression MUST have type `string`.
 
-Dynamic property-existence tests depend on the open-objects profile option as defined in [Section 18.5](18-language-profiles.md#185-open-objects).
+A test with a string literal naming a known property of a closed structured type is available in every open-objects mode. Dynamic property-existence tests require `OpenObjects.PropertyExistenceOnly` or `OpenObjects.Enabled`, as defined in [Section 18.5](18-language-profiles.md#185-open-objects).
 
 The target of `has` MUST have `object`, structured object, or a nullable form of either as its static type. A `null` target produces a runtime error.
 

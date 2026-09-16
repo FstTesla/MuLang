@@ -1,10 +1,14 @@
 namespace MuLang.Core;
 
-/// <summary>Specifies whether open object types are enabled.</summary>
+/// <summary>Specifies the available open-object capabilities.</summary>
 public enum OpenObjectsFeature
 {
-    /// <summary>Disables the feature.</summary>
+    /// <summary>Disables open objects and dynamic property tests.</summary>
     Disabled = 0,
-    /// <summary>Enables the feature.</summary>
-    Enabled = 1,
+
+    /// <summary>Enables dynamic property tests without enabling open objects.</summary>
+    PropertyExistenceOnly = 1,
+
+    /// <summary>Enables all open-object capabilities.</summary>
+    Enabled = 2,
 }

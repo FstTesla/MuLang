@@ -967,7 +967,10 @@ internal sealed class Binder
             ObjectLiteralExpressionSyntax objectLiteral =>
                 BindObjectExpression(objectLiteral, expectedType),
             UnaryExpressionSyntax unary => BindUnaryExpression(unary),
-            BinaryExpressionSyntax { OperatorToken.Kind: TokenKind.QuestionQuestion }
+            BinaryExpressionSyntax
+                {
+                    OperatorToken.Kind: TokenKind.QuestionQuestion,
+                }
                 binary => BindCoalescingExpression(binary, expectedType),
             BinaryExpressionSyntax binary => BindBinaryExpression(binary),
             ConversionExpressionSyntax conversion => BindConversionExpression(conversion),
@@ -1235,7 +1238,7 @@ internal sealed class Binder
 
         if (
             syntax.IsOpen &&
-            profile.OpenObjects == OpenObjectsFeature.Disabled
+            profile.OpenObjects != OpenObjectsFeature.Enabled
         )
         {
             ReportFeature(
@@ -1575,11 +1578,11 @@ internal sealed class Binder
         }
 
         TypeSymbol? resultType = expectedType ??
-            (
-                leftValueType is null
-                    ? right.Type
-                    : TypeRelations.GetCommonType(leftValueType, right.Type)
-            );
+        (
+            leftValueType is null
+                ? right.Type
+                : TypeRelations.GetCommonType(leftValueType, right.Type)
+        );
 
         if (resultType is null)
         {
@@ -2012,7 +2015,7 @@ internal sealed class Binder
 
             if (objectType.IsOpen)
             {
-                if (profile.OpenObjects == OpenObjectsFeature.Disabled)
+                if (profile.OpenObjects != OpenObjectsFeature.Enabled)
                 {
                     ReportFeature(
                         DiagnosticCodes.DisabledOpenObjects,
@@ -2035,7 +2038,7 @@ internal sealed class Binder
         }
         else if (targetType.Kind == TypeKind.Object)
         {
-            if (profile.OpenObjects == OpenObjectsFeature.Disabled)
+            if (profile.OpenObjects != OpenObjectsFeature.Enabled)
             {
                 ReportFeature(
                     DiagnosticCodes.DisabledOpenObjects,
@@ -2101,7 +2104,7 @@ internal sealed class Binder
 
             if (
                 isDynamic &&
-                profile.OpenObjects == OpenObjectsFeature.Disabled
+                profile.OpenObjects != OpenObjectsFeature.Enabled
             )
             {
                 ReportFeature(
@@ -2147,7 +2150,7 @@ internal sealed class Binder
         {
             BoundExpression index = BindExpression(syntax.Index, TypeSymbols.String);
 
-            if (profile.OpenObjects == OpenObjectsFeature.Disabled)
+            if (profile.OpenObjects != OpenObjectsFeature.Enabled)
             {
                 ReportFeature(
                     DiagnosticCodes.DisabledOpenObjects,
@@ -2391,7 +2394,7 @@ internal sealed class Binder
     private void ValidateEnvironmentCompatibility()
     {
         if (
-            profile.OpenObjects == OpenObjectsFeature.Disabled &&
+            profile.OpenObjects != OpenObjectsFeature.Enabled &&
             environment.Types.Any(static type => type.IsOpen)
         )
         {

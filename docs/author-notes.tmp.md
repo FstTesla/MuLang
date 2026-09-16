@@ -1,5 +1,4 @@
 - Split projects and adjust type visibility for future package
-- Publish xmldoc (to github pages?)
 - Package:
   - Other stuff?
 - New features:

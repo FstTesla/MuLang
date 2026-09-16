@@ -80,7 +80,11 @@ public sealed class LanguageProfileTests
             Assert.That((int)ProviderFunctionCallsFeature.Disabled, Is.Zero);
             Assert.That((int)ProviderFunctionCallsFeature.Enabled, Is.EqualTo(1));
             Assert.That((int)OpenObjectsFeature.Disabled, Is.Zero);
-            Assert.That((int)OpenObjectsFeature.Enabled, Is.EqualTo(1));
+            Assert.That(
+                (int)OpenObjectsFeature.PropertyExistenceOnly,
+                Is.EqualTo(1)
+            );
+            Assert.That((int)OpenObjectsFeature.Enabled, Is.EqualTo(2));
             Assert.That((int)MultiLevelLoopControlFeature.Disabled, Is.Zero);
             Assert.That((int)MultiLevelLoopControlFeature.Enabled, Is.EqualTo(1));
             Assert.That((int)TrailingCommasFeature.Disabled, Is.Zero);
@@ -200,10 +204,33 @@ public sealed class LanguageProfileTests
             Assert.That(
                 first.Fingerprint.Value,
                 Is.EqualTo(
-                    "faff81dabb1a06023bce73b9dc87ec09101c14d5359f6c57e52946e2ecbcf416"
+                    "9942aab3a64506603b208ec96416ea46b2c94d2e0face8ce7b2a7bcd3adefe30"
                 )
             );
         }
+    }
+
+    [Test]
+    public void OpenObjectModesHaveDistinctFingerprints()
+    {
+        LanguageProfile disabled = TestLanguageProfileFactory.Create(
+            openObjects: OpenObjectsFeature.Disabled
+        );
+        LanguageProfile propertyExistenceOnly =
+            TestLanguageProfileFactory.Create(
+                openObjects: OpenObjectsFeature.PropertyExistenceOnly
+            );
+        LanguageProfile enabled = LanguageProfiles.Version1;
+
+        Assert.That(
+            new[]
+            {
+                disabled.Fingerprint,
+                propertyExistenceOnly.Fingerprint,
+                enabled.Fingerprint,
+            },
+            Is.Unique
+        );
     }
 
     [TestCase("functions")]

@@ -242,11 +242,14 @@ public sealed class FeatureFlagTests
         }
     }
 
-    [Test]
-    public void RejectsOpenObjectLiteralsWithoutDuplicateDiagnostics()
+    [TestCase(OpenObjectsFeature.Disabled)]
+    [TestCase(OpenObjectsFeature.PropertyExistenceOnly)]
+    public void RejectsOpenObjectLiteralsWithoutDuplicateDiagnostics(
+        OpenObjectsFeature openObjects
+    )
     {
         LanguageProfile profile = TestLanguageProfileFactory.Create(
-            openObjects: OpenObjectsFeature.Disabled
+            openObjects: openObjects
         );
         CompilationResult result = MuLangCompiler.CompileExpression(
             "@{ }",
@@ -258,15 +261,18 @@ public sealed class FeatureFlagTests
         AssertDiagnosticCount(result, DiagnosticCodes.DisabledOpenObjects, 1);
     }
 
-    [Test]
-    public void RejectsAnyOpenStructuredTypeInTheEnvironmentEvenWhenUnused()
+    [TestCase(OpenObjectsFeature.Disabled)]
+    [TestCase(OpenObjectsFeature.PropertyExistenceOnly)]
+    public void RejectsAnyOpenStructuredTypeInTheEnvironmentEvenWhenUnused(
+        OpenObjectsFeature openObjects
+    )
     {
         ObjectTypeSymbol openType = new ("type.open", "Open", true, [ ]);
         EnvironmentSchema environment = new EnvironmentBuilder()
             .AddType(openType)
             .Build();
         LanguageProfile profile = TestLanguageProfileFactory.Create(
-            openObjects: OpenObjectsFeature.Disabled
+            openObjects: openObjects
         );
         CompilationResult result = CompileProgram("", profile, environment);
 
@@ -343,6 +349,73 @@ public sealed class FeatureFlagTests
             "item has key",
             environment,
             TypeSymbols.Bool,
+            profile
+        );
+
+        AssertDiagnostic(result, DiagnosticCodes.DisabledOpenObjects);
+    }
+
+    [Test]
+    public void PropertyExistenceOnlyAllowsDynamicTestsOnGenericObjects()
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddGlobal("global.value", "value", TypeSymbols.Object)
+            .AddGlobal("global.key", "key", TypeSymbols.String)
+            .Build();
+        LanguageProfile profile = TestLanguageProfileFactory.Create(
+            openObjects: OpenObjectsFeature.PropertyExistenceOnly
+        );
+        CompilationResult result = MuLangCompiler.CompileExpression(
+            "value has key",
+            environment,
+            TypeSymbols.Bool,
+            profile
+        );
+
+        Assert.That(result.Diagnostics, Is.Empty);
+    }
+
+    [Test]
+    public void PropertyExistenceOnlyAllowsDynamicTestsOnClosedObjects()
+    {
+        ObjectTypeSymbol itemType = new (
+            "type.item",
+            "Item",
+            false,
+            [ new ObjectPropertySymbol("value", TypeSymbols.Int) ]
+        );
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddType(itemType)
+            .AddGlobal("global.item", "item", itemType)
+            .AddGlobal("global.key", "key", TypeSymbols.String)
+            .Build();
+        LanguageProfile profile = TestLanguageProfileFactory.Create(
+            openObjects: OpenObjectsFeature.PropertyExistenceOnly
+        );
+        CompilationResult result = MuLangCompiler.CompileExpression(
+            "item has key",
+            environment,
+            TypeSymbols.Bool,
+            profile
+        );
+
+        Assert.That(result.Diagnostics, Is.Empty);
+    }
+
+    [TestCase("value.member")]
+    [TestCase("value[\"member\"]")]
+    public void PropertyExistenceOnlyRejectsDynamicValueAccess(string source)
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddGlobal("global.value", "value", TypeSymbols.Object)
+            .Build();
+        LanguageProfile profile = TestLanguageProfileFactory.Create(
+            openObjects: OpenObjectsFeature.PropertyExistenceOnly
+        );
+        CompilationResult result = MuLangCompiler.CompileExpression(
+            source,
+            environment,
+            null,
             profile
         );
 

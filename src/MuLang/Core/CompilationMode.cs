@@ -5,6 +5,7 @@ public enum CompilationMode
 {
     /// <summary>Compiles the source as a single expression.</summary>
     Expression,
+
     /// <summary>Compiles the source as a program.</summary>
     Program,
 }

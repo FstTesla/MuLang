@@ -44,7 +44,7 @@ Equality, identity comparison, assignment to another compatible location, argume
 
 It represents a non-null object with dynamically named properties whose values have type `unknown?`.
 
-The dynamic operations exposed by `object` depend on the open-objects profile option as defined in [Section 18.5](18-language-profiles.md#185-open-objects).
+The dynamic operations exposed by `object` depend on the open-objects profile option. `PropertyExistenceOnly` exposes only `has`, while `Enabled` exposes all dynamic operations, as defined in [Section 18.5](18-language-profiles.md#185-open-objects).
 
 Arrays and primitive values are not objects.
 
@@ -68,7 +68,7 @@ A closed object rejects access to, assignment to, and removal of properties not 
 
 An open structured object retains its known properties and permits additional dynamic properties.
 
-The availability of open structured objects and their dynamic operations depends on the language profile as defined in [Section 18.5](18-language-profiles.md#185-open-objects).
+Open structured objects require `OpenObjects.Enabled`, as defined in [Section 18.5](18-language-profiles.md#185-open-objects).
 
 Additional properties always have type `unknown?`.
 

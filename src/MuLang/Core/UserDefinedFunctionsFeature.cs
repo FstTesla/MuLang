@@ -5,6 +5,7 @@ public enum UserDefinedFunctionsFeature
 {
     /// <summary>Disables the feature.</summary>
     Disabled = 0,
+
     /// <summary>Enables the feature.</summary>
     Enabled = 1,
 }

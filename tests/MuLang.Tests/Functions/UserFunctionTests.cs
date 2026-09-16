@@ -459,6 +459,7 @@ public sealed class UserFunctionTests
 
                         return invocationCount == 1
                             ? compiled(
+                                // ReSharper disable once AccessToModifiedClosure
                                 context ??
                                 throw new AssertionException("Expected a context.")
                             )

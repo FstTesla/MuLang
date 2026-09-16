@@ -775,7 +775,7 @@ internal sealed class Parser
 
         if (
             openBraceToken.Kind == TokenKind.OpenObjectBrace &&
-            profile.OpenObjects == OpenObjectsFeature.Disabled
+            profile.OpenObjects != OpenObjectsFeature.Enabled
         )
         {
             Report(
@@ -994,8 +994,8 @@ internal sealed class Parser
 
             while (
                 Current.Kind is
-                    TokenKind.Question or
-                    TokenKind.QuestionQuestion
+                TokenKind.Question or
+                TokenKind.QuestionQuestion
             )
             {
                 SyntaxToken repeatedToken = ParseToken();

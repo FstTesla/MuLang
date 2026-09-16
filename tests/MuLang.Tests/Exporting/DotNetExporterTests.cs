@@ -111,7 +111,7 @@ public sealed class DotNetExporterTests
         );
         IEnumerable<KeyValuePair<string, DotNetFunction>> functions =
         [
-            new KeyValuePair<string, DotNetFunction>(
+            new (
                 "function.fallback",
                 _ =>
                 {
@@ -336,6 +336,44 @@ public sealed class DotNetExporterTests
         );
 
         Assert.That(compiled(CreateContext(environment)), Is.True);
+    }
+
+    [Test]
+    public void ExecutesDynamicPropertyTestWithPropertyExistenceOnly()
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddGlobal("global.item", "item", TypeSymbols.Object)
+            .AddGlobal("global.key", "key", TypeSymbols.String)
+            .Build();
+        LanguageProfile profile = new LanguageProfileBuilder()
+            .WithOpenObjects(OpenObjectsFeature.PropertyExistenceOnly)
+            .Build();
+        CompilationResult result = MuLangCompiler.CompileExpression(
+            "item has key",
+            environment,
+            TypeSymbols.Bool,
+            profile
+        );
+        Func<DotNetRuntimeContext, object?> compiled = result.Delegate ??
+            throw new AssertionException("Expected a compiled delegate.");
+        DotNetRuntimeContext context = CreateContext(
+            environment,
+            [
+                new KeyValuePair<string, object?>(
+                    "global.item",
+                    new MutableObjectValue(
+                        [ new KeyValuePair<string, object?>("value", 1L) ]
+                    )
+                ),
+                new KeyValuePair<string, object?>("global.key", "value"),
+            ]
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.Diagnostics, Is.Empty);
+            Assert.That(compiled(context), Is.True);
+        }
     }
 
     [Test]

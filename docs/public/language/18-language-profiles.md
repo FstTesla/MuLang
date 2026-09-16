@@ -18,7 +18,7 @@ The profile options and stable numeric values are:
 | `Recursion` | `Disabled = 0`, `Enabled = 1` | No |
 | `Loops` | `None = 0`, `While = 1`, `For = 2` | Yes |
 | `ProviderFunctionCalls` | `Disabled = 0`, `Enabled = 1` | No |
-| `OpenObjects` | `Disabled = 0`, `Enabled = 1` | No |
+| `OpenObjects` | `Disabled = 0`, `PropertyExistenceOnly = 1`, `Enabled = 2` | No |
 | `Mutations` | `None = 0`, `ObjectProperties = 1`, `ArrayElements = 2`, `PropertyRemoval = 4` | Yes |
 | `MultiLevelLoopControl` | `Disabled = 0`, `Enabled = 1` | No |
 | `TrailingCommas` | `Disabled = 0`, `Enabled = 1` | No |
@@ -60,17 +60,22 @@ When provider function calls are disabled, a call resolved to a provider functio
 
 ## 18.5. Open objects
 
-The open-objects option controls:
+The open-objects option has three ordered capability levels:
 
-- `@{ ... }` literals;
-- dynamic member and element access;
-- dynamic `has` tests;
-- dynamic property assignment and removal;
-- provider-declared open structured types.
+| Capability | `Disabled` | `PropertyExistenceOnly` | `Enabled` |
+|---|---|---|---|
+| `has` with a literal key naming a known property of a closed structured type | Yes | Yes | Yes |
+| Dynamic `has` tests | No | Yes | Yes |
+| `@{ ... }` literals | No | No | Yes |
+| Provider-declared open structured types | No | No | Yes |
+| Dynamic member and element access | No | No | Yes |
+| Dynamic property assignment and removal | No | No | Yes |
 
-When open objects are disabled, compilation rejects an environment containing any open structured type, including an unused type.
+`PropertyExistenceOnly` permits `has` with a computed key on a closed structured type and permits `has` on the generic `object` type. It does not permit reading the selected property value.
 
-The generic `object` type remains a valid abstract supertype. With open objects disabled, it exposes no dynamic member access, element access, `has`, assignment, or removal. It remains valid for assignment, argument passing, return values, arrays and properties, equality, identity equality, `is`, and `as`.
+Both `Disabled` and `PropertyExistenceOnly` reject an environment containing any open structured type, including an unused type.
+
+The generic `object` type remains a valid abstract supertype in every mode. With `Disabled`, it exposes no dynamic operations. With `PropertyExistenceOnly`, it exposes only `has`. It remains valid in every mode for assignment, argument passing, return values, arrays and properties, equality, identity equality, `is`, and `as`.
 
 Closed structured types remain valid. Their statically known properties remain accessible.
 

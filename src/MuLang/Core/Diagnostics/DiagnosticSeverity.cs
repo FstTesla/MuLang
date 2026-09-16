@@ -5,8 +5,10 @@ public enum DiagnosticSeverity
 {
     /// <summary>Identifies informational diagnostics.</summary>
     Information,
+
     /// <summary>Identifies warning diagnostics.</summary>
     Warning,
+
     /// <summary>Identifies error diagnostics.</summary>
     Error,
 }
