@@ -14,6 +14,7 @@
   </Folder>
   <Folder Name="/Solution Items/.github/" />
   <Folder Name="/Solution Items/.github/workflows/">
+    <File Path=".github/workflows/ci.yml" />
     <File Path=".github/workflows/documentation.yml" />
     <File Path=".github/workflows/publish.yml" />
     <File Path=".github/workflows/verify-package.yml" />
@@ -58,6 +59,7 @@
     <File Path="docs/public/language/toc.yml" />
   </Folder>
   <Folder Name="/Solution Items/eng/">
+    <File Path="eng/Resolve-PackageValidationBaseline.ps1" />
     <File Path="eng/Verify-Package.ps1" />
   </Folder>
   <Folder Name="/src/">

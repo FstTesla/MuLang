@@ -66,124 +66,28 @@ jobs:
           GITHUB_PACKAGE_TOKEN: ${{ github.token }}
           VERSION: ${{ steps.version.outputs.version }}
         run: |
-          $versionPattern = '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-(alpha|beta|rc)\.([1-9][0-9]*))?$'
+          $baseline = ./eng/Resolve-PackageValidationBaseline.ps1 `
+            -CurrentVersion $env:VERSION `
+            -Override $env:BASELINE_OVERRIDE `
+            -GitHubToken $env:GITHUB_PACKAGE_TOKEN
 
-          function ConvertTo-VersionInfo([string] $value) {
-            $match = [regex]::Match($value, $versionPattern)
-
-            if (!$match.Success) {
-              return $null
-            }
-
-            $channel = $match.Groups[4].Value
-            $channelRank = switch ($channel) {
-              'alpha' { 0 }
-              'beta' { 1 }
-              'rc' { 2 }
-              default { 3 }
-            }
-            $sequence = if ($match.Groups[5].Success) {
-              [long]$match.Groups[5].Value
-            } else {
-              0
-            }
-
-            return [PSCustomObject]@{
-              Text = $value
-              Major = [long]$match.Groups[1].Value
-              Minor = [long]$match.Groups[2].Value
-              Patch = [long]$match.Groups[3].Value
-              ChannelRank = $channelRank
-              Sequence = $sequence
-            }
-          }
-
-          function Compare-VersionInfo($left, $right) {
-            foreach ($property in 'Major', 'Minor', 'Patch', 'ChannelRank', 'Sequence') {
-              if ($left.$property -lt $right.$property) {
-                return -1
-              }
-
-              if ($left.$property -gt $right.$property) {
-                return 1
-              }
-            }
-
-            return 0
-          }
-
-          $current = ConvertTo-VersionInfo $env:VERSION
-          $override = $env:BASELINE_OVERRIDE.Trim()
-
-          if ($override.Equals('none', [StringComparison]::OrdinalIgnoreCase)) {
+          if (
+            $env:BASELINE_OVERRIDE.Equals(
+              'none',
+              [StringComparison]::OrdinalIgnoreCase
+            )
+          ) {
             '- Package validation baseline: disabled by repository variable.' >> $env:GITHUB_STEP_SUMMARY
             exit 0
           }
 
-          $headers = @{
-            Accept = 'application/vnd.github+json'
-            Authorization = "Bearer $env:GITHUB_PACKAGE_TOKEN"
-            'X-GitHub-Api-Version' = '2022-11-28'
-            'User-Agent' = 'MuLang-package-validation'
-          }
-          $published = [System.Collections.Generic.List[object]]::new()
-
-          for ($page = 1; ; $page++) {
-            $url = "https://api.github.com/users/FstTesla/packages/nuget/MuLang/versions?per_page=100&page=$page"
-
-            try {
-              $items = @(Invoke-RestMethod -Uri $url -Headers $headers)
-            } catch {
-              if ($_.Exception.Response.StatusCode -eq [System.Net.HttpStatusCode]::NotFound) {
-                $items = @()
-              } else {
-                throw
-              }
-            }
-
-            foreach ($item in $items) {
-              $version = ConvertTo-VersionInfo $item.name
-
-              if ($null -ne $version) {
-                $published.Add($version)
-              }
-            }
-
-            if ($items.Count -lt 100) {
-              break
-            }
-          }
-
-          if (![string]::IsNullOrWhiteSpace($override)) {
-            $baseline = ConvertTo-VersionInfo $override
-
-            if ($null -eq $baseline) {
-              throw "Repository variable PACKAGE_VALIDATION_BASELINE_VERSION contains invalid version '$override'."
-            }
-
-            if ((Compare-VersionInfo $baseline $current) -ge 0) {
-              throw "Package validation baseline '$override' must precede '$env:VERSION'."
-            }
-
-            if ($override -notin @($published | ForEach-Object Text)) {
-              throw "Package validation baseline '$override' is not published on GitHub Packages."
-            }
-          } else {
-            $baseline = $published |
-              Where-Object {
-                (Compare-VersionInfo $_ $current) -lt 0
-              } |
-              Sort-Object Major, Minor, Patch, ChannelRank, Sequence |
-              Select-Object -Last 1
-          }
-
-          if ($null -eq $baseline) {
+          if ([string]::IsNullOrWhiteSpace($baseline)) {
             '- Package validation baseline: none; this is the first published version.' >> $env:GITHUB_STEP_SUMMARY
             exit 0
           }
 
-          "PackageValidationBaselineVersion=$($baseline.Text)" >> $env:GITHUB_ENV
-          "- Package validation baseline: ``$($baseline.Text)``" >> $env:GITHUB_STEP_SUMMARY
+          "PackageValidationBaselineVersion=$baseline" >> $env:GITHUB_ENV
+          "- Package validation baseline: ``$baseline``" >> $env:GITHUB_STEP_SUMMARY
 
       - name: Determine release metadata
         id: release

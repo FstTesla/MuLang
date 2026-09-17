@@ -268,7 +268,25 @@ Completion criteria:
 - Final NuGet.org publication requires the intended repository, workflow, environment, and tag.
 - No long-lived NuGet.org API key is stored when trusted publishing replaces the temporary feed.
 
-## 9. Publish `0.1.0-alpha.1`
+## 9. Add Continuous Validation
+
+1. Run restore, Debug and Release tests, PublicApiAnalyzers, DocFX, pack, and local package verification for every pull request and push to `main`.
+2. Use a temporary prerelease package version that is never published.
+3. Upload generated packages only as GitHub Actions artifacts for diagnostic inspection.
+4. Do not grant package-write or contents-write permissions to the general validation job.
+5. On pushes and same-repository pull requests, resolve the latest published GitHub Package dynamically and run package validation against it.
+6. Skip private-baseline validation for pull requests from forks so they never receive package credentials.
+7. Support manual validation runs without publishing packages, tags, releases, or documentation.
+
+Completion criteria:
+
+- Every change is built, tested, documented, packed, and locally consumed before merge.
+- Public API declaration errors fail validation.
+- Trusted changes are compared with the latest published package.
+- Fork pull requests run all checks that do not require private package access.
+- The workflow contains no package push, release creation, or Pages deployment step.
+
+## 10. Publish `0.1.0-alpha.1`
 
 1. Complete the public API review and baseline.
 2. Complete metadata, README, license, symbols, and package verification.
@@ -291,7 +309,7 @@ Completion criteria:
 - Published artifacts correspond exactly to the tagged commit.
 - Subsequent builds validate API and package compatibility against the release.
 
-## 10. Plan Future Package Boundaries
+## 11. Plan Future Package Boundaries
 
 The initial release remains a single package. Project splitting is not part of package readiness and must not delay the first release.
 
