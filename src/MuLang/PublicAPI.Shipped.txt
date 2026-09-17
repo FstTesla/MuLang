@@ -1,0 +1,291 @@
+#nullable enable
+~override MuLang.Core.Text.TextPosition.Equals(object obj) -> bool
+~override MuLang.Core.Text.TextPosition.ToString() -> string
+~override MuLang.Core.Text.TextSpan.Equals(object obj) -> bool
+~override MuLang.Core.Text.TextSpan.ToString() -> string
+abstract MuLang.Core.Types.TypeSymbol.DisplayName.get -> string!
+MuLang.CompilationResult
+MuLang.CompilationResult.Delegate.get -> System.Func<MuLang.Exporters.DotNet.DotNetRuntimeContext!, object?>?
+MuLang.CompilationResult.Diagnostics.get -> MuLang.Core.Diagnostics.DiagnosticCollection!
+MuLang.CompilationResult.IsSuccessful.get -> bool
+MuLang.Core.CompilationMode
+MuLang.Core.CompilationMode.Expression = 0 -> MuLang.Core.CompilationMode
+MuLang.Core.CompilationMode.Program = 1 -> MuLang.Core.CompilationMode
+MuLang.Core.ConditionSemantics
+MuLang.Core.ConditionSemantics.StrictBoolean = 0 -> MuLang.Core.ConditionSemantics
+MuLang.Core.ConditionSemantics.Truthiness = 1 -> MuLang.Core.ConditionSemantics
+MuLang.Core.Diagnostics.Diagnostic
+MuLang.Core.Diagnostics.Diagnostic.<Clone>$() -> MuLang.Core.Diagnostics.Diagnostic!
+MuLang.Core.Diagnostics.Diagnostic.Category.get -> MuLang.Core.Diagnostics.DiagnosticCategory
+MuLang.Core.Diagnostics.Diagnostic.Code.get -> string!
+MuLang.Core.Diagnostics.Diagnostic.Diagnostic(string! code, MuLang.Core.Diagnostics.DiagnosticSeverity severity, MuLang.Core.Diagnostics.DiagnosticCategory category, MuLang.Core.Text.TextSpan span, string! message) -> void
+MuLang.Core.Diagnostics.Diagnostic.Equals(MuLang.Core.Diagnostics.Diagnostic? other) -> bool
+MuLang.Core.Diagnostics.Diagnostic.Message.get -> string!
+MuLang.Core.Diagnostics.Diagnostic.Severity.get -> MuLang.Core.Diagnostics.DiagnosticSeverity
+MuLang.Core.Diagnostics.Diagnostic.Span.get -> MuLang.Core.Text.TextSpan
+MuLang.Core.Diagnostics.DiagnosticCategory
+MuLang.Core.Diagnostics.DiagnosticCategory.Binding = 2 -> MuLang.Core.Diagnostics.DiagnosticCategory
+MuLang.Core.Diagnostics.DiagnosticCategory.ControlFlow = 4 -> MuLang.Core.Diagnostics.DiagnosticCategory
+MuLang.Core.Diagnostics.DiagnosticCategory.Exporter = 5 -> MuLang.Core.Diagnostics.DiagnosticCategory
+MuLang.Core.Diagnostics.DiagnosticCategory.Lexical = 0 -> MuLang.Core.Diagnostics.DiagnosticCategory
+MuLang.Core.Diagnostics.DiagnosticCategory.Syntax = 1 -> MuLang.Core.Diagnostics.DiagnosticCategory
+MuLang.Core.Diagnostics.DiagnosticCategory.Type = 3 -> MuLang.Core.Diagnostics.DiagnosticCategory
+MuLang.Core.Diagnostics.DiagnosticCollection
+MuLang.Core.Diagnostics.DiagnosticCollection.Count.get -> int
+MuLang.Core.Diagnostics.DiagnosticCollection.GetEnumerator() -> System.Collections.Generic.IEnumerator<MuLang.Core.Diagnostics.Diagnostic!>!
+MuLang.Core.Diagnostics.DiagnosticCollection.HasErrors.get -> bool
+MuLang.Core.Diagnostics.DiagnosticCollection.this[int index].get -> MuLang.Core.Diagnostics.Diagnostic!
+MuLang.Core.Diagnostics.DiagnosticSeverity
+MuLang.Core.Diagnostics.DiagnosticSeverity.Error = 2 -> MuLang.Core.Diagnostics.DiagnosticSeverity
+MuLang.Core.Diagnostics.DiagnosticSeverity.Information = 0 -> MuLang.Core.Diagnostics.DiagnosticSeverity
+MuLang.Core.Diagnostics.DiagnosticSeverity.Warning = 1 -> MuLang.Core.Diagnostics.DiagnosticSeverity
+MuLang.Core.Environment.EnvironmentBuilder
+MuLang.Core.Environment.EnvironmentBuilder.AddFunction(string! id, string! name, System.Collections.Generic.IEnumerable<MuLang.Core.Symbols.ParameterSymbol!>! parameters, MuLang.Core.Types.TypeSymbol! returnType) -> MuLang.Core.Environment.EnvironmentBuilder!
+MuLang.Core.Environment.EnvironmentBuilder.AddGlobal(string! id, string! name, MuLang.Core.Types.TypeSymbol! type) -> MuLang.Core.Environment.EnvironmentBuilder!
+MuLang.Core.Environment.EnvironmentBuilder.AddType(MuLang.Core.Types.ObjectTypeSymbol! type) -> MuLang.Core.Environment.EnvironmentBuilder!
+MuLang.Core.Environment.EnvironmentBuilder.Build(MuLang.Core.LanguageVersion languageVersion = MuLang.Core.LanguageVersion.Version1) -> MuLang.Core.Environment.EnvironmentSchema!
+MuLang.Core.Environment.EnvironmentBuilder.EnvironmentBuilder() -> void
+MuLang.Core.Environment.EnvironmentFingerprint
+MuLang.Core.Environment.EnvironmentFingerprint.<Clone>$() -> MuLang.Core.Environment.EnvironmentFingerprint!
+MuLang.Core.Environment.EnvironmentFingerprint.EnvironmentFingerprint(string! value) -> void
+MuLang.Core.Environment.EnvironmentFingerprint.Equals(MuLang.Core.Environment.EnvironmentFingerprint? other) -> bool
+MuLang.Core.Environment.EnvironmentFingerprint.Value.get -> string!
+MuLang.Core.Environment.EnvironmentSchema
+MuLang.Core.Environment.EnvironmentSchema.Fingerprint.get -> MuLang.Core.Environment.EnvironmentFingerprint!
+MuLang.Core.Environment.EnvironmentSchema.Functions.get -> System.Collections.Generic.IReadOnlyCollection<MuLang.Core.Symbols.FunctionSymbol!>!
+MuLang.Core.Environment.EnvironmentSchema.Globals.get -> System.Collections.Generic.IReadOnlyCollection<MuLang.Core.Symbols.GlobalSymbol!>!
+MuLang.Core.Environment.EnvironmentSchema.LanguageVersion.get -> MuLang.Core.LanguageVersion
+MuLang.Core.Environment.EnvironmentSchema.TryGetFunction(string! name, out MuLang.Core.Symbols.FunctionSymbol? function) -> bool
+MuLang.Core.Environment.EnvironmentSchema.TryGetFunctionById(string! id, out MuLang.Core.Symbols.FunctionSymbol? function) -> bool
+MuLang.Core.Environment.EnvironmentSchema.TryGetGlobal(string! name, out MuLang.Core.Symbols.GlobalSymbol? global) -> bool
+MuLang.Core.Environment.EnvironmentSchema.TryGetGlobalById(string! id, out MuLang.Core.Symbols.GlobalSymbol? global) -> bool
+MuLang.Core.Environment.EnvironmentSchema.TryGetType(string! name, out MuLang.Core.Types.ObjectTypeSymbol? type) -> bool
+MuLang.Core.Environment.EnvironmentSchema.Types.get -> System.Collections.Generic.IReadOnlyCollection<MuLang.Core.Types.ObjectTypeSymbol!>!
+MuLang.Core.LanguageProfile
+MuLang.Core.LanguageProfile.<Clone>$() -> MuLang.Core.LanguageProfile!
+MuLang.Core.LanguageProfile.ConditionSemantics.get -> MuLang.Core.ConditionSemantics
+MuLang.Core.LanguageProfile.Equals(MuLang.Core.LanguageProfile? other) -> bool
+MuLang.Core.LanguageProfile.Fingerprint.get -> MuLang.Core.LanguageProfileFingerprint!
+MuLang.Core.LanguageProfile.LanguageProfile(MuLang.Core.LanguageVersion languageVersion, MuLang.Core.UserDefinedFunctionsFeature userDefinedFunctions, MuLang.Core.RecursionFeature recursion, MuLang.Core.LoopFeatures loops, MuLang.Core.ProviderFunctionCallsFeature providerFunctionCalls, MuLang.Core.OpenObjectsFeature openObjects, MuLang.Core.MutationFeatures mutations, MuLang.Core.MultiLevelLoopControlFeature multiLevelLoopControl, MuLang.Core.TrailingCommasFeature trailingCommas, MuLang.Core.ConditionSemantics conditionSemantics, MuLang.Core.ShadowingPolicy shadowing) -> void
+MuLang.Core.LanguageProfile.LanguageVersion.get -> MuLang.Core.LanguageVersion
+MuLang.Core.LanguageProfile.Loops.get -> MuLang.Core.LoopFeatures
+MuLang.Core.LanguageProfile.MultiLevelLoopControl.get -> MuLang.Core.MultiLevelLoopControlFeature
+MuLang.Core.LanguageProfile.Mutations.get -> MuLang.Core.MutationFeatures
+MuLang.Core.LanguageProfile.OpenObjects.get -> MuLang.Core.OpenObjectsFeature
+MuLang.Core.LanguageProfile.ProviderFunctionCalls.get -> MuLang.Core.ProviderFunctionCallsFeature
+MuLang.Core.LanguageProfile.Recursion.get -> MuLang.Core.RecursionFeature
+MuLang.Core.LanguageProfile.Shadowing.get -> MuLang.Core.ShadowingPolicy
+MuLang.Core.LanguageProfile.TrailingCommas.get -> MuLang.Core.TrailingCommasFeature
+MuLang.Core.LanguageProfile.UserDefinedFunctions.get -> MuLang.Core.UserDefinedFunctionsFeature
+MuLang.Core.LanguageProfileBuilder
+MuLang.Core.LanguageProfileBuilder.Build() -> MuLang.Core.LanguageProfile!
+MuLang.Core.LanguageProfileBuilder.DisableLoops(MuLang.Core.LoopFeatures loops) -> MuLang.Core.LanguageProfileBuilder!
+MuLang.Core.LanguageProfileBuilder.DisableMutations(MuLang.Core.MutationFeatures mutations) -> MuLang.Core.LanguageProfileBuilder!
+MuLang.Core.LanguageProfileBuilder.DisableShadowing(MuLang.Core.ShadowingPolicy shadowing) -> MuLang.Core.LanguageProfileBuilder!
+MuLang.Core.LanguageProfileBuilder.EnableLoops(MuLang.Core.LoopFeatures loops) -> MuLang.Core.LanguageProfileBuilder!
+MuLang.Core.LanguageProfileBuilder.EnableMutations(MuLang.Core.MutationFeatures mutations) -> MuLang.Core.LanguageProfileBuilder!
+MuLang.Core.LanguageProfileBuilder.EnableShadowing(MuLang.Core.ShadowingPolicy shadowing) -> MuLang.Core.LanguageProfileBuilder!
+MuLang.Core.LanguageProfileBuilder.LanguageProfileBuilder() -> void
+MuLang.Core.LanguageProfileBuilder.LanguageProfileBuilder(MuLang.Core.LanguageProfile! profile) -> void
+MuLang.Core.LanguageProfileBuilder.WithConditionSemantics(MuLang.Core.ConditionSemantics conditionSemantics) -> MuLang.Core.LanguageProfileBuilder!
+MuLang.Core.LanguageProfileBuilder.WithLanguageVersion(MuLang.Core.LanguageVersion languageVersion) -> MuLang.Core.LanguageProfileBuilder!
+MuLang.Core.LanguageProfileBuilder.WithLoops(MuLang.Core.LoopFeatures loops) -> MuLang.Core.LanguageProfileBuilder!
+MuLang.Core.LanguageProfileBuilder.WithMultiLevelLoopControl(MuLang.Core.MultiLevelLoopControlFeature multiLevelLoopControl) -> MuLang.Core.LanguageProfileBuilder!
+MuLang.Core.LanguageProfileBuilder.WithMutations(MuLang.Core.MutationFeatures mutations) -> MuLang.Core.LanguageProfileBuilder!
+MuLang.Core.LanguageProfileBuilder.WithOpenObjects(MuLang.Core.OpenObjectsFeature openObjects) -> MuLang.Core.LanguageProfileBuilder!
+MuLang.Core.LanguageProfileBuilder.WithProviderFunctionCalls(MuLang.Core.ProviderFunctionCallsFeature providerFunctionCalls) -> MuLang.Core.LanguageProfileBuilder!
+MuLang.Core.LanguageProfileBuilder.WithRecursion(MuLang.Core.RecursionFeature recursion) -> MuLang.Core.LanguageProfileBuilder!
+MuLang.Core.LanguageProfileBuilder.WithShadowing(MuLang.Core.ShadowingPolicy shadowing) -> MuLang.Core.LanguageProfileBuilder!
+MuLang.Core.LanguageProfileBuilder.WithTrailingCommas(MuLang.Core.TrailingCommasFeature trailingCommas) -> MuLang.Core.LanguageProfileBuilder!
+MuLang.Core.LanguageProfileBuilder.WithUserDefinedFunctions(MuLang.Core.UserDefinedFunctionsFeature userDefinedFunctions) -> MuLang.Core.LanguageProfileBuilder!
+MuLang.Core.LanguageProfileFingerprint
+MuLang.Core.LanguageProfileFingerprint.<Clone>$() -> MuLang.Core.LanguageProfileFingerprint!
+MuLang.Core.LanguageProfileFingerprint.Equals(MuLang.Core.LanguageProfileFingerprint? other) -> bool
+MuLang.Core.LanguageProfileFingerprint.LanguageProfileFingerprint(string! value) -> void
+MuLang.Core.LanguageProfileFingerprint.Value.get -> string!
+MuLang.Core.LanguageProfiles
+MuLang.Core.LanguageVersion
+MuLang.Core.LanguageVersion.Version1 = 0 -> MuLang.Core.LanguageVersion
+MuLang.Core.LoopFeatures
+MuLang.Core.LoopFeatures.For = 2 -> MuLang.Core.LoopFeatures
+MuLang.Core.LoopFeatures.None = 0 -> MuLang.Core.LoopFeatures
+MuLang.Core.LoopFeatures.While = 1 -> MuLang.Core.LoopFeatures
+MuLang.Core.MultiLevelLoopControlFeature
+MuLang.Core.MultiLevelLoopControlFeature.Disabled = 0 -> MuLang.Core.MultiLevelLoopControlFeature
+MuLang.Core.MultiLevelLoopControlFeature.Enabled = 1 -> MuLang.Core.MultiLevelLoopControlFeature
+MuLang.Core.MutationFeatures
+MuLang.Core.MutationFeatures.ArrayElements = 2 -> MuLang.Core.MutationFeatures
+MuLang.Core.MutationFeatures.None = 0 -> MuLang.Core.MutationFeatures
+MuLang.Core.MutationFeatures.ObjectProperties = 1 -> MuLang.Core.MutationFeatures
+MuLang.Core.MutationFeatures.PropertyRemoval = 4 -> MuLang.Core.MutationFeatures
+MuLang.Core.OpenObjectsFeature
+MuLang.Core.OpenObjectsFeature.Disabled = 0 -> MuLang.Core.OpenObjectsFeature
+MuLang.Core.ProviderFunctionCallsFeature
+MuLang.Core.ProviderFunctionCallsFeature.Disabled = 0 -> MuLang.Core.ProviderFunctionCallsFeature
+MuLang.Core.ProviderFunctionCallsFeature.Enabled = 1 -> MuLang.Core.ProviderFunctionCallsFeature
+MuLang.Core.RecursionFeature
+MuLang.Core.RecursionFeature.Disabled = 0 -> MuLang.Core.RecursionFeature
+MuLang.Core.RecursionFeature.Enabled = 1 -> MuLang.Core.RecursionFeature
+MuLang.Core.Runtime.MuLangRuntimeException
+MuLang.Core.Runtime.MuLangRuntimeException.Code.get -> string!
+MuLang.Core.Runtime.MuLangRuntimeException.MuLangRuntimeException(string! code, string! message, MuLang.Core.Text.TextSpan span, System.Exception? innerException = null) -> void
+MuLang.Core.Runtime.MuLangRuntimeException.Span.get -> MuLang.Core.Text.TextSpan
+MuLang.Core.ShadowingPolicy
+MuLang.Core.ShadowingPolicy.Globals = 2 -> MuLang.Core.ShadowingPolicy
+MuLang.Core.ShadowingPolicy.NestedScopes = 1 -> MuLang.Core.ShadowingPolicy
+MuLang.Core.ShadowingPolicy.None = 0 -> MuLang.Core.ShadowingPolicy
+MuLang.Core.Symbols.FunctionSymbol
+MuLang.Core.Symbols.FunctionSymbol.FunctionSymbol(string! id, string! name, System.Collections.Generic.IEnumerable<MuLang.Core.Symbols.ParameterSymbol!>! parameters, MuLang.Core.Types.TypeSymbol! returnType) -> void
+MuLang.Core.Symbols.FunctionSymbol.Id.get -> string!
+MuLang.Core.Symbols.FunctionSymbol.Name.get -> string!
+MuLang.Core.Symbols.FunctionSymbol.Parameters.get -> System.Collections.Generic.IReadOnlyList<MuLang.Core.Symbols.ParameterSymbol!>!
+MuLang.Core.Symbols.FunctionSymbol.ReturnType.get -> MuLang.Core.Types.TypeSymbol!
+MuLang.Core.Symbols.GlobalSymbol
+MuLang.Core.Symbols.GlobalSymbol.GlobalSymbol(string! id, string! name, MuLang.Core.Types.TypeSymbol! type) -> void
+MuLang.Core.Symbols.GlobalSymbol.Id.get -> string!
+MuLang.Core.Symbols.GlobalSymbol.Name.get -> string!
+MuLang.Core.Symbols.GlobalSymbol.Type.get -> MuLang.Core.Types.TypeSymbol!
+MuLang.Core.Symbols.ParameterSymbol
+MuLang.Core.Symbols.ParameterSymbol.Name.get -> string!
+MuLang.Core.Symbols.ParameterSymbol.ParameterSymbol(string! name, MuLang.Core.Types.TypeSymbol! type) -> void
+MuLang.Core.Symbols.ParameterSymbol.Type.get -> MuLang.Core.Types.TypeSymbol!
+MuLang.Core.Text.SourceText
+MuLang.Core.Text.SourceText.GetPosition(int offset) -> MuLang.Core.Text.TextPosition
+MuLang.Core.Text.SourceText.GetRune(int offset) -> System.Text.Rune
+MuLang.Core.Text.SourceText.GetText(MuLang.Core.Text.TextSpan span) -> string!
+MuLang.Core.Text.SourceText.Length.get -> int
+MuLang.Core.Text.SourceText.LineCount.get -> int
+MuLang.Core.Text.SourceText.Text.get -> string!
+MuLang.Core.Text.TextPosition
+MuLang.Core.Text.TextPosition.Column.get -> int
+MuLang.Core.Text.TextPosition.Equals(MuLang.Core.Text.TextPosition other) -> bool
+MuLang.Core.Text.TextPosition.Line.get -> int
+MuLang.Core.Text.TextPosition.Offset.get -> int
+MuLang.Core.Text.TextPosition.TextPosition() -> void
+MuLang.Core.Text.TextPosition.TextPosition(int offset, int line, int column) -> void
+MuLang.Core.Text.TextSpan
+MuLang.Core.Text.TextSpan.Contains(int offset) -> bool
+MuLang.Core.Text.TextSpan.End.get -> int
+MuLang.Core.Text.TextSpan.Equals(MuLang.Core.Text.TextSpan other) -> bool
+MuLang.Core.Text.TextSpan.Length.get -> int
+MuLang.Core.Text.TextSpan.Start.get -> int
+MuLang.Core.Text.TextSpan.TextSpan() -> void
+MuLang.Core.Text.TextSpan.TextSpan(int start, int length) -> void
+MuLang.Core.TrailingCommasFeature
+MuLang.Core.TrailingCommasFeature.Disabled = 0 -> MuLang.Core.TrailingCommasFeature
+MuLang.Core.TrailingCommasFeature.Enabled = 1 -> MuLang.Core.TrailingCommasFeature
+MuLang.Core.Types.ArrayTypeSymbol
+MuLang.Core.Types.ArrayTypeSymbol.ElementType.get -> MuLang.Core.Types.TypeSymbol!
+MuLang.Core.Types.ConversionKind
+MuLang.Core.Types.ConversionKind.Checked = 3 -> MuLang.Core.Types.ConversionKind
+MuLang.Core.Types.ConversionKind.Identity = 1 -> MuLang.Core.Types.ConversionKind
+MuLang.Core.Types.ConversionKind.Implicit = 2 -> MuLang.Core.Types.ConversionKind
+MuLang.Core.Types.ConversionKind.None = 0 -> MuLang.Core.Types.ConversionKind
+MuLang.Core.Types.NullableTypeSymbol
+MuLang.Core.Types.NullableTypeSymbol.UnderlyingType.get -> MuLang.Core.Types.TypeSymbol!
+MuLang.Core.Types.ObjectPropertySymbol
+MuLang.Core.Types.ObjectPropertySymbol.IsOptional.get -> bool
+MuLang.Core.Types.ObjectPropertySymbol.Name.get -> string!
+MuLang.Core.Types.ObjectPropertySymbol.ObjectPropertySymbol(string! name, MuLang.Core.Types.TypeSymbol! type, bool isOptional = false) -> void
+MuLang.Core.Types.ObjectPropertySymbol.Type.get -> MuLang.Core.Types.TypeSymbol!
+MuLang.Core.Types.ObjectTypeSymbol
+MuLang.Core.Types.ObjectTypeSymbol.Id.get -> string?
+MuLang.Core.Types.ObjectTypeSymbol.IsOpen.get -> bool
+MuLang.Core.Types.ObjectTypeSymbol.Name.get -> string!
+MuLang.Core.Types.ObjectTypeSymbol.ObjectTypeSymbol(string! id, string! name, bool isOpen, System.Collections.Generic.IEnumerable<MuLang.Core.Types.ObjectPropertySymbol!>! properties) -> void
+MuLang.Core.Types.ObjectTypeSymbol.Properties.get -> System.Collections.Generic.IReadOnlyCollection<MuLang.Core.Types.ObjectPropertySymbol!>!
+MuLang.Core.Types.ObjectTypeSymbol.TryGetProperty(string! name, out MuLang.Core.Types.ObjectPropertySymbol? property) -> bool
+MuLang.Core.Types.TypeKind
+MuLang.Core.Types.TypeKind.Array = 8 -> MuLang.Core.Types.TypeKind
+MuLang.Core.Types.TypeKind.Bool = 1 -> MuLang.Core.Types.TypeKind
+MuLang.Core.Types.TypeKind.Error = 12 -> MuLang.Core.Types.TypeKind
+MuLang.Core.Types.TypeKind.Float = 13 -> MuLang.Core.Types.TypeKind
+MuLang.Core.Types.TypeKind.Int = 2 -> MuLang.Core.Types.TypeKind
+MuLang.Core.Types.TypeKind.Null = 11 -> MuLang.Core.Types.TypeKind
+MuLang.Core.Types.TypeKind.Nullable = 7 -> MuLang.Core.Types.TypeKind
+MuLang.Core.Types.TypeKind.Number = 3 -> MuLang.Core.Types.TypeKind
+MuLang.Core.Types.TypeKind.Object = 6 -> MuLang.Core.Types.TypeKind
+MuLang.Core.Types.TypeKind.String = 4 -> MuLang.Core.Types.TypeKind
+MuLang.Core.Types.TypeKind.StructuredObject = 9 -> MuLang.Core.Types.TypeKind
+MuLang.Core.Types.TypeKind.Unknown = 5 -> MuLang.Core.Types.TypeKind
+MuLang.Core.Types.TypeKind.Void = 10 -> MuLang.Core.Types.TypeKind
+MuLang.Core.Types.TypeRelations
+MuLang.Core.Types.TypeSymbol
+MuLang.Core.Types.TypeSymbol.Kind.get -> MuLang.Core.Types.TypeKind
+MuLang.Core.Types.TypeSymbols
+MuLang.Core.UserDefinedFunctionsFeature
+MuLang.Core.UserDefinedFunctionsFeature.Disabled = 0 -> MuLang.Core.UserDefinedFunctionsFeature
+MuLang.Core.UserDefinedFunctionsFeature.Enabled = 1 -> MuLang.Core.UserDefinedFunctionsFeature
+MuLang.Exporters.DotNet.DotNetFunction
+MuLang.Exporters.DotNet.DotNetRuntimeContext
+MuLang.Exporters.DotNet.DotNetRuntimeContext.CancellationToken.get -> System.Threading.CancellationToken
+MuLang.Exporters.DotNet.DotNetRuntimeContext.DotNetRuntimeContext(MuLang.Core.Environment.EnvironmentSchema! environment, System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string!, object?>>! globals, System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string!, MuLang.Exporters.DotNet.DotNetFunction!>>! functions, long? executionBudget = null, int maximumTraversalDepth = 256, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken), int maximumUserFunctionCallDepth = 256) -> void
+MuLang.Exporters.DotNet.DotNetRuntimeContext.EnvironmentFingerprint.get -> MuLang.Core.Environment.EnvironmentFingerprint!
+MuLang.Exporters.DotNet.DotNetRuntimeContext.MaximumTraversalDepth.get -> int
+MuLang.Exporters.DotNet.DotNetRuntimeContext.MaximumUserFunctionCallDepth.get -> int
+MuLang.Exporters.DotNet.IDotNetArrayValue
+MuLang.Exporters.DotNet.IDotNetArrayValue.Count.get -> int
+MuLang.Exporters.DotNet.IDotNetArrayValue.Identity.get -> object!
+MuLang.Exporters.DotNet.IDotNetArrayValue.TryGetElement(int index, out object? value) -> bool
+MuLang.Exporters.DotNet.IDotNetArrayValue.TrySetElement(int index, object? value) -> bool
+MuLang.Exporters.DotNet.IDotNetObjectValue
+MuLang.Exporters.DotNet.IDotNetObjectValue.Identity.get -> object!
+MuLang.Exporters.DotNet.IDotNetObjectValue.PropertyNames.get -> System.Collections.Generic.IReadOnlyCollection<string!>!
+MuLang.Exporters.DotNet.IDotNetObjectValue.TryGetProperty(string! name, out object? value) -> bool
+MuLang.Exporters.DotNet.IDotNetObjectValue.TryRemoveProperty(string! name) -> bool
+MuLang.Exporters.DotNet.IDotNetObjectValue.TrySetProperty(string! name, object? value) -> bool
+MuLang.MuLangCompiler
+override MuLang.Core.Diagnostics.Diagnostic.Equals(object? obj) -> bool
+override MuLang.Core.Diagnostics.Diagnostic.GetHashCode() -> int
+override MuLang.Core.Diagnostics.Diagnostic.ToString() -> string!
+override MuLang.Core.Environment.EnvironmentFingerprint.Equals(object? obj) -> bool
+override MuLang.Core.Environment.EnvironmentFingerprint.GetHashCode() -> int
+override MuLang.Core.Environment.EnvironmentFingerprint.ToString() -> string!
+override MuLang.Core.LanguageProfile.Equals(object? obj) -> bool
+override MuLang.Core.LanguageProfile.GetHashCode() -> int
+override MuLang.Core.LanguageProfile.ToString() -> string!
+override MuLang.Core.LanguageProfileFingerprint.Equals(object? obj) -> bool
+override MuLang.Core.LanguageProfileFingerprint.GetHashCode() -> int
+override MuLang.Core.LanguageProfileFingerprint.ToString() -> string!
+override MuLang.Core.Text.TextPosition.GetHashCode() -> int
+override MuLang.Core.Text.TextSpan.GetHashCode() -> int
+override MuLang.Core.Types.ArrayTypeSymbol.DisplayName.get -> string!
+override MuLang.Core.Types.NullableTypeSymbol.DisplayName.get -> string!
+override MuLang.Core.Types.ObjectTypeSymbol.DisplayName.get -> string!
+override sealed MuLang.Core.Types.TypeSymbol.ToString() -> string!
+static MuLang.Core.Diagnostics.Diagnostic.operator !=(MuLang.Core.Diagnostics.Diagnostic? left, MuLang.Core.Diagnostics.Diagnostic? right) -> bool
+static MuLang.Core.Diagnostics.Diagnostic.operator ==(MuLang.Core.Diagnostics.Diagnostic? left, MuLang.Core.Diagnostics.Diagnostic? right) -> bool
+static MuLang.Core.Diagnostics.DiagnosticCollection.Create(System.Collections.Generic.IEnumerable<MuLang.Core.Diagnostics.Diagnostic!>! diagnostics) -> MuLang.Core.Diagnostics.DiagnosticCollection!
+static MuLang.Core.Diagnostics.DiagnosticCollection.Empty.get -> MuLang.Core.Diagnostics.DiagnosticCollection!
+static MuLang.Core.Environment.EnvironmentFingerprint.operator !=(MuLang.Core.Environment.EnvironmentFingerprint? left, MuLang.Core.Environment.EnvironmentFingerprint? right) -> bool
+static MuLang.Core.Environment.EnvironmentFingerprint.operator ==(MuLang.Core.Environment.EnvironmentFingerprint? left, MuLang.Core.Environment.EnvironmentFingerprint? right) -> bool
+static MuLang.Core.LanguageProfile.operator !=(MuLang.Core.LanguageProfile? left, MuLang.Core.LanguageProfile? right) -> bool
+static MuLang.Core.LanguageProfile.operator ==(MuLang.Core.LanguageProfile? left, MuLang.Core.LanguageProfile? right) -> bool
+static MuLang.Core.LanguageProfileFingerprint.operator !=(MuLang.Core.LanguageProfileFingerprint? left, MuLang.Core.LanguageProfileFingerprint? right) -> bool
+static MuLang.Core.LanguageProfileFingerprint.operator ==(MuLang.Core.LanguageProfileFingerprint? left, MuLang.Core.LanguageProfileFingerprint? right) -> bool
+static MuLang.Core.LanguageProfiles.Version1.get -> MuLang.Core.LanguageProfile!
+static MuLang.Core.Text.SourceText.From(string! text) -> MuLang.Core.Text.SourceText!
+static MuLang.Core.Text.TextPosition.operator !=(MuLang.Core.Text.TextPosition left, MuLang.Core.Text.TextPosition right) -> bool
+static MuLang.Core.Text.TextPosition.operator ==(MuLang.Core.Text.TextPosition left, MuLang.Core.Text.TextPosition right) -> bool
+static MuLang.Core.Text.TextSpan.FromBounds(int start, int end) -> MuLang.Core.Text.TextSpan
+static MuLang.Core.Text.TextSpan.operator !=(MuLang.Core.Text.TextSpan left, MuLang.Core.Text.TextSpan right) -> bool
+static MuLang.Core.Text.TextSpan.operator ==(MuLang.Core.Text.TextSpan left, MuLang.Core.Text.TextSpan right) -> bool
+static MuLang.Core.Types.TypeRelations.AreEquivalent(MuLang.Core.Types.TypeSymbol! left, MuLang.Core.Types.TypeSymbol! right) -> bool
+static MuLang.Core.Types.TypeRelations.ClassifyConversion(MuLang.Core.Types.TypeSymbol! source, MuLang.Core.Types.TypeSymbol! target) -> MuLang.Core.Types.ConversionKind
+static MuLang.Core.Types.TypeRelations.GetCommonType(MuLang.Core.Types.TypeSymbol! left, MuLang.Core.Types.TypeSymbol! right) -> MuLang.Core.Types.TypeSymbol?
+static MuLang.Core.Types.TypeRelations.IsAssignable(MuLang.Core.Types.TypeSymbol! source, MuLang.Core.Types.TypeSymbol! target) -> bool
+static MuLang.Core.Types.TypeSymbols.Array(MuLang.Core.Types.TypeSymbol! elementType) -> MuLang.Core.Types.ArrayTypeSymbol!
+static MuLang.Core.Types.TypeSymbols.Bool.get -> MuLang.Core.Types.TypeSymbol!
+static MuLang.Core.Types.TypeSymbols.Float.get -> MuLang.Core.Types.TypeSymbol!
+static MuLang.Core.Types.TypeSymbols.Int.get -> MuLang.Core.Types.TypeSymbol!
+static MuLang.Core.Types.TypeSymbols.Nullable(MuLang.Core.Types.TypeSymbol! underlyingType) -> MuLang.Core.Types.NullableTypeSymbol!
+static MuLang.Core.Types.TypeSymbols.Number.get -> MuLang.Core.Types.TypeSymbol!
+static MuLang.Core.Types.TypeSymbols.Object.get -> MuLang.Core.Types.TypeSymbol!
+static MuLang.Core.Types.TypeSymbols.String.get -> MuLang.Core.Types.TypeSymbol!
+static MuLang.Core.Types.TypeSymbols.Unknown.get -> MuLang.Core.Types.TypeSymbol!
+static MuLang.Core.Types.TypeSymbols.Void.get -> MuLang.Core.Types.TypeSymbol!
+static MuLang.MuLangCompiler.CompileExpression(string! source, MuLang.Core.Environment.EnvironmentSchema! environment, MuLang.Core.Types.TypeSymbol? expectedType = null) -> MuLang.CompilationResult!
+static MuLang.MuLangCompiler.CompileExpression(string! source, MuLang.Core.Environment.EnvironmentSchema! environment, MuLang.Core.Types.TypeSymbol? expectedType, MuLang.Core.LanguageProfile! profile) -> MuLang.CompilationResult!
+static MuLang.MuLangCompiler.CompileProgram(string! source, MuLang.Core.Environment.EnvironmentSchema! environment, MuLang.Core.Types.TypeSymbol! resultType, MuLang.Core.LanguageProfile! profile) -> MuLang.CompilationResult!
+static MuLang.MuLangCompiler.CompileProgram(string! source, MuLang.Core.Environment.EnvironmentSchema! environment, MuLang.Core.Types.TypeSymbol! resultType) -> MuLang.CompilationResult!
+virtual MuLang.Exporters.DotNet.DotNetFunction.Invoke(System.Collections.Generic.IReadOnlyList<object?>! arguments) -> object?

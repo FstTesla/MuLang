@@ -123,18 +123,21 @@ Completion criteria:
 
 ## 4. Establish API Compatibility Control
 
-1. Add `Microsoft.CodeAnalysis.PublicApiAnalyzers` as a private development dependency using a floating major version.
-2. Generate and review the initial shipped public API baseline before the first package release.
-3. Require intentional API additions and removals to update the baseline explicitly.
-4. Enable .NET SDK package validation for release package builds.
-5. Publish `0.1.0-alpha.1` without a previous-package comparison because no baseline package exists yet.
-6. After the first release, configure package validation against the selected previous release.
-7. Define the prerelease compatibility policy:
+1. Use `Microsoft.CodeAnalysis.PublicApiAnalyzers` as a private development dependency with a floating major version.
+2. Keep the API shipped in `0.1.0-alpha.1` in `PublicAPI.Shipped.txt`.
+3. Record additions and intentional removals since the baseline in `PublicAPI.Unshipped.txt`.
+4. Treat missing, removed, malformed, duplicate, or oblivious public API declarations as build errors.
+5. Enable .NET SDK package validation for every package build.
+6. During the release workflow, query private GitHub Packages and select the highest published supported version that precedes the version being packed.
+7. Exclude the current version so rerunning a previously published tag retains the preceding baseline.
+8. Allow the repository variable `PACKAGE_VALIDATION_BASELINE_VERSION` to select an explicit published predecessor or use `none` to disable the baseline for an exceptional release.
+9. Keep intentional breaking changes in the reviewed `CompatibilitySuppressions.xml` file.
+10. Define the prerelease compatibility policy:
    - compatibility breaks are permitted before `1.0.0`;
    - they must still be explicit in the API baseline and release notes;
    - accidental breaks must fail validation;
    - stable releases follow SemVer compatibility requirements.
-8. Keep suppressions local, documented, and limited to intentional compatibility changes.
+11. Consolidate shipped/unshipped API files after each selected release baseline.
 
 Completion criteria:
 
@@ -280,7 +283,7 @@ Completion criteria:
    - repository link;
    - license;
    - download and restore.
-7. Configure `0.1.0-alpha.1` as the first package-validation baseline for subsequent releases.
+7. Confirm that subsequent release workflows discover `0.1.0-alpha.1` dynamically as the latest published predecessor.
 
 Completion criteria:
 
@@ -323,8 +326,6 @@ A split should proceed only when at least one concrete consumer scenario require
 
 There are no design decisions blocking implementation.
 
-The following operational values become available during execution:
+The following operational value becomes available during execution:
 
-- exact floating major version for PublicApiAnalyzers;
-- NuGet.org package ownership and trusted-publishing configuration;
-- previous-package baseline selection after `0.1.0-alpha.1` is published.
+- NuGet.org package ownership and trusted-publishing configuration.
