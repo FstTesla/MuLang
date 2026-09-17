@@ -504,26 +504,11 @@ try
     Assert-Png (Join-Path $packageDirectory 'MuLang.png')
     $packagedReadme = [System.IO.File]::ReadAllText(
         (Join-Path $packageDirectory 'README.md')
-    )
-
-    foreach (
-        $requiredReadmeLink in @(
-            'https://fsttesla.github.io/MuLang/',
-            'https://github.com/FstTesla/MuLang/blob/main/docs/public/examples.md',
-            'https://github.com/FstTesla/MuLang/blob/main/LICENSE'
-        )
-    )
-    {
-        if (
-            !$packagedReadme.Contains(
-                $requiredReadmeLink,
-                [StringComparison]::Ordinal
-            )
-        )
-        {
-            throw "Packaged README does not contain '$requiredReadmeLink'."
-        }
-    }
+    ).Replace("`r`n", "`n")
+    $repositoryReadme = [System.IO.File]::ReadAllText(
+        (Join-Path $root 'README.md')
+    ).Replace("`r`n", "`n")
+    Assert-Equal 'Packaged README' $packagedReadme $repositoryReadme
 
     [xml] $documentation = [System.IO.File]::ReadAllText(
         (Join-Path $packageDirectory 'lib/net10.0/MuLang.xml')
