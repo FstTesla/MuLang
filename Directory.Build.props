@@ -2,18 +2,39 @@
 
   <PropertyGroup>
     <LangVersion>latest</LangVersion>
-    <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <WarningsAsErrors>$(WarningsAsErrors);nullable;RS0016;RS0017;RS0024;RS0025;RS0036;RS0037;RS0041;RS0048;RS0050</WarningsAsErrors>
     <Deterministic>true</Deterministic>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(UsingMicrosoftNoTargetsSdk)' != 'true'">
+    <ImplicitUsings>enable</ImplicitUsings>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)MuLang.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
 
-  <PropertyGroup Condition="!$(MSBuildProjectName.EndsWith('.Tests'))">
-    <IsPackable>true</IsPackable>
+  <PropertyGroup Condition="'$(UsingMicrosoftNoTargetsSdk)' == 'true'">
+    <SkipResolvePackageAssets>true</SkipResolvePackageAssets>
   </PropertyGroup>
+
+  <Choose>
+    <When Condition="!$(MSBuildProjectName.EndsWith('.Tests')) And '$(UsingMicrosoftNoTargetsSdk)' != 'true'">
+
+      <PropertyGroup>
+        <IsPackable>true</IsPackable>
+      </PropertyGroup>
+
+    </When>
+    <Otherwise>
+
+      <PropertyGroup>
+        <IsPackable>false</IsPackable>
+        <IsPublishable>false</IsPublishable>
+      </PropertyGroup>
+
+    </Otherwise>
+  </Choose>
 
   <PropertyGroup Condition="'$(IsPackable)' == 'true'">
     <GenerateDocumentationFile>true</GenerateDocumentationFile>

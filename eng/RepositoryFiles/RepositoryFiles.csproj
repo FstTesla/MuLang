@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.Build.NoTargets">
+
+  <!--
+  This project displays files from selected repository folders in Solution Explorer
+  without requiring the solution structure to be maintained manually.
+
+  Despite the .csproj extension, it does not compile code or produce build output.
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <EnableDefaultItems>false</EnableDefaultItems>
+    <RepositoryFileExcludes>
+      $(MSBuildProjectFullPath);
+      ..\..\MuLang.slnx;
+      ..\..\eng\RepositoryFiles\RepositoryFiles.csproj;
+      ..\..\.git\**\*;
+      ..\..\.vs\**\*;
+      ..\..\artifacts\**\*;
+      ..\..\**\bin\**\*;
+      ..\..\**\obj\**\*
+    </RepositoryFileExcludes>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="@(None)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\*" Exclude="$(RepositoryFileExcludes)">
+      <Link>%(Filename)%(Extension)</Link>
+    </None>
+    <None Include="..\..\.config\**\*" Exclude="$(RepositoryFileExcludes)">
+      <Link>.config\%(RecursiveDir)%(Filename)%(Extension)</Link>
+    </None>
+    <None Include="..\..\.github\**\*" Exclude="$(RepositoryFileExcludes)">
+      <Link>.github\%(RecursiveDir)%(Filename)%(Extension)</Link>
+    </None>
+    <None Include="..\..\docs\**\*" Exclude="$(RepositoryFileExcludes)">
+      <Link>docs\%(RecursiveDir)%(Filename)%(Extension)</Link>
+    </None>
+    <None Include="..\..\eng\**\*" Exclude="$(RepositoryFileExcludes)">
+      <Link>eng\%(RecursiveDir)%(Filename)%(Extension)</Link>
+    </None>
+  </ItemGroup>
+
+</Project>
