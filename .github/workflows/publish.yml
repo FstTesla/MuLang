@@ -24,6 +24,7 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.version }}
       create_github_release: ${{ steps.release.outputs.create_github_release }}
+      release_notes_file: ${{ steps.release.outputs.release_notes_file }}
 
     steps:
       - name: Check out tagged commit
@@ -102,26 +103,50 @@ jobs:
           } else {
             $env:VERSION.Substring($prerelease + 1).Split('.')[0]
           }
+          $isStable = $channel -eq ''
           $createGitHubRelease = $channel -in '', 'beta', 'rc'
-          $changelog = [System.IO.File]::ReadAllText('CHANGELOG.md')
+          $stableChangelog = [System.IO.File]::ReadAllText('CHANGELOG.md')
+          $detailedChangelog = [System.IO.File]::ReadAllText(
+            'CHANGELOG.detailed.md'
+          )
           $escapedVersion = [regex]::Escape($env:VERSION)
-          $pattern = "(?ms)^## \[$escapedVersion\] - [^\r\n]+\r?\n\r?\n(?<notes>.*?)(?=^## |\z)"
-          $hasReleaseNotes = [regex]::IsMatch($changelog, $pattern)
+          $pattern =
+            '(?ms)^## `' +
+            $escapedVersion +
+            '` - [^\r\n]+\r?\n\r?\n(?<notes>.*?)(?=^## |\z)'
+          $hasStableNotes = [regex]::IsMatch($stableChangelog, $pattern)
+          $hasDetailedNotes = [regex]::IsMatch($detailedChangelog, $pattern)
 
-          if ($createGitHubRelease -and !$hasReleaseNotes) {
-            throw "CHANGELOG.md does not contain release notes for version '$env:VERSION'."
+          if ($createGitHubRelease -and !$hasDetailedNotes) {
+            throw "CHANGELOG.detailed.md does not contain release notes for version '$env:VERSION'."
+          }
+
+          if ($isStable -and !$hasStableNotes) {
+            throw "CHANGELOG.md does not contain consolidated release notes for version '$env:VERSION'."
+          }
+
+          if (!$isStable -and $hasStableNotes) {
+            throw "CHANGELOG.md must not contain prerelease version '$env:VERSION'."
           }
 
           $packageReleaseNotes = if ($createGitHubRelease) {
             "https://github.com/FstTesla/MuLang/releases/tag/$env:RELEASE_TAG"
-          } elseif ($hasReleaseNotes) {
-            "https://github.com/FstTesla/MuLang/blob/$env:RELEASE_TAG/CHANGELOG.md"
+          } elseif ($hasDetailedNotes) {
+            "https://github.com/FstTesla/MuLang/blob/$env:RELEASE_TAG/CHANGELOG.detailed.md"
+          } else {
+            ''
+          }
+          $releaseNotesFile = if ($isStable) {
+            'CHANGELOG.md'
+          } elseif ($createGitHubRelease) {
+            'CHANGELOG.detailed.md'
           } else {
             ''
           }
 
           "create_github_release=$($createGitHubRelease.ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
           "package_release_notes=$packageReleaseNotes" >> $env:GITHUB_OUTPUT
+          "release_notes_file=$releaseNotesFile" >> $env:GITHUB_OUTPUT
 
       - name: Restore
         run: dotnet restore MuLang.slnx --locked-mode
@@ -185,15 +210,21 @@ jobs:
         if: needs.pack.outputs.create_github_release == 'true'
         shell: pwsh
         env:
+          RELEASE_NOTES_FILE: ${{ needs.pack.outputs.release_notes_file }}
           VERSION: ${{ needs.pack.outputs.version }}
         run: |
-          $changelog = [System.IO.File]::ReadAllText('CHANGELOG.md')
+          $changelog = [System.IO.File]::ReadAllText(
+            $env:RELEASE_NOTES_FILE
+          )
           $escapedVersion = [regex]::Escape($env:VERSION)
-          $pattern = "(?ms)^## \[$escapedVersion\] - [^\r\n]+\r?\n\r?\n(?<notes>.*?)(?=^## |\z)"
+          $pattern =
+            '(?ms)^## `' +
+            $escapedVersion +
+            '` - [^\r\n]+\r?\n\r?\n(?<notes>.*?)(?=^## |\z)'
           $match = [regex]::Match($changelog, $pattern)
 
           if (!$match.Success) {
-            throw "CHANGELOG.md does not contain release notes for version '$env:VERSION'."
+            throw "'$env:RELEASE_NOTES_FILE' does not contain release notes for version '$env:VERSION'."
           }
 
           $notes = $match.Groups['notes'].Value.Trim()

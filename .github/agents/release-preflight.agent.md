@@ -8,7 +8,7 @@ user-invocable: true
 
 You perform the final MuLang release-readiness audit before a version tag is created.
 
-Require the user to provide the target version without the `v` prefix. Require an explicit changelog base ref when the target version requires or includes release notes. Do not infer a missing changelog base.
+Require the user to provide the target version without the `v` prefix. Require an explicit incremental changelog base when the target version requires or includes detailed release notes. For a stable target, also require an explicit preceding stable base. Do not infer a missing base.
 
 Do not modify files, install new dependencies, commit, create or move tags, push, publish packages, create releases, or trigger workflows.
 
@@ -30,11 +30,12 @@ Audit the repository and report each check as `Pass`, `Warning`, or `Blocker`:
 6. The dynamically resolved package-validation baseline is a published predecessor, unless an explicit repository override intentionally selects another predecessor or disables validation.
 7. Package validation against the selected baseline succeeds.
 8. `PublicAPI.Shipped.txt` and `PublicAPI.Unshipped.txt` are valid and the analyzer reports no undeclared, stale, duplicate, malformed, or oblivious API entries.
-9. Every `*REMOVED*` public API entry is intentional and represented as a breaking change in the target changelog section when that section exists.
-10. Every entry in `CompatibilitySuppressions.xml` is necessary for the selected baseline and represented as a breaking change in the target changelog section when that section exists.
-11. Beta, RC, and stable releases contain a non-empty target-version section in `CHANGELOG.md`; alpha releases may omit it.
-12. Package metadata, README, license, icon, XML documentation, symbol package, strong name, repository commit, and Source Link pass `eng/Verify-Package.ps1`.
-13. The target version is greater than the selected baseline and its maturity suffix is consistent with the intended release.
+9. Every `*REMOVED*` public API entry is intentional and represented as a breaking change in each required target changelog section.
+10. Every entry in `CompatibilitySuppressions.xml` is necessary for the selected baseline and represented as a breaking change in each required target changelog section.
+11. Beta, RC, and stable releases contain a non-empty target-version section in `CHANGELOG.detailed.md`; alpha releases may omit it.
+12. Stable releases additionally contain a non-empty consolidated target-version section in `CHANGELOG.md`; prerelease versions do not.
+13. Package metadata, README, license, icon, XML documentation, symbol package, strong name, repository commit, and Source Link pass `eng/Verify-Package.ps1`.
+14. The target version is greater than the selected baseline and its maturity suffix is consistent with the intended release.
 
 Use `eng/Resolve-PackageValidationBaseline.ps1` and `eng/Verify-Package.ps1` rather than duplicating their logic.
 

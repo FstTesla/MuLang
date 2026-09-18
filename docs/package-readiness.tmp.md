@@ -34,8 +34,10 @@ The initial release target is `0.1.0-alpha.1`. Release versions are derived from
 | Package icon | `MuLang.png`, generated from `MuLang.svg` |
 | Consumer examples | `docs\public\examples.md` |
 | Release maturity | `alpha` is experimental, `beta` is prerelease, and `rc` is preview |
-| Changelog source | Reviewed diff from an explicitly specified base tag or commit |
-| Changelog preparation | Use `.github\agents\release-changelog.agent.md`, then review and commit `CHANGELOG.md` before tagging |
+| Stable changelog | `CHANGELOG.md`, containing only consolidated stable releases |
+| Detailed changelog | `CHANGELOG.detailed.md`, containing stable, RC, beta, and optional alpha releases |
+| Changelog source | Reviewed diffs from explicitly specified base tags or commits |
+| Changelog preparation | Use `.github\agents\release-changelog.agent.md`, then review and commit the applicable changelog files before tagging |
 | Changelog categories | `Breaking changes`, `New features`, and `Fixes` |
 | Release readiness | Use `.github\agents\release-preflight.agent.md` before tagging |
 | Post-release API governance | Use `.github\agents\post-release-finalization.agent.md` after successful publication |
@@ -181,16 +183,22 @@ Completion criteria:
    - license and repository links.
 3. Keep detailed language semantics under `docs\public\language` and avoid duplicating normative content in the README.
 4. Keep complete C# usage examples in `docs\public\examples.md` and link them from the README.
-5. Prepare release notes by invoking the repository release-changelog agent with an explicit base tag or commit and the target version.
-6. Have the agent inspect the complete diff rather than relying only on commit subjects.
-7. Classify consumer-visible changes as `Breaking changes`, `New features`, or `Fixes`, omitting empty categories and internal-only work.
-8. Review and commit the generated `CHANGELOG.md` section before creating the version tag.
-9. Run the read-only release-preflight agent against the target version and resolve every blocker before tagging.
-10. Require beta, RC, and stable tagged commits to contain the matching changelog section. Alpha tags may omit it.
-11. Create a GitHub Release after package publication for beta, RC, and stable versions, using the changelog section as its notes. Beta and RC versions are marked as prereleases.
-12. For alpha packages, link `PackageReleaseNotes` to the tagged changelog only when a matching section exists; otherwise omit the metadata.
-13. After successful publication and verification, run the post-release-finalization agent to consolidate public API files and obsolete compatibility suppressions for human review.
-14. Verify links and the externally hosted logo both from the GitHub repository and from NuGet's rendered package README.
+5. Keep `CHANGELOG.detailed.md` as the incremental release history for stable, RC, beta, and optionally documented alpha versions.
+6. Keep `CHANGELOG.md` as the consolidated history of stable versions only.
+7. Prepare detailed release notes by invoking the repository release-changelog agent with an explicit incremental base and target version.
+8. For a stable target, additionally provide an explicit preceding stable base and generate the consolidated stable section from that complete diff.
+9. Do not create stable notes by concatenating prerelease sections. Omit intermediate behavior that was reverted or superseded before the stable release.
+10. Have the agent inspect complete diffs rather than relying only on commit subjects.
+11. Classify consumer-visible changes as `Breaking changes`, `New features`, or `Fixes`, omitting empty categories and internal-only work.
+12. Review and commit all generated changelog sections before creating the version tag.
+13. Run the read-only release-preflight agent against the target version and resolve every blocker before tagging.
+14. Require beta, RC, and stable tagged commits to contain a matching section in `CHANGELOG.detailed.md`. Alpha tags may omit it.
+15. Require stable tagged commits to additionally contain a matching consolidated section in `CHANGELOG.md`. Prerelease sections are prohibited there.
+16. Create a GitHub Release after package publication for beta and RC versions using `CHANGELOG.detailed.md`; mark those releases as prereleases.
+17. Create a GitHub Release for stable versions using the consolidated section in `CHANGELOG.md`.
+18. For alpha packages, link `PackageReleaseNotes` to the tagged detailed changelog only when a matching section exists; otherwise omit the metadata.
+19. After successful publication and verification, run the post-release-finalization agent to consolidate public API files and obsolete compatibility suppressions for human review.
+20. Verify links and the externally hosted logo both from the GitHub repository and from NuGet's rendered package README.
 
 Completion criteria:
 
@@ -259,9 +267,12 @@ Completion criteria:
 15. Prevent duplicate publication from reruns while preserving idempotent build and verification steps.
 16. Record the derived version, source tag, commit, and artifact hashes in the workflow summary.
 17. Keep branch and pull-request validation separate from publication; those workflows may validate packability but MUST NOT publish or produce official release versions.
-18. Fail before package publication when a beta, RC, or stable tag does not contain a non-empty changelog section for the derived version.
-19. Allow alpha package publication without a changelog section or GitHub Release.
-20. Create the matching GitHub Release after successful beta, RC, or stable package publication using the committed changelog section.
+18. Fail before package publication when a beta, RC, or stable tag does not contain a non-empty detailed changelog section for the derived version.
+19. Fail stable publication when the stable changelog does not also contain a non-empty consolidated section for the derived version.
+20. Reject prerelease sections in the stable changelog.
+21. Allow alpha package publication without a detailed changelog section or GitHub Release.
+22. Create beta and RC GitHub Releases from the detailed changelog after successful package publication.
+23. Create stable GitHub Releases from the stable changelog after successful package publication.
 
 Completion criteria:
 

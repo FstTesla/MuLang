@@ -38,7 +38,8 @@ See the [examples](https://github.com/FstTesla/MuLang/blob/main/docs/public/exam
 - [Documentation site](https://fsttesla.github.io/MuLang/)
 - [Language specification](https://github.com/FstTesla/MuLang/blob/main/docs/public/language/index.md)
 - [Examples](https://github.com/FstTesla/MuLang/blob/main/docs/public/examples.md)
-- [Changelog](https://github.com/FstTesla/MuLang/blob/main/CHANGELOG.md)
+- [Stable changelog](https://github.com/FstTesla/MuLang/blob/main/CHANGELOG.md)
+- [Detailed changelog](https://github.com/FstTesla/MuLang/blob/main/CHANGELOG.detailed.md)
 
 ## Feedback
 

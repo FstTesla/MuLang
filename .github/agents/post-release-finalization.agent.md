@@ -45,7 +45,7 @@ Validate after editing:
 - package verification for a temporary next prerelease version;
 - no unexpected changes outside the three permitted files.
 
-Do not modify changelog, source code, documentation, project files, workflows, package metadata, or lock files. Do not commit, create or move tags, push, publish packages, create releases, or trigger workflows.
+Do not modify `CHANGELOG.md`, `CHANGELOG.detailed.md`, source code, documentation, project files, workflows, package metadata, or lock files. Do not commit, create or move tags, push, publish packages, create releases, or trigger workflows.
 
 Finish with a concise report listing:
 
