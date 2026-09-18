@@ -37,6 +37,8 @@ The initial release target is `0.1.0-alpha.1`. Release versions are derived from
 | Changelog source | Reviewed diff from an explicitly specified base tag or commit |
 | Changelog preparation | Use `.github\agents\release-changelog.agent.md`, then review and commit `CHANGELOG.md` before tagging |
 | Changelog categories | `Breaking changes`, `New features`, and `Fixes` |
+| Release readiness | Use `.github\agents\release-preflight.agent.md` before tagging |
+| Post-release API governance | Use `.github\agents\post-release-finalization.agent.md` after successful publication |
 | GitHub Release policy | Create releases for beta, RC, and stable versions; exclude alpha versions |
 
 ## 1. Establish Package Identity and Legal Metadata
@@ -183,10 +185,12 @@ Completion criteria:
 6. Have the agent inspect the complete diff rather than relying only on commit subjects.
 7. Classify consumer-visible changes as `Breaking changes`, `New features`, or `Fixes`, omitting empty categories and internal-only work.
 8. Review and commit the generated `CHANGELOG.md` section before creating the version tag.
-9. Require beta, RC, and stable tagged commits to contain the matching changelog section. Alpha tags may omit it.
-10. Create a GitHub Release after package publication for beta, RC, and stable versions, using the changelog section as its notes. Beta and RC versions are marked as prereleases.
-11. For alpha packages, link `PackageReleaseNotes` to the tagged changelog only when a matching section exists; otherwise omit the metadata.
-12. Verify links and the externally hosted logo both from the GitHub repository and from NuGet's rendered package README.
+9. Run the read-only release-preflight agent against the target version and resolve every blocker before tagging.
+10. Require beta, RC, and stable tagged commits to contain the matching changelog section. Alpha tags may omit it.
+11. Create a GitHub Release after package publication for beta, RC, and stable versions, using the changelog section as its notes. Beta and RC versions are marked as prereleases.
+12. For alpha packages, link `PackageReleaseNotes` to the tagged changelog only when a matching section exists; otherwise omit the metadata.
+13. After successful publication and verification, run the post-release-finalization agent to consolidate public API files and obsolete compatibility suppressions for human review.
+14. Verify links and the externally hosted logo both from the GitHub repository and from NuGet's rendered package README.
 
 Completion criteria:
 

@@ -19,6 +19,16 @@ Validate that the base ref resolves, `CHANGELOG.md` does not already contain the
 
 Review the complete committed change set from the specified base ref through `HEAD`, including commit history, source diff, public API changes, language specification changes, runtime behavior, packaging, and consumer documentation. Do not classify changes solely from commit subjects.
 
+Treat the API governance files as authoritative evidence:
+
+- compare `src/MuLang/PublicAPI.Shipped.txt` and `src/MuLang/PublicAPI.Unshipped.txt` with their versions at the base ref;
+- treat every `*REMOVED*` entry and every incompatible signature or constant-value replacement as a breaking change;
+- treat compatible API additions as new features unless they are part of a breaking replacement;
+- inspect every entry in `src/MuLang/CompatibilitySuppressions.xml`;
+- require every intentional package-validation suppression to be represented under `Breaking changes`.
+
+Use source and package diffs to explain API entries in consumer-facing terms. Do not copy analyzer signatures or diagnostic identifiers directly into the changelog when a clearer API description is available.
+
 Include only consumer-visible changes and classify them under these headings:
 
 - `Breaking changes` for incompatible public API, language syntax, language semantics, provider contracts, runtime contracts, or package behavior;
@@ -47,4 +57,10 @@ Insert a section immediately after `## Unreleased` using this format:
 
 Omit empty category headings. Keep entries concise, factual, and understandable without reading commits or pull requests.
 
-Modify only `CHANGELOG.md`. Do not commit, create or move tags, change the package version, edit the release workflow, or publish artifacts. Leave the changelog update for human review and commit before tagging.
+Before editing, report and stop if:
+
+- a removed or changed shipped API has no corresponding `*REMOVED*` entry;
+- a new public API is missing from `PublicAPI.Unshipped.txt`;
+- a package compatibility suppression cannot be matched to an intentional consumer-visible breaking change.
+
+Modify only `CHANGELOG.md`. Do not modify public API files or compatibility suppressions, commit, create or move tags, change the package version, edit workflows, or publish artifacts. Leave the changelog update for human review and commit before tagging.

@@ -10,7 +10,9 @@
     <File Path="README.md" />
   </Folder>
   <Folder Name="/Solution Items/.github/agents/">
+    <File Path=".github/agents/post-release-finalization.agent.md" />
     <File Path=".github/agents/release-changelog.agent.md" />
+    <File Path=".github/agents/release-preflight.agent.md" />
   </Folder>
   <Folder Name="/Solution Items/.github/" />
   <Folder Name="/Solution Items/.github/workflows/">
