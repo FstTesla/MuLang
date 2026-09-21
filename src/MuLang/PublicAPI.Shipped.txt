@@ -120,6 +120,8 @@ MuLang.Core.MutationFeatures.ObjectProperties = 1 -> MuLang.Core.MutationFeature
 MuLang.Core.MutationFeatures.PropertyRemoval = 4 -> MuLang.Core.MutationFeatures
 MuLang.Core.OpenObjectsFeature
 MuLang.Core.OpenObjectsFeature.Disabled = 0 -> MuLang.Core.OpenObjectsFeature
+MuLang.Core.OpenObjectsFeature.Enabled = 2 -> MuLang.Core.OpenObjectsFeature
+MuLang.Core.OpenObjectsFeature.PropertyExistenceOnly = 1 -> MuLang.Core.OpenObjectsFeature
 MuLang.Core.ProviderFunctionCallsFeature
 MuLang.Core.ProviderFunctionCallsFeature.Disabled = 0 -> MuLang.Core.ProviderFunctionCallsFeature
 MuLang.Core.ProviderFunctionCallsFeature.Enabled = 1 -> MuLang.Core.ProviderFunctionCallsFeature

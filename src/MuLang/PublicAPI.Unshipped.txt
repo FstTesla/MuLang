@@ -1,4 +1,1 @@
 #nullable enable
-*REMOVED*MuLang.Core.OpenObjectsFeature.Enabled = 1 -> MuLang.Core.OpenObjectsFeature
-MuLang.Core.OpenObjectsFeature.Enabled = 2 -> MuLang.Core.OpenObjectsFeature
-MuLang.Core.OpenObjectsFeature.PropertyExistenceOnly = 1 -> MuLang.Core.OpenObjectsFeature
