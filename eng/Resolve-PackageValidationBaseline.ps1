@@ -120,7 +120,7 @@ for ($page = 1; ; $page++)
 
     try
     {
-        $items = @(Invoke-RestMethod -Uri $url -Headers $headers)
+        [object[]] $items = Invoke-RestMethod -Uri $url -Headers $headers
     }
     catch
     {
