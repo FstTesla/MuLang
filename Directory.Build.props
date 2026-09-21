@@ -38,8 +38,8 @@
 
   <PropertyGroup Condition="'$(IsPackable)' == 'true'">
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <PackageId>MuLang</PackageId>
-    <Title>MuLang</Title>
+    <PackageId>$(MSBuildProjectName)</PackageId>
+    <Title>$(MSBuildProjectName)</Title>
     <Authors>FstTesla</Authors>
     <PackageDescription>
       MuLang is a small, embeddable, statically checked language for expressions and imperative programs.
@@ -47,6 +47,7 @@
     </PackageDescription>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageProjectUrl>https://github.com/FstTesla/MuLang</PackageProjectUrl>
     <PackageIcon>MuLang.png</PackageIcon>
     <PackageTags>compiler;dsl;embedded-language;expression-language;static-typing;type-checking;dotnet;micro-language</PackageTags>
@@ -63,6 +64,11 @@
   <ItemGroup Condition="'$(IsPackable)' == 'true'">
     <None Include="$(MSBuildThisFileDirectory)LICENSE" Pack="true" PackagePath="\" />
     <None Include="$(MSBuildThisFileDirectory)MuLang.png" Pack="true" PackagePath="\" />
+    <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="\" />
+    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Version="5.*">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
 
   <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">

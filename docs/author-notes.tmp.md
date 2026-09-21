@@ -1,5 +1,5 @@
-- Split projects and adjust type visibility for future package
 - Standard library
+- `Directory.Build` files in `src/` and `tests/` for partitioned project-wide settings
 - New features:
   - Comments
   - User-defined types

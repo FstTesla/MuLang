@@ -3,6 +3,7 @@ using MuLang.Core;
 using MuLang.Core.Environment;
 using MuLang.Core.Symbols;
 using MuLang.Core.Types;
+using MuLang.StandardLibrary.Tests;
 
 namespace MuLang.Tests.Language;
 

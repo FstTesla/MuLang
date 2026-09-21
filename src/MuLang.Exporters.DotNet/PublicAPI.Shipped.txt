@@ -1,0 +1,56 @@
+#nullable enable
+const MuLang.Exporters.DotNet.DotNetRuntimeErrorCodes.BudgetExceeded = "MUL6011" -> string!
+const MuLang.Exporters.DotNet.DotNetRuntimeErrorCodes.CallDepthExceeded = "MUL6017" -> string!
+const MuLang.Exporters.DotNet.DotNetRuntimeErrorCodes.Cancelled = "MUL6016" -> string!
+const MuLang.Exporters.DotNet.DotNetRuntimeErrorCodes.DivisionByZero = "MUL6004" -> string!
+const MuLang.Exporters.DotNet.DotNetRuntimeErrorCodes.EnvironmentMismatch = "MUL6010" -> string!
+const MuLang.Exporters.DotNet.DotNetRuntimeErrorCodes.IntegerOverflow = "MUL6003" -> string!
+const MuLang.Exporters.DotNet.DotNetRuntimeErrorCodes.InvalidConversion = "MUL6002" -> string!
+const MuLang.Exporters.DotNet.DotNetRuntimeErrorCodes.InvalidIndex = "MUL6006" -> string!
+const MuLang.Exporters.DotNet.DotNetRuntimeErrorCodes.InvalidRuntimeValue = "MUL6015" -> string!
+const MuLang.Exporters.DotNet.DotNetRuntimeErrorCodes.InvalidShift = "MUL6005" -> string!
+const MuLang.Exporters.DotNet.DotNetRuntimeErrorCodes.MissingFunction = "MUL6013" -> string!
+const MuLang.Exporters.DotNet.DotNetRuntimeErrorCodes.MissingGlobal = "MUL6012" -> string!
+const MuLang.Exporters.DotNet.DotNetRuntimeErrorCodes.MissingProperty = "MUL6007" -> string!
+const MuLang.Exporters.DotNet.DotNetRuntimeErrorCodes.MissingUserFunction = "MUL6018" -> string!
+const MuLang.Exporters.DotNet.DotNetRuntimeErrorCodes.MutationRejected = "MUL6008" -> string!
+const MuLang.Exporters.DotNet.DotNetRuntimeErrorCodes.NullValue = "MUL6001" -> string!
+const MuLang.Exporters.DotNet.DotNetRuntimeErrorCodes.ProviderFailure = "MUL6014" -> string!
+const MuLang.Exporters.DotNet.DotNetRuntimeErrorCodes.RemovalRejected = "MUL6009" -> string!
+MuLang.Exporters.DotNet.DotNetExporter
+MuLang.Exporters.DotNet.DotNetExportResult
+MuLang.Exporters.DotNet.DotNetExportResult.<Clone>$() -> MuLang.Exporters.DotNet.DotNetExportResult!
+MuLang.Exporters.DotNet.DotNetExportResult.Deconstruct(out System.Func<MuLang.Exporters.DotNet.DotNetRuntimeContext!, object?>? Delegate, out MuLang.Core.Diagnostics.DiagnosticCollection! Diagnostics) -> void
+MuLang.Exporters.DotNet.DotNetExportResult.Delegate.get -> System.Func<MuLang.Exporters.DotNet.DotNetRuntimeContext!, object?>?
+MuLang.Exporters.DotNet.DotNetExportResult.Delegate.init -> void
+MuLang.Exporters.DotNet.DotNetExportResult.Diagnostics.get -> MuLang.Core.Diagnostics.DiagnosticCollection!
+MuLang.Exporters.DotNet.DotNetExportResult.Diagnostics.init -> void
+MuLang.Exporters.DotNet.DotNetExportResult.DotNetExportResult(System.Func<MuLang.Exporters.DotNet.DotNetRuntimeContext!, object?>? Delegate, MuLang.Core.Diagnostics.DiagnosticCollection! Diagnostics) -> void
+MuLang.Exporters.DotNet.DotNetExportResult.Equals(MuLang.Exporters.DotNet.DotNetExportResult? other) -> bool
+MuLang.Exporters.DotNet.DotNetFunction
+MuLang.Exporters.DotNet.DotNetRuntimeContext
+MuLang.Exporters.DotNet.DotNetRuntimeContext.CancellationToken.get -> System.Threading.CancellationToken
+MuLang.Exporters.DotNet.DotNetRuntimeContext.DotNetRuntimeContext(MuLang.Core.Environment.EnvironmentSchema! environment, System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string!, object?>>! globals, System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string!, MuLang.Exporters.DotNet.DotNetFunction!>>! functions, long? executionBudget = null, int maximumTraversalDepth = 256, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken), int maximumUserFunctionCallDepth = 256) -> void
+MuLang.Exporters.DotNet.DotNetRuntimeContext.EnvironmentFingerprint.get -> MuLang.Core.Environment.EnvironmentFingerprint!
+MuLang.Exporters.DotNet.DotNetRuntimeContext.MaximumTraversalDepth.get -> int
+MuLang.Exporters.DotNet.DotNetRuntimeContext.MaximumUserFunctionCallDepth.get -> int
+MuLang.Exporters.DotNet.DotNetRuntimeErrorCodes
+MuLang.Exporters.DotNet.IDotNetArrayValue
+MuLang.Exporters.DotNet.IDotNetArrayValue.Count.get -> int
+MuLang.Exporters.DotNet.IDotNetArrayValue.Identity.get -> object!
+MuLang.Exporters.DotNet.IDotNetArrayValue.TryGetElement(int index, out object? value) -> bool
+MuLang.Exporters.DotNet.IDotNetArrayValue.TrySetElement(int index, object? value) -> bool
+MuLang.Exporters.DotNet.IDotNetObjectValue
+MuLang.Exporters.DotNet.IDotNetObjectValue.Identity.get -> object!
+MuLang.Exporters.DotNet.IDotNetObjectValue.PropertyNames.get -> System.Collections.Generic.IReadOnlyCollection<string!>!
+MuLang.Exporters.DotNet.IDotNetObjectValue.TryGetProperty(string! name, out object? value) -> bool
+MuLang.Exporters.DotNet.IDotNetObjectValue.TryRemoveProperty(string! name) -> bool
+MuLang.Exporters.DotNet.IDotNetObjectValue.TrySetProperty(string! name, object? value) -> bool
+override MuLang.Exporters.DotNet.DotNetExportResult.Equals(object? obj) -> bool
+override MuLang.Exporters.DotNet.DotNetExportResult.GetHashCode() -> int
+override MuLang.Exporters.DotNet.DotNetExportResult.ToString() -> string!
+static MuLang.Exporters.DotNet.DotNetExporter.Export(MuLang.IR.IrProgram! program, MuLang.Core.Environment.EnvironmentSchema! environment, MuLang.Core.CompilationMode? expectedCompilationMode, MuLang.Core.LanguageProfileFingerprint? expectedLanguageProfileFingerprint) -> MuLang.Exporters.DotNet.DotNetExportResult!
+static MuLang.Exporters.DotNet.DotNetExporter.Export(MuLang.IR.IrProgram! program, MuLang.Core.Environment.EnvironmentSchema! environment) -> MuLang.Exporters.DotNet.DotNetExportResult!
+static MuLang.Exporters.DotNet.DotNetExportResult.operator !=(MuLang.Exporters.DotNet.DotNetExportResult? left, MuLang.Exporters.DotNet.DotNetExportResult? right) -> bool
+static MuLang.Exporters.DotNet.DotNetExportResult.operator ==(MuLang.Exporters.DotNet.DotNetExportResult? left, MuLang.Exporters.DotNet.DotNetExportResult? right) -> bool
+virtual MuLang.Exporters.DotNet.DotNetFunction.Invoke(System.Collections.Generic.IReadOnlyList<object?>! arguments) -> object?

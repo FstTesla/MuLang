@@ -1,0 +1,552 @@
+#nullable enable
+abstract MuLang.IR.IrInstruction.<Clone>$() -> MuLang.IR.IrInstruction!
+abstract MuLang.IR.IrTerminator.<Clone>$() -> MuLang.IR.IrTerminator!
+const MuLang.IR.IrDiagnosticCodes.CompilationMetadataMismatch = "MUL5008" -> string!
+const MuLang.IR.IrDiagnosticCodes.EnvironmentMismatch = "MUL5006" -> string!
+const MuLang.IR.IrDiagnosticCodes.InvalidSlot = "MUL5002" -> string!
+const MuLang.IR.IrDiagnosticCodes.InvalidStructure = "MUL5001" -> string!
+const MuLang.IR.IrDiagnosticCodes.TypeMismatch = "MUL5003" -> string!
+const MuLang.IR.IrDiagnosticCodes.UndefinedProviderSymbol = "MUL5004" -> string!
+const MuLang.IR.IrDiagnosticCodes.UndefinedUserFunction = "MUL5007" -> string!
+const MuLang.IR.IrDiagnosticCodes.UseBeforeDefinition = "MUL5005" -> string!
+MuLang.IR.IrBasicBlock
+MuLang.IR.IrBasicBlock.<Clone>$() -> MuLang.IR.IrBasicBlock!
+MuLang.IR.IrBasicBlock.Deconstruct(out int Id, out System.Collections.Generic.IReadOnlyCollection<MuLang.IR.IrInstruction!>! Instructions, out MuLang.IR.IrTerminator! Terminator) -> void
+MuLang.IR.IrBasicBlock.Equals(MuLang.IR.IrBasicBlock? other) -> bool
+MuLang.IR.IrBasicBlock.Id.get -> int
+MuLang.IR.IrBasicBlock.Id.init -> void
+MuLang.IR.IrBasicBlock.Instructions.get -> System.Collections.Generic.IReadOnlyCollection<MuLang.IR.IrInstruction!>!
+MuLang.IR.IrBasicBlock.Instructions.init -> void
+MuLang.IR.IrBasicBlock.IrBasicBlock(int Id, System.Collections.Generic.IReadOnlyCollection<MuLang.IR.IrInstruction!>! Instructions, MuLang.IR.IrTerminator! Terminator) -> void
+MuLang.IR.IrBasicBlock.Terminator.get -> MuLang.IR.IrTerminator!
+MuLang.IR.IrBasicBlock.Terminator.init -> void
+MuLang.IR.IrBinaryOperator
+MuLang.IR.IrBinaryOperator.Add = 0 -> MuLang.IR.IrBinaryOperator
+MuLang.IR.IrBinaryOperator.BitwiseAnd = 15 -> MuLang.IR.IrBinaryOperator
+MuLang.IR.IrBinaryOperator.BitwiseOr = 17 -> MuLang.IR.IrBinaryOperator
+MuLang.IR.IrBinaryOperator.BitwiseXor = 16 -> MuLang.IR.IrBinaryOperator
+MuLang.IR.IrBinaryOperator.Divide = 3 -> MuLang.IR.IrBinaryOperator
+MuLang.IR.IrBinaryOperator.GreaterThan = 9 -> MuLang.IR.IrBinaryOperator
+MuLang.IR.IrBinaryOperator.GreaterThanOrEqual = 10 -> MuLang.IR.IrBinaryOperator
+MuLang.IR.IrBinaryOperator.IdentityEqual = 13 -> MuLang.IR.IrBinaryOperator
+MuLang.IR.IrBinaryOperator.IdentityNotEqual = 14 -> MuLang.IR.IrBinaryOperator
+MuLang.IR.IrBinaryOperator.LeftShift = 5 -> MuLang.IR.IrBinaryOperator
+MuLang.IR.IrBinaryOperator.LessThan = 7 -> MuLang.IR.IrBinaryOperator
+MuLang.IR.IrBinaryOperator.LessThanOrEqual = 8 -> MuLang.IR.IrBinaryOperator
+MuLang.IR.IrBinaryOperator.Multiply = 2 -> MuLang.IR.IrBinaryOperator
+MuLang.IR.IrBinaryOperator.Remainder = 4 -> MuLang.IR.IrBinaryOperator
+MuLang.IR.IrBinaryOperator.RightShift = 6 -> MuLang.IR.IrBinaryOperator
+MuLang.IR.IrBinaryOperator.StructuralEqual = 11 -> MuLang.IR.IrBinaryOperator
+MuLang.IR.IrBinaryOperator.StructuralNotEqual = 12 -> MuLang.IR.IrBinaryOperator
+MuLang.IR.IrBinaryOperator.Subtract = 1 -> MuLang.IR.IrBinaryOperator
+MuLang.IR.IrDiagnosticCodes
+MuLang.IR.IrFunction
+MuLang.IR.IrFunction.<Clone>$() -> MuLang.IR.IrFunction!
+MuLang.IR.IrFunction.Blocks.get -> System.Collections.Generic.IReadOnlyList<MuLang.IR.IrBasicBlock!>!
+MuLang.IR.IrFunction.Blocks.init -> void
+MuLang.IR.IrFunction.Deconstruct(out string! Id, out MuLang.Core.Types.TypeSymbol! ReturnType, out int EntryBlock, out System.Collections.Generic.IReadOnlyList<MuLang.IR.IrSlot!>! Slots, out System.Collections.Generic.IReadOnlyList<MuLang.IR.IrBasicBlock!>! Blocks) -> void
+MuLang.IR.IrFunction.EntryBlock.get -> int
+MuLang.IR.IrFunction.EntryBlock.init -> void
+MuLang.IR.IrFunction.Equals(MuLang.IR.IrFunction? other) -> bool
+MuLang.IR.IrFunction.Id.get -> string!
+MuLang.IR.IrFunction.Id.init -> void
+MuLang.IR.IrFunction.IrFunction(string! Id, MuLang.Core.Types.TypeSymbol! ReturnType, int EntryBlock, System.Collections.Generic.IReadOnlyList<MuLang.IR.IrSlot!>! Slots, System.Collections.Generic.IReadOnlyList<MuLang.IR.IrBasicBlock!>! Blocks) -> void
+MuLang.IR.IrFunction.ReturnType.get -> MuLang.Core.Types.TypeSymbol!
+MuLang.IR.IrFunction.ReturnType.init -> void
+MuLang.IR.IrFunction.Slots.get -> System.Collections.Generic.IReadOnlyList<MuLang.IR.IrSlot!>!
+MuLang.IR.IrFunction.Slots.init -> void
+MuLang.IR.IrInstruction
+MuLang.IR.IrInstruction.Binary
+MuLang.IR.IrInstruction.Binary.Binary(MuLang.Core.Text.TextSpan Span, int Destination, MuLang.IR.IrBinaryOperator Operator, int Left, int Right) -> void
+MuLang.IR.IrInstruction.Binary.Deconstruct(out MuLang.Core.Text.TextSpan Span, out int Destination, out MuLang.IR.IrBinaryOperator Operator, out int Left, out int Right) -> void
+MuLang.IR.IrInstruction.Binary.Destination.get -> int
+MuLang.IR.IrInstruction.Binary.Destination.init -> void
+MuLang.IR.IrInstruction.Binary.Equals(MuLang.IR.IrInstruction.Binary? other) -> bool
+MuLang.IR.IrInstruction.Binary.Left.get -> int
+MuLang.IR.IrInstruction.Binary.Left.init -> void
+MuLang.IR.IrInstruction.Binary.Operator.get -> MuLang.IR.IrBinaryOperator
+MuLang.IR.IrInstruction.Binary.Operator.init -> void
+MuLang.IR.IrInstruction.Binary.Right.get -> int
+MuLang.IR.IrInstruction.Binary.Right.init -> void
+MuLang.IR.IrInstruction.Constant
+MuLang.IR.IrInstruction.Constant.Constant(MuLang.Core.Text.TextSpan Span, int Destination, MuLang.Core.Types.TypeSymbol! Type, object? Value) -> void
+MuLang.IR.IrInstruction.Constant.Deconstruct(out MuLang.Core.Text.TextSpan Span, out int Destination, out MuLang.Core.Types.TypeSymbol! Type, out object? Value) -> void
+MuLang.IR.IrInstruction.Constant.Destination.get -> int
+MuLang.IR.IrInstruction.Constant.Destination.init -> void
+MuLang.IR.IrInstruction.Constant.Equals(MuLang.IR.IrInstruction.Constant? other) -> bool
+MuLang.IR.IrInstruction.Constant.Type.get -> MuLang.Core.Types.TypeSymbol!
+MuLang.IR.IrInstruction.Constant.Type.init -> void
+MuLang.IR.IrInstruction.Constant.Value.get -> object?
+MuLang.IR.IrInstruction.Constant.Value.init -> void
+MuLang.IR.IrInstruction.Convert
+MuLang.IR.IrInstruction.Convert.Convert(MuLang.Core.Text.TextSpan Span, int Destination, int Source, MuLang.Core.Types.TypeSymbol! TargetType, bool IsChecked) -> void
+MuLang.IR.IrInstruction.Convert.Deconstruct(out MuLang.Core.Text.TextSpan Span, out int Destination, out int Source, out MuLang.Core.Types.TypeSymbol! TargetType, out bool IsChecked) -> void
+MuLang.IR.IrInstruction.Convert.Destination.get -> int
+MuLang.IR.IrInstruction.Convert.Destination.init -> void
+MuLang.IR.IrInstruction.Convert.Equals(MuLang.IR.IrInstruction.Convert? other) -> bool
+MuLang.IR.IrInstruction.Convert.IsChecked.get -> bool
+MuLang.IR.IrInstruction.Convert.IsChecked.init -> void
+MuLang.IR.IrInstruction.Convert.Source.get -> int
+MuLang.IR.IrInstruction.Convert.Source.init -> void
+MuLang.IR.IrInstruction.Convert.TargetType.get -> MuLang.Core.Types.TypeSymbol!
+MuLang.IR.IrInstruction.Convert.TargetType.init -> void
+MuLang.IR.IrInstruction.Copy
+MuLang.IR.IrInstruction.Copy.Copy(MuLang.Core.Text.TextSpan Span, int Destination, int Source) -> void
+MuLang.IR.IrInstruction.Copy.Deconstruct(out MuLang.Core.Text.TextSpan Span, out int Destination, out int Source) -> void
+MuLang.IR.IrInstruction.Copy.Destination.get -> int
+MuLang.IR.IrInstruction.Copy.Destination.init -> void
+MuLang.IR.IrInstruction.Copy.Equals(MuLang.IR.IrInstruction.Copy? other) -> bool
+MuLang.IR.IrInstruction.Copy.Source.get -> int
+MuLang.IR.IrInstruction.Copy.Source.init -> void
+MuLang.IR.IrInstruction.CreateArray
+MuLang.IR.IrInstruction.CreateArray.CreateArray(MuLang.Core.Text.TextSpan Span, int Destination, MuLang.Core.Types.ArrayTypeSymbol! Type, System.Collections.Generic.IReadOnlyCollection<int>! Elements) -> void
+MuLang.IR.IrInstruction.CreateArray.Deconstruct(out MuLang.Core.Text.TextSpan Span, out int Destination, out MuLang.Core.Types.ArrayTypeSymbol! Type, out System.Collections.Generic.IReadOnlyCollection<int>! Elements) -> void
+MuLang.IR.IrInstruction.CreateArray.Destination.get -> int
+MuLang.IR.IrInstruction.CreateArray.Destination.init -> void
+MuLang.IR.IrInstruction.CreateArray.Elements.get -> System.Collections.Generic.IReadOnlyCollection<int>!
+MuLang.IR.IrInstruction.CreateArray.Elements.init -> void
+MuLang.IR.IrInstruction.CreateArray.Equals(MuLang.IR.IrInstruction.CreateArray? other) -> bool
+MuLang.IR.IrInstruction.CreateArray.Type.get -> MuLang.Core.Types.ArrayTypeSymbol!
+MuLang.IR.IrInstruction.CreateArray.Type.init -> void
+MuLang.IR.IrInstruction.CreateObject
+MuLang.IR.IrInstruction.CreateObject.CreateObject(MuLang.Core.Text.TextSpan Span, int Destination, MuLang.Core.Types.ObjectTypeSymbol! Type, System.Collections.Generic.IReadOnlyCollection<MuLang.IR.IrInstruction.ObjectPropertyValue!>! Properties) -> void
+MuLang.IR.IrInstruction.CreateObject.Deconstruct(out MuLang.Core.Text.TextSpan Span, out int Destination, out MuLang.Core.Types.ObjectTypeSymbol! Type, out System.Collections.Generic.IReadOnlyCollection<MuLang.IR.IrInstruction.ObjectPropertyValue!>! Properties) -> void
+MuLang.IR.IrInstruction.CreateObject.Destination.get -> int
+MuLang.IR.IrInstruction.CreateObject.Destination.init -> void
+MuLang.IR.IrInstruction.CreateObject.Equals(MuLang.IR.IrInstruction.CreateObject? other) -> bool
+MuLang.IR.IrInstruction.CreateObject.Properties.get -> System.Collections.Generic.IReadOnlyCollection<MuLang.IR.IrInstruction.ObjectPropertyValue!>!
+MuLang.IR.IrInstruction.CreateObject.Properties.init -> void
+MuLang.IR.IrInstruction.CreateObject.Type.get -> MuLang.Core.Types.ObjectTypeSymbol!
+MuLang.IR.IrInstruction.CreateObject.Type.init -> void
+MuLang.IR.IrInstruction.Deconstruct(out MuLang.Core.Text.TextSpan Span) -> void
+MuLang.IR.IrInstruction.GetElement
+MuLang.IR.IrInstruction.GetElement.Deconstruct(out MuLang.Core.Text.TextSpan Span, out int Destination, out int Target, out int Index, out bool IsObjectAccess, out bool IsOptional) -> void
+MuLang.IR.IrInstruction.GetElement.Destination.get -> int
+MuLang.IR.IrInstruction.GetElement.Destination.init -> void
+MuLang.IR.IrInstruction.GetElement.Equals(MuLang.IR.IrInstruction.GetElement? other) -> bool
+MuLang.IR.IrInstruction.GetElement.GetElement(MuLang.Core.Text.TextSpan Span, int Destination, int Target, int Index, bool IsObjectAccess, bool IsOptional) -> void
+MuLang.IR.IrInstruction.GetElement.Index.get -> int
+MuLang.IR.IrInstruction.GetElement.Index.init -> void
+MuLang.IR.IrInstruction.GetElement.IsObjectAccess.get -> bool
+MuLang.IR.IrInstruction.GetElement.IsObjectAccess.init -> void
+MuLang.IR.IrInstruction.GetElement.IsOptional.get -> bool
+MuLang.IR.IrInstruction.GetElement.IsOptional.init -> void
+MuLang.IR.IrInstruction.GetElement.Target.get -> int
+MuLang.IR.IrInstruction.GetElement.Target.init -> void
+MuLang.IR.IrInstruction.GetProperty
+MuLang.IR.IrInstruction.GetProperty.Deconstruct(out MuLang.Core.Text.TextSpan Span, out int Destination, out int Target, out string! Name, out bool IsOptional, out bool IsArrayLength) -> void
+MuLang.IR.IrInstruction.GetProperty.Destination.get -> int
+MuLang.IR.IrInstruction.GetProperty.Destination.init -> void
+MuLang.IR.IrInstruction.GetProperty.Equals(MuLang.IR.IrInstruction.GetProperty? other) -> bool
+MuLang.IR.IrInstruction.GetProperty.GetProperty(MuLang.Core.Text.TextSpan Span, int Destination, int Target, string! Name, bool IsOptional, bool IsArrayLength) -> void
+MuLang.IR.IrInstruction.GetProperty.IsArrayLength.get -> bool
+MuLang.IR.IrInstruction.GetProperty.IsArrayLength.init -> void
+MuLang.IR.IrInstruction.GetProperty.IsOptional.get -> bool
+MuLang.IR.IrInstruction.GetProperty.IsOptional.init -> void
+MuLang.IR.IrInstruction.GetProperty.Name.get -> string!
+MuLang.IR.IrInstruction.GetProperty.Name.init -> void
+MuLang.IR.IrInstruction.GetProperty.Target.get -> int
+MuLang.IR.IrInstruction.GetProperty.Target.init -> void
+MuLang.IR.IrInstruction.HasProperty
+MuLang.IR.IrInstruction.HasProperty.Deconstruct(out MuLang.Core.Text.TextSpan Span, out int Destination, out int Target, out int Key) -> void
+MuLang.IR.IrInstruction.HasProperty.Destination.get -> int
+MuLang.IR.IrInstruction.HasProperty.Destination.init -> void
+MuLang.IR.IrInstruction.HasProperty.Equals(MuLang.IR.IrInstruction.HasProperty? other) -> bool
+MuLang.IR.IrInstruction.HasProperty.HasProperty(MuLang.Core.Text.TextSpan Span, int Destination, int Target, int Key) -> void
+MuLang.IR.IrInstruction.HasProperty.Key.get -> int
+MuLang.IR.IrInstruction.HasProperty.Key.init -> void
+MuLang.IR.IrInstruction.HasProperty.Target.get -> int
+MuLang.IR.IrInstruction.HasProperty.Target.init -> void
+MuLang.IR.IrInstruction.IrInstruction(MuLang.Core.Text.TextSpan Span) -> void
+MuLang.IR.IrInstruction.IrInstruction(MuLang.IR.IrInstruction! original) -> void
+MuLang.IR.IrInstruction.IsNull
+MuLang.IR.IrInstruction.IsNull.Deconstruct(out MuLang.Core.Text.TextSpan Span, out int Destination, out int Source) -> void
+MuLang.IR.IrInstruction.IsNull.Destination.get -> int
+MuLang.IR.IrInstruction.IsNull.Destination.init -> void
+MuLang.IR.IrInstruction.IsNull.Equals(MuLang.IR.IrInstruction.IsNull? other) -> bool
+MuLang.IR.IrInstruction.IsNull.IsNull(MuLang.Core.Text.TextSpan Span, int Destination, int Source) -> void
+MuLang.IR.IrInstruction.IsNull.Source.get -> int
+MuLang.IR.IrInstruction.IsNull.Source.init -> void
+MuLang.IR.IrInstruction.LoadGlobal
+MuLang.IR.IrInstruction.LoadGlobal.Deconstruct(out MuLang.Core.Text.TextSpan Span, out int Destination, out string! GlobalId) -> void
+MuLang.IR.IrInstruction.LoadGlobal.Destination.get -> int
+MuLang.IR.IrInstruction.LoadGlobal.Destination.init -> void
+MuLang.IR.IrInstruction.LoadGlobal.Equals(MuLang.IR.IrInstruction.LoadGlobal? other) -> bool
+MuLang.IR.IrInstruction.LoadGlobal.GlobalId.get -> string!
+MuLang.IR.IrInstruction.LoadGlobal.GlobalId.init -> void
+MuLang.IR.IrInstruction.LoadGlobal.LoadGlobal(MuLang.Core.Text.TextSpan Span, int Destination, string! GlobalId) -> void
+MuLang.IR.IrInstruction.ObjectPropertyValue
+MuLang.IR.IrInstruction.ObjectPropertyValue.<Clone>$() -> MuLang.IR.IrInstruction.ObjectPropertyValue!
+MuLang.IR.IrInstruction.ObjectPropertyValue.Deconstruct(out string! Name, out int Value) -> void
+MuLang.IR.IrInstruction.ObjectPropertyValue.Equals(MuLang.IR.IrInstruction.ObjectPropertyValue? other) -> bool
+MuLang.IR.IrInstruction.ObjectPropertyValue.Name.get -> string!
+MuLang.IR.IrInstruction.ObjectPropertyValue.Name.init -> void
+MuLang.IR.IrInstruction.ObjectPropertyValue.ObjectPropertyValue(string! Name, int Value) -> void
+MuLang.IR.IrInstruction.ObjectPropertyValue.Value.get -> int
+MuLang.IR.IrInstruction.ObjectPropertyValue.Value.init -> void
+MuLang.IR.IrInstruction.ProviderCall
+MuLang.IR.IrInstruction.ProviderCall.Arguments.get -> System.Collections.Generic.IReadOnlyList<int>!
+MuLang.IR.IrInstruction.ProviderCall.Arguments.init -> void
+MuLang.IR.IrInstruction.ProviderCall.Deconstruct(out MuLang.Core.Text.TextSpan Span, out int? Destination, out string! FunctionId, out MuLang.Core.Types.TypeSymbol! ReturnType, out System.Collections.Generic.IReadOnlyList<int>! Arguments) -> void
+MuLang.IR.IrInstruction.ProviderCall.Destination.get -> int?
+MuLang.IR.IrInstruction.ProviderCall.Destination.init -> void
+MuLang.IR.IrInstruction.ProviderCall.Equals(MuLang.IR.IrInstruction.ProviderCall? other) -> bool
+MuLang.IR.IrInstruction.ProviderCall.FunctionId.get -> string!
+MuLang.IR.IrInstruction.ProviderCall.FunctionId.init -> void
+MuLang.IR.IrInstruction.ProviderCall.ProviderCall(MuLang.Core.Text.TextSpan Span, int? Destination, string! FunctionId, MuLang.Core.Types.TypeSymbol! ReturnType, System.Collections.Generic.IReadOnlyList<int>! Arguments) -> void
+MuLang.IR.IrInstruction.ProviderCall.ReturnType.get -> MuLang.Core.Types.TypeSymbol!
+MuLang.IR.IrInstruction.ProviderCall.ReturnType.init -> void
+MuLang.IR.IrInstruction.RemoveElementProperty
+MuLang.IR.IrInstruction.RemoveElementProperty.Deconstruct(out MuLang.Core.Text.TextSpan Span, out int Target, out int Key) -> void
+MuLang.IR.IrInstruction.RemoveElementProperty.Equals(MuLang.IR.IrInstruction.RemoveElementProperty? other) -> bool
+MuLang.IR.IrInstruction.RemoveElementProperty.Key.get -> int
+MuLang.IR.IrInstruction.RemoveElementProperty.Key.init -> void
+MuLang.IR.IrInstruction.RemoveElementProperty.RemoveElementProperty(MuLang.Core.Text.TextSpan Span, int Target, int Key) -> void
+MuLang.IR.IrInstruction.RemoveElementProperty.Target.get -> int
+MuLang.IR.IrInstruction.RemoveElementProperty.Target.init -> void
+MuLang.IR.IrInstruction.RemoveProperty
+MuLang.IR.IrInstruction.RemoveProperty.Deconstruct(out MuLang.Core.Text.TextSpan Span, out int Target, out string! Name) -> void
+MuLang.IR.IrInstruction.RemoveProperty.Equals(MuLang.IR.IrInstruction.RemoveProperty? other) -> bool
+MuLang.IR.IrInstruction.RemoveProperty.Name.get -> string!
+MuLang.IR.IrInstruction.RemoveProperty.Name.init -> void
+MuLang.IR.IrInstruction.RemoveProperty.RemoveProperty(MuLang.Core.Text.TextSpan Span, int Target, string! Name) -> void
+MuLang.IR.IrInstruction.RemoveProperty.Target.get -> int
+MuLang.IR.IrInstruction.RemoveProperty.Target.init -> void
+MuLang.IR.IrInstruction.SetElement
+MuLang.IR.IrInstruction.SetElement.Deconstruct(out MuLang.Core.Text.TextSpan Span, out int Target, out int Index, out int Value, out bool IsObjectAccess) -> void
+MuLang.IR.IrInstruction.SetElement.Equals(MuLang.IR.IrInstruction.SetElement? other) -> bool
+MuLang.IR.IrInstruction.SetElement.Index.get -> int
+MuLang.IR.IrInstruction.SetElement.Index.init -> void
+MuLang.IR.IrInstruction.SetElement.IsObjectAccess.get -> bool
+MuLang.IR.IrInstruction.SetElement.IsObjectAccess.init -> void
+MuLang.IR.IrInstruction.SetElement.SetElement(MuLang.Core.Text.TextSpan Span, int Target, int Index, int Value, bool IsObjectAccess) -> void
+MuLang.IR.IrInstruction.SetElement.Target.get -> int
+MuLang.IR.IrInstruction.SetElement.Target.init -> void
+MuLang.IR.IrInstruction.SetElement.Value.get -> int
+MuLang.IR.IrInstruction.SetElement.Value.init -> void
+MuLang.IR.IrInstruction.SetProperty
+MuLang.IR.IrInstruction.SetProperty.Deconstruct(out MuLang.Core.Text.TextSpan Span, out int Target, out string! Name, out int Value) -> void
+MuLang.IR.IrInstruction.SetProperty.Equals(MuLang.IR.IrInstruction.SetProperty? other) -> bool
+MuLang.IR.IrInstruction.SetProperty.Name.get -> string!
+MuLang.IR.IrInstruction.SetProperty.Name.init -> void
+MuLang.IR.IrInstruction.SetProperty.SetProperty(MuLang.Core.Text.TextSpan Span, int Target, string! Name, int Value) -> void
+MuLang.IR.IrInstruction.SetProperty.Target.get -> int
+MuLang.IR.IrInstruction.SetProperty.Target.init -> void
+MuLang.IR.IrInstruction.SetProperty.Value.get -> int
+MuLang.IR.IrInstruction.SetProperty.Value.init -> void
+MuLang.IR.IrInstruction.Span.get -> MuLang.Core.Text.TextSpan
+MuLang.IR.IrInstruction.Span.init -> void
+MuLang.IR.IrInstruction.Truthiness
+MuLang.IR.IrInstruction.Truthiness.Deconstruct(out MuLang.Core.Text.TextSpan Span, out int Destination, out int Source) -> void
+MuLang.IR.IrInstruction.Truthiness.Destination.get -> int
+MuLang.IR.IrInstruction.Truthiness.Destination.init -> void
+MuLang.IR.IrInstruction.Truthiness.Equals(MuLang.IR.IrInstruction.Truthiness? other) -> bool
+MuLang.IR.IrInstruction.Truthiness.Source.get -> int
+MuLang.IR.IrInstruction.Truthiness.Source.init -> void
+MuLang.IR.IrInstruction.Truthiness.Truthiness(MuLang.Core.Text.TextSpan Span, int Destination, int Source) -> void
+MuLang.IR.IrInstruction.TypeTest
+MuLang.IR.IrInstruction.TypeTest.Deconstruct(out MuLang.Core.Text.TextSpan Span, out int Destination, out int Source, out MuLang.Core.Types.TypeSymbol! TestedType) -> void
+MuLang.IR.IrInstruction.TypeTest.Destination.get -> int
+MuLang.IR.IrInstruction.TypeTest.Destination.init -> void
+MuLang.IR.IrInstruction.TypeTest.Equals(MuLang.IR.IrInstruction.TypeTest? other) -> bool
+MuLang.IR.IrInstruction.TypeTest.Source.get -> int
+MuLang.IR.IrInstruction.TypeTest.Source.init -> void
+MuLang.IR.IrInstruction.TypeTest.TestedType.get -> MuLang.Core.Types.TypeSymbol!
+MuLang.IR.IrInstruction.TypeTest.TestedType.init -> void
+MuLang.IR.IrInstruction.TypeTest.TypeTest(MuLang.Core.Text.TextSpan Span, int Destination, int Source, MuLang.Core.Types.TypeSymbol! TestedType) -> void
+MuLang.IR.IrInstruction.Unary
+MuLang.IR.IrInstruction.Unary.Deconstruct(out MuLang.Core.Text.TextSpan Span, out int Destination, out MuLang.IR.IrUnaryOperator Operator, out int Operand) -> void
+MuLang.IR.IrInstruction.Unary.Destination.get -> int
+MuLang.IR.IrInstruction.Unary.Destination.init -> void
+MuLang.IR.IrInstruction.Unary.Equals(MuLang.IR.IrInstruction.Unary? other) -> bool
+MuLang.IR.IrInstruction.Unary.Operand.get -> int
+MuLang.IR.IrInstruction.Unary.Operand.init -> void
+MuLang.IR.IrInstruction.Unary.Operator.get -> MuLang.IR.IrUnaryOperator
+MuLang.IR.IrInstruction.Unary.Operator.init -> void
+MuLang.IR.IrInstruction.Unary.Unary(MuLang.Core.Text.TextSpan Span, int Destination, MuLang.IR.IrUnaryOperator Operator, int Operand) -> void
+MuLang.IR.IrInstruction.UserCall
+MuLang.IR.IrInstruction.UserCall.Arguments.get -> System.Collections.Generic.IReadOnlyList<int>!
+MuLang.IR.IrInstruction.UserCall.Arguments.init -> void
+MuLang.IR.IrInstruction.UserCall.Deconstruct(out MuLang.Core.Text.TextSpan Span, out int? Destination, out string! FunctionId, out MuLang.Core.Types.TypeSymbol! ReturnType, out System.Collections.Generic.IReadOnlyList<int>! Arguments) -> void
+MuLang.IR.IrInstruction.UserCall.Destination.get -> int?
+MuLang.IR.IrInstruction.UserCall.Destination.init -> void
+MuLang.IR.IrInstruction.UserCall.Equals(MuLang.IR.IrInstruction.UserCall? other) -> bool
+MuLang.IR.IrInstruction.UserCall.FunctionId.get -> string!
+MuLang.IR.IrInstruction.UserCall.FunctionId.init -> void
+MuLang.IR.IrInstruction.UserCall.ReturnType.get -> MuLang.Core.Types.TypeSymbol!
+MuLang.IR.IrInstruction.UserCall.ReturnType.init -> void
+MuLang.IR.IrInstruction.UserCall.UserCall(MuLang.Core.Text.TextSpan Span, int? Destination, string! FunctionId, MuLang.Core.Types.TypeSymbol! ReturnType, System.Collections.Generic.IReadOnlyList<int>! Arguments) -> void
+MuLang.IR.IrProgram
+MuLang.IR.IrProgram.<Clone>$() -> MuLang.IR.IrProgram!
+MuLang.IR.IrProgram.Blocks.get -> System.Collections.Generic.IReadOnlyList<MuLang.IR.IrBasicBlock!>!
+MuLang.IR.IrProgram.CompilationMode.get -> MuLang.Core.CompilationMode
+MuLang.IR.IrProgram.CompilationMode.init -> void
+MuLang.IR.IrProgram.Deconstruct(out MuLang.Core.Environment.EnvironmentFingerprint! EnvironmentFingerprint, out MuLang.Core.CompilationMode CompilationMode, out MuLang.Core.LanguageProfileFingerprint! LanguageProfileFingerprint, out MuLang.IR.IrFunction! EntryFunction, out System.Collections.Generic.IReadOnlyList<MuLang.IR.IrFunction!>! UserFunctions) -> void
+MuLang.IR.IrProgram.EntryBlock.get -> int
+MuLang.IR.IrProgram.EntryFunction.get -> MuLang.IR.IrFunction!
+MuLang.IR.IrProgram.EntryFunction.init -> void
+MuLang.IR.IrProgram.EnvironmentFingerprint.get -> MuLang.Core.Environment.EnvironmentFingerprint!
+MuLang.IR.IrProgram.EnvironmentFingerprint.init -> void
+MuLang.IR.IrProgram.Equals(MuLang.IR.IrProgram? other) -> bool
+MuLang.IR.IrProgram.IrProgram(MuLang.Core.Environment.EnvironmentFingerprint! EnvironmentFingerprint, MuLang.Core.CompilationMode CompilationMode, MuLang.Core.LanguageProfileFingerprint! LanguageProfileFingerprint, MuLang.IR.IrFunction! EntryFunction, System.Collections.Generic.IReadOnlyList<MuLang.IR.IrFunction!>! UserFunctions) -> void
+MuLang.IR.IrProgram.LanguageProfileFingerprint.get -> MuLang.Core.LanguageProfileFingerprint!
+MuLang.IR.IrProgram.LanguageProfileFingerprint.init -> void
+MuLang.IR.IrProgram.ResultType.get -> MuLang.Core.Types.TypeSymbol!
+MuLang.IR.IrProgram.Slots.get -> System.Collections.Generic.IReadOnlyList<MuLang.IR.IrSlot!>!
+MuLang.IR.IrProgram.UserFunctions.get -> System.Collections.Generic.IReadOnlyList<MuLang.IR.IrFunction!>!
+MuLang.IR.IrProgram.UserFunctions.init -> void
+MuLang.IR.IrSlot
+MuLang.IR.IrSlot.<Clone>$() -> MuLang.IR.IrSlot!
+MuLang.IR.IrSlot.Deconstruct(out int Id, out MuLang.IR.IrSlotKind Kind, out MuLang.Core.Types.TypeSymbol! Type, out string? Name) -> void
+MuLang.IR.IrSlot.Equals(MuLang.IR.IrSlot? other) -> bool
+MuLang.IR.IrSlot.Id.get -> int
+MuLang.IR.IrSlot.Id.init -> void
+MuLang.IR.IrSlot.IrSlot(int Id, MuLang.IR.IrSlotKind Kind, MuLang.Core.Types.TypeSymbol! Type, string? Name) -> void
+MuLang.IR.IrSlot.Kind.get -> MuLang.IR.IrSlotKind
+MuLang.IR.IrSlot.Kind.init -> void
+MuLang.IR.IrSlot.Name.get -> string?
+MuLang.IR.IrSlot.Name.init -> void
+MuLang.IR.IrSlot.Type.get -> MuLang.Core.Types.TypeSymbol!
+MuLang.IR.IrSlot.Type.init -> void
+MuLang.IR.IrSlotKind
+MuLang.IR.IrSlotKind.Local = 1 -> MuLang.IR.IrSlotKind
+MuLang.IR.IrSlotKind.Parameter = 0 -> MuLang.IR.IrSlotKind
+MuLang.IR.IrSlotKind.Temporary = 2 -> MuLang.IR.IrSlotKind
+MuLang.IR.IrTerminator
+MuLang.IR.IrTerminator.Branch
+MuLang.IR.IrTerminator.Branch.Branch(MuLang.Core.Text.TextSpan Span, int Condition, int TrueBlock, int FalseBlock) -> void
+MuLang.IR.IrTerminator.Branch.Condition.get -> int
+MuLang.IR.IrTerminator.Branch.Condition.init -> void
+MuLang.IR.IrTerminator.Branch.Deconstruct(out MuLang.Core.Text.TextSpan Span, out int Condition, out int TrueBlock, out int FalseBlock) -> void
+MuLang.IR.IrTerminator.Branch.Equals(MuLang.IR.IrTerminator.Branch? other) -> bool
+MuLang.IR.IrTerminator.Branch.FalseBlock.get -> int
+MuLang.IR.IrTerminator.Branch.FalseBlock.init -> void
+MuLang.IR.IrTerminator.Branch.TrueBlock.get -> int
+MuLang.IR.IrTerminator.Branch.TrueBlock.init -> void
+MuLang.IR.IrTerminator.Deconstruct(out MuLang.Core.Text.TextSpan Span) -> void
+MuLang.IR.IrTerminator.IrTerminator(MuLang.Core.Text.TextSpan Span) -> void
+MuLang.IR.IrTerminator.IrTerminator(MuLang.IR.IrTerminator! original) -> void
+MuLang.IR.IrTerminator.Jump
+MuLang.IR.IrTerminator.Jump.Deconstruct(out MuLang.Core.Text.TextSpan Span, out int TargetBlock) -> void
+MuLang.IR.IrTerminator.Jump.Equals(MuLang.IR.IrTerminator.Jump? other) -> bool
+MuLang.IR.IrTerminator.Jump.Jump(MuLang.Core.Text.TextSpan Span, int TargetBlock) -> void
+MuLang.IR.IrTerminator.Jump.TargetBlock.get -> int
+MuLang.IR.IrTerminator.Jump.TargetBlock.init -> void
+MuLang.IR.IrTerminator.Return
+MuLang.IR.IrTerminator.Return.Deconstruct(out MuLang.Core.Text.TextSpan Span, out int? Value) -> void
+MuLang.IR.IrTerminator.Return.Equals(MuLang.IR.IrTerminator.Return? other) -> bool
+MuLang.IR.IrTerminator.Return.Return(MuLang.Core.Text.TextSpan Span, int? Value) -> void
+MuLang.IR.IrTerminator.Return.Value.get -> int?
+MuLang.IR.IrTerminator.Return.Value.init -> void
+MuLang.IR.IrTerminator.Span.get -> MuLang.Core.Text.TextSpan
+MuLang.IR.IrTerminator.Span.init -> void
+MuLang.IR.IrUnaryOperator
+MuLang.IR.IrUnaryOperator.BitwiseNot = 3 -> MuLang.IR.IrUnaryOperator
+MuLang.IR.IrUnaryOperator.Identity = 0 -> MuLang.IR.IrUnaryOperator
+MuLang.IR.IrUnaryOperator.LogicalNot = 2 -> MuLang.IR.IrUnaryOperator
+MuLang.IR.IrUnaryOperator.Negate = 1 -> MuLang.IR.IrUnaryOperator
+MuLang.IR.IrValidator
+override MuLang.IR.IrBasicBlock.Equals(object? obj) -> bool
+override MuLang.IR.IrBasicBlock.GetHashCode() -> int
+override MuLang.IR.IrBasicBlock.ToString() -> string!
+override MuLang.IR.IrFunction.Equals(object? obj) -> bool
+override MuLang.IR.IrFunction.GetHashCode() -> int
+override MuLang.IR.IrFunction.ToString() -> string!
+override MuLang.IR.IrInstruction.Binary.<Clone>$() -> MuLang.IR.IrInstruction.Binary!
+override MuLang.IR.IrInstruction.Binary.Equals(object? obj) -> bool
+override MuLang.IR.IrInstruction.Binary.GetHashCode() -> int
+override MuLang.IR.IrInstruction.Binary.ToString() -> string!
+override MuLang.IR.IrInstruction.Constant.<Clone>$() -> MuLang.IR.IrInstruction.Constant!
+override MuLang.IR.IrInstruction.Constant.Equals(object? obj) -> bool
+override MuLang.IR.IrInstruction.Constant.GetHashCode() -> int
+override MuLang.IR.IrInstruction.Constant.ToString() -> string!
+override MuLang.IR.IrInstruction.Convert.<Clone>$() -> MuLang.IR.IrInstruction.Convert!
+override MuLang.IR.IrInstruction.Convert.Equals(object? obj) -> bool
+override MuLang.IR.IrInstruction.Convert.GetHashCode() -> int
+override MuLang.IR.IrInstruction.Convert.ToString() -> string!
+override MuLang.IR.IrInstruction.Copy.<Clone>$() -> MuLang.IR.IrInstruction.Copy!
+override MuLang.IR.IrInstruction.Copy.Equals(object? obj) -> bool
+override MuLang.IR.IrInstruction.Copy.GetHashCode() -> int
+override MuLang.IR.IrInstruction.Copy.ToString() -> string!
+override MuLang.IR.IrInstruction.CreateArray.<Clone>$() -> MuLang.IR.IrInstruction.CreateArray!
+override MuLang.IR.IrInstruction.CreateArray.Equals(object? obj) -> bool
+override MuLang.IR.IrInstruction.CreateArray.GetHashCode() -> int
+override MuLang.IR.IrInstruction.CreateArray.ToString() -> string!
+override MuLang.IR.IrInstruction.CreateObject.<Clone>$() -> MuLang.IR.IrInstruction.CreateObject!
+override MuLang.IR.IrInstruction.CreateObject.Equals(object? obj) -> bool
+override MuLang.IR.IrInstruction.CreateObject.GetHashCode() -> int
+override MuLang.IR.IrInstruction.CreateObject.ToString() -> string!
+override MuLang.IR.IrInstruction.Equals(object? obj) -> bool
+override MuLang.IR.IrInstruction.GetElement.<Clone>$() -> MuLang.IR.IrInstruction.GetElement!
+override MuLang.IR.IrInstruction.GetElement.Equals(object? obj) -> bool
+override MuLang.IR.IrInstruction.GetElement.GetHashCode() -> int
+override MuLang.IR.IrInstruction.GetElement.ToString() -> string!
+override MuLang.IR.IrInstruction.GetHashCode() -> int
+override MuLang.IR.IrInstruction.GetProperty.<Clone>$() -> MuLang.IR.IrInstruction.GetProperty!
+override MuLang.IR.IrInstruction.GetProperty.Equals(object? obj) -> bool
+override MuLang.IR.IrInstruction.GetProperty.GetHashCode() -> int
+override MuLang.IR.IrInstruction.GetProperty.ToString() -> string!
+override MuLang.IR.IrInstruction.HasProperty.<Clone>$() -> MuLang.IR.IrInstruction.HasProperty!
+override MuLang.IR.IrInstruction.HasProperty.Equals(object? obj) -> bool
+override MuLang.IR.IrInstruction.HasProperty.GetHashCode() -> int
+override MuLang.IR.IrInstruction.HasProperty.ToString() -> string!
+override MuLang.IR.IrInstruction.IsNull.<Clone>$() -> MuLang.IR.IrInstruction.IsNull!
+override MuLang.IR.IrInstruction.IsNull.Equals(object? obj) -> bool
+override MuLang.IR.IrInstruction.IsNull.GetHashCode() -> int
+override MuLang.IR.IrInstruction.IsNull.ToString() -> string!
+override MuLang.IR.IrInstruction.LoadGlobal.<Clone>$() -> MuLang.IR.IrInstruction.LoadGlobal!
+override MuLang.IR.IrInstruction.LoadGlobal.Equals(object? obj) -> bool
+override MuLang.IR.IrInstruction.LoadGlobal.GetHashCode() -> int
+override MuLang.IR.IrInstruction.LoadGlobal.ToString() -> string!
+override MuLang.IR.IrInstruction.ObjectPropertyValue.Equals(object? obj) -> bool
+override MuLang.IR.IrInstruction.ObjectPropertyValue.GetHashCode() -> int
+override MuLang.IR.IrInstruction.ObjectPropertyValue.ToString() -> string!
+override MuLang.IR.IrInstruction.ProviderCall.<Clone>$() -> MuLang.IR.IrInstruction.ProviderCall!
+override MuLang.IR.IrInstruction.ProviderCall.Equals(object? obj) -> bool
+override MuLang.IR.IrInstruction.ProviderCall.GetHashCode() -> int
+override MuLang.IR.IrInstruction.ProviderCall.ToString() -> string!
+override MuLang.IR.IrInstruction.RemoveElementProperty.<Clone>$() -> MuLang.IR.IrInstruction.RemoveElementProperty!
+override MuLang.IR.IrInstruction.RemoveElementProperty.Equals(object? obj) -> bool
+override MuLang.IR.IrInstruction.RemoveElementProperty.GetHashCode() -> int
+override MuLang.IR.IrInstruction.RemoveElementProperty.ToString() -> string!
+override MuLang.IR.IrInstruction.RemoveProperty.<Clone>$() -> MuLang.IR.IrInstruction.RemoveProperty!
+override MuLang.IR.IrInstruction.RemoveProperty.Equals(object? obj) -> bool
+override MuLang.IR.IrInstruction.RemoveProperty.GetHashCode() -> int
+override MuLang.IR.IrInstruction.RemoveProperty.ToString() -> string!
+override MuLang.IR.IrInstruction.SetElement.<Clone>$() -> MuLang.IR.IrInstruction.SetElement!
+override MuLang.IR.IrInstruction.SetElement.Equals(object? obj) -> bool
+override MuLang.IR.IrInstruction.SetElement.GetHashCode() -> int
+override MuLang.IR.IrInstruction.SetElement.ToString() -> string!
+override MuLang.IR.IrInstruction.SetProperty.<Clone>$() -> MuLang.IR.IrInstruction.SetProperty!
+override MuLang.IR.IrInstruction.SetProperty.Equals(object? obj) -> bool
+override MuLang.IR.IrInstruction.SetProperty.GetHashCode() -> int
+override MuLang.IR.IrInstruction.SetProperty.ToString() -> string!
+override MuLang.IR.IrInstruction.ToString() -> string!
+override MuLang.IR.IrInstruction.Truthiness.<Clone>$() -> MuLang.IR.IrInstruction.Truthiness!
+override MuLang.IR.IrInstruction.Truthiness.Equals(object? obj) -> bool
+override MuLang.IR.IrInstruction.Truthiness.GetHashCode() -> int
+override MuLang.IR.IrInstruction.Truthiness.ToString() -> string!
+override MuLang.IR.IrInstruction.TypeTest.<Clone>$() -> MuLang.IR.IrInstruction.TypeTest!
+override MuLang.IR.IrInstruction.TypeTest.Equals(object? obj) -> bool
+override MuLang.IR.IrInstruction.TypeTest.GetHashCode() -> int
+override MuLang.IR.IrInstruction.TypeTest.ToString() -> string!
+override MuLang.IR.IrInstruction.Unary.<Clone>$() -> MuLang.IR.IrInstruction.Unary!
+override MuLang.IR.IrInstruction.Unary.Equals(object? obj) -> bool
+override MuLang.IR.IrInstruction.Unary.GetHashCode() -> int
+override MuLang.IR.IrInstruction.Unary.ToString() -> string!
+override MuLang.IR.IrInstruction.UserCall.<Clone>$() -> MuLang.IR.IrInstruction.UserCall!
+override MuLang.IR.IrInstruction.UserCall.Equals(object? obj) -> bool
+override MuLang.IR.IrInstruction.UserCall.GetHashCode() -> int
+override MuLang.IR.IrInstruction.UserCall.ToString() -> string!
+override MuLang.IR.IrProgram.Equals(object? obj) -> bool
+override MuLang.IR.IrProgram.GetHashCode() -> int
+override MuLang.IR.IrProgram.ToString() -> string!
+override MuLang.IR.IrSlot.Equals(object? obj) -> bool
+override MuLang.IR.IrSlot.GetHashCode() -> int
+override MuLang.IR.IrSlot.ToString() -> string!
+override MuLang.IR.IrTerminator.Branch.<Clone>$() -> MuLang.IR.IrTerminator.Branch!
+override MuLang.IR.IrTerminator.Branch.Equals(object? obj) -> bool
+override MuLang.IR.IrTerminator.Branch.GetHashCode() -> int
+override MuLang.IR.IrTerminator.Branch.ToString() -> string!
+override MuLang.IR.IrTerminator.Equals(object? obj) -> bool
+override MuLang.IR.IrTerminator.GetHashCode() -> int
+override MuLang.IR.IrTerminator.Jump.<Clone>$() -> MuLang.IR.IrTerminator.Jump!
+override MuLang.IR.IrTerminator.Jump.Equals(object? obj) -> bool
+override MuLang.IR.IrTerminator.Jump.GetHashCode() -> int
+override MuLang.IR.IrTerminator.Jump.ToString() -> string!
+override MuLang.IR.IrTerminator.Return.<Clone>$() -> MuLang.IR.IrTerminator.Return!
+override MuLang.IR.IrTerminator.Return.Equals(object? obj) -> bool
+override MuLang.IR.IrTerminator.Return.GetHashCode() -> int
+override MuLang.IR.IrTerminator.Return.ToString() -> string!
+override MuLang.IR.IrTerminator.ToString() -> string!
+override sealed MuLang.IR.IrInstruction.Binary.Equals(MuLang.IR.IrInstruction? other) -> bool
+override sealed MuLang.IR.IrInstruction.Constant.Equals(MuLang.IR.IrInstruction? other) -> bool
+override sealed MuLang.IR.IrInstruction.Convert.Equals(MuLang.IR.IrInstruction? other) -> bool
+override sealed MuLang.IR.IrInstruction.Copy.Equals(MuLang.IR.IrInstruction? other) -> bool
+override sealed MuLang.IR.IrInstruction.CreateArray.Equals(MuLang.IR.IrInstruction? other) -> bool
+override sealed MuLang.IR.IrInstruction.CreateObject.Equals(MuLang.IR.IrInstruction? other) -> bool
+override sealed MuLang.IR.IrInstruction.GetElement.Equals(MuLang.IR.IrInstruction? other) -> bool
+override sealed MuLang.IR.IrInstruction.GetProperty.Equals(MuLang.IR.IrInstruction? other) -> bool
+override sealed MuLang.IR.IrInstruction.HasProperty.Equals(MuLang.IR.IrInstruction? other) -> bool
+override sealed MuLang.IR.IrInstruction.IsNull.Equals(MuLang.IR.IrInstruction? other) -> bool
+override sealed MuLang.IR.IrInstruction.LoadGlobal.Equals(MuLang.IR.IrInstruction? other) -> bool
+override sealed MuLang.IR.IrInstruction.ProviderCall.Equals(MuLang.IR.IrInstruction? other) -> bool
+override sealed MuLang.IR.IrInstruction.RemoveElementProperty.Equals(MuLang.IR.IrInstruction? other) -> bool
+override sealed MuLang.IR.IrInstruction.RemoveProperty.Equals(MuLang.IR.IrInstruction? other) -> bool
+override sealed MuLang.IR.IrInstruction.SetElement.Equals(MuLang.IR.IrInstruction? other) -> bool
+override sealed MuLang.IR.IrInstruction.SetProperty.Equals(MuLang.IR.IrInstruction? other) -> bool
+override sealed MuLang.IR.IrInstruction.Truthiness.Equals(MuLang.IR.IrInstruction? other) -> bool
+override sealed MuLang.IR.IrInstruction.TypeTest.Equals(MuLang.IR.IrInstruction? other) -> bool
+override sealed MuLang.IR.IrInstruction.Unary.Equals(MuLang.IR.IrInstruction? other) -> bool
+override sealed MuLang.IR.IrInstruction.UserCall.Equals(MuLang.IR.IrInstruction? other) -> bool
+override sealed MuLang.IR.IrTerminator.Branch.Equals(MuLang.IR.IrTerminator? other) -> bool
+override sealed MuLang.IR.IrTerminator.Jump.Equals(MuLang.IR.IrTerminator? other) -> bool
+override sealed MuLang.IR.IrTerminator.Return.Equals(MuLang.IR.IrTerminator? other) -> bool
+static MuLang.IR.IrBasicBlock.operator !=(MuLang.IR.IrBasicBlock? left, MuLang.IR.IrBasicBlock? right) -> bool
+static MuLang.IR.IrBasicBlock.operator ==(MuLang.IR.IrBasicBlock? left, MuLang.IR.IrBasicBlock? right) -> bool
+static MuLang.IR.IrFunction.operator !=(MuLang.IR.IrFunction? left, MuLang.IR.IrFunction? right) -> bool
+static MuLang.IR.IrFunction.operator ==(MuLang.IR.IrFunction? left, MuLang.IR.IrFunction? right) -> bool
+static MuLang.IR.IrInstruction.Binary.operator !=(MuLang.IR.IrInstruction.Binary? left, MuLang.IR.IrInstruction.Binary? right) -> bool
+static MuLang.IR.IrInstruction.Binary.operator ==(MuLang.IR.IrInstruction.Binary? left, MuLang.IR.IrInstruction.Binary? right) -> bool
+static MuLang.IR.IrInstruction.Constant.operator !=(MuLang.IR.IrInstruction.Constant? left, MuLang.IR.IrInstruction.Constant? right) -> bool
+static MuLang.IR.IrInstruction.Constant.operator ==(MuLang.IR.IrInstruction.Constant? left, MuLang.IR.IrInstruction.Constant? right) -> bool
+static MuLang.IR.IrInstruction.Convert.operator !=(MuLang.IR.IrInstruction.Convert? left, MuLang.IR.IrInstruction.Convert? right) -> bool
+static MuLang.IR.IrInstruction.Convert.operator ==(MuLang.IR.IrInstruction.Convert? left, MuLang.IR.IrInstruction.Convert? right) -> bool
+static MuLang.IR.IrInstruction.Copy.operator !=(MuLang.IR.IrInstruction.Copy? left, MuLang.IR.IrInstruction.Copy? right) -> bool
+static MuLang.IR.IrInstruction.Copy.operator ==(MuLang.IR.IrInstruction.Copy? left, MuLang.IR.IrInstruction.Copy? right) -> bool
+static MuLang.IR.IrInstruction.CreateArray.operator !=(MuLang.IR.IrInstruction.CreateArray? left, MuLang.IR.IrInstruction.CreateArray? right) -> bool
+static MuLang.IR.IrInstruction.CreateArray.operator ==(MuLang.IR.IrInstruction.CreateArray? left, MuLang.IR.IrInstruction.CreateArray? right) -> bool
+static MuLang.IR.IrInstruction.CreateObject.operator !=(MuLang.IR.IrInstruction.CreateObject? left, MuLang.IR.IrInstruction.CreateObject? right) -> bool
+static MuLang.IR.IrInstruction.CreateObject.operator ==(MuLang.IR.IrInstruction.CreateObject? left, MuLang.IR.IrInstruction.CreateObject? right) -> bool
+static MuLang.IR.IrInstruction.GetElement.operator !=(MuLang.IR.IrInstruction.GetElement? left, MuLang.IR.IrInstruction.GetElement? right) -> bool
+static MuLang.IR.IrInstruction.GetElement.operator ==(MuLang.IR.IrInstruction.GetElement? left, MuLang.IR.IrInstruction.GetElement? right) -> bool
+static MuLang.IR.IrInstruction.GetProperty.operator !=(MuLang.IR.IrInstruction.GetProperty? left, MuLang.IR.IrInstruction.GetProperty? right) -> bool
+static MuLang.IR.IrInstruction.GetProperty.operator ==(MuLang.IR.IrInstruction.GetProperty? left, MuLang.IR.IrInstruction.GetProperty? right) -> bool
+static MuLang.IR.IrInstruction.HasProperty.operator !=(MuLang.IR.IrInstruction.HasProperty? left, MuLang.IR.IrInstruction.HasProperty? right) -> bool
+static MuLang.IR.IrInstruction.HasProperty.operator ==(MuLang.IR.IrInstruction.HasProperty? left, MuLang.IR.IrInstruction.HasProperty? right) -> bool
+static MuLang.IR.IrInstruction.IsNull.operator !=(MuLang.IR.IrInstruction.IsNull? left, MuLang.IR.IrInstruction.IsNull? right) -> bool
+static MuLang.IR.IrInstruction.IsNull.operator ==(MuLang.IR.IrInstruction.IsNull? left, MuLang.IR.IrInstruction.IsNull? right) -> bool
+static MuLang.IR.IrInstruction.LoadGlobal.operator !=(MuLang.IR.IrInstruction.LoadGlobal? left, MuLang.IR.IrInstruction.LoadGlobal? right) -> bool
+static MuLang.IR.IrInstruction.LoadGlobal.operator ==(MuLang.IR.IrInstruction.LoadGlobal? left, MuLang.IR.IrInstruction.LoadGlobal? right) -> bool
+static MuLang.IR.IrInstruction.ObjectPropertyValue.operator !=(MuLang.IR.IrInstruction.ObjectPropertyValue? left, MuLang.IR.IrInstruction.ObjectPropertyValue? right) -> bool
+static MuLang.IR.IrInstruction.ObjectPropertyValue.operator ==(MuLang.IR.IrInstruction.ObjectPropertyValue? left, MuLang.IR.IrInstruction.ObjectPropertyValue? right) -> bool
+static MuLang.IR.IrInstruction.operator !=(MuLang.IR.IrInstruction? left, MuLang.IR.IrInstruction? right) -> bool
+static MuLang.IR.IrInstruction.operator ==(MuLang.IR.IrInstruction? left, MuLang.IR.IrInstruction? right) -> bool
+static MuLang.IR.IrInstruction.ProviderCall.operator !=(MuLang.IR.IrInstruction.ProviderCall? left, MuLang.IR.IrInstruction.ProviderCall? right) -> bool
+static MuLang.IR.IrInstruction.ProviderCall.operator ==(MuLang.IR.IrInstruction.ProviderCall? left, MuLang.IR.IrInstruction.ProviderCall? right) -> bool
+static MuLang.IR.IrInstruction.RemoveElementProperty.operator !=(MuLang.IR.IrInstruction.RemoveElementProperty? left, MuLang.IR.IrInstruction.RemoveElementProperty? right) -> bool
+static MuLang.IR.IrInstruction.RemoveElementProperty.operator ==(MuLang.IR.IrInstruction.RemoveElementProperty? left, MuLang.IR.IrInstruction.RemoveElementProperty? right) -> bool
+static MuLang.IR.IrInstruction.RemoveProperty.operator !=(MuLang.IR.IrInstruction.RemoveProperty? left, MuLang.IR.IrInstruction.RemoveProperty? right) -> bool
+static MuLang.IR.IrInstruction.RemoveProperty.operator ==(MuLang.IR.IrInstruction.RemoveProperty? left, MuLang.IR.IrInstruction.RemoveProperty? right) -> bool
+static MuLang.IR.IrInstruction.SetElement.operator !=(MuLang.IR.IrInstruction.SetElement? left, MuLang.IR.IrInstruction.SetElement? right) -> bool
+static MuLang.IR.IrInstruction.SetElement.operator ==(MuLang.IR.IrInstruction.SetElement? left, MuLang.IR.IrInstruction.SetElement? right) -> bool
+static MuLang.IR.IrInstruction.SetProperty.operator !=(MuLang.IR.IrInstruction.SetProperty? left, MuLang.IR.IrInstruction.SetProperty? right) -> bool
+static MuLang.IR.IrInstruction.SetProperty.operator ==(MuLang.IR.IrInstruction.SetProperty? left, MuLang.IR.IrInstruction.SetProperty? right) -> bool
+static MuLang.IR.IrInstruction.Truthiness.operator !=(MuLang.IR.IrInstruction.Truthiness? left, MuLang.IR.IrInstruction.Truthiness? right) -> bool
+static MuLang.IR.IrInstruction.Truthiness.operator ==(MuLang.IR.IrInstruction.Truthiness? left, MuLang.IR.IrInstruction.Truthiness? right) -> bool
+static MuLang.IR.IrInstruction.TypeTest.operator !=(MuLang.IR.IrInstruction.TypeTest? left, MuLang.IR.IrInstruction.TypeTest? right) -> bool
+static MuLang.IR.IrInstruction.TypeTest.operator ==(MuLang.IR.IrInstruction.TypeTest? left, MuLang.IR.IrInstruction.TypeTest? right) -> bool
+static MuLang.IR.IrInstruction.Unary.operator !=(MuLang.IR.IrInstruction.Unary? left, MuLang.IR.IrInstruction.Unary? right) -> bool
+static MuLang.IR.IrInstruction.Unary.operator ==(MuLang.IR.IrInstruction.Unary? left, MuLang.IR.IrInstruction.Unary? right) -> bool
+static MuLang.IR.IrInstruction.UserCall.operator !=(MuLang.IR.IrInstruction.UserCall? left, MuLang.IR.IrInstruction.UserCall? right) -> bool
+static MuLang.IR.IrInstruction.UserCall.operator ==(MuLang.IR.IrInstruction.UserCall? left, MuLang.IR.IrInstruction.UserCall? right) -> bool
+static MuLang.IR.IrProgram.operator !=(MuLang.IR.IrProgram? left, MuLang.IR.IrProgram? right) -> bool
+static MuLang.IR.IrProgram.operator ==(MuLang.IR.IrProgram? left, MuLang.IR.IrProgram? right) -> bool
+static MuLang.IR.IrSlot.operator !=(MuLang.IR.IrSlot? left, MuLang.IR.IrSlot? right) -> bool
+static MuLang.IR.IrSlot.operator ==(MuLang.IR.IrSlot? left, MuLang.IR.IrSlot? right) -> bool
+static MuLang.IR.IrTerminator.Branch.operator !=(MuLang.IR.IrTerminator.Branch? left, MuLang.IR.IrTerminator.Branch? right) -> bool
+static MuLang.IR.IrTerminator.Branch.operator ==(MuLang.IR.IrTerminator.Branch? left, MuLang.IR.IrTerminator.Branch? right) -> bool
+static MuLang.IR.IrTerminator.Jump.operator !=(MuLang.IR.IrTerminator.Jump? left, MuLang.IR.IrTerminator.Jump? right) -> bool
+static MuLang.IR.IrTerminator.Jump.operator ==(MuLang.IR.IrTerminator.Jump? left, MuLang.IR.IrTerminator.Jump? right) -> bool
+static MuLang.IR.IrTerminator.operator !=(MuLang.IR.IrTerminator? left, MuLang.IR.IrTerminator? right) -> bool
+static MuLang.IR.IrTerminator.operator ==(MuLang.IR.IrTerminator? left, MuLang.IR.IrTerminator? right) -> bool
+static MuLang.IR.IrTerminator.Return.operator !=(MuLang.IR.IrTerminator.Return? left, MuLang.IR.IrTerminator.Return? right) -> bool
+static MuLang.IR.IrTerminator.Return.operator ==(MuLang.IR.IrTerminator.Return? left, MuLang.IR.IrTerminator.Return? right) -> bool
+static MuLang.IR.IrValidator.Validate(MuLang.IR.IrProgram! program, MuLang.Core.Environment.EnvironmentSchema! environment, MuLang.Core.CompilationMode? expectedCompilationMode, MuLang.Core.LanguageProfileFingerprint? expectedLanguageProfileFingerprint) -> MuLang.Core.Diagnostics.DiagnosticCollection!
+static MuLang.IR.IrValidator.Validate(MuLang.IR.IrProgram! program, MuLang.Core.Environment.EnvironmentSchema! environment) -> MuLang.Core.Diagnostics.DiagnosticCollection!
+virtual MuLang.IR.IrInstruction.EqualityContract.get -> System.Type!
+virtual MuLang.IR.IrInstruction.Equals(MuLang.IR.IrInstruction? other) -> bool
+virtual MuLang.IR.IrInstruction.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual MuLang.IR.IrTerminator.EqualityContract.get -> System.Type!
+virtual MuLang.IR.IrTerminator.Equals(MuLang.IR.IrTerminator? other) -> bool
+virtual MuLang.IR.IrTerminator.PrintMembers(System.Text.StringBuilder! builder) -> bool

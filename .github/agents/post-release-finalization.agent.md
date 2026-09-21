@@ -14,20 +14,20 @@ Before editing, verify all of the following:
 
 - tag `v<version>` exists locally and remotely;
 - the tag resolves to the commit used by the successful publish workflow;
-- GitHub Packages contains the exact private `MuLang` version associated with `FstTesla/MuLang`;
-- the published package passes `eng/Verify-Package.ps1`;
+- GitHub Packages contains the exact private version of every expected MuLang package associated with `FstTesla/MuLang`;
+- all published packages pass `eng/Verify-Packages.ps1`;
 - the checked-out branch contains the released commit and has no conflicting uncommitted changes;
-- the dynamically resolved latest package baseline is the released version.
+- the dynamically resolved latest package baseline for every package is the released version.
 
 If any verification fails, stop without editing.
 
-Update only:
-
-- `src/MuLang/PublicAPI.Shipped.txt`;
-- `src/MuLang/PublicAPI.Unshipped.txt`;
-- `src/MuLang/CompatibilitySuppressions.xml`.
+Update only the `PublicAPI.Shipped.txt`, `PublicAPI.Unshipped.txt`, and
+`CompatibilitySuppressions.xml` files belonging to packable projects under
+`src`.
 
 Consolidate the API files as follows:
+
+Apply these steps independently for every packable project:
 
 1. Add every non-removed entry from `PublicAPI.Unshipped.txt` to `PublicAPI.Shipped.txt`.
 2. For every `*REMOVED*` entry, remove the corresponding original entry from `PublicAPI.Shipped.txt`.
@@ -41,7 +41,7 @@ Validate after editing:
 
 - build with PublicApiAnalyzers enabled;
 - Debug and Release tests;
-- package validation against the released version;
+- package validation against the released version for every package;
 - package verification for a temporary next prerelease version;
 - no unexpected changes outside the three permitted files.
 

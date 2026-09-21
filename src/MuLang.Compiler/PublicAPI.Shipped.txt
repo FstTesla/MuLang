@@ -1,0 +1,69 @@
+#nullable enable
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.ArgumentCountMismatch = "MUL3011" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.BreakOutsideLoop = "MUL4001" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.CannotAssignGlobal = "MUL3012" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.CannotAssignParameter = "MUL3027" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.CannotInferType = "MUL3007" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.ContinueOutsideLoop = "MUL4002" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.DisabledArrayElementMutation = "MUL7008" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.DisabledForLoop = "MUL7004" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.DisabledMultiLevelLoopControl = "MUL7011" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.DisabledObjectPropertyMutation = "MUL7007" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.DisabledOpenObjects = "MUL7006" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.DisabledPropertyRemoval = "MUL7009" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.DisabledProviderFunctionCalls = "MUL7005" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.DisabledRecursion = "MUL7002" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.DisabledTrailingCommas = "MUL7012" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.DisabledUserDefinedFunctions = "MUL7001" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.DisabledWhileLoop = "MUL7003" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.DuplicateFunction = "MUL3022" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.DuplicateLocal = "MUL3004" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.DuplicateObjectProperty = "MUL3016" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.DuplicateParameter = "MUL3024" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.ExpectedExpression = "MUL2002" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.FunctionConflict = "MUL3023" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.FunctionDeclarationAfterStatement = "MUL2011" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.FunctionDeclarationNotAllowed = "MUL2010" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.InvalidAssignmentTarget = "MUL2004" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.InvalidCallTarget = "MUL3010" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.InvalidCharacter = "MUL1001" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.InvalidConversion = "MUL3017" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.InvalidEmbeddedDeclaration = "MUL3021" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.InvalidEscapeSequence = "MUL1003" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.InvalidExpressionStatement = "MUL2003" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.InvalidFloatLiteral = "MUL4007" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.InvalidForClause = "MUL2007" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.InvalidIndex = "MUL3014" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.InvalidIntegerLiteral = "MUL4006" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.InvalidLoopLevel = "MUL4008" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.InvalidNumber = "MUL1004" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.InvalidParameterType = "MUL3025" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.InvalidRemovalTarget = "MUL2005" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.InvalidReturn = "MUL4003" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.InvalidReturnType = "MUL3026" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.InvalidVoidExpression = "MUL3018" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.MissingObjectProperty = "MUL3020" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.NonAssociativeOperator = "MUL2006" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.NotAllPathsReturn = "MUL4004" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.OperatorNotDefined = "MUL3009" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.PropertyNotFound = "MUL3013" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.PropertyNotRemovable = "MUL3015" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.ReadOnlyTarget = "MUL3019" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.RepeatedNullableAnnotation = "MUL2009" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.ShadowedVariable = "MUL3005" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.TrailingSeparator = "MUL2008" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.TypeMismatch = "MUL3008" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.UnassignedLocal = "MUL3006" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.UndefinedFunction = "MUL3002" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.UndefinedName = "MUL3001" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.UndefinedType = "MUL3003" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.UnexpectedToken = "MUL2001" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.UnreachableStatement = "MUL4005" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.UnterminatedString = "MUL1002" -> string!
+MuLang.Compiler.CompilationResult
+MuLang.Compiler.CompilationResult.Diagnostics.get -> MuLang.Core.Diagnostics.DiagnosticCollection!
+MuLang.Compiler.CompilationResult.IsSuccessful.get -> bool
+MuLang.Compiler.CompilationResult.Program.get -> MuLang.IR.IrProgram?
+MuLang.Compiler.Diagnostics.DiagnosticCodes
+MuLang.Compiler.MuLangCompiler
+static MuLang.Compiler.MuLangCompiler.Compile(string! source, MuLang.Core.Environment.EnvironmentSchema! environment, MuLang.Core.CompilationMode compilationMode, MuLang.Core.Types.TypeSymbol? expectedResultType = null, MuLang.Core.LanguageProfile? profile = null) -> MuLang.Compiler.CompilationResult!

@@ -52,9 +52,8 @@ jobs:
       - name: Verify package
         shell: pwsh
         run: |
-          ./eng/Verify-Package.ps1 `
-            -PackagePath "artifacts/packages/MuLang.$env:VERSION.nupkg" `
-            -SymbolPackagePath "artifacts/packages/MuLang.$env:VERSION.snupkg" `
+          ./eng/Verify-Packages.ps1 `
+            -PackageDirectory "artifacts/packages" `
             -Version $env:VERSION `
             -ExpectedRepositoryCommit "${{ github.sha }}"
 
@@ -64,62 +63,3 @@ jobs:
           name: validation-packages-${{ github.run_number }}
           path: artifacts/packages/*
           if-no-files-found: error
-
-  validate-baseline:
-    name: Validate published API baseline
-    needs: validate
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ubuntu-latest
-
-    permissions:
-      contents: read
-      packages: read
-
-    env:
-      VERSION: 9999.0.0-alpha.${{ github.run_number }}
-
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Set up .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          global-json-file: global.json
-          source-url: https://nuget.pkg.github.com/FstTesla/index.json
-        env:
-          NUGET_AUTH_TOKEN: ${{ github.token }}
-
-      - name: Determine package validation baseline
-        shell: pwsh
-        env:
-          BASELINE_OVERRIDE: ${{ vars.PACKAGE_VALIDATION_BASELINE_VERSION }}
-          GITHUB_PACKAGE_TOKEN: ${{ github.token }}
-        run: |
-          $baseline = ./eng/Resolve-PackageValidationBaseline.ps1 `
-            -Override $env:BASELINE_OVERRIDE `
-            -GitHubToken $env:GITHUB_PACKAGE_TOKEN
-
-          if (
-            $env:BASELINE_OVERRIDE.Equals(
-              'none',
-              [StringComparison]::OrdinalIgnoreCase
-            )
-          ) {
-            '- Package validation baseline: disabled by repository variable.' >> $env:GITHUB_STEP_SUMMARY
-            exit 0
-          }
-
-          if ([string]::IsNullOrWhiteSpace($baseline)) {
-            '- Package validation baseline: none; no supported package is published.' >> $env:GITHUB_STEP_SUMMARY
-            exit 0
-          }
-
-          "PackageValidationBaselineVersion=$baseline" >> $env:GITHUB_ENV
-          "- Package validation baseline: ``$baseline``" >> $env:GITHUB_STEP_SUMMARY
-
-      - name: Restore
-        run: dotnet restore MuLang.slnx --locked-mode
-
-      - name: Pack against baseline
-        run: dotnet pack MuLang.slnx --configuration Release --no-restore --nologo --verbosity minimal --output artifacts/baseline-packages -p:Version=${{ env.VERSION }}

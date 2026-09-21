@@ -2,6 +2,8 @@
   href: index.md
 - name: Examples
   href: examples.md
+- name: Packages
+  href: packages.md
 - name: Language
   href: language/
 - name: API reference

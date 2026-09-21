@@ -27,22 +27,22 @@ Audit the repository and report each check as `Pass`, `Warning`, or `Blocker`:
 3. The target local and remote tags do not already exist.
 4. The latest CI and documentation workflows for `HEAD` succeeded.
 5. Restore in locked mode, Debug and Release tests, DocFX with warnings as errors, pack, and local package verification succeed using the target version.
-6. The dynamically resolved package-validation baseline is a published predecessor, unless an explicit repository override intentionally selects another predecessor or disables validation.
-7. Package validation against the selected baseline succeeds.
-8. `PublicAPI.Shipped.txt` and `PublicAPI.Unshipped.txt` are valid and the analyzer reports no undeclared, stale, duplicate, malformed, or oblivious API entries.
+6. The dynamically resolved package-validation baseline for each package is a published predecessor, unless an explicit repository override intentionally selects another predecessor or disables validation.
+7. Package validation against each selected package baseline succeeds.
+8. Every packable project's `PublicAPI.Shipped.txt` and `PublicAPI.Unshipped.txt` is valid and the analyzer reports no undeclared, stale, duplicate, malformed, or oblivious API entries.
 9. Every `*REMOVED*` public API entry is intentional and represented as a breaking change in each required target changelog section.
-10. Every entry in `CompatibilitySuppressions.xml` is necessary for the selected baseline and represented as a breaking change in each required target changelog section.
+10. Every entry in each packable project's `CompatibilitySuppressions.xml` is necessary for the selected baseline and represented as a breaking change in each required target changelog section.
 11. Beta, RC, and stable releases contain a non-empty target-version section in `CHANGELOG.detailed.md`; alpha releases may omit it.
 12. Stable releases additionally contain a non-empty consolidated target-version section in `CHANGELOG.md`; prerelease versions do not.
-13. Package metadata, README, license, icon, XML documentation, symbol package, strong name, repository commit, and Source Link pass `eng/Verify-Package.ps1`.
+13. Package metadata, dependency graph, README, license, icon, XML documentation, symbol packages, strong names, repository commit, and Source Link pass `eng/Verify-Packages.ps1`.
 14. The target version is greater than the selected baseline and its maturity suffix is consistent with the intended release.
 
-Use `eng/Resolve-PackageValidationBaseline.ps1` and `eng/Verify-Package.ps1` rather than duplicating their logic.
+Use `eng/Resolve-PackageValidationBaseline.ps1` with each package ID and `eng/Verify-Packages.ps1` rather than duplicating their logic.
 
 Finish with:
 
 - the target version and commit;
-- the resolved baseline;
+- the resolved baseline for each package;
 - a compact table of checks and evidence;
 - a final verdict of `Ready` or `Not ready`;
 - blockers that must be resolved before tagging.

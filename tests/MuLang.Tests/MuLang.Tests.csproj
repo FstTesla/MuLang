@@ -12,6 +12,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\MuLang.Compiler\MuLang.Compiler.csproj" />
+    <ProjectReference Include="..\..\src\MuLang.Core\MuLang.Core.csproj" />
+    <ProjectReference Include="..\..\src\MuLang.Exporters.DotNet\MuLang.Exporters.DotNet.csproj" />
+    <ProjectReference Include="..\..\src\MuLang.IR\MuLang.IR.csproj" />
     <ProjectReference Include="..\..\src\MuLang\MuLang.csproj" />
   </ItemGroup>
 

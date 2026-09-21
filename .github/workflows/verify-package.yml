@@ -64,9 +64,8 @@ jobs:
           VERSION: ${{ inputs.version }}
         run: |
           $commit = git -C ../source rev-parse HEAD
-          ./eng/Verify-Package.ps1 `
-            -PackagePath "../artifacts/packages/MuLang.$env:VERSION.nupkg" `
-            -SymbolPackagePath "../artifacts/packages/MuLang.$env:VERSION.snupkg" `
+          ./eng/Verify-Packages.ps1 `
+            -PackageDirectory "../artifacts/packages" `
             -Version $env:VERSION `
             -RepositoryRoot '../source' `
             -ExpectedRepositoryCommit $commit `

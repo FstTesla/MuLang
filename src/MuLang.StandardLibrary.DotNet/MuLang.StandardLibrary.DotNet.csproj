@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <PackageDescription>Optional .NET implementations for MuLang standard-library declarations.</PackageDescription>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MuLang.Core\MuLang.Core.csproj" />
+    <ProjectReference Include="..\MuLang.Exporters.DotNet\MuLang.Exporters.DotNet.csproj" />
+    <ProjectReference Include="..\MuLang.StandardLibrary\MuLang.StandardLibrary.csproj" />
+  </ItemGroup>
+
+</Project>

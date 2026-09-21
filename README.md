@@ -24,6 +24,22 @@ Install the latest prerelease package:
 dotnet add package MuLang --prerelease
 ```
 
+The `MuLang` package is the high-level .NET facade. Lower-level packages are
+available for hosts and exporter authors:
+
+| Package | Purpose |
+|---|---|
+| `MuLang.Core` | Runtime-neutral types, environments, profiles, and diagnostics |
+| `MuLang.IR` | Public portable IR and validation |
+| `MuLang.Compiler` | Source-to-IR compilation |
+| `MuLang.Exporters.DotNet` | IR-to-.NET export and runtime adapters |
+| `MuLang` | High-level .NET facade |
+| `MuLang.StandardLibrary` | Reserved for optional runtime-neutral standard-library declarations |
+| `MuLang.StandardLibrary.DotNet` | Reserved for optional .NET standard-library implementations |
+
+The standard-library packages intentionally contain no modules yet. The
+compiler and facade never import standard-library symbols implicitly.
+
 A MuLang host:
 
 1. Defines the global variables, functions, and structured types available to source code through an environment schema.
@@ -38,6 +54,7 @@ See the [examples](https://github.com/FstTesla/MuLang/blob/main/docs/public/exam
 - [Documentation site](https://fsttesla.github.io/MuLang/)
 - [Language specification](https://github.com/FstTesla/MuLang/blob/main/docs/public/language/index.md)
 - [Examples](https://github.com/FstTesla/MuLang/blob/main/docs/public/examples.md)
+- [Packages and architecture](https://fsttesla.github.io/MuLang/packages.html)
 - [Stable changelog](https://github.com/FstTesla/MuLang/blob/main/CHANGELOG.md)
 - [Detailed changelog](https://github.com/FstTesla/MuLang/blob/main/CHANGELOG.detailed.md)
 

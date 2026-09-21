@@ -8,6 +8,13 @@ param(
     [Parameter(Mandatory)]
     [string] $Version,
 
+    [string] $PackageId = 'MuLang',
+
+    [Parameter(Mandatory)]
+    [string] $ExpectedDescription,
+
+    [string[]] $ExpectedPackageDependencies = @(),
+
     [string] $RepositoryRoot = (Join-Path $PSScriptRoot '..'),
 
     [string] $ExpectedRepositoryCommit,
@@ -29,7 +36,11 @@ param(
     [string] $GitHubToken,
 
     [ValidateSet('public', 'private', 'internal')]
-    [string] $ExpectedGitHubVisibility
+    [string] $ExpectedGitHubVisibility,
+
+    [switch] $SkipConsumerTest,
+
+    [switch] $TestDirectPackages
 )
 
 $ErrorActionPreference = 'Stop'
@@ -50,12 +61,12 @@ function Get-NuspecMetadata
     try
     {
         $entry = $archive.Entries |
-            Where-Object FullName -EQ 'MuLang.nuspec' |
+            Where-Object FullName -EQ "$PackageId.nuspec" |
             Select-Object -First 1
 
         if ($null -eq $entry)
         {
-            throw "Package '$Path' does not contain MuLang.nuspec."
+            throw "Package '$Path' does not contain $PackageId.nuspec."
         }
 
         $reader = [System.IO.StreamReader]::new($entry.Open())
@@ -116,6 +127,39 @@ function Assert-Equal
     if ($Actual -cne $Expected)
     {
         throw "$Name differs. Expected '$Expected', got '$Actual'."
+    }
+}
+
+function Assert-PackageDependencies
+{
+    param(
+        [hashtable] $Metadata,
+        [string[]] $Expected
+    )
+
+    $dependencyNodes = @(
+        $Metadata.Document.SelectNodes(
+            '/n:package/n:metadata/n:dependencies/n:group/n:dependency',
+            $Metadata.Namespace
+        )
+    )
+    $actual = @(
+        $dependencyNodes |
+            ForEach-Object id |
+            Sort-Object
+    )
+    $expectedSorted = @($Expected | Sort-Object)
+
+    if (Compare-Object $actual $expectedSorted)
+    {
+        throw "Package dependencies differ. Expected '$($expectedSorted -join ', ')', got '$($actual -join ', ')'."
+    }
+
+    foreach ($dependency in $dependencyNodes)
+    {
+        Assert-Equal "Package dependency '$($dependency.id)' version" `
+            $dependency.version `
+            $Version
     }
 }
 
@@ -212,7 +256,8 @@ function Invoke-ConsumerTest
         [string] $Username,
         [string] $Token,
         [int] $RestoreAttempts,
-        [string] $WorkingDirectory
+        [string] $WorkingDirectory,
+        [switch] $DirectPackages
     )
 
     [System.IO.Directory]::CreateDirectory($WorkingDirectory) | Out-Null
@@ -220,6 +265,19 @@ function Invoke-ConsumerTest
     $programPath = Join-Path $WorkingDirectory 'Program.cs'
     $configurationPath = Join-Path $WorkingDirectory 'NuGet.Config'
     $packagesPath = Join-Path $WorkingDirectory 'packages'
+    $packageReferences = if ($DirectPackages)
+    {
+        @"
+    <PackageReference Include="MuLang.Compiler" Version="$Version" />
+    <PackageReference Include="MuLang.Exporters.DotNet" Version="$Version" />
+"@
+    }
+    else
+    {
+        @"
+    <PackageReference Include="MuLang" Version="$Version" />
+"@
+    }
     $project = @"
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
@@ -229,11 +287,46 @@ function Invoke-ConsumerTest
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="MuLang" Version="$Version" />
+$packageReferences
   </ItemGroup>
 </Project>
 "@
-    $program = @'
+    $program = if ($DirectPackages)
+    {
+        @'
+using MuLang.Compiler;
+using MuLang.Core;
+using MuLang.Core.Environment;
+using MuLang.Core.Types;
+using MuLang.Exporters.DotNet;
+
+EnvironmentSchema environment = new EnvironmentBuilder()
+    .AddGlobal("global.value", "value", TypeSymbols.Int)
+    .Build();
+CompilationResult compilation = MuLangCompiler.Compile(
+    "value + 1",
+    environment,
+    CompilationMode.Expression,
+    TypeSymbols.Int
+);
+DotNetExportResult export = DotNetExporter.Export(
+    compilation.Program ?? throw new InvalidOperationException("Compilation failed."),
+    environment
+);
+Func<DotNetRuntimeContext, object?> compiled = export.Delegate ??
+    throw new InvalidOperationException("Export failed.");
+DotNetRuntimeContext context = new (
+    environment,
+    [ new KeyValuePair<string, object?>("global.value", 41L) ],
+    [ ]
+);
+
+return compiled(context) is 42L ? 0 : 1;
+'@
+    }
+    else
+    {
+        @'
 using MuLang;
 using MuLang.Core.Environment;
 using MuLang.Core.Types;
@@ -257,6 +350,7 @@ DotNetRuntimeContext context = new (
 
 return compiled(context) is 42L ? 0 : 1;
 '@
+    }
     $escapedSource = [System.Security.SecurityElement]::Escape($Source)
     $credentials = if ([string]::IsNullOrEmpty($Token))
     {
@@ -370,7 +464,7 @@ function Assert-GitHubPackage
         'User-Agent' = 'MuLang-package-verification'
     }
     $packageUrl =
-        "https://api.github.com/users/$GitHubOwner/packages/nuget/MuLang"
+        "https://api.github.com/users/$GitHubOwner/packages/nuget/$PackageId"
     $versionsUrl = "$packageUrl/versions?per_page=100"
     $packageMetadata = $null
     $versions = $null
@@ -407,7 +501,7 @@ function Assert-GitHubPackage
 
     if ($Version -notin @($versions | ForEach-Object name))
     {
-        throw "GitHub Packages does not contain MuLang $Version."
+        throw "GitHub Packages does not contain $PackageId $Version."
     }
 
     Write-Output "GitHub package visibility: $($packageMetadata.visibility)"
@@ -420,18 +514,18 @@ try
     $symbolDirectory = Join-Path $temporaryRoot 'symbols'
     Assert-PackageContents $package.FullName `
         @(
-            'MuLang.nuspec',
+            "$PackageId.nuspec",
             'LICENSE',
             'MuLang.png',
             'README.md',
-            'lib/net10.0/MuLang.dll',
-            'lib/net10.0/MuLang.xml'
+            "lib/net10.0/$PackageId.dll",
+            "lib/net10.0/$PackageId.xml"
         ) `
-        @('lib/net10.0/MuLang.dll')
+        @("lib/net10.0/$PackageId.dll")
     Assert-PackageContents $symbolPackage.FullName `
         @(
-            'MuLang.nuspec',
-            'lib/net10.0/MuLang.pdb'
+            "$PackageId.nuspec",
+            "lib/net10.0/$PackageId.pdb"
         ) `
         @()
     Expand-Package $package.FullName $packageDirectory
@@ -443,16 +537,17 @@ try
     }
 
     $metadata = Get-NuspecMetadata $package.FullName
-    Assert-Equal 'Package ID' (Get-MetadataValue $metadata 'id') 'MuLang'
+    Assert-Equal 'Package ID' (Get-MetadataValue $metadata 'id') $PackageId
     Assert-Equal 'Package version' (Get-MetadataValue $metadata 'version') $Version
-    Assert-Equal 'Package title' (Get-MetadataValue $metadata 'title') 'MuLang'
+    Assert-Equal 'Package title' (Get-MetadataValue $metadata 'title') $PackageId
+    Assert-PackageDependencies $metadata $ExpectedPackageDependencies
     Assert-Equal 'Package authors' (Get-MetadataValue $metadata 'authors') 'FstTesla'
     $description = (
         (Get-MetadataValue $metadata 'description') -replace '\s+', ' '
     ).Trim()
     Assert-Equal 'Package description' `
         $description `
-        'MuLang is a small, embeddable, statically checked language for expressions and imperative programs. Providers define the available global variables, functions, and structured types, while the compiler produces an executable delegate for a compatible runtime environment.'
+        $ExpectedDescription
     Assert-Equal 'Package icon' (Get-MetadataValue $metadata 'icon') 'MuLang.png'
     Assert-Equal 'Package readme' (Get-MetadataValue $metadata 'readme') 'README.md'
     Assert-Equal 'Package project URL' `
@@ -509,21 +604,23 @@ try
         (Join-Path $root 'README.md')
     ).Replace("`r`n", "`n")
     Assert-Equal 'Packaged README' $packagedReadme $repositoryReadme
-
     [xml] $documentation = [System.IO.File]::ReadAllText(
-        (Join-Path $packageDirectory 'lib/net10.0/MuLang.xml')
+        (Join-Path $packageDirectory "lib/net10.0/$PackageId.xml")
     )
     Assert-Equal 'XML documentation assembly' `
         $documentation.doc.assembly.name `
-        'MuLang'
+        $PackageId
 
-    if (@($documentation.doc.members.member).Count -eq 0)
+    if (
+        $PackageId -notin 'MuLang.StandardLibrary', 'MuLang.StandardLibrary.DotNet' -and
+        @($documentation.doc.members.member).Count -eq 0
+    )
     {
         throw 'XML documentation contains no members.'
     }
 
     $assemblyName = [System.Reflection.AssemblyName]::GetAssemblyName(
-        (Join-Path $packageDirectory 'lib/net10.0/MuLang.dll')
+        (Join-Path $packageDirectory "lib/net10.0/$PackageId.dll")
     )
     $publicKeyToken = [Convert]::ToHexString(
         $assemblyName.GetPublicKeyToken()
@@ -532,11 +629,11 @@ try
         $publicKeyToken `
         'cf9a0e9f02f7978b'
 
-    $pdbPath = Join-Path $symbolDirectory 'lib/net10.0/MuLang.pdb'
+    $pdbPath = Join-Path $symbolDirectory "lib/net10.0/$PackageId.pdb"
     $symbolMetadata = Get-NuspecMetadata $symbolPackage.FullName
     Assert-Equal 'Symbol package ID' `
         (Get-MetadataValue $symbolMetadata 'id') `
-        'MuLang'
+        $PackageId
     Assert-Equal 'Symbol package version' `
         (Get-MetadataValue $symbolMetadata 'version') `
         $Version
@@ -580,15 +677,33 @@ try
         }
     }
 
-    Invoke-ConsumerTest `
-        $package.DirectoryName `
-        'local' `
-        '' `
-        '' `
-        1 `
-        (Join-Path $temporaryRoot 'local-consumer')
+    if (!$SkipConsumerTest)
+    {
+        Invoke-ConsumerTest `
+            $package.DirectoryName `
+            'local' `
+            '' `
+            '' `
+            1 `
+            (Join-Path $temporaryRoot 'local-consumer')
 
-    if (![string]::IsNullOrEmpty($FeedUrl))
+        if ($TestDirectPackages)
+        {
+            Invoke-ConsumerTest `
+                $package.DirectoryName `
+                'local' `
+                '' `
+                '' `
+                1 `
+                (Join-Path $temporaryRoot 'local-direct-consumer') `
+                -DirectPackages
+        }
+    }
+
+    if (
+        !$SkipConsumerTest -and
+        ![string]::IsNullOrEmpty($FeedUrl)
+    )
     {
         if (
             [string]::IsNullOrEmpty($FeedUsername) -or
@@ -605,10 +720,22 @@ try
             $FeedToken `
             $FeedRestoreAttempts `
             (Join-Path $temporaryRoot 'published-consumer')
+
+        if ($TestDirectPackages)
+        {
+            Invoke-ConsumerTest `
+                $FeedUrl `
+                'published' `
+                $FeedUsername `
+                $FeedToken `
+                $FeedRestoreAttempts `
+                (Join-Path $temporaryRoot 'published-direct-consumer') `
+                -DirectPackages
+        }
     }
 
     Assert-GitHubPackage
-    Write-Output "MuLang $Version package verification succeeded."
+    Write-Output "$PackageId $Version package verification succeeded."
 }
 finally
 {

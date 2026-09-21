@@ -60,36 +60,6 @@ jobs:
           "- Version: ``$version``" >> $env:GITHUB_STEP_SUMMARY
           "- Commit: ``${{ github.sha }}``" >> $env:GITHUB_STEP_SUMMARY
 
-      - name: Determine package validation baseline
-        shell: pwsh
-        env:
-          BASELINE_OVERRIDE: ${{ vars.PACKAGE_VALIDATION_BASELINE_VERSION }}
-          GITHUB_PACKAGE_TOKEN: ${{ github.token }}
-          VERSION: ${{ steps.version.outputs.version }}
-        run: |
-          $baseline = ./eng/Resolve-PackageValidationBaseline.ps1 `
-            -CurrentVersion $env:VERSION `
-            -Override $env:BASELINE_OVERRIDE `
-            -GitHubToken $env:GITHUB_PACKAGE_TOKEN
-
-          if (
-            $env:BASELINE_OVERRIDE.Equals(
-              'none',
-              [StringComparison]::OrdinalIgnoreCase
-            )
-          ) {
-            '- Package validation baseline: disabled by repository variable.' >> $env:GITHUB_STEP_SUMMARY
-            exit 0
-          }
-
-          if ([string]::IsNullOrWhiteSpace($baseline)) {
-            '- Package validation baseline: none; this is the first published version.' >> $env:GITHUB_STEP_SUMMARY
-            exit 0
-          }
-
-          "PackageValidationBaselineVersion=$baseline" >> $env:GITHUB_ENV
-          "- Package validation baseline: ``$baseline``" >> $env:GITHUB_STEP_SUMMARY
-
       - name: Determine release metadata
         id: release
         shell: pwsh
@@ -165,9 +135,8 @@ jobs:
         env:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
-          ./eng/Verify-Package.ps1 `
-            -PackagePath "artifacts/packages/MuLang.$env:VERSION.nupkg" `
-            -SymbolPackagePath "artifacts/packages/MuLang.$env:VERSION.snupkg" `
+          ./eng/Verify-Packages.ps1 `
+            -PackageDirectory "artifacts/packages" `
             -Version $env:VERSION `
             -ExpectedRepositoryCommit "${{ github.sha }}" `
             -TestSourceLinkUrls
@@ -277,9 +246,8 @@ jobs:
           GITHUB_PACKAGE_TOKEN: ${{ github.token }}
           VERSION: ${{ needs.pack.outputs.version }}
         run: |
-          ./eng/Verify-Package.ps1 `
-            -PackagePath "artifacts/packages/MuLang.$env:VERSION.nupkg" `
-            -SymbolPackagePath "artifacts/packages/MuLang.$env:VERSION.snupkg" `
+          ./eng/Verify-Packages.ps1 `
+            -PackageDirectory "artifacts/packages" `
             -Version $env:VERSION `
             -ExpectedRepositoryCommit "${{ github.sha }}" `
             -TestSourceLinkUrls `

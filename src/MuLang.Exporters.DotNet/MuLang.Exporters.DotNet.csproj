@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <PackageDescription>.NET exporter, runtime context, and adapter contracts for executing portable MuLang IR.</PackageDescription>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MuLang.Core\MuLang.Core.csproj" />
+    <ProjectReference Include="..\MuLang.IR\MuLang.IR.csproj" />
+  </ItemGroup>
+
+</Project>

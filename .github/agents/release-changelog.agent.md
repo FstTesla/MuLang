@@ -41,10 +41,11 @@ Do not add prerelease sections to `CHANGELOG.md`.
 
 Treat the API governance files as authoritative evidence:
 
-- compare `src/MuLang/PublicAPI.Shipped.txt` and `src/MuLang/PublicAPI.Unshipped.txt` with their versions at the base ref;
+- discover every packable project under `src`;
+- compare each project's `PublicAPI.Shipped.txt` and `PublicAPI.Unshipped.txt` with its versions at the base ref;
 - treat every `*REMOVED*` entry and every incompatible signature or constant-value replacement as a breaking change;
 - treat compatible API additions as new features unless they are part of a breaking replacement;
-- inspect every entry in `src/MuLang/CompatibilitySuppressions.xml`;
+- inspect every `CompatibilitySuppressions.xml` belonging to a packable project;
 - require every intentional package-validation suppression to be represented under `Breaking changes` in every applicable changelog section.
 
 Use source and package diffs to explain API entries in consumer-facing terms. Do not copy analyzer signatures or diagnostic identifiers directly into the changelog when a clearer API description is available.

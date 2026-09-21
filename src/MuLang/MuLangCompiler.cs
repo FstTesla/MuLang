@@ -1,18 +1,29 @@
-using MuLang.Compiler.Binding;
-using MuLang.Compiler.Lowering;
-using MuLang.Compiler.Syntax;
 using MuLang.Core;
 using MuLang.Core.Diagnostics;
 using MuLang.Core.Environment;
-using MuLang.Core.Text;
 using MuLang.Core.Types;
 using MuLang.Exporters.DotNet;
+using CompilerResult = MuLang.Compiler.CompilationResult;
+using PortableCompiler = MuLang.Compiler.MuLangCompiler;
 
 namespace MuLang;
 
 /// <summary>Provides methods for compiling MuLang source code.</summary>
 public static class MuLangCompiler
 {
+    /// <summary>Compiles a MuLang expression and infers its result type.</summary>
+    /// <param name="source">The MuLang source code.</param>
+    /// <param name="environment">The environment schema available to the compiled code.</param>
+    /// <returns>The compilation result.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="source" /> or <paramref name="environment" /> is <c>null</c>.</exception>
+    public static CompilationResult CompileExpression(
+        string source,
+        EnvironmentSchema environment
+    )
+    {
+        return CompileExpression(source, environment, null);
+    }
+
     /// <summary>Compiles a MuLang expression using the default language profile.</summary>
     /// <param name="source">The MuLang source code.</param>
     /// <param name="environment">The environment schema available to the compiled code.</param>
@@ -23,7 +34,7 @@ public static class MuLangCompiler
     public static CompilationResult CompileExpression(
         string source,
         EnvironmentSchema environment,
-        TypeSymbol? expectedType = null
+        TypeSymbol? expectedType
     )
     {
         if (expectedType?.Kind == TypeKind.Void)
@@ -162,36 +173,28 @@ public static class MuLangCompiler
             );
         }
 
-        SyntaxTree syntaxTree = Parser.Parse(
-            SourceText.From(source),
+        CompilerResult compilation = PortableCompiler.Compile(
+            source,
+            environment,
             compilationMode,
+            expectedType,
             profile
         );
-        BindingResult binding = Binder.Bind(syntaxTree, environment, expectedType);
 
-        if (binding.Diagnostics.HasErrors)
+        if (compilation.Program is null)
         {
-            return new CompilationResult(null, binding.Diagnostics);
-        }
-
-        LoweringResult lowering = Lowerer.Lower(binding, environment);
-
-        if (lowering.Program is null)
-        {
-            return new CompilationResult(null, lowering.Diagnostics);
+            return new CompilationResult(null, compilation.Diagnostics);
         }
 
         DotNetExportResult export = DotNetExporter.Export(
-            lowering.Program,
+            compilation.Program,
             environment,
             compilationMode,
             profile.Fingerprint
         );
         DiagnosticCollection diagnostics =
             DiagnosticCollection.Create(
-                binding.Diagnostics
-                    .Concat(lowering.Diagnostics)
-                    .Concat(export.Diagnostics)
+                compilation.Diagnostics.Concat(export.Diagnostics)
             );
 
         return new CompilationResult(export.Delegate, diagnostics);
