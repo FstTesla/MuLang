@@ -69,7 +69,11 @@ Include only consumer-visible changes and classify them under these headings:
 
 Omit tests, refactoring, formatting, internal implementation work, and build maintenance unless they change consumer-visible behavior. Do not invent changes or reconstruct history outside the requested diff.
 
-Insert each section immediately after `## Unreleased` in the applicable file using this format:
+Insert each new section after the introductory text and before the most recent existing release section in the applicable file. If the file contains no release sections yet, append the new section after the introductory text.
+
+Do not add or require an `Unreleased` section.
+
+Use this section format:
 
 ```markdown
 ## `<version>` - <UTC date>

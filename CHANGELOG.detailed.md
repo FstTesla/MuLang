@@ -10,8 +10,6 @@ Changes are classified as:
 
 Stable entries describe the incremental change since the preceding prerelease. The main `CHANGELOG.md` provides the consolidated history between stable versions.
 
-## Unreleased
-
 ## `0.1.0-alpha.2` - 2026-09-18
 
 ### Breaking changes

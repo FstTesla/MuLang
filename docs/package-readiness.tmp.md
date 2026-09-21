@@ -191,14 +191,15 @@ Completion criteria:
 10. Have the agent inspect complete diffs rather than relying only on commit subjects.
 11. Classify consumer-visible changes as `Breaking changes`, `New features`, or `Fixes`, omitting empty categories and internal-only work.
 12. Review and commit all generated changelog sections before creating the version tag.
-13. Run the read-only release-preflight agent against the target version and resolve every blocker before tagging.
-14. Require beta, RC, and stable tagged commits to contain a matching section in `CHANGELOG.detailed.md`. Alpha tags may omit it.
-15. Require stable tagged commits to additionally contain a matching consolidated section in `CHANGELOG.md`. Prerelease sections are prohibited there.
-16. Create a GitHub Release after package publication for beta and RC versions using `CHANGELOG.detailed.md`; mark those releases as prereleases.
-17. Create a GitHub Release for stable versions using the consolidated section in `CHANGELOG.md`.
-18. For alpha packages, link `PackageReleaseNotes` to the tagged detailed changelog only when a matching section exists; otherwise omit the metadata.
-19. After successful publication and verification, run the post-release-finalization agent to consolidate public API files and obsolete compatibility suppressions for human review.
-20. Verify links and the externally hosted logo both from the GitHub repository and from NuGet's rendered package README.
+13. Insert release sections directly after each changelog preamble and before the most recent release; do not maintain an `Unreleased` placeholder.
+14. Run the read-only release-preflight agent against the target version and resolve every blocker before tagging.
+15. Require beta, RC, and stable tagged commits to contain a matching section in `CHANGELOG.detailed.md`. Alpha tags may omit it.
+16. Require stable tagged commits to additionally contain a matching consolidated section in `CHANGELOG.md`. Prerelease sections are prohibited there.
+17. Create a GitHub Release after package publication for beta and RC versions using `CHANGELOG.detailed.md`; mark those releases as prereleases.
+18. Create a GitHub Release for stable versions using the consolidated section in `CHANGELOG.md`.
+19. For alpha packages, link `PackageReleaseNotes` to the tagged detailed changelog only when a matching section exists; otherwise omit the metadata.
+20. After successful publication and verification, run the post-release-finalization agent to consolidate public API files and obsolete compatibility suppressions for human review.
+21. Verify links and the externally hosted logo both from the GitHub repository and from NuGet's rendered package README.
 
 Completion criteria:
 

@@ -9,5 +9,3 @@ Changes are classified as:
 - fixes.
 
 Each release section describes the final stable outcome since the preceding stable version. Intermediate prerelease changes that were superseded before the stable release are omitted.
-
-## Unreleased
