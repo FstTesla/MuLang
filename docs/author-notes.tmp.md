@@ -1,6 +1,5 @@
 - Split projects and adjust type visibility for future package
-- Package:
-  - Other stuff?
+- Standard library
 - New features:
   - Comments
   - User-defined types
