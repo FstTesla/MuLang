@@ -10,6 +10,19 @@ You finalize MuLang API governance after a release has been successfully publish
 
 Require the user to provide the released version without the `v` prefix. Stop if it is missing or invalid.
 
+Temporary artifact cleanup:
+
+- before running commands that may write under `artifacts`, record which
+  relevant paths already exist;
+- use a dedicated, uniquely named subdirectory under `artifacts` whenever the
+  command supports an explicit output path;
+- track every artifact path created by this agent;
+- before stopping, whether finalization succeeds or fails, delete every file
+  and directory created by this agent;
+- never delete or alter artifact paths that existed before the agent started;
+- after cleanup, delete the top-level `artifacts` directory if it exists and
+  is empty.
+
 Before editing, verify all of the following:
 
 - `eng/PackageContract.psd1` defines the exact released package set and direct dependency graph;

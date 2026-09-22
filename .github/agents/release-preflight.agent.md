@@ -12,6 +12,20 @@ Require the user to provide the target version without the `v` prefix. Require a
 
 Do not modify files, install new dependencies, commit, create or move tags, push, publish packages, create releases, or trigger workflows.
 
+Temporary artifact cleanup is required and is not considered a repository
+modification:
+
+- before running commands that may write under `artifacts`, record which
+  relevant paths already exist;
+- use a dedicated, uniquely named subdirectory under `artifacts` whenever the
+  command supports an explicit output path;
+- track every artifact path created by this agent;
+- before stopping, whether the audit succeeds or fails, delete every file and
+  directory created by this agent;
+- never delete or alter artifact paths that existed before the agent started;
+- after cleanup, delete the top-level `artifacts` directory if it exists and
+  is empty.
+
 Validate the target version against the repository release format:
 
 - stable `major.minor.patch`;

@@ -24,6 +24,19 @@ Stop and request any required missing value. Resolve each base input determinist
 
 Use a non-destructive tag fetch when the repository checkout does not contain the requested tag. Do not create, delete, or move tags.
 
+Temporary artifact cleanup:
+
+- before running commands that may write under `artifacts`, record which
+  relevant paths already exist;
+- use a dedicated, uniquely named subdirectory under `artifacts` whenever the
+  command supports an explicit output path;
+- track every artifact path created by this agent;
+- before stopping, whether the operation succeeds or fails, delete every file
+  and directory created by this agent;
+- never delete or alter artifact paths that existed before the agent started;
+- after cleanup, delete the top-level `artifacts` directory if it exists and
+  is empty.
+
 Validate that every required base resolves and that the target version is either stable SemVer or uses exactly one of the `alpha.N`, `beta.N`, or `rc.N` suffixes, where `N` is a positive integer.
 
 Review the complete committed change set from the resolved incremental base commit through `HEAD`, including commit history, source diff, public API changes, language specification changes, runtime behavior, packaging, and consumer documentation. Do not classify changes solely from commit subjects.
