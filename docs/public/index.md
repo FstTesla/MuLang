@@ -1,13 +1,13 @@
 # MuLang Documentation
 
-MuLang is a small, embeddable, statically checked language for expressions and imperative programs. Providers define the available global variables, functions, and structured types, while the compiler produces an executable delegate for a compatible runtime environment.
+MuLang is a small, embeddable, statically checked language for expressions and imperative programs. Providers define the available global variables, functions, and structured types. The compiler produces portable IR, which a runtime-specific exporter turns into executable code.
 
 ## Documentation
 
 - [Get started with MuLang](examples.md).
 - Review the [package architecture](packages.md).
 - Read the [language specification](language/index.md).
-- Browse the [API reference](xref:MuLang).
+- Browse the [compiler API reference](xref:MuLang.Compiler).
 - Read the [changelog for stable versions](https://github.com/FstTesla/MuLang/blob/main/CHANGELOG.md).
 - If you dare to use an unstable version, consult the [detailed changelog](https://github.com/FstTesla/MuLang/blob/main/CHANGELOG.detailed.md).
 

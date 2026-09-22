@@ -28,6 +28,12 @@ Validate that every required base resolves and that the target version is either
 
 Review the complete committed change set from the resolved incremental base commit through `HEAD`, including commit history, source diff, public API changes, language specification changes, runtime behavior, packaging, and consumer documentation. Do not classify changes solely from commit subjects.
 
+Treat `eng/PackageContract.psd1` at the target commit as the authoritative
+release package set and dependency graph. Compare it with the base ref.
+Package additions, removals, renames, and dependency changes are
+consumer-visible changes. In particular, removal of a previously released
+package is a breaking change.
+
 For every target version:
 
 - write the incremental release section to `CHANGELOG.detailed.md`;
@@ -41,7 +47,7 @@ Do not add prerelease sections to `CHANGELOG.md`.
 
 Treat the API governance files as authoritative evidence:
 
-- discover every packable project under `src`;
+- discover every released project from `eng/PackageContract.psd1`;
 - compare each project's `PublicAPI.Shipped.txt` and `PublicAPI.Unshipped.txt` with its versions at the base ref;
 - treat every `*REMOVED*` entry and every incompatible signature or constant-value replacement as a breaking change;
 - treat compatible API additions as new features unless they are part of a breaking replacement;

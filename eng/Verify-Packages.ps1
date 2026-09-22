@@ -28,37 +28,11 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$packageIds = @(
-    'MuLang.Core',
-    'MuLang.IR',
-    'MuLang.Compiler',
-    'MuLang.Exporters.DotNet',
-    'MuLang',
-    'MuLang.StandardLibrary',
-    'MuLang.StandardLibrary.DotNet'
-)
-$dependencies = @{
-    'MuLang.Core' = @()
-    'MuLang.IR' = @('MuLang.Core')
-    'MuLang.Compiler' = @('MuLang.Core', 'MuLang.IR')
-    'MuLang.Exporters.DotNet' = @('MuLang.Core', 'MuLang.IR')
-    'MuLang' = @('MuLang.Compiler', 'MuLang.Core', 'MuLang.Exporters.DotNet')
-    'MuLang.StandardLibrary' = @('MuLang.Core')
-    'MuLang.StandardLibrary.DotNet' = @(
-        'MuLang.Core',
-        'MuLang.Exporters.DotNet',
-        'MuLang.StandardLibrary'
-    )
-}
-$descriptions = @{
-    'MuLang.Core' = 'Core language types, environment contracts, profiles, diagnostics, and source abstractions for MuLang.'
-    'MuLang.IR' = 'Runtime-independent intermediate representation and validation contracts for MuLang exporters.'
-    'MuLang.Compiler' = 'Runtime-independent MuLang compiler that parses, validates, and lowers source code to portable IR.'
-    'MuLang.Exporters.DotNet' = '.NET exporter, runtime context, and adapter contracts for executing portable MuLang IR.'
-    'MuLang' = 'High-level .NET facade for compiling and executing MuLang expressions and programs.'
-    'MuLang.StandardLibrary' = 'Optional runtime-independent standard-library declarations for MuLang environments.'
-    'MuLang.StandardLibrary.DotNet' = 'Optional .NET implementations for MuLang standard-library declarations.'
-}
+$root = [System.IO.Path]::GetFullPath($RepositoryRoot)
+$contractPath = Join-Path $root 'eng\PackageContract.psd1'
+$contract = Import-PowerShellDataFile $contractPath
+$packages = @($contract.Packages)
+$packageIds = @($packages | ForEach-Object Id)
 $expectedArtifacts = @(
     $packageIds |
         ForEach-Object {
@@ -79,17 +53,32 @@ if (Compare-Object ($actualArtifacts | Sort-Object) ($expectedArtifacts | Sort-O
 
 foreach ($packageId in $packageIds)
 {
+    $packageContract = $packages |
+        Where-Object Id -EQ $packageId |
+        Select-Object -First 1
+    $projectPath = Join-Path $root $packageContract.Project
+    [xml] $project = [System.IO.File]::ReadAllText($projectPath)
+    $description = @(
+        $project.Project.PropertyGroup.PackageDescription |
+            Where-Object { ![string]::IsNullOrWhiteSpace($_) }
+    ) | Select-Object -Last 1
+
+    if ([string]::IsNullOrWhiteSpace($description))
+    {
+        throw "Project '$projectPath' does not define PackageDescription."
+    }
+
     $arguments = @{
         PackagePath = Join-Path $PackageDirectory "$packageId.$Version.nupkg"
         SymbolPackagePath = Join-Path $PackageDirectory "$packageId.$Version.snupkg"
         Version = $Version
         PackageId = $packageId
-        ExpectedDescription = $descriptions[$packageId]
-        ExpectedPackageDependencies = $dependencies[$packageId]
+        ExpectedDescription = $description.Trim()
+        ExpectedPackageDependencies = @($packageContract.Dependencies)
         RepositoryRoot = $RepositoryRoot
         TestSourceLinkUrls = $TestSourceLinkUrls
-        SkipConsumerTest = $packageId -ne 'MuLang'
-        TestDirectPackages = $packageId -eq 'MuLang'
+        SkipConsumerTest = $packageId -ne $contract.ConsumerPackages[0]
+        ConsumerPackageIds = @($contract.ConsumerPackages)
     }
 
     foreach ($name in @(

@@ -49,7 +49,7 @@ jobs:
       - name: Pack
         run: dotnet pack MuLang.slnx --configuration Release --no-build --no-restore --nologo --verbosity minimal --output artifacts/packages -p:Version=${{ env.VERSION }}
 
-      - name: Verify package
+      - name: Verify packages
         shell: pwsh
         run: |
           ./eng/Verify-Packages.ps1 `

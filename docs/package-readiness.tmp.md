@@ -3,7 +3,7 @@
 ## Current state
 
 The solution is split into independently packageable Core, IR, Compiler,
-.NET exporter, facade, and standard-library assemblies. Each production
+.NET exporter, and standard-library assemblies. Each production
 project has a matching test project, only matching test assemblies receive
 internal access, and the public IR supports alternative exporters.
 

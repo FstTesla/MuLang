@@ -7,16 +7,16 @@ share one version and release cadence.
 |---|---|---|
 | `MuLang.Core` | Types, environment contracts, profiles, diagnostics, and source spans | None |
 | `MuLang.IR` | Portable immutable IR and validation | `MuLang.Core` |
-| `MuLang.Compiler` | Parsing, binding, type checking, flow analysis, and lowering to IR | `MuLang.Core`, `MuLang.IR` |
-| `MuLang.Exporters.DotNet` | .NET delegate export, runtime context, and runtime adapters | `MuLang.Core`, `MuLang.IR` |
-| `MuLang` | High-level .NET compilation facade | `MuLang.Core`, `MuLang.Compiler`, `MuLang.Exporters.DotNet` |
+| `MuLang.Compiler` | Parsing, binding, type checking, flow analysis, and lowering to IR | `MuLang.IR` |
+| `MuLang.Exporters.DotNet` | .NET delegate export, runtime context, and runtime adapters | `MuLang.IR` |
 | `MuLang.StandardLibrary` | Optional runtime-independent standard-library declarations | `MuLang.Core` |
-| `MuLang.StandardLibrary.DotNet` | Optional .NET implementations of standard-library declarations | `MuLang.Core`, `MuLang.StandardLibrary`, `MuLang.Exporters.DotNet` |
+| `MuLang.StandardLibrary.DotNet` | Optional .NET implementations of standard-library declarations | `MuLang.StandardLibrary`, `MuLang.Exporters.DotNet` |
 
-Use `MuLang` for ordinary .NET hosting. Exporter authors can depend directly
-on `MuLang.Compiler`, `MuLang.IR`, and `MuLang.Core` without referencing the
-.NET exporter or facade.
+Ordinary .NET hosts reference `MuLang.Compiler` and
+`MuLang.Exporters.DotNet`: the compiler produces portable IR and the exporter
+turns validated IR into a .NET delegate. Alternative exporters reference
+`MuLang.Compiler`, `MuLang.IR`, and the runtime-specific packages they need.
 
 The standard-library packages are reserved for future opt-in modules and
-currently expose no modules. The compiler and facade do not add constants,
-functions, or structured types implicitly.
+currently expose no modules. The compiler does not add constants, functions,
+or structured types implicitly.

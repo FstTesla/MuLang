@@ -8,12 +8,15 @@ param(
     [Parameter(Mandatory)]
     [string] $Version,
 
-    [string] $PackageId = 'MuLang',
+    [Parameter(Mandatory)]
+    [string] $PackageId,
 
     [Parameter(Mandatory)]
     [string] $ExpectedDescription,
 
     [string[]] $ExpectedPackageDependencies = @(),
+
+    [string[]] $ConsumerPackageIds = @(),
 
     [string] $RepositoryRoot = (Join-Path $PSScriptRoot '..'),
 
@@ -38,9 +41,7 @@ param(
     [ValidateSet('public', 'private', 'internal')]
     [string] $ExpectedGitHubVisibility,
 
-    [switch] $SkipConsumerTest,
-
-    [switch] $TestDirectPackages
+    [switch] $SkipConsumerTest
 )
 
 $ErrorActionPreference = 'Stop'
@@ -256,8 +257,7 @@ function Invoke-ConsumerTest
         [string] $Username,
         [string] $Token,
         [int] $RestoreAttempts,
-        [string] $WorkingDirectory,
-        [switch] $DirectPackages
+        [string] $WorkingDirectory
     )
 
     [System.IO.Directory]::CreateDirectory($WorkingDirectory) | Out-Null
@@ -265,19 +265,12 @@ function Invoke-ConsumerTest
     $programPath = Join-Path $WorkingDirectory 'Program.cs'
     $configurationPath = Join-Path $WorkingDirectory 'NuGet.Config'
     $packagesPath = Join-Path $WorkingDirectory 'packages'
-    $packageReferences = if ($DirectPackages)
-    {
-        @"
-    <PackageReference Include="MuLang.Compiler" Version="$Version" />
-    <PackageReference Include="MuLang.Exporters.DotNet" Version="$Version" />
-"@
-    }
-    else
-    {
-        @"
-    <PackageReference Include="MuLang" Version="$Version" />
-"@
-    }
+    $packageReferences = (
+        $ConsumerPackageIds |
+            ForEach-Object {
+                "    <PackageReference Include=`"$_`" Version=`"$Version`" />"
+            }
+    ) -join [Environment]::NewLine
     $project = @"
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
@@ -291,9 +284,7 @@ $packageReferences
   </ItemGroup>
 </Project>
 "@
-    $program = if ($DirectPackages)
-    {
-        @'
+    $program = @'
 using MuLang.Compiler;
 using MuLang.Core;
 using MuLang.Core.Environment;
@@ -323,34 +314,6 @@ DotNetRuntimeContext context = new (
 
 return compiled(context) is 42L ? 0 : 1;
 '@
-    }
-    else
-    {
-        @'
-using MuLang;
-using MuLang.Core.Environment;
-using MuLang.Core.Types;
-using MuLang.Exporters.DotNet;
-
-EnvironmentSchema environment = new EnvironmentBuilder()
-    .AddGlobal("global.value", "value", TypeSymbols.Int)
-    .Build();
-CompilationResult compilation = MuLangCompiler.CompileExpression(
-    "value + 1",
-    environment,
-    TypeSymbols.Int
-);
-Func<DotNetRuntimeContext, object?> compiled = compilation.Delegate ??
-    throw new InvalidOperationException("Compilation failed.");
-DotNetRuntimeContext context = new (
-    environment,
-    [ new KeyValuePair<string, object?>("global.value", 41L) ],
-    [ ]
-);
-
-return compiled(context) is 42L ? 0 : 1;
-'@
-    }
     $escapedSource = [System.Security.SecurityElement]::Escape($Source)
     $credentials = if ([string]::IsNullOrEmpty($Token))
     {
@@ -426,7 +389,7 @@ $credentials
 
         if (!$restored)
         {
-            throw "Could not restore MuLang $Version from '$Source'."
+            throw "Could not restore the MuLang package set at version $Version from '$Source'."
         }
 
         & dotnet run `
@@ -437,7 +400,7 @@ $credentials
 
         if ($LASTEXITCODE -ne 0)
         {
-            throw "The consumer test failed for MuLang $Version from '$Source'."
+            throw "The consumer test failed for the MuLang package set at version $Version from '$Source'."
         }
     }
     finally
@@ -687,17 +650,6 @@ try
             1 `
             (Join-Path $temporaryRoot 'local-consumer')
 
-        if ($TestDirectPackages)
-        {
-            Invoke-ConsumerTest `
-                $package.DirectoryName `
-                'local' `
-                '' `
-                '' `
-                1 `
-                (Join-Path $temporaryRoot 'local-direct-consumer') `
-                -DirectPackages
-        }
     }
 
     if (
@@ -721,17 +673,6 @@ try
             $FeedRestoreAttempts `
             (Join-Path $temporaryRoot 'published-consumer')
 
-        if ($TestDirectPackages)
-        {
-            Invoke-ConsumerTest `
-                $FeedUrl `
-                'published' `
-                $FeedUsername `
-                $FeedToken `
-                $FeedRestoreAttempts `
-                (Join-Path $temporaryRoot 'published-direct-consumer') `
-                -DirectPackages
-        }
     }
 
     Assert-GitHubPackage

@@ -240,7 +240,7 @@ jobs:
             }
           }
 
-      - name: Verify published package
+      - name: Verify published packages
         shell: pwsh
         env:
           GITHUB_PACKAGE_TOKEN: ${{ github.token }}

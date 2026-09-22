@@ -1,4 +1,4 @@
-name: Verify published package
+name: Verify published packages
 
 on:
   workflow_dispatch:
@@ -56,7 +56,7 @@ jobs:
         run: dotnet pack MuLang.slnx --configuration Release --no-build --no-restore --nologo --verbosity minimal --output ../artifacts/packages -p:Version=${{ inputs.version }}
         working-directory: source
 
-      - name: Verify local and published package
+      - name: Verify local and published packages
         shell: pwsh
         working-directory: tooling
         env:

@@ -37,10 +37,6 @@
     <PackageId>$(MSBuildProjectName)</PackageId>
     <Title>$(MSBuildProjectName)</Title>
     <Authors>FstTesla</Authors>
-    <!--<PackageDescription>
-      MuLang is a small, embeddable, statically checked language for expressions and imperative programs.
-      Providers define the available global variables, functions, and structured types, while the compiler produces an executable delegate for a compatible runtime environment.
-    </PackageDescription>-->
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <PackageReadmeFile>README.md</PackageReadmeFile>

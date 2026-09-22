@@ -2,7 +2,7 @@
 
 ![MuLang logo](MuLang.png)
 
-MuLang is a small, embeddable, statically checked language for expressions and imperative programs. Providers define the available global variables, functions, and structured types, while the compiler produces an executable delegate for a compatible runtime environment.
+MuLang is a small, embeddable, statically checked language for expressions and imperative programs. Providers define the available global variables, functions, and structured types. The compiler produces portable IR, which a runtime-specific exporter turns into executable code.
 
 ## Status
 
@@ -18,14 +18,12 @@ MuLang currently targets .NET 10 and is under active development. Version suffix
 
 ## Getting started
 
-Install the latest prerelease package:
+Install the compiler and .NET exporter:
 
 ```powershell
-dotnet add package MuLang --prerelease
+dotnet add package MuLang.Compiler --prerelease
+dotnet add package MuLang.Exporters.DotNet --prerelease
 ```
-
-The `MuLang` package is the high-level .NET facade. Lower-level packages are
-available for hosts and exporter authors:
 
 | Package | Purpose |
 |---|---|
@@ -33,18 +31,17 @@ available for hosts and exporter authors:
 | `MuLang.IR` | Public portable IR and validation |
 | `MuLang.Compiler` | Source-to-IR compilation |
 | `MuLang.Exporters.DotNet` | IR-to-.NET export and runtime adapters |
-| `MuLang` | High-level .NET facade |
 | `MuLang.StandardLibrary` | Reserved for optional runtime-neutral standard-library declarations |
 | `MuLang.StandardLibrary.DotNet` | Reserved for optional .NET standard-library implementations |
 
 The standard-library packages intentionally contain no modules yet. The
-compiler and facade never import standard-library symbols implicitly.
+compiler never imports standard-library symbols implicitly.
 
 A MuLang host:
 
 1. Defines the global variables, functions, and structured types available to source code through an environment schema.
-2. Compiles an expression or program through `MuLangCompiler`.
-3. Checks compilation diagnostics before obtaining the executable delegate.
+2. Compiles an expression or program to portable IR through `MuLangCompiler`.
+3. Checks compilation diagnostics and exports the IR through `DotNetExporter`.
 4. Supplies runtime values and provider functions through `DotNetRuntimeContext`.
 
 See the [examples](https://github.com/FstTesla/MuLang/blob/main/docs/public/examples.md) for a complete compilation and execution flow.

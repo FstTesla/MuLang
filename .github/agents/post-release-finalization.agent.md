@@ -12,6 +12,7 @@ Require the user to provide the released version without the `v` prefix. Stop if
 
 Before editing, verify all of the following:
 
+- `eng/PackageContract.psd1` defines the exact released package set and direct dependency graph;
 - tag `v<version>` exists locally and remotely;
 - the tag resolves to the commit used by the successful publish workflow;
 - GitHub Packages contains the exact private version of every expected MuLang package associated with `FstTesla/MuLang`;
@@ -22,12 +23,12 @@ Before editing, verify all of the following:
 If any verification fails, stop without editing.
 
 Update only the `PublicAPI.Shipped.txt`, `PublicAPI.Unshipped.txt`, and
-`CompatibilitySuppressions.xml` files belonging to packable projects under
-`src`.
+`CompatibilitySuppressions.xml` files belonging to projects listed in
+`eng/PackageContract.psd1`.
 
 Consolidate the API files as follows:
 
-Apply these steps independently for every packable project:
+Apply these steps independently for every released project:
 
 1. Add every non-removed entry from `PublicAPI.Unshipped.txt` to `PublicAPI.Shipped.txt`.
 2. For every `*REMOVED*` entry, remove the corresponding original entry from `PublicAPI.Shipped.txt`.

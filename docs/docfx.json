@@ -9,7 +9,6 @@
             "src/MuLang.IR/bin/Release/net10.0/MuLang.IR.dll",
             "src/MuLang.Compiler/bin/Release/net10.0/MuLang.Compiler.dll",
             "src/MuLang.Exporters.DotNet/bin/Release/net10.0/MuLang.Exporters.DotNet.dll",
-            "src/MuLang/bin/Release/net10.0/MuLang.dll",
             "src/MuLang.StandardLibrary/bin/Release/net10.0/MuLang.StandardLibrary.dll",
             "src/MuLang.StandardLibrary.DotNet/bin/Release/net10.0/MuLang.StandardLibrary.DotNet.dll"
           ],

@@ -8,7 +8,8 @@ param(
 
     [string] $GitHubOwner = 'FstTesla',
 
-    [string] $PackageId = 'MuLang'
+    [Parameter(Mandatory)]
+    [string] $PackageId
 )
 
 $ErrorActionPreference = 'Stop'
