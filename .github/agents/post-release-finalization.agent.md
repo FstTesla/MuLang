@@ -28,8 +28,9 @@ Before editing, verify all of the following:
 - `eng/PackageContract.psd1` defines the exact released package set and direct dependency graph;
 - tag `v<version>` exists locally and remotely;
 - the tag resolves to the commit used by the successful publish workflow;
-- GitHub Packages contains the exact private version of every expected MuLang package associated with `FstTesla/MuLang`;
-- all published packages pass `eng/Verify-Packages.ps1`;
+- GitHub Packages contains the exact public version of every expected MuLang package associated with `FstTesla/MuLang`;
+- all published packages pass `eng/Verify-Packages.ps1` with
+  `-ExpectedGitHubVisibility 'public'`;
 - the checked-out branch contains the released commit and has no conflicting uncommitted changes;
 - the dynamically resolved latest package baseline for every package is the released version.
 
