@@ -1,6 +1,6 @@
 # Detailed changelog
 
-This file records consumer-visible changes for stable, release-candidate, and beta versions. Alpha versions may be included when useful.
+This file records consumer-visible changes for stable, release-candidate, beta, and alpha versions, including releases with no consumer-visible changes.
 
 Changes are classified as:
 
@@ -10,7 +10,17 @@ Changes are classified as:
 
 Stable entries describe the incremental change since the preceding prerelease. The main `CHANGELOG.md` provides the consolidated history between stable versions.
 
-## `0.1.0-alpha.3` - 2026-09-22
+Each release heading identifies the incremental version range covered by the section, from the comparison version to the released version.
+
+## `0.1.0-alpha.4` → `0.1.0-alpha.5` - 2026-09-22
+
+No consumer-visible changes.
+
+## `0.1.0-alpha.3` → `0.1.0-alpha.4` - 2026-09-22
+
+No consumer-visible changes.
+
+## `0.1.0-alpha.2` → `0.1.0-alpha.3` - 2026-09-22
 
 ### Breaking changes
 
@@ -23,7 +33,7 @@ Stable entries describe the incremental change since the preceding prerelease. T
 - Exposed compiler, IR, and .NET runtime diagnostic codes as public constants.
 - Exposed `ObjectTypeSymbol.CreateAnonymous`, `TypeSymbols.Null`, and `TypeSymbols.Error` for compiler and IR integrations.
 
-## `0.1.0-alpha.2` - 2026-09-18
+## `0.1.0-alpha.1` → `0.1.0-alpha.2` - 2026-09-18
 
 ### Breaking changes
 

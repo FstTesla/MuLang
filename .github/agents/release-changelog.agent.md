@@ -13,14 +13,22 @@ Require the user to provide:
 - an explicit incremental base Git ref, commit, or released MuLang version;
 - the target version without the `v` prefix.
 
-For a stable target version, also require an explicit stable base Git ref, commit, or released MuLang version. It identifies the preceding stable comparison point used for `CHANGELOG.md`. Do not select either base on the user's behalf.
+If the incremental base input is not itself a released MuLang version or a
+`v<version>` tag, also require the released version represented by that base,
+without the `v` prefix. This version is used as the starting version displayed
+in `CHANGELOG.detailed.md`.
+
+For a stable target version, also require an explicit stable base Git ref, commit, or released MuLang version. It identifies the preceding stable comparison point used for `CHANGELOG.md`. If that input is not itself a released MuLang version or a `v<version>` tag, also require the released version represented by that base, without the `v` prefix. This version is used as the starting version displayed in `CHANGELOG.md`. Do not select either base or its displayed version on the user's behalf.
 
 Stop and request any required missing value. Resolve each base input deterministically:
 
 1. Try the input exactly as a Git ref or commit.
 2. If the exact input does not resolve and the input is a valid MuLang version without a `v` prefix, try the tag `v<input>`.
-3. Report the resolved ref and commit before analyzing changes.
-4. Stop if neither form resolves.
+3. Determine the displayed base version from the version input, the
+   `v<version>` tag, or the separately provided version.
+4. Report the resolved ref, commit, and displayed base version before
+   analyzing changes.
+5. Stop if neither form resolves.
 
 Use a non-destructive tag fetch when the repository checkout does not contain the requested tag. Do not create, delete, or move tags.
 
@@ -37,7 +45,9 @@ Temporary artifact cleanup:
 - after cleanup, delete the top-level `artifacts` directory if it exists and
   is empty.
 
-Validate that every required base resolves and that the target version is either stable SemVer or uses exactly one of the `alpha.N`, `beta.N`, or `rc.N` suffixes, where `N` is a positive integer.
+Validate that every required base resolves. Each displayed base version and the
+target version must either be stable SemVer or use exactly one of the
+`alpha.N`, `beta.N`, or `rc.N` suffixes, where `N` is a positive integer.
 
 Review the complete committed change set from the resolved incremental base commit through `HEAD`, including commit history, source diff, public API changes, language specification changes, runtime behavior, packaging, and consumer documentation. Do not classify changes solely from commit subjects.
 
@@ -69,11 +79,13 @@ For a package removed entirely at the target:
 For every target version:
 
 - write the incremental release section to `CHANGELOG.detailed.md`;
+- identify both the displayed incremental base version and the target version in
+  the section heading;
 - require beta, RC, and stable versions to have a detailed section;
 - add an alpha section only when the agent was explicitly invoked to document that alpha;
 - reject a duplicate target-version section in `CHANGELOG.detailed.md`.
 
-For a stable target version, additionally review the complete committed change set from the resolved stable base commit through `HEAD` and write a consolidated section to `CHANGELOG.md`. The stable section describes the final consumer-visible outcome since the preceding stable release. Do not concatenate prerelease entries mechanically. Omit changes introduced and later reverted, superseded intermediate behavior, and prerelease-only implementation history. Reject a duplicate target-version section in `CHANGELOG.md`.
+For a stable target version, additionally review the complete committed change set from the resolved stable base commit through `HEAD` and write a consolidated section to `CHANGELOG.md`. Identify both the displayed stable base version and the target version in the section heading. The stable section describes the final consumer-visible outcome since the preceding stable release. Do not concatenate prerelease entries mechanically. Omit changes introduced and later reverted, superseded intermediate behavior, and prerelease-only implementation history. Reject a duplicate target-version section in `CHANGELOG.md`.
 
 Do not add prerelease sections to `CHANGELOG.md`.
 
@@ -120,7 +132,7 @@ Do not add or require an `Unreleased` section.
 Use this section format:
 
 ```markdown
-## `<version>` - <UTC date>
+## `<base version>` → `<target version>` - <UTC date>
 
 ### Breaking changes
 
@@ -136,6 +148,12 @@ Use this section format:
 ```
 
 Omit empty category headings. Keep entries concise, factual, and understandable without reading commits or pull requests.
+
+Always write the detailed section, even when the incremental diff contains no
+consumer-visible changes. In that case, omit all category headings and write
+`No consumer-visible changes.` directly below the section heading. This
+explicit entry preserves the complete prerelease sequence without implying a
+substantive change.
 
 Before editing, report and stop if:
 
