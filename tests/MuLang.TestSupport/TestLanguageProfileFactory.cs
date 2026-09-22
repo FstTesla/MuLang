@@ -1,8 +1,8 @@
 using MuLang.Core;
 
-namespace MuLang.StandardLibrary.Tests;
+namespace MuLang.TestSupport;
 
-internal static class TestLanguageProfileFactory
+public static class TestLanguageProfileFactory
 {
     public static LanguageProfile Create(
         UserDefinedFunctionsFeature? userDefinedFunctions = null,

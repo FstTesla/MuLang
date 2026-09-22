@@ -1,10 +1,12 @@
 - Standard library
-- `Directory.Build` files in `src/` and `tests/` for partitioned project-wide settings
 - New features:
+  - Readonly covariant array type
+  - Readonly properties and locals
   - Comments
   - User-defined types
   - First-class functions and function types
 - Feature flags:
+  - Readonly properties and locals
   - Comments
   - User-defined types
   - First-class functions and function types

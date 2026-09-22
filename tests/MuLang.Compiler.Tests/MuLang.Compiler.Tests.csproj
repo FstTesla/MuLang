@@ -5,22 +5,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="coverlet.collector" Version="6.*" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.*" />
-    <PackageReference Include="NUnit" Version="4.*" />
-    <PackageReference Include="NUnit3TestAdapter" Version="5.*" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\..\src\MuLang.Compiler\MuLang.Compiler.csproj" />
-    <ProjectReference Include="..\..\src\MuLang.Core\MuLang.Core.csproj" />
     <ProjectReference Include="..\..\src\MuLang.Exporters.DotNet\MuLang.Exporters.DotNet.csproj" />
-    <ProjectReference Include="..\..\src\MuLang.IR\MuLang.IR.csproj" />
-    <ProjectReference Include="..\..\src\MuLang\MuLang.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Using Include="NUnit.Framework" />
+    <!--<ProjectReference Include="..\..\src\MuLang.Exporters.DotNet\MuLang.Exporters.DotNet.csproj" />-->
+    <ProjectReference Include="..\MuLang.TestSupport\MuLang.TestSupport.csproj" />
   </ItemGroup>
 
 </Project>

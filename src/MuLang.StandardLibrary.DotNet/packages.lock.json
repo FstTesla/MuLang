@@ -14,7 +14,6 @@
       "mulang.exporters.dotnet": {
         "type": "Project",
         "dependencies": {
-          "MuLang.Core": "[1.0.0, )",
           "MuLang.IR": "[1.0.0, )"
         }
       },

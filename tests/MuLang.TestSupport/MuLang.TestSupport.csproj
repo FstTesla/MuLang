@@ -5,8 +5,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\MuLang.IR\MuLang.IR.csproj" />
-    <ProjectReference Include="..\MuLang.TestSupport\MuLang.TestSupport.csproj" />
+    <PackageReference Include="NUnit" Version="4.*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\MuLang.Core\MuLang.Core.csproj" />
   </ItemGroup>
 
 </Project>

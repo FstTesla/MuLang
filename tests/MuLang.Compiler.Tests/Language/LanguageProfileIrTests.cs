@@ -7,7 +7,7 @@ using MuLang.Core.Environment;
 using MuLang.Core.Text;
 using MuLang.Core.Types;
 using MuLang.IR;
-using MuLang.StandardLibrary.Tests;
+using MuLang.TestSupport;
 
 namespace MuLang.Compiler.Tests.Language;
 

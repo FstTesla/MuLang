@@ -14,12 +14,8 @@
     <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)MuLang.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(UsingMicrosoftNoTargetsSdk)' == 'true'">
-    <SkipResolvePackageAssets>true</SkipResolvePackageAssets>
-  </PropertyGroup>
-
   <Choose>
-    <When Condition="!$(MSBuildProjectName.EndsWith('.Tests')) And '$(UsingMicrosoftNoTargetsSdk)' != 'true'">
+    <When Condition="!$(MSBuildProjectName.EndsWith('.Tests')) And '$(MSBuildProjectName)' != 'MuLang.TestSupport' And '$(UsingMicrosoftNoTargetsSdk)' != 'true'">
 
       <PropertyGroup>
         <IsPackable>true</IsPackable>
@@ -41,10 +37,10 @@
     <PackageId>$(MSBuildProjectName)</PackageId>
     <Title>$(MSBuildProjectName)</Title>
     <Authors>FstTesla</Authors>
-    <PackageDescription>
+    <!--<PackageDescription>
       MuLang is a small, embeddable, statically checked language for expressions and imperative programs.
       Providers define the available global variables, functions, and structured types, while the compiler produces an executable delegate for a compatible runtime environment.
-    </PackageDescription>
+    </PackageDescription>-->
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <PackageReadmeFile>README.md</PackageReadmeFile>
@@ -61,19 +57,32 @@
     <ApiCompatPreserveUnnecessarySuppressions>true</ApiCompatPreserveUnnecessarySuppressions>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+    <RestoreLockedMode>true</RestoreLockedMode>
+  </PropertyGroup>
+
   <ItemGroup Condition="'$(IsPackable)' == 'true'">
-    <None Include="$(MSBuildThisFileDirectory)LICENSE" Pack="true" PackagePath="\" />
-    <None Include="$(MSBuildThisFileDirectory)MuLang.png" Pack="true" PackagePath="\" />
-    <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="\" />
     <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Version="5.*">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
   </ItemGroup>
 
-  <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
-    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
-    <RestoreLockedMode>true</RestoreLockedMode>
-  </PropertyGroup>
+  <ItemGroup Condition="$(MSBuildProjectName.EndsWith('.Tests'))">
+    <PackageReference Include="coverlet.collector" Version="6.*" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.*" />
+    <PackageReference Include="NUnit3TestAdapter" Version="5.*" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(IsPackable)' == 'true'">
+    <None Include="$(MSBuildThisFileDirectory)LICENSE" Pack="true" PackagePath="\" />
+    <None Include="$(MSBuildThisFileDirectory)MuLang.png" Pack="true" PackagePath="\" />
+    <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup Condition="$(MSBuildProjectName.EndsWith('.Tests'))">
+    <Using Include="NUnit.Framework" />
+  </ItemGroup>
 
 </Project>

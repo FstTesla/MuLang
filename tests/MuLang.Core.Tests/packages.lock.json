@@ -18,12 +18,6 @@
           "Microsoft.TestPlatform.TestHost": "17.14.1"
         }
       },
-      "NUnit": {
-        "type": "Direct",
-        "requested": "[4.*, )",
-        "resolved": "4.6.1",
-        "contentHash": "xS4+YaBFUv1r8bcAbjitSfYaRZGfMwUiMdiaRziBXZpKgVxKDSHhjUn0mV5mObHGZRZq6eNa+WFWr3g8grj66A=="
-      },
       "NUnit3TestAdapter": {
         "type": "Direct",
         "requested": "[5.*, )",
@@ -110,8 +104,20 @@
         "resolved": "13.0.3",
         "contentHash": "HrC5BXdl00IP9zeV+0Z848QWPAoCr9P3bDEZguI+gkLcBKAOxix/tLEAAHC+UvDNPv4a2d18lOReHMOagPa+zQ=="
       },
+      "NUnit": {
+        "type": "Transitive",
+        "resolved": "4.6.1",
+        "contentHash": "xS4+YaBFUv1r8bcAbjitSfYaRZGfMwUiMdiaRziBXZpKgVxKDSHhjUn0mV5mObHGZRZq6eNa+WFWr3g8grj66A=="
+      },
       "mulang.core": {
         "type": "Project"
+      },
+      "mulang.testsupport": {
+        "type": "Project",
+        "dependencies": {
+          "MuLang.Core": "[1.0.0, )",
+          "NUnit": "[4.*, )"
+        }
       }
     }
   }

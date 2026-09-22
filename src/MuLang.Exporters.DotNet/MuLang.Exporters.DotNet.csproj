@@ -6,7 +6,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\MuLang.Core\MuLang.Core.csproj" />
     <ProjectReference Include="..\MuLang.IR\MuLang.IR.csproj" />
   </ItemGroup>
 

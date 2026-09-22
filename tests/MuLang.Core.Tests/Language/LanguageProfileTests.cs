@@ -1,4 +1,4 @@
-using MuLang.StandardLibrary.Tests;
+using MuLang.TestSupport;
 
 namespace MuLang.Core.Tests.Language;
 

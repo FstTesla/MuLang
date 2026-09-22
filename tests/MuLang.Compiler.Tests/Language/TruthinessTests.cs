@@ -10,7 +10,7 @@ using MuLang.Core.Text;
 using MuLang.Core.Types;
 using MuLang.Exporters.DotNet;
 using MuLang.IR;
-using MuLang.StandardLibrary.Tests;
+using MuLang.TestSupport;
 
 namespace MuLang.Compiler.Tests.Language;
 
@@ -25,18 +25,26 @@ public sealed class TruthinessTests
     public void CompilesThroughThePublicProfileAwarePipeline()
     {
         EnvironmentSchema environment = CreateEmptyEnvironment();
-        MuLang.CompilationResult result = MuLang.MuLangCompiler.CompileExpression(
+        CompilationResult result = MuLangCompiler.Compile(
             "0 || \"value\"",
             environment,
+            CompilationMode.Expression,
             TypeSymbols.Bool,
             truthinessProfile
         );
-        Func<DotNetRuntimeContext, object?> compiled = result.Delegate ??
-            throw new AssertionException("Expected compilation to produce a delegate.");
+        DotNetExportResult export = DotNetExporter.Export(
+            result.Program ?? throw new AssertionException("Expected compilation to produce an IR program."),
+            environment,
+            CompilationMode.Expression,
+            truthinessProfile.Fingerprint
+        );
+        Func<DotNetRuntimeContext, object?> compiled = export.Delegate ??
+            throw new AssertionException("Expected the .NET exporter to produce a delegate.");
 
         using (Assert.EnterMultipleScope())
         {
             Assert.That(result.Diagnostics, Is.Empty);
+            Assert.That(export.Diagnostics, Is.Empty);
             Assert.That(compiled(CreateContext(environment)), Is.True);
         }
     }
@@ -580,9 +588,10 @@ public sealed class TruthinessTests
     public void RecognizesConstantTruthyLoopsAsNonCompleting()
     {
         EnvironmentSchema environment = CreateEmptyEnvironment();
-        MuLang.CompilationResult result = MuLang.MuLangCompiler.CompileProgram(
+        CompilationResult result = MuLangCompiler.Compile(
             "while (1) { }",
             environment,
+            CompilationMode.Program,
             TypeSymbols.Int,
             truthinessProfile
         );

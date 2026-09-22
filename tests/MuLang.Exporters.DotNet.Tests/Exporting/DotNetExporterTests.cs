@@ -1,3 +1,4 @@
+using MuLang.Compiler;
 using MuLang.Core;
 using MuLang.Core.Diagnostics;
 using MuLang.Core.Environment;
@@ -5,7 +6,6 @@ using MuLang.Core.Runtime;
 using MuLang.Core.Symbols;
 using MuLang.Core.Types;
 using MuLang.IR;
-using PortableCompiler = MuLang.Compiler.MuLangCompiler;
 
 namespace MuLang.Exporters.DotNet.Tests.Exporting;
 
@@ -344,13 +344,20 @@ public sealed class DotNetExporterTests
         LanguageProfile profile = new LanguageProfileBuilder()
             .WithOpenObjects(OpenObjectsFeature.PropertyExistenceOnly)
             .Build();
-        CompilationResult result = MuLangCompiler.CompileExpression(
+        CompilationResult result = MuLangCompiler.Compile(
             "item has key",
             environment,
+            CompilationMode.Expression,
             TypeSymbols.Bool,
             profile
         );
-        Func<DotNetRuntimeContext, object?> compiled = result.Delegate ??
+        DotNetExportResult export = DotNetExporter.Export(
+            result.Program ?? throw new AssertionException("Expected compilation to produce an IR program."),
+            environment,
+            CompilationMode.Expression,
+            profile.Fingerprint
+        );
+        Func<DotNetRuntimeContext, object?> compiled = export.Delegate ??
             throw new AssertionException("Expected a compiled delegate.");
         DotNetRuntimeContext context = CreateContext(
             environment,
@@ -368,6 +375,7 @@ public sealed class DotNetExporterTests
         using (Assert.EnterMultipleScope())
         {
             Assert.That(result.Diagnostics, Is.Empty);
+            Assert.That(export.Diagnostics, Is.Empty);
             Assert.That(compiled(context), Is.True);
         }
     }
@@ -1342,7 +1350,7 @@ public sealed class DotNetExporterTests
         TypeSymbol? expectedType = null
     )
     {
-        Compiler.CompilationResult result = PortableCompiler.Compile(
+        CompilationResult result = MuLangCompiler.Compile(
             source,
             environment,
             CompilationMode.Expression,
@@ -1360,7 +1368,7 @@ public sealed class DotNetExporterTests
         TypeSymbol resultType
     )
     {
-        Compiler.CompilationResult result = PortableCompiler.Compile(
+        CompilationResult result = MuLangCompiler.Compile(
             source,
             environment,
             CompilationMode.Program,
