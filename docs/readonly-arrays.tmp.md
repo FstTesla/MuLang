@@ -32,7 +32,9 @@ Mutable arrays remain invariant. Read-only arrays are views, not deeply immutabl
 | Mutable array variance | Invariant |
 | Read-only array variance | Covariant under a dedicated representation-safe relation |
 | Mutable-to-read-only conversion | Implicit when the element types are view-compatible |
-| Read-only-to-mutable conversion | Prohibited, including through `as` |
+| Read-only-to-mutable conversion | Never implicit; permitted through `as` when the runtime value is writable and its current elements conform structurally |
+| Runtime array typing | Shape-based; array casts do not require a reified nominal element type |
+| Runtime conformance | `is` and `as` validate the current capability and elements; they do not establish a permanent invariant across aliases |
 | Literal inference | `$[...]` infers the element type using the existing array-literal rules |
 | Empty literal | `$[]` requires an expected read-only array type |
 | Versioning | Introduce with `LanguageVersion.Version2`; Version 1 rejects the feature |
@@ -95,7 +97,7 @@ Read-only arrays support:
 - the intrinsic `length` property;
 - equality and identity operations;
 - type tests;
-- explicit conversions that do not acquire write capability;
+- explicit checked conversions, including acquisition of write capability when runtime validation succeeds;
 - passage to compatible read-only parameters and return types.
 
 Read-only arrays do not support element assignment.
@@ -177,17 +179,26 @@ Conditional expressions, null coalescing, array literals containing arrays, and 
 
 ### Checked conversions and type tests
 
-`as` may:
+Array type tests and checked conversions are shape-based. They inspect the runtime value presented to the operation and do not require a nominal or reified runtime element-type declaration.
 
-- preserve read-only capability;
-- convert a mutable array to a compatible read-only view;
-- perform existing checked element-shape validation where static knowledge is insufficient.
+`is T[]` evaluates to true only when:
 
-`as` must never remove read-only capability.
+- the runtime value exposes mutable array capability; and
+- every current element conforms recursively to `T`.
 
-`is T[]$` tests whether the value is an array readable as `T`. It does not require the runtime value to support mutation.
+`value as T[]` performs the same validation. On success it returns the same logical array with static type `T[]`; otherwise it produces a checked-conversion runtime error.
 
-`is T[]` additionally requires a mutable runtime array contract.
+`is T[]$` evaluates to true when the runtime value exposes read capability and every current element conforms recursively to `T`. It does not require mutable capability.
+
+`value as T[]$` performs the same validation and returns an identity-preserving read-only view.
+
+Consequently, `T[]$ as T[]` is permitted but succeeds only when the runtime value presented to the cast exposes mutable capability and its current elements conform to `T`. A genuinely read-only adapter or a read-only projection that intentionally hides mutation capability fails the cast even if another object elsewhere wraps the same underlying storage mutably.
+
+Successful `is` or `as` validation describes the array at that instant. It does not establish a permanent element invariant across aliases. A different mutable alias may later place a nonconforming value into the array.
+
+Every element read through a statically typed array must therefore validate the retrieved runtime value against the expected element type. If another alias has invalidated the shape, the read produces a runtime type error.
+
+Every element write remains statically checked against the target array element type, and the runtime adapter may still reject the mutation.
 
 ## Lexing and parsing
 
@@ -226,7 +237,7 @@ Update the binder to:
 - infer `$[...]` as a read-only array;
 - use expected read-only element types for empty and contextually typed literals;
 - insert implicit mutable-to-read-only conversions;
-- reject read-only-to-mutable conversions;
+- classify read-only-to-mutable array conversions as checked when runtime validation can establish writable capability and element conformance;
 - reject element assignments through read-only targets;
 - apply read-only covariance to arguments, returns, locals, conditionals, and null coalescing;
 - preserve the existing nullable-array behavior;
@@ -262,7 +273,7 @@ Update IR validation to:
 
 - compare array capability during type equivalence;
 - accept representation-preserving mutable-to-read-only conversions;
-- reject read-only-to-mutable conversions;
+- accept checked read-only-to-mutable conversions while rejecting an unchecked capability acquisition;
 - reject `SetElement` when the target slot is read-only;
 - validate covariant read-only call arguments;
 - validate read-only array constants and results using the correct runtime capability;
@@ -293,6 +304,9 @@ Runtime type validation must:
 - accept either read-only or mutable implementations for `T[]$`;
 - require `IDotNetArrayValue` for `T[]`;
 - validate elements recursively against the declared element type;
+- use the same capability-and-shape predicate for `is T[]` and `as T[]`;
+- avoid requiring adapters to expose a nominal or reified element type;
+- validate every element read against the statically expected element type;
 - retain traversal-depth and cycle-safety behavior;
 - preserve identity when a mutable value is observed as read-only.
 
@@ -387,7 +401,8 @@ Cover:
 - rejected writes;
 - function arguments and returns;
 - conditional and null-coalescing common types;
-- `is` and `as`;
+- `is` and `as` for mutable and read-only targets;
+- successful and failed checked acquisition of mutable capability;
 - preservation of mutable literal inference under `var`.
 
 ### IR tests
@@ -396,7 +411,8 @@ Cover:
 
 - valid read-only creation and reads;
 - valid mutable-to-read-only conversion;
-- rejected capability acquisition;
+- valid checked capability acquisition;
+- rejected unchecked capability acquisition;
 - rejected writes through malformed IR;
 - provider-call covariance;
 - nullable and nested array metadata.
@@ -412,7 +428,9 @@ Cover:
 - provider-call argument projection;
 - inability of provider implementations to cast projected values to the mutable interface;
 - structural equality;
-- runtime type tests;
+- runtime type tests and casts based on current element shape;
+- failure of mutable casts for genuinely read-only adapters and protected projections;
+- runtime read failure after another alias introduces a nonconforming element;
 - invalid adapter and element values.
 
 ### End-to-end tests
@@ -423,6 +441,8 @@ Cover complete Version 2 compilation and execution for:
 - covariant provider arguments;
 - nested read-only arrays;
 - read-only return values;
+- checked casts from read-only views to mutable arrays;
+- failed casts when write capability or element conformance is absent;
 - mutation rejection at compile time;
 - mutable aliases updating a read-only view.
 
@@ -448,7 +468,7 @@ Exit criteria:
 2. Extend type parsing and array-literal parsing.
 3. Add version diagnostics.
 4. Bind read-only types and literals.
-5. Reject writes and capability acquisition.
+5. Reject writes through read-only targets and require checked conversion for capability acquisition.
 6. Add compiler tests.
 
 Exit criteria:
@@ -502,7 +522,11 @@ Exit criteria:
 - `$[...]` creates a read-only array literal.
 - Mutable arrays remain invariant.
 - Read-only views are safely covariant.
-- Read-only capability cannot be removed implicitly or explicitly.
+- Read-only capability cannot be removed implicitly.
+- `as T[]` and `is T[]` use one shape-based runtime predicate requiring writable capability and currently conforming elements.
+- Array casts do not require a nominal or reified runtime element type.
+- Successful runtime conformance checks do not establish a permanent invariant across aliases.
+- Element reads detect shape violations introduced later through another alias.
 - Element assignment through a read-only type is rejected statically.
 - Malformed IR cannot bypass the restriction.
 - Providers can expose arrays without a write contract.
