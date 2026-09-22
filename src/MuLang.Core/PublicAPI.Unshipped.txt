@@ -1,1 +1,4 @@
 #nullable enable
+static MuLang.Core.Types.ObjectTypeSymbol.CreateAnonymous(bool isOpen, System.Collections.Generic.IEnumerable<MuLang.Core.Types.ObjectPropertySymbol!>! properties) -> MuLang.Core.Types.ObjectTypeSymbol!
+static MuLang.Core.Types.TypeSymbols.Error.get -> MuLang.Core.Types.TypeSymbol!
+static MuLang.Core.Types.TypeSymbols.Null.get -> MuLang.Core.Types.TypeSymbol!

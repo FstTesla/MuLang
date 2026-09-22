@@ -249,17 +249,14 @@ static MuLang.Core.Text.TextPosition.operator ==(MuLang.Core.Text.TextPosition l
 static MuLang.Core.Text.TextSpan.FromBounds(int start, int end) -> MuLang.Core.Text.TextSpan
 static MuLang.Core.Text.TextSpan.operator !=(MuLang.Core.Text.TextSpan left, MuLang.Core.Text.TextSpan right) -> bool
 static MuLang.Core.Text.TextSpan.operator ==(MuLang.Core.Text.TextSpan left, MuLang.Core.Text.TextSpan right) -> bool
-static MuLang.Core.Types.ObjectTypeSymbol.CreateAnonymous(bool isOpen, System.Collections.Generic.IEnumerable<MuLang.Core.Types.ObjectPropertySymbol!>! properties) -> MuLang.Core.Types.ObjectTypeSymbol!
 static MuLang.Core.Types.TypeRelations.AreEquivalent(MuLang.Core.Types.TypeSymbol! left, MuLang.Core.Types.TypeSymbol! right) -> bool
 static MuLang.Core.Types.TypeRelations.ClassifyConversion(MuLang.Core.Types.TypeSymbol! source, MuLang.Core.Types.TypeSymbol! target) -> MuLang.Core.Types.ConversionKind
 static MuLang.Core.Types.TypeRelations.GetCommonType(MuLang.Core.Types.TypeSymbol! left, MuLang.Core.Types.TypeSymbol! right) -> MuLang.Core.Types.TypeSymbol?
 static MuLang.Core.Types.TypeRelations.IsAssignable(MuLang.Core.Types.TypeSymbol! source, MuLang.Core.Types.TypeSymbol! target) -> bool
 static MuLang.Core.Types.TypeSymbols.Array(MuLang.Core.Types.TypeSymbol! elementType) -> MuLang.Core.Types.ArrayTypeSymbol!
 static MuLang.Core.Types.TypeSymbols.Bool.get -> MuLang.Core.Types.TypeSymbol!
-static MuLang.Core.Types.TypeSymbols.Error.get -> MuLang.Core.Types.TypeSymbol!
 static MuLang.Core.Types.TypeSymbols.Float.get -> MuLang.Core.Types.TypeSymbol!
 static MuLang.Core.Types.TypeSymbols.Int.get -> MuLang.Core.Types.TypeSymbol!
-static MuLang.Core.Types.TypeSymbols.Null.get -> MuLang.Core.Types.TypeSymbol!
 static MuLang.Core.Types.TypeSymbols.Nullable(MuLang.Core.Types.TypeSymbol! underlyingType) -> MuLang.Core.Types.NullableTypeSymbol!
 static MuLang.Core.Types.TypeSymbols.Number.get -> MuLang.Core.Types.TypeSymbol!
 static MuLang.Core.Types.TypeSymbols.Object.get -> MuLang.Core.Types.TypeSymbol!

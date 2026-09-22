@@ -29,10 +29,29 @@ Validate that every required base resolves and that the target version is either
 Review the complete committed change set from the resolved incremental base commit through `HEAD`, including commit history, source diff, public API changes, language specification changes, runtime behavior, packaging, and consumer documentation. Do not classify changes solely from commit subjects.
 
 Treat `eng/PackageContract.psd1` at the target commit as the authoritative
-release package set and dependency graph. Compare it with the base ref.
-Package additions, removals, renames, and dependency changes are
+target release package set and dependency graph. Determine the base package
+set from the same file at the incremental base ref when it exists. When the
+base predates the package contract, derive its released package set from the
+packable projects and package identities at that ref.
+
+Compare the base and target package sets before inspecting individual API
+files. Package additions, removals, renames, and dependency changes are
 consumer-visible changes. In particular, removal of a previously released
 package is a breaking change.
+
+For a package removed entirely at the target:
+
+- inspect its project, package metadata, `PublicAPI.Shipped.txt`,
+  `PublicAPI.Unshipped.txt`, and `CompatibilitySuppressions.xml` at the base
+  ref;
+- inspect the target diff to verify that the package, project, and API
+  governance files were intentionally removed;
+- describe the package removal and its replacement or migration path under
+  `Breaking changes`;
+- do not require the removed project or API governance files to exist at
+  `HEAD`;
+- do not require member-level `*REMOVED*` entries for APIs whose containing
+  package was removed in its entirety.
 
 For every target version:
 
@@ -48,10 +67,15 @@ Do not add prerelease sections to `CHANGELOG.md`.
 Treat the API governance files as authoritative evidence:
 
 - discover every released project from `eng/PackageContract.psd1`;
-- compare each project's `PublicAPI.Shipped.txt` and `PublicAPI.Unshipped.txt` with its versions at the base ref;
+- compare each target package's `PublicAPI.Shipped.txt` and
+  `PublicAPI.Unshipped.txt` with its versions at the base ref when that
+  package exists at both refs;
+- for packages present only at the base ref, use the base API files as
+  evidence of the public surface removed with the package;
 - treat every `*REMOVED*` entry and every incompatible signature or constant-value replacement as a breaking change;
 - treat compatible API additions as new features unless they are part of a breaking replacement;
-- inspect every `CompatibilitySuppressions.xml` belonging to a packable project;
+- inspect every target package's `CompatibilitySuppressions.xml` and the base
+  suppression file of every removed package;
 - require every intentional package-validation suppression to be represented under `Breaking changes` in every applicable changelog section.
 
 Use source and package diffs to explain API entries in consumer-facing terms. Do not copy analyzer signatures or diagnostic identifiers directly into the changelog when a clearer API description is available.
@@ -102,9 +126,14 @@ Omit empty category headings. Keep entries concise, factual, and understandable 
 
 Before editing, report and stop if:
 
-- a removed or changed shipped API has no corresponding `*REMOVED*` entry;
+- a removed or changed shipped API in a package that remains in the target
+  package set has no corresponding `*REMOVED*` entry;
 - a new public API is missing from `PublicAPI.Unshipped.txt`;
 - a package compatibility suppression cannot be matched to an intentional consumer-visible breaking change.
+
+Do not stop merely because a removed package has no target project, target API
+files, or member-level `*REMOVED*` entries. The package-set diff and the base
+API files are the required evidence for a complete package removal.
 
 For alpha, beta, and RC targets, modify only `CHANGELOG.detailed.md`. For stable targets, modify only `CHANGELOG.detailed.md` and `CHANGELOG.md`.
 
