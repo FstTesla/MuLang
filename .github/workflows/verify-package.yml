@@ -76,4 +76,4 @@ jobs:
             -GitHubOwner 'FstTesla' `
             -GitHubRepository 'MuLang' `
             -GitHubToken $env:GITHUB_PACKAGE_TOKEN `
-            -ExpectedGitHubVisibility 'private'
+            -ExpectedGitHubVisibility 'public'
