@@ -7,6 +7,14 @@ namespace MuLang.Core.Tests.Environment;
 public sealed class EnvironmentBuilderTests
 {
     [Test]
+    public void UsesLanguageVersionTwoByDefault()
+    {
+        EnvironmentSchema schema = new EnvironmentBuilder().Build();
+
+        Assert.That(schema.LanguageVersion, Is.EqualTo(LanguageVersion.Version2));
+    }
+
+    [Test]
     public void BuildsLookupTables()
     {
         ObjectTypeSymbol itemType = CreateItemType();
@@ -95,6 +103,23 @@ public sealed class EnvironmentBuilderTests
             .Build();
 
         Assert.That(second.Fingerprint, Is.Not.EqualTo(first.Fingerprint));
+    }
+
+    [Test]
+    public void DistinguishesArrayCapabilityInFingerprint()
+    {
+        EnvironmentSchema mutable = new EnvironmentBuilder()
+            .AddGlobal("global.values", "values", TypeSymbols.Array(TypeSymbols.Int))
+            .Build(LanguageVersion.Version2);
+        EnvironmentSchema readOnly = new EnvironmentBuilder()
+            .AddGlobal(
+                "global.values",
+                "values",
+                TypeSymbols.ReadOnlyArray(TypeSymbols.Int)
+            )
+            .Build(LanguageVersion.Version2);
+
+        Assert.That(readOnly.Fingerprint, Is.Not.EqualTo(mutable.Fingerprint));
     }
 
     [Test]

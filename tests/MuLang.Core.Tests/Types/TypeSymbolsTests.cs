@@ -9,11 +9,19 @@ public sealed class TypeSymbolsTests
     {
         TypeSymbol nullableElements = TypeSymbols.Array(TypeSymbols.Nullable(TypeSymbols.Int));
         TypeSymbol nullableArray = TypeSymbols.Nullable(TypeSymbols.Array(TypeSymbols.Int));
+        TypeSymbol readOnlyNullableElements = TypeSymbols.ReadOnlyArray(
+            TypeSymbols.Nullable(TypeSymbols.Int)
+        );
+        TypeSymbol nullableReadOnlyArray = TypeSymbols.Nullable(
+            TypeSymbols.ReadOnlyArray(TypeSymbols.Int)
+        );
 
         using (Assert.EnterMultipleScope())
         {
             Assert.That(nullableElements.DisplayName, Is.EqualTo("int?[]"));
             Assert.That(nullableArray.DisplayName, Is.EqualTo("int[]?"));
+            Assert.That(readOnlyNullableElements.DisplayName, Is.EqualTo("int?[]$"));
+            Assert.That(nullableReadOnlyArray.DisplayName, Is.EqualTo("int[]$?"));
         }
     }
 
@@ -36,6 +44,10 @@ public sealed class TypeSymbolsTests
         );
         Assert.That(
             static () => TypeSymbols.Array(TypeSymbols.Void),
+            Throws.ArgumentException
+        );
+        Assert.That(
+            static () => TypeSymbols.ReadOnlyArray(TypeSymbols.Void),
             Throws.ArgumentException
         );
         Assert.That(

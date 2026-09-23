@@ -1,6 +1,6 @@
 # 2. Non-goals
 
-The first language version does not provide:
+Language version 1 does not provide:
 
 - user-defined structured types;
 - classes, inheritance, interfaces, or generics;

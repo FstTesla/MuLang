@@ -298,6 +298,274 @@ public sealed class DotNetExporterTests
     }
 
     [Test]
+    public void ExecutesReadOnlyArrayLiteralReadsAndLength()
+    {
+        EnvironmentSchema environment = CreateEmptyEnvironment(LanguageVersion.Version2);
+        Func<DotNetRuntimeContext, object?> compiled = CompileExpression(
+            "$[1, 2].length + $[3][0]",
+            environment,
+            TypeSymbols.Int
+        );
+
+        Assert.That(compiled(CreateContext(environment)), Is.EqualTo(5L));
+    }
+
+    [Test]
+    public void ExecutesNestedReadOnlyArraysAndReadOnlyReturns()
+    {
+        const string source = """
+                              func values(): int[]$ {
+                                  return $[1];
+                              }
+                              return $[values()][0][0];
+                              """;
+        EnvironmentSchema environment = CreateEmptyEnvironment(LanguageVersion.Version2);
+        Func<DotNetRuntimeContext, object?> compiled = CompileProgram(
+            source,
+            environment,
+            TypeSymbols.Int
+        );
+
+        Assert.That(compiled(CreateContext(environment)), Is.EqualTo(1L));
+    }
+
+    [Test]
+    public void PreservesIdentityAcrossReadOnlyViews()
+    {
+        EnvironmentSchema environment = CreateEmptyEnvironment(LanguageVersion.Version2);
+        Func<DotNetRuntimeContext, object?> compiled = CompileExpression(
+            "[1] === ([1] as int[]$)",
+            environment,
+            TypeSymbols.Bool
+        );
+        MutableArrayValue value = new ([ 1L ]);
+        EnvironmentSchema globalEnvironment = new EnvironmentBuilder()
+            .AddGlobal("global.values", "values", TypeSymbols.Array(TypeSymbols.Int))
+            .Build(LanguageVersion.Version2);
+        Func<DotNetRuntimeContext, object?> globalCompiled = CompileExpression(
+            "values === (values as int[]$)",
+            globalEnvironment,
+            TypeSymbols.Bool
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(compiled(CreateContext(environment)), Is.False);
+            Assert.That(
+                globalCompiled(
+                    CreateContext(
+                        globalEnvironment,
+                        [ new KeyValuePair<string, object?>("global.values", value) ]
+                    )
+                ),
+                Is.True
+            );
+        }
+    }
+
+    [Test]
+    public void MutableAliasUpdatesReadOnlyView()
+    {
+        const string source = """
+                              var mutable = [1];
+                              var view: int[]$ = mutable;
+                              mutable[0] = 2;
+                              return view[0];
+                              """;
+        EnvironmentSchema environment = CreateEmptyEnvironment(LanguageVersion.Version2);
+        Func<DotNetRuntimeContext, object?> compiled = CompileProgram(
+            source,
+            environment,
+            TypeSymbols.Int
+        );
+
+        Assert.That(compiled(CreateContext(environment)), Is.EqualTo(2L));
+    }
+
+    [Test]
+    public void CheckedMutableCapabilityAcquisitionUsesRuntimeCapability()
+    {
+        EnvironmentSchema environment = CreateEmptyEnvironment(LanguageVersion.Version2);
+        Func<DotNetRuntimeContext, object?> mutableCast = CompileExpression(
+            "[1] as int[]$ as int[]",
+            environment,
+            TypeSymbols.Array(TypeSymbols.Int)
+        );
+        Func<DotNetRuntimeContext, object?> readOnlyLiteralCast = CompileExpression(
+            "$[1] as int[]",
+            environment,
+            TypeSymbols.Array(TypeSymbols.Int)
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(
+                mutableCast(CreateContext(environment)),
+                Is.InstanceOf<IDotNetArrayValue>()
+            );
+            MuLangRuntimeException exception = RequireRuntimeException(
+                () => readOnlyLiteralCast(CreateContext(environment))
+            );
+            Assert.That(exception.Code, Is.EqualTo(DotNetRuntimeErrorCodes.InvalidConversion));
+        }
+    }
+
+    [Test]
+    public void AcceptsGenuinelyReadOnlyProviderArrays()
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddGlobal(
+                "global.values",
+                "values",
+                TypeSymbols.ReadOnlyArray(TypeSymbols.Int)
+            )
+            .Build(LanguageVersion.Version2);
+        Func<DotNetRuntimeContext, object?> compiled = CompileExpression(
+            "values[0]",
+            environment,
+            TypeSymbols.Int
+        );
+        ReadOnlyArrayValue values = new ([ 7L ]);
+
+        Assert.That(
+            compiled(
+                CreateContext(
+                    environment,
+                    [ new KeyValuePair<string, object?>("global.values", values) ]
+                )
+            ),
+            Is.EqualTo(7L)
+        );
+    }
+
+    [Test]
+    public void ArrayTypeTestsInspectRuntimeCapabilityAndShape()
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddGlobal(
+                "global.values",
+                "values",
+                TypeSymbols.ReadOnlyArray(TypeSymbols.Unknown)
+            )
+            .Build(LanguageVersion.Version2);
+        Func<DotNetRuntimeContext, object?> mutableTest = CompileExpression(
+            "values is int[]",
+            environment,
+            TypeSymbols.Bool
+        );
+        Func<DotNetRuntimeContext, object?> readOnlyTest = CompileExpression(
+            "values is int[]$",
+            environment,
+            TypeSymbols.Bool
+        );
+        ReadOnlyArrayValue values = new ([ 1L ]);
+        DotNetRuntimeContext context = CreateContext(
+            environment,
+            [ new KeyValuePair<string, object?>("global.values", values) ]
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(mutableTest(context), Is.False);
+            Assert.That(readOnlyTest(context), Is.True);
+        }
+    }
+
+    [Test]
+    public void PassesOriginalMutableArrayToTrustedReadOnlyProvider()
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddGlobal("global.values", "values", TypeSymbols.Array(TypeSymbols.Int))
+            .AddFunction(
+                "function.inspect",
+                "inspect",
+                [
+                    new ParameterSymbol(
+                        "first",
+                        TypeSymbols.ReadOnlyArray(TypeSymbols.Number)
+                    ),
+                    new ParameterSymbol(
+                        "second",
+                        TypeSymbols.ReadOnlyArray(TypeSymbols.Number)
+                    ),
+                ],
+                TypeSymbols.Bool
+            )
+            .Build(LanguageVersion.Version2);
+        Func<DotNetRuntimeContext, object?> compiled = CompileExpression(
+            "inspect(values, values)",
+            environment,
+            TypeSymbols.Bool
+        );
+        MutableArrayValue values = new ([ 1L ]);
+        DotNetRuntimeContext context = CreateContext(
+            environment,
+            [ new KeyValuePair<string, object?>("global.values", values) ],
+            [
+                new KeyValuePair<string, DotNetFunction>(
+                    "function.inspect",
+                    arguments =>
+                        arguments[0] is IDotNetArrayValue first &&
+                        ReferenceEquals(arguments[0], values) &&
+                        ReferenceEquals(arguments[0], arguments[1]) &&
+                        first.TrySetElement(0, 2L)
+                ),
+            ]
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(compiled(context), Is.True);
+            Assert.That(values.TryGetElement(0, out object? value), Is.True);
+            Assert.That(value, Is.EqualTo(2L));
+        }
+    }
+
+    [Test]
+    public void ElementReadsDetectShapeChangesThroughMutableAliases()
+    {
+        const string source = """
+                              var view = values as int[]$;
+                              mutate();
+                              return view[0];
+                              """;
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddGlobal(
+                "global.values",
+                "values",
+                TypeSymbols.Array(TypeSymbols.Unknown)
+            )
+            .AddFunction("function.mutate", "mutate", [ ], TypeSymbols.Void)
+            .Build(LanguageVersion.Version2);
+        Func<DotNetRuntimeContext, object?> compiled = CompileProgram(
+            source,
+            environment,
+            TypeSymbols.Int
+        );
+        MutableArrayValue values = new ([ 1L ]);
+        DotNetRuntimeContext context = CreateContext(
+            environment,
+            [ new KeyValuePair<string, object?>("global.values", values) ],
+            [
+                new KeyValuePair<string, DotNetFunction>(
+                    "function.mutate",
+                    _ =>
+                    {
+                        values.TrySetElement(0, "invalid");
+                        return null;
+                    }
+                ),
+            ]
+        );
+
+        MuLangRuntimeException exception = RequireRuntimeException(
+            () => compiled(context)
+        );
+
+        Assert.That(exception.Code, Is.EqualTo(DotNetRuntimeErrorCodes.InvalidRuntimeValue));
+    }
+
+    [Test]
     public void ExecutesDynamicObjectMutationRemovalAndHas()
     {
         const string source = """
@@ -1354,7 +1622,8 @@ public sealed class DotNetExporterTests
             source,
             environment,
             CompilationMode.Expression,
-            expectedType
+            expectedType,
+            GetProfile(environment)
         );
         Assert.That(result.Diagnostics, Is.Empty);
 
@@ -1372,7 +1641,8 @@ public sealed class DotNetExporterTests
             source,
             environment,
             CompilationMode.Program,
-            resultType
+            resultType,
+            GetProfile(environment)
         );
         Assert.That(result.Diagnostics, Is.Empty);
 
@@ -1392,9 +1662,18 @@ public sealed class DotNetExporterTests
             throw new AssertionException("Expected the .NET exporter to produce a delegate.");
     }
 
-    private static EnvironmentSchema CreateEmptyEnvironment()
+    private static EnvironmentSchema CreateEmptyEnvironment(
+        LanguageVersion languageVersion = LanguageVersion.Version1
+    )
     {
-        return new EnvironmentBuilder().Build();
+        return new EnvironmentBuilder().Build(languageVersion);
+    }
+
+    private static LanguageProfile GetProfile(EnvironmentSchema environment)
+    {
+        return environment.LanguageVersion == LanguageVersion.Version2
+            ? LanguageProfiles.Version2
+            : LanguageProfiles.Version1;
     }
 
     private static DotNetRuntimeContext CreateContext(
@@ -1514,6 +1793,32 @@ public sealed class DotNetExporterTests
             }
 
             elements[index] = value;
+            return true;
+        }
+    }
+
+    private sealed class ReadOnlyArrayValue : IDotNetReadOnlyArrayValue
+    {
+        private readonly IReadOnlyList<object?> elements;
+
+        public ReadOnlyArrayValue(IEnumerable<object?> elements)
+        {
+            this.elements = [ .. elements ];
+        }
+
+        public object Identity => this;
+
+        public int Count => elements.Count;
+
+        public bool TryGetElement(int index, out object? value)
+        {
+            if (index < 0 || index >= elements.Count)
+            {
+                value = null;
+                return false;
+            }
+
+            value = elements[index];
             return true;
         }
     }

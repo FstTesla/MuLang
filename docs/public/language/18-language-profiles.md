@@ -8,7 +8,11 @@ A language profile is immutable and contains:
 - one independently typed enum value for each configurable concern;
 - a deterministic language-profile fingerprint.
 
-The standard version-one profile preserves all language syntax, capabilities, and policies described by the rest of this specification unless this section explicitly permits a restriction. It enables user-defined functions, recursion, both loop kinds, provider function calls, open objects, every mutation kind, explicit loop-control levels, and trailing commas. It uses strict Boolean conditions and prohibits variable shadowing.
+The standard profile for language version 1 preserves all language syntax, capabilities, and policies described by the rest of this specification unless this section explicitly permits a restriction. It enables user-defined functions, recursion, both loop kinds, provider function calls, open objects, every mutation kind, explicit loop-control levels, and trailing commas. It uses strict Boolean conditions and prohibits variable shadowing.
+
+The standard profile for language version 2 has the same configurable feature defaults and adds read-only array types and literals as an unconditional part of the type system for language version 2. Profiles for language version 1 reject `$` and `$[` with a language-version diagnostic.
+
+Language version 2 is the default for compiler, lexer, parser, profile-builder, and environment-builder APIs. Hosts MAY select language version 1 explicitly.
 
 The profile options and stable numeric values are:
 
@@ -25,7 +29,7 @@ The profile options and stable numeric values are:
 | `ConditionSemantics` | `StrictBoolean = 0`, `Truthiness = 1` | No |
 | `Shadowing` | `None = 0`, `NestedScopes = 1`, `Globals = 2` | Yes |
 
-Both condition-semantics values are supported in version one. Profile construction MUST reject unknown enum values, unknown flag bits, and unsupported language versions. A dependent option MAY be enabled while its prerequisite is disabled; it remains dormant rather than making the profile invalid.
+Both condition-semantics values are supported in language versions 1 and 2. Profile construction MUST reject unknown enum values, unknown flag bits, and unsupported language versions. A dependent option MAY be enabled while its prerequisite is disabled; it remains dormant rather than making the profile invalid.
 
 ## 18.1. Profile fingerprint and compilation identity
 
@@ -101,7 +105,7 @@ Same-scope duplicate declarations are invalid under every shadowing policy.
 
 `Shadowing.Globals` permits locals and function parameters to shadow globals. It does not permit shadowing enclosing locals or parameters.
 
-Combining both values permits both forms. `None` prohibits both and preserves the standard version-one policy.
+Combining both values permits both forms. `None` prohibits both and preserves the standard policy for language version 1.
 
 ## 18.9. Conditions
 
@@ -123,6 +127,8 @@ A value with static type `number` dispatches according to its concrete runtime `
 Truthiness is contextual. It does not add an implicit conversion to `bool`, a source-level Boolean cast, flow-sensitive narrowing, or changes to equality and identity. `void` remains invalid. Unsupported runtime representations produce a MuLang invalid-runtime-value error.
 
 The standard `LanguageProfiles.Version1` profile uses `StrictBoolean`.
+
+The standard `LanguageProfiles.Version2` profile also uses `StrictBoolean`.
 
 ## 18.10. Diagnostics
 

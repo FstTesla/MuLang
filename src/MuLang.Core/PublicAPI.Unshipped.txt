@@ -1,1 +1,5 @@
 #nullable enable
+MuLang.Core.LanguageVersion.Version2 = 1 -> MuLang.Core.LanguageVersion
+MuLang.Core.Types.ArrayTypeSymbol.IsReadOnly.get -> bool
+static MuLang.Core.LanguageProfiles.Version2.get -> MuLang.Core.LanguageProfile!
+static MuLang.Core.Types.TypeSymbols.ReadOnlyArray(MuLang.Core.Types.TypeSymbol! elementType) -> MuLang.Core.Types.ArrayTypeSymbol!

@@ -1,5 +1,6 @@
 using MuLang.Compiler.Diagnostics;
 using MuLang.Compiler.Syntax;
+using MuLang.Core;
 using MuLang.Core.Text;
 
 namespace MuLang.Compiler.Tests.Syntax;
@@ -39,7 +40,8 @@ public sealed class LexerTests
     public void RecognizesOperatorsUsingLongestMatch()
     {
         LexResult result = Lexer.Lex(
-            SourceText.From("?. ?.[ ?: ?? @{ === !== == != <= >= << >> && || ~")
+            SourceText.From("?. ?.[ ?: ?? @{ $[ $ === !== == != <= >= << >> && || ~"),
+            LanguageProfiles.Version2
         );
 
         Assert.That(
@@ -51,6 +53,8 @@ public sealed class LexerTests
                     TokenKind.OptionalPropertyColon,
                     TokenKind.QuestionQuestion,
                     TokenKind.OpenObjectBrace,
+                    TokenKind.ReadOnlyOpenBracket,
+                    TokenKind.Dollar,
                     TokenKind.EqualEqualEqual,
                     TokenKind.BangEqualEqual,
                     TokenKind.EqualEqual,
@@ -66,6 +70,33 @@ public sealed class LexerTests
                 ]
             )
         );
+        Assert.That(result.Diagnostics, Is.Empty);
+    }
+
+    [Test]
+    public void ReportsReadOnlyArraySyntaxInVersionOne()
+    {
+        LexResult result = Lexer.Lex(
+            SourceText.From("$[1] int[]$"),
+            LanguageProfiles.Version1
+        );
+
+        Assert.That(
+            result.Diagnostics.Select(static diagnostic => diagnostic.Code),
+            Is.EqualTo(
+                [
+                    DiagnosticCodes.UnsupportedLanguageVersionFeature,
+                    DiagnosticCodes.UnsupportedLanguageVersionFeature,
+                ]
+            )
+        );
+    }
+
+    [Test]
+    public void UsesLanguageVersionTwoByDefault()
+    {
+        LexResult result = Lexer.Lex(SourceText.From("$[1] int[]$"));
+
         Assert.That(result.Diagnostics, Is.Empty);
     }
 

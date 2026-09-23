@@ -57,13 +57,15 @@ The availability of object-property and array-element assignment depends on the 
 
 The intrinsic array `length` property is not an assignment target.
 
+An element accessed through a read-only array type is not an assignment target, independently of the language profile's mutable-array mutation setting.
+
 Global bindings cannot be assigned.
 
 The assigned value MUST be statically assignable to the target type.
 
 The runtime adapter MAY reject property or element mutation even when it is statically valid. Such rejection produces a runtime error.
 
-Compound assignments are not included in the first language version.
+Compound assignments are not included in language version 1.
 
 ## 12.6. Property removal
 

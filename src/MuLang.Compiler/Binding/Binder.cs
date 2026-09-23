@@ -513,8 +513,28 @@ internal sealed class Binder
     {
         BoundExpression target = BindAssignmentTarget(syntax.Target, state);
         BoundExpression value = BindExpression(syntax.Value, target.Type);
+        bool isReadOnlyArrayElement =
+            target is BoundExpression.ElementAccess
+            {
+                IsObjectAccess: false,
+                Target.Type: ArrayTypeSymbol { IsReadOnly: true } or
+                NullableTypeSymbol
+                {
+                    UnderlyingType: ArrayTypeSymbol { IsReadOnly: true },
+                },
+            };
 
         if (
+            isReadOnlyArrayElement
+        )
+        {
+            Report(
+                DiagnosticCodes.ReadOnlyTarget,
+                syntax.Target.Span,
+                "An element cannot be assigned through a read-only array view."
+            );
+        }
+        else if (
             target is BoundExpression.MemberAccess { IsArrayLength: false } &&
             !profile.Mutations.HasFlag(MutationFeatures.ObjectProperties)
         )
@@ -1137,13 +1157,20 @@ internal sealed class Binder
             syntax.CommaTokens.Count == syntax.Elements.Count
         );
         ArrayTypeSymbol? expectedArray = GetNonNullable(expectedType) as ArrayTypeSymbol;
+        ArrayTypeSymbol? expectedElementArray =
+            !syntax.IsReadOnly || expectedArray?.IsReadOnly == true
+                ? expectedArray
+                : null;
         IList<BoundExpression> elements = [ ];
         TypeSymbol? elementType = null;
         bool hasInvalidElementType = false;
 
         foreach (ExpressionSyntax elementSyntax in syntax.Elements)
         {
-            BoundExpression element = BindExpression(elementSyntax, expectedArray?.ElementType);
+            BoundExpression element = BindExpression(
+                elementSyntax,
+                expectedElementArray?.ElementType
+            );
             elements.Add(element);
 
             if (element.Type.Kind == TypeKind.Error)
@@ -1152,7 +1179,7 @@ internal sealed class Binder
                 continue;
             }
 
-            if (expectedArray is not null)
+            if (expectedElementArray is not null)
             {
                 continue;
             }
@@ -1186,11 +1213,15 @@ internal sealed class Binder
             elementType = commonType;
         }
 
-        if (expectedArray is not null)
+        if (expectedElementArray is not null)
         {
+            ArrayTypeSymbol literalType = syntax.IsReadOnly
+                ? TypeSymbols.ReadOnlyArray(expectedElementArray.ElementType)
+                : TypeSymbols.Array(expectedElementArray.ElementType);
+
             return new BoundExpression.Array(
                 syntax,
-                expectedArray,
+                literalType,
                 elements.AsReadOnly()
             );
         }
@@ -1212,8 +1243,8 @@ internal sealed class Binder
 
         ArrayTypeSymbol arrayType =
             elementType is null || hasInvalidElementType
-                ? TypeSymbols.Array(TypeSymbols.Unknown)
-                : TypeSymbols.Array(elementType);
+                ? CreateArrayType(TypeSymbols.Unknown, syntax.IsReadOnly)
+                : CreateArrayType(elementType, syntax.IsReadOnly);
 
         if (!hasInvalidElementType)
         {
@@ -1224,6 +1255,13 @@ internal sealed class Binder
         }
 
         return new BoundExpression.Array(syntax, arrayType, elements.AsReadOnly());
+
+        static ArrayTypeSymbol CreateArrayType(TypeSymbol elementType, bool isReadOnly)
+        {
+            return isReadOnly
+                ? TypeSymbols.ReadOnlyArray(elementType)
+                : TypeSymbols.Array(elementType);
+        }
     }
 
     private BoundExpression BindObjectExpression(
@@ -2306,6 +2344,17 @@ internal sealed class Binder
             {
                 type = TypeSymbols.Array(type);
                 index++;
+
+                if (
+                    index + 1 < syntax.SuffixTokens.Count &&
+                    syntax.SuffixTokens[index + 1].Kind == TokenKind.Dollar
+                )
+                {
+                    type = TypeSymbols.ReadOnlyArray(
+                        ((ArrayTypeSymbol)type).ElementType
+                    );
+                    index++;
+                }
             }
         }
 

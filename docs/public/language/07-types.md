@@ -81,11 +81,19 @@ A known property remains a known property even when optional.
 
 ## 7.6. Array types
 
-An array type is written as an element type followed by `[]`.
+A mutable array type is written as an element type followed by `[]`.
+
+Language version 2 adds read-only array views, written with `$` immediately after the array suffix: `T[]$`.
+
+The `$` modifier removes write capability from the immediately preceding array construction. It is shallow: contained objects and arrays retain the capabilities expressed by their own types.
+
+The canonical suffix order is the element type, `[]`, optional `$`, then optional `?`. Consequently, element nullability and array nullability remain independent. Repeated `$` modifiers and `$` following array nullability are invalid.
 
 Arrays are homogeneous. Every element MUST be assignable to the declared element type.
 
 The generic array type is `unknown[]`.
+
+The generic read-only array type is `unknown[]$`.
 
 Nullability binds to the immediately preceding type construction. Element nullability and array nullability are independent.
 
@@ -94,6 +102,8 @@ Empty array literals require an expected array type or an explicit type context.
 Every array type implicitly defines a read-only intrinsic property named `length` with type `int`.
 
 `length` is not a reserved keyword, is not part of a provider schema, and cannot be overridden by the provider.
+
+Mutable arrays and their read-only views preserve the same logical identity and storage. A read-only view observes mutations performed through another mutable alias.
 
 ## 7.7. The `void` type
 

@@ -32,6 +32,10 @@ The IR MUST encode evaluation order and short-circuit behavior explicitly.
 
 The IR validator MUST require a truthiness-normalization destination to have type `bool`, its source to have a non-void type, both slots to exist, and the source to be definitely defined.
 
+Array types transported through IR retain their read-only capability. Array creation records that capability, mutable-to-read-only conversions are representation-preserving, acquisition of mutable capability requires a checked conversion, and `SetElement` MUST be rejected when the target slot has a read-only array type.
+
+Provider-call validation accepts arguments assignable through read-only array covariance.
+
 Runtime exporters MUST NOT perform name resolution, type inference, overload resolution, or high-level control-flow interpretation.
 
-The first language version does not require the IR to be public or serializable.
+Language version 1 does not require the IR to be public or serializable.

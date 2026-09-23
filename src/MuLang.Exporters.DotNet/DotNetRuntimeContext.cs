@@ -1,5 +1,6 @@
 using MuLang.Core.Environment;
 using MuLang.Core.Runtime;
+using MuLang.Core.Symbols;
 using MuLang.Core.Text;
 using MuLang.Core.Types;
 using System.Collections.Frozen;
@@ -11,6 +12,7 @@ public sealed class DotNetRuntimeContext
 {
     private readonly IReadOnlyDictionary<string, object?> globals;
     private readonly IReadOnlyDictionary<string, DotNetFunction> functions;
+    private readonly IReadOnlyDictionary<string, FunctionSymbol> functionSymbols;
     private readonly bool hasExecutionBudget;
     private long remainingBudget;
 
@@ -74,6 +76,10 @@ public sealed class DotNetRuntimeContext
         this.functions = functions.ToFrozenDictionary(
             static pair => pair.Key,
             static pair => pair.Value,
+            StringComparer.Ordinal
+        );
+        functionSymbols = environment.Functions.ToFrozenDictionary(
+            static function => function.Id,
             StringComparer.Ordinal
         );
         hasExecutionBudget = executionBudget is not null;
@@ -143,6 +149,20 @@ public sealed class DotNetRuntimeContext
 
         try
         {
+            if (!functionSymbols.TryGetValue(id, out FunctionSymbol? functionSymbol))
+            {
+                throw new MuLangRuntimeException(
+                    DotNetRuntimeErrorCodes.MissingFunction,
+                    $"Function '{id}' is not declared by the runtime environment.",
+                    span
+                );
+            }
+
+            ValidateArguments(
+                arguments,
+                functionSymbol,
+                span
+            );
             object? result = function(arguments);
 
             if (
@@ -186,6 +206,43 @@ public sealed class DotNetRuntimeContext
                 span,
                 exception
             );
+        }
+    }
+
+    private void ValidateArguments(
+        IReadOnlyList<object?> arguments,
+        FunctionSymbol function,
+        TextSpan span
+    )
+    {
+        if (arguments.Count != function.Parameters.Count)
+        {
+            throw new MuLangRuntimeException(
+                DotNetRuntimeErrorCodes.InvalidRuntimeValue,
+                $"Provider function '{function.Id}' received an invalid argument count.",
+                span
+            );
+        }
+
+        for (int index = 0; index < arguments.Count; index++)
+        {
+            object? argument = arguments[index];
+            TypeSymbol parameterType = function.Parameters[index].Type;
+
+            if (!DotNetRuntimeOperations.IsValueOfTypeDeep(
+                    this,
+                    argument,
+                    parameterType,
+                    span
+                ))
+            {
+                throw new MuLangRuntimeException(
+                    DotNetRuntimeErrorCodes.InvalidRuntimeValue,
+                    $"Provider function '{function.Id}' received an argument incompatible with '{parameterType.DisplayName}'.",
+                    span
+                );
+            }
+
         }
     }
 

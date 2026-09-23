@@ -37,6 +37,7 @@ internal enum TokenKind
     OpenObjectBrace,
     CloseBrace,
     OpenBracket,
+    ReadOnlyOpenBracket,
     CloseBracket,
     Comma,
     Dot,
@@ -70,4 +71,5 @@ internal enum TokenKind
     Pipe,
     PipePipe,
     Tilde,
+    Dollar,
 }

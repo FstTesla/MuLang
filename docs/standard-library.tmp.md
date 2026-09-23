@@ -16,7 +16,7 @@ The standard library is a collection of provider modules, not a privileged langu
 
 ## Dependencies
 
-The initial library depends on the read-only array work described in `docs\readonly-arrays.tmp.md`.
+The initial library depends on the read-only array support implemented for `LanguageVersion.Version2`.
 
 In particular:
 
@@ -593,16 +593,15 @@ Exit criteria:
 - no module collision exists in the complete catalog;
 - runtime services required by implementations are explicit.
 
-### Phase 2: Implement read-only array prerequisite
+### Phase 2: Validate read-only array prerequisite
 
-1. Complete the plan in `docs\readonly-arrays.tmp.md`.
-2. Verify `unknown?[]$`, `string[]$`, and read-only runtime adapters.
-3. Verify context-aware provider calls and structural equality access.
+1. Verify `unknown?[]$`, `string[]$`, and read-only runtime adapters.
+2. Verify context-aware provider calls and structural equality access.
 
 Exit criteria:
 
 - declaration signatures can represent all initial array functions;
-- provider implementations can consume read-only arrays without write capability.
+- provider implementations can consume arrays declared read-only through the runtime adapter contracts.
 
 ### Phase 3: Build declarative module infrastructure
 

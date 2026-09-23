@@ -99,7 +99,7 @@ public sealed class EnvironmentBuilder
     /// <returns>The immutable environment schema.</returns>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="languageVersion" /> is not defined.</exception>
     /// <exception cref="InvalidOperationException">Thrown when a referenced structured type is not registered by the same instance.</exception>
-    public EnvironmentSchema Build(LanguageVersion languageVersion = LanguageVersion.Version1)
+    public EnvironmentSchema Build(LanguageVersion languageVersion = LanguageVersion.Version2)
     {
         if (!Enum.IsDefined(languageVersion))
         {

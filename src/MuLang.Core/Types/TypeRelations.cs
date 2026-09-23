@@ -27,6 +27,7 @@ public static class TypeRelations
             (NullableTypeSymbol leftNullable, NullableTypeSymbol rightNullable) =>
                 AreEquivalent(leftNullable.UnderlyingType, rightNullable.UnderlyingType),
             (ArrayTypeSymbol leftArray, ArrayTypeSymbol rightArray) =>
+                leftArray.IsReadOnly == rightArray.IsReadOnly &&
                 AreEquivalent(leftArray.ElementType, rightArray.ElementType),
             (ObjectTypeSymbol leftObject, ObjectTypeSymbol rightObject) =>
                 AreEquivalent(leftObject, rightObject),
@@ -68,6 +69,12 @@ public static class TypeRelations
         if (source is NullableTypeSymbol)
         {
             return false;
+        }
+
+        if (source is ArrayTypeSymbol sourceArray && target is ArrayTypeSymbol targetArray)
+        {
+            return targetArray.IsReadOnly &&
+                IsViewCompatible(sourceArray.ElementType, targetArray.ElementType);
         }
 
         if (target.Kind == TypeKind.Unknown)
@@ -186,6 +193,19 @@ public static class TypeRelations
                 : TypeSymbols.Int;
         }
 
+        if (left is ArrayTypeSymbol leftArray && right is ArrayTypeSymbol rightArray)
+        {
+            TypeSymbol? elementType = GetCommonViewType(
+                leftArray.ElementType,
+                rightArray.ElementType
+            );
+
+            if (elementType is not null)
+            {
+                return TypeSymbols.ReadOnlyArray(elementType);
+            }
+        }
+
         if (IsAssignable(left, right))
         {
             return right;
@@ -264,8 +284,66 @@ public static class TypeRelations
             return true;
         }
 
+        if (source is ArrayTypeSymbol && target is ArrayTypeSymbol)
+        {
+            return true;
+        }
+
         return target is NullableTypeSymbol targetNullable &&
             CanConvertChecked(source, targetNullable.UnderlyingType);
+    }
+
+    internal static bool IsViewCompatible(TypeSymbol source, TypeSymbol target)
+    {
+        ValidateTypes(source, target);
+
+        if (AreEquivalent(source, target))
+        {
+            return true;
+        }
+
+        if (target is NullableTypeSymbol targetNullable)
+        {
+            if (source.Kind == TypeKind.Null)
+            {
+                return true;
+            }
+
+            TypeSymbol innerSource = source is NullableTypeSymbol sourceNullable
+                ? sourceNullable.UnderlyingType
+                : source;
+            return IsViewCompatible(innerSource, targetNullable.UnderlyingType);
+        }
+
+        if (source is NullableTypeSymbol)
+        {
+            return false;
+        }
+
+        if (target.Kind == TypeKind.Unknown)
+        {
+            return source.Kind is not TypeKind.Null and not TypeKind.Void;
+        }
+
+        if (
+            source.Kind is TypeKind.Int or TypeKind.Float &&
+            target.Kind == TypeKind.Number
+        )
+        {
+            return true;
+        }
+
+        if (
+            target.Kind == TypeKind.Object &&
+            source.Kind is TypeKind.Object or TypeKind.StructuredObject
+        )
+        {
+            return true;
+        }
+
+        return source is ArrayTypeSymbol sourceArray &&
+            target is ArrayTypeSymbol { IsReadOnly: true } targetArray &&
+            IsViewCompatible(sourceArray.ElementType, targetArray.ElementType);
     }
 
     private static bool IsObjectAssignable(
@@ -291,6 +369,73 @@ public static class TypeRelations
     private static bool IsNumeric(TypeSymbol type)
     {
         return type.Kind is TypeKind.Int or TypeKind.Float or TypeKind.Number;
+    }
+
+    private static TypeSymbol? GetCommonViewType(TypeSymbol left, TypeSymbol right)
+    {
+        if (IsViewCompatible(left, right))
+        {
+            return right;
+        }
+
+        if (IsViewCompatible(right, left))
+        {
+            return left;
+        }
+
+        if (IsNumeric(left) && IsNumeric(right))
+        {
+            return TypeSymbols.Number;
+        }
+
+        if (left is NullableTypeSymbol leftNullable)
+        {
+            TypeSymbol? underlyingCommon = GetCommonViewType(
+                leftNullable.UnderlyingType,
+                right
+            );
+
+            return underlyingCommon is null
+                ? null
+                : MakeNullable(underlyingCommon);
+        }
+
+        if (right is NullableTypeSymbol rightNullable)
+        {
+            TypeSymbol? underlyingCommon = GetCommonViewType(
+                left,
+                rightNullable.UnderlyingType
+            );
+
+            return underlyingCommon is null
+                ? null
+                : MakeNullable(underlyingCommon);
+        }
+
+        if (
+            left is ArrayTypeSymbol leftArray &&
+            right is ArrayTypeSymbol rightArray
+        )
+        {
+            TypeSymbol? elementType = GetCommonViewType(
+                leftArray.ElementType,
+                rightArray.ElementType
+            );
+
+            return elementType is null
+                ? null
+                : TypeSymbols.ReadOnlyArray(elementType);
+        }
+
+        if (
+            left.Kind is TypeKind.Object or TypeKind.StructuredObject &&
+            right.Kind is TypeKind.Object or TypeKind.StructuredObject
+        )
+        {
+            return TypeSymbols.Object;
+        }
+
+        return null;
     }
 
     private static bool AreEquivalent(

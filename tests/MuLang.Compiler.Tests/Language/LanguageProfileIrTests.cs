@@ -19,7 +19,8 @@ public sealed class LanguageProfileIrTests
         LanguageProfile profile = TestLanguageProfileFactory.Create(
             loops: LoopFeatures.For
         );
-        EnvironmentSchema environment = new EnvironmentBuilder().Build();
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .Build(profile.LanguageVersion);
         SyntaxTree syntaxTree = Parser.Parse(
             SourceText.From("40 + 2"),
             CompilationMode.Expression,
@@ -51,7 +52,8 @@ public sealed class LanguageProfileIrTests
     [Test]
     public void ValidatorChecksExpectedCompilationMetadata()
     {
-        EnvironmentSchema environment = new EnvironmentBuilder().Build();
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .Build(LanguageVersion.Version1);
         IrProgram program = LowerExpression(
             "1",
             environment,
@@ -89,8 +91,9 @@ public sealed class LanguageProfileIrTests
     [Test]
     public void EnvironmentAndLanguageProfileFingerprintsRemainIndependent()
     {
-        EnvironmentSchema environment = new EnvironmentBuilder().Build();
         LanguageProfile firstProfile = LanguageProfiles.Version1;
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .Build(firstProfile.LanguageVersion);
         LanguageProfile secondProfile = TestLanguageProfileFactory.Create(
             loops: LoopFeatures.For
         );
@@ -106,6 +109,27 @@ public sealed class LanguageProfileIrTests
             Assert.That(
                 first.LanguageProfileFingerprint,
                 Is.Not.EqualTo(second.LanguageProfileFingerprint)
+            );
+        }
+    }
+
+    [Test]
+    public void CompilerUsesLanguageVersionTwoByDefault()
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder().Build();
+        CompilationResult result = MuLangCompiler.Compile(
+            "$[1]",
+            environment,
+            CompilationMode.Expression,
+            TypeSymbols.ReadOnlyArray(TypeSymbols.Int)
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.Diagnostics, Is.Empty);
+            Assert.That(
+                result.Program?.LanguageProfileFingerprint,
+                Is.EqualTo(LanguageProfiles.Version2.Fingerprint)
             );
         }
     }

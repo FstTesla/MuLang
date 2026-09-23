@@ -67,11 +67,17 @@ The precise structural compatibility algorithm is part of the type system and MU
 
 ## 8.7. Array conversion
 
-Array types are invariant.
+Mutable array types are invariant.
 
 An array of `T` is not implicitly assignable to an array of another element type, including `unknown[]`, unless the two array types are equivalent.
 
 This rule prevents writes through a widened mutable array reference from violating the original element type.
+
+Language version 2 permits an array of `S` to be observed as `T[]$` when `S` is representation-safe for reads as `T`. The relation permits equivalent types, non-null values to `unknown`, nullable lifting, `int` or `float` to `number`, structured objects to `object`, and recursively compatible read-only array views. It does not permit representation-changing conversions such as `int` to `float`.
+
+Both `S[]` and `S[]$` may convert implicitly to a compatible `T[]$`. A read-only array is never implicitly assignable to a mutable array.
+
+Common array types preserve a mutable type only for equivalent mutable arrays. Compatible mutable and read-only operands otherwise use the least compatible read-only array view.
 
 ## 8.8. Explicit checked conversions
 
@@ -86,3 +92,5 @@ The language does not provide a general predicate that determines whether an `as
 An `as` expression has the target type. It does not change the static type of the original variable or expression elsewhere in the program.
 
 The `as` operator is left-associative.
+
+Array checked conversions are shape-based. Conversion to `T[]` requires runtime write capability and current recursive conformance of every element to `T`. Conversion to `T[]$` requires read capability and the same element conformance. A successful conversion preserves identity and does not establish a permanent invariant against later mutation through another alias.

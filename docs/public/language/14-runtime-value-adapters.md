@@ -4,6 +4,8 @@ Runtime-specific values MUST be accessed through explicit adapters rather than i
 
 The .NET runtime accepts object and array values only through its explicit object and array adapter interfaces. CLR dictionaries, lists, arrays, POCOs, and other host values are not recognized implicitly.
 
+`IDotNetReadOnlyArrayValue` supplies stable identity, count, and element reads. `IDotNetArrayValue` independently supplies the same read operations plus element writes, preserving compatibility with existing mutable adapters. A runtime value for `T[]$` may implement either interface; a runtime value for `T[]` MUST implement the mutable interface.
+
 Global values and provider function results are recursively validated against their declared MuLang types when they cross the runtime boundary.
 
 Deep runtime traversal is subject to the execution budget and to a configurable maximum traversal depth.
@@ -24,8 +26,8 @@ Adapters do not define or customize truthiness. Determining truthiness MUST NOT 
 
 The condition-semantics profile option and truthiness rules are defined in [Section 18.9](18-language-profiles.md#189-conditions).
 
-Static mutability is intentionally not represented in the first-version type system.
+Language version 1 does not represent static array mutability. Language version 2 represents read-only array capability in the static type while retaining runtime adapter capability checks.
 
 An adapter MAY reject a mutation or removal at runtime. Previous completed side effects are not rolled back.
 
-The first language version does not provide source-level operations for inspecting whether a specific property or array element is writable or whether a property is removable. `has` reports only property presence and does not imply either capability.
+Language version 1 does not provide source-level operations for inspecting whether a specific property or array element is writable or whether a property is removable. `has` reports only property presence and does not imply either capability.

@@ -17,7 +17,7 @@ public sealed class LanguageProfileBuilder
 
     /// <summary>Initializes a new instance of the <see cref="LanguageProfileBuilder" /> class.</summary>
     public LanguageProfileBuilder()
-        : this(LanguageProfiles.Version1) { }
+        : this(LanguageProfiles.Version2) { }
 
     /// <summary>Initializes a new instance of the <see cref="LanguageProfileBuilder" /> class.</summary>
     /// <param name="profile">The language profile used for compilation.</param>

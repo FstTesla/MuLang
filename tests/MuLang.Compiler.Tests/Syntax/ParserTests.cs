@@ -175,6 +175,59 @@ public sealed class ParserTests
     }
 
     [Test]
+    public void ParsesReadOnlyArrayLiteralAndTypeSuffix()
+    {
+        SyntaxTree literalTree = Parser.Parse(
+            SourceText.From("$[1, 2]"),
+            CompilationMode.Expression,
+            LanguageProfiles.Version2
+        );
+        ExpressionRootSyntax literalRoot = (ExpressionRootSyntax)literalTree.Root;
+        ArrayLiteralExpressionSyntax literal =
+            (ArrayLiteralExpressionSyntax)literalRoot.Expression;
+        SyntaxTree typeTree = Parser.Parse(
+            SourceText.From("value as int[]$?"),
+            CompilationMode.Expression,
+            LanguageProfiles.Version2
+        );
+        ExpressionRootSyntax typeRoot = (ExpressionRootSyntax)typeTree.Root;
+        ConversionExpressionSyntax conversion =
+            (ConversionExpressionSyntax)typeRoot.Expression;
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(literal.IsReadOnly, Is.True);
+            Assert.That(conversion.Type.SuffixTokens, Has.Count.EqualTo(4));
+            Assert.That(literalTree.Diagnostics, Is.Empty);
+            Assert.That(typeTree.Diagnostics, Is.Empty);
+        }
+    }
+
+    [Test]
+    public void UsesLanguageVersionTwoByDefault()
+    {
+        SyntaxTree tree = ParseExpression("$[1]");
+
+        Assert.That(tree.Diagnostics, Is.Empty);
+    }
+
+    [TestCase("value as int[]$$", DiagnosticCodes.RepeatedReadOnlyModifier)]
+    [TestCase("value as int[]?$", DiagnosticCodes.InvalidReadOnlyModifierPlacement)]
+    public void ReportsInvalidReadOnlyTypeSuffixes(string source, string diagnosticCode)
+    {
+        SyntaxTree tree = Parser.Parse(
+            SourceText.From(source),
+            CompilationMode.Expression,
+            LanguageProfiles.Version2
+        );
+
+        Assert.That(
+            tree.Diagnostics.Select(static diagnostic => diagnostic.Code),
+            Does.Contain(diagnosticCode)
+        );
+    }
+
+    [Test]
     public void ParsesOptionalObjectLiteralProperty()
     {
         SyntaxTree tree = ParseExpression("{ value?: 1 }");

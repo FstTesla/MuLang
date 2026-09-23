@@ -20,7 +20,7 @@ An identifier that exactly matches a reserved keyword cannot be used as an ident
 
 ## 5.4. Reserved keywords
 
-The first language version reserves:
+Language version 1 reserves:
 
 - `as`
 - `bool`
@@ -98,3 +98,9 @@ Unicode escapes MUST NOT encode an unpaired surrogate or a value outside the Uni
 An invalid escape sequence or unterminated string is a lexical error.
 
 String values are sequences of Unicode scalar values and are compared ordinally.
+
+## 5.10. Read-only array tokens
+
+Language version 2 recognizes `$` as a postfix type-capability token and `$[` as the single opening token of a read-only array literal.
+
+The lexer MUST recognize `$[` before standalone `$`. Language version 1 recognizes both token shapes for recovery but reports that they require language version 2.

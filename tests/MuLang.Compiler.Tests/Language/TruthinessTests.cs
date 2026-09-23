@@ -879,7 +879,7 @@ public sealed class TruthinessTests
 
     private static EnvironmentSchema CreateEmptyEnvironment()
     {
-        return new EnvironmentBuilder().Build();
+        return new EnvironmentBuilder().Build(truthinessProfile.LanguageVersion);
     }
 
     private static DotNetRuntimeContext CreateContext(

@@ -9,6 +9,8 @@ internal sealed record ArrayLiteralExpressionSyntax(
     SyntaxToken CloseBracketToken
 ) : ExpressionSyntax
 {
+    public bool IsReadOnly => OpenBracketToken.Kind == TokenKind.ReadOnlyOpenBracket;
+
     public override TextSpan Span => TextSpan.FromBounds(
         OpenBracketToken.Span.Start,
         CloseBracketToken.Span.End

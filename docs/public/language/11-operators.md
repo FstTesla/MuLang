@@ -95,7 +95,9 @@ Bitwise operations do not perform overflow checks.
 
 `value as Type` performs the explicit checked conversion defined in [Section 8.8](08-assignability-and-conversions.md#88-explicit-checked-conversions).
 
-`value is Type` evaluates to `true` when the runtime value is assignable to the specified non-void type under the MuLang assignability rules.
+`value is Type` evaluates to `true` when the runtime value conforms to the specified non-void type.
+
+For `T[]`, conformance requires mutable runtime capability and recursive conformance of every current element to `T`. For `T[]$`, read capability is sufficient. Array tests are shape-based and do not require a reified nominal element type.
 
 For `null`, `is` evaluates to `true` only when the tested type is nullable. The `is` operator does not narrow the operand in any subsequent expression or statement.
 
@@ -164,5 +166,7 @@ For primitive values with the same concrete type, identity equality coincides wi
 Numeric primitive values with different concrete types are never identical. In particular, an `int` and a `float` compare unequal with `===` and equal with `!==`, even when `==` considers their values equal.
 
 For arrays and objects, identity is supplied by the runtime adapter and represents the same logical runtime instance.
+
+A mutable array and every read-only view that forwards its logical identity are identical.
 
 `null` is identical only to `null`.

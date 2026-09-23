@@ -444,11 +444,18 @@ public static class IrValidator
                     break;
                 }
 
+                ConversionKind conversionKind = TypeRelations.ClassifyConversion(
+                    sourceSlot.Type,
+                    conversion.TargetType
+                );
+
                 if (
-                    TypeRelations.ClassifyConversion(
+                    conversionKind == ConversionKind.None ||
+                    RequiresCheckedArrayCapabilityAcquisition(
                         sourceSlot.Type,
                         conversion.TargetType
-                    ) == ConversionKind.None
+                    ) &&
+                    !conversion.IsChecked
                 )
                 {
                     Report(
@@ -958,7 +965,7 @@ public static class IrValidator
         bool isValid = element.IsObjectAccess
             ? targetType.Kind is TypeKind.Object or TypeKind.StructuredObject &&
             AreType(index, TypeSymbols.String)
-            : targetType is ArrayTypeSymbol arrayType &&
+            : targetType is ArrayTypeSymbol { IsReadOnly: false } arrayType &&
             AreType(index, TypeSymbols.Int) &&
             TypeRelations.AreEquivalent(value.Type, arrayType.ElementType);
 
@@ -990,6 +997,18 @@ public static class IrValidator
             TypeKind.Unknown => value is not null,
             _ => false,
         };
+    }
+
+    private static bool RequiresCheckedArrayCapabilityAcquisition(
+        TypeSymbol source,
+        TypeSymbol target
+    )
+    {
+        TypeSymbol nonNullableSource = GetNonNullable(source);
+        TypeSymbol nonNullableTarget = GetNonNullable(target);
+
+        return nonNullableSource is ArrayTypeSymbol { IsReadOnly: true } &&
+            nonNullableTarget is ArrayTypeSymbol { IsReadOnly: false };
     }
 
     private static bool AreEquivalent(
@@ -1154,12 +1173,39 @@ public static class IrValidator
 
         for (int index = 0; index < arguments.Count; index++)
         {
-            ValidateSlotType(
+            ValidateSlotAssignable(
                 program,
                 arguments[index],
                 parameterTypes[index],
                 span,
                 diagnostics
+            );
+        }
+    }
+
+    private static void ValidateSlotAssignable(
+        IrProgram program,
+        int slotId,
+        TypeSymbol expectedType,
+        TextSpan span,
+        ICollection<Diagnostic> diagnostics
+    )
+    {
+        IrSlot? slot = GetSlot(program, slotId);
+
+        if (slot is null)
+        {
+            ValidateSlot(program, slotId, span, diagnostics);
+            return;
+        }
+
+        if (!TypeRelations.IsAssignable(slot.Type, expectedType))
+        {
+            Report(
+                diagnostics,
+                IrDiagnosticCodes.TypeMismatch,
+                span,
+                $"IR slot {slotId} has type '{slot.Type.DisplayName}', which is not assignable to '{expectedType.DisplayName}'."
             );
         }
     }

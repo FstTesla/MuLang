@@ -17,7 +17,7 @@ public static class MuLangCompiler
     /// <param name="environment">The environment schema available to the compiled code.</param>
     /// <param name="compilationMode">The compilation mode.</param>
     /// <param name="expectedResultType">The expected result type, or <c>null</c> to infer an expression result or use <c>void</c> for a program.</param>
-    /// <param name="profile">The language profile, or <c>null</c> to use <see cref="LanguageProfiles.Version1" />.</param>
+    /// <param name="profile">The language profile, or <c>null</c> to use <see cref="LanguageProfiles.Version2" />.</param>
     /// <returns>The compilation result.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="source" /> or <paramref name="environment" /> is <c>null</c>.</exception>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="compilationMode" /> is not defined.</exception>
@@ -45,7 +45,7 @@ public static class MuLangCompiler
             throw new ArgumentOutOfRangeException(nameof(compilationMode));
         }
 
-        profile ??= LanguageProfiles.Version1;
+        profile ??= LanguageProfiles.Version2;
 
         if (environment.LanguageVersion != profile.LanguageVersion)
         {

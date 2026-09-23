@@ -1,12 +1,10 @@
 namespace MuLang.Exporters.DotNet;
 
-internal sealed class DotNetArrayValue :
-    IDotNetArrayValue,
-    IDotNetReadOnlyArrayValue
+internal sealed class DotNetReadOnlyArrayValue : IDotNetReadOnlyArrayValue
 {
-    private readonly IList<object?> elements;
+    private readonly IReadOnlyList<object?> elements;
 
-    public DotNetArrayValue(IEnumerable<object?> elements)
+    public DotNetReadOnlyArrayValue(IEnumerable<object?> elements)
     {
         this.elements = [ .. elements ];
     }
@@ -24,17 +22,6 @@ internal sealed class DotNetArrayValue :
         }
 
         value = elements[index];
-        return true;
-    }
-
-    public bool TrySetElement(int index, object? value)
-    {
-        if (index < 0 || index >= elements.Count)
-        {
-            return false;
-        }
-
-        elements[index] = value;
         return true;
     }
 }

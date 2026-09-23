@@ -85,6 +85,102 @@ public sealed class BinderTests
     }
 
     [Test]
+    public void InfersReadOnlyArrayLiteralType()
+    {
+        BindingResult result = BindExpression(
+            "$[1, 2]",
+            CreateEmptyEnvironment(LanguageVersion.Version2),
+            profile: LanguageProfiles.Version2
+        );
+        BoundRoot.Expression root = (BoundRoot.Expression)result.Root;
+        BoundExpression.Array array = (BoundExpression.Array)root.Value;
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(array.ArrayType.IsReadOnly, Is.True);
+            Assert.That(array.ArrayType.ElementType, Is.SameAs(TypeSymbols.Int));
+            Assert.That(result.Diagnostics, Is.Empty);
+        }
+    }
+
+    [Test]
+    public void UsesReadOnlyExpectedTypeForEmptyReadOnlyLiteral()
+    {
+        BindingResult result = BindProgram(
+            "var values: int[]$ = $[];",
+            CreateEmptyEnvironment(LanguageVersion.Version2),
+            TypeSymbols.Void,
+            LanguageProfiles.Version2
+        );
+
+        Assert.That(result.Diagnostics, Is.Empty);
+    }
+
+    [Test]
+    public void RejectsReadOnlyLiteralInMutableExpectedContext()
+    {
+        BindingResult result = BindProgram(
+            "var values: int[] = $[1];",
+            CreateEmptyEnvironment(LanguageVersion.Version2),
+            TypeSymbols.Void,
+            LanguageProfiles.Version2
+        );
+
+        AssertDiagnostic(result, DiagnosticCodes.TypeMismatch);
+    }
+
+    [Test]
+    public void ConvertsMutableLiteralToReadOnlyExpectedType()
+    {
+        BindingResult result = BindProgram(
+            "var values: number[]$ = [1, 2];",
+            CreateEmptyEnvironment(LanguageVersion.Version2),
+            TypeSymbols.Void,
+            LanguageProfiles.Version2
+        );
+        BoundRoot.Program root = (BoundRoot.Program)result.Root;
+        BoundStatement.VariableDeclaration declaration =
+            (BoundStatement.VariableDeclaration)root.Statements[0];
+
+        Assert.That(
+            declaration.Initializer,
+            Is.TypeOf<BoundExpression.Conversion>()
+        );
+    }
+
+    [Test]
+    public void FindsCovariantReadOnlyConditionalArrayType()
+    {
+        BindingResult result = BindExpression(
+            "true ? [1] : $[2.0]",
+            CreateEmptyEnvironment(LanguageVersion.Version2),
+            profile: LanguageProfiles.Version2
+        );
+        BoundRoot.Expression root = (BoundRoot.Expression)result.Root;
+
+        Assert.That(
+            TypeRelations.AreEquivalent(
+                root.Value.Type,
+                TypeSymbols.ReadOnlyArray(TypeSymbols.Number)
+            ),
+            Is.True
+        );
+    }
+
+    [Test]
+    public void RejectsElementAssignmentThroughReadOnlyView()
+    {
+        BindingResult result = BindProgram(
+            "var values: int[]$ = [1]; values[0] = 2;",
+            CreateEmptyEnvironment(LanguageVersion.Version2),
+            TypeSymbols.Void,
+            LanguageProfiles.Version2
+        );
+
+        AssertDiagnostic(result, DiagnosticCodes.ReadOnlyTarget);
+    }
+
+    [Test]
     public void AdoptsExpectedMutableArrayTypeAndConvertsElements()
     {
         BindingResult result = BindProgram(
@@ -949,12 +1045,14 @@ public sealed class BinderTests
     private static BindingResult BindExpression(
         string source,
         EnvironmentSchema environment,
-        TypeSymbol? expectedType = null
+        TypeSymbol? expectedType = null,
+        LanguageProfile? profile = null
     )
     {
         SyntaxTree syntaxTree = Parser.Parse(
             SourceText.From(source),
-            CompilationMode.Expression
+            CompilationMode.Expression,
+            profile ?? LanguageProfiles.Version1
         );
 
         return Binder.Bind(syntaxTree, environment, expectedType);
@@ -963,20 +1061,24 @@ public sealed class BinderTests
     private static BindingResult BindProgram(
         string source,
         EnvironmentSchema environment,
-        TypeSymbol resultType
+        TypeSymbol resultType,
+        LanguageProfile? profile = null
     )
     {
         SyntaxTree syntaxTree = Parser.Parse(
             SourceText.From(source),
-            CompilationMode.Program
+            CompilationMode.Program,
+            profile ?? LanguageProfiles.Version1
         );
 
         return Binder.Bind(syntaxTree, environment, resultType);
     }
 
-    private static EnvironmentSchema CreateEmptyEnvironment()
+    private static EnvironmentSchema CreateEmptyEnvironment(
+        LanguageVersion languageVersion = LanguageVersion.Version1
+    )
     {
-        return new EnvironmentBuilder().Build();
+        return new EnvironmentBuilder().Build(languageVersion);
     }
 
     private static void AssertDiagnostic(BindingResult result, string code)

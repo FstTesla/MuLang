@@ -87,6 +87,7 @@ internal static class EnvironmentFingerprintFactory
 
             case ArrayTypeSymbol array:
             {
+                AppendValue(canonical, array.IsReadOnly ? "readonly" : "mutable");
                 AppendType(canonical, array.ElementType);
                 break;
             }

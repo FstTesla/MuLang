@@ -153,6 +153,12 @@ public static class DiagnosticCodes
     /// <summary>Gets the code for assignment to a function parameter.</summary>
     public const string CannotAssignParameter = "MUL3027";
 
+    /// <summary>Gets the code for a repeated read-only type modifier.</summary>
+    public const string RepeatedReadOnlyModifier = "MUL3028";
+
+    /// <summary>Gets the code for a misplaced read-only type modifier.</summary>
+    public const string InvalidReadOnlyModifierPlacement = "MUL3029";
+
     /// <summary>Gets the code for disabled user-defined functions.</summary>
     public const string DisabledUserDefinedFunctions = "MUL7001";
 
@@ -185,4 +191,7 @@ public static class DiagnosticCodes
 
     /// <summary>Gets the code for disabled trailing commas.</summary>
     public const string DisabledTrailingCommas = "MUL7012";
+
+    /// <summary>Gets the code for syntax unavailable in the selected language version.</summary>
+    public const string UnsupportedLanguageVersionFeature = "MUL7013";
 }

@@ -26,7 +26,7 @@ internal sealed class Parser
 
     public static SyntaxTree Parse(SourceText source, CompilationMode compilationMode)
     {
-        return Parse(source, compilationMode, LanguageProfiles.Version1);
+        return Parse(source, compilationMode, LanguageProfiles.Version2);
     }
 
     public static SyntaxTree Parse(
@@ -714,7 +714,9 @@ internal sealed class Parser
                 new LiteralExpressionSyntax(null, ParseToken()),
             TokenKind.Identifier => new NameExpressionSyntax(ParseToken()),
             TokenKind.OpenParenthesis => ParseParenthesizedExpression(),
-            TokenKind.OpenBracket => ParseArrayLiteralExpression(),
+            TokenKind.OpenBracket or
+                TokenKind.ReadOnlyOpenBracket
+                => ParseArrayLiteralExpression(),
             TokenKind.OpenBrace or
                 TokenKind.OpenObjectBrace
                 => ParseObjectLiteralExpression(),
@@ -737,7 +739,10 @@ internal sealed class Parser
 
     private ArrayLiteralExpressionSyntax ParseArrayLiteralExpression()
     {
-        SyntaxToken openBracketToken = Match(TokenKind.OpenBracket);
+        SyntaxToken openBracketToken = Current.Kind is
+            TokenKind.OpenBracket or TokenKind.ReadOnlyOpenBracket
+            ? ParseToken()
+            : Match(TokenKind.OpenBracket);
         IList<ExpressionSyntax> elements = [ ];
         IList<SyntaxToken> commaTokens = [ ];
 
@@ -934,7 +939,35 @@ internal sealed class Parser
         {
             suffixTokens.Add(ParseToken());
             suffixTokens.Add(ParseToken());
+
+            if (Current.Kind == TokenKind.Dollar)
+            {
+                suffixTokens.Add(ParseToken());
+
+                while (Current.Kind == TokenKind.Dollar)
+                {
+                    SyntaxToken repeatedDollar = ParseToken();
+                    suffixTokens.Add(repeatedDollar);
+                    Report(
+                        DiagnosticCodes.RepeatedReadOnlyModifier,
+                        repeatedDollar.Span,
+                        "An array type cannot have more than one read-only modifier."
+                    );
+                }
+            }
+
             ParseNullableSuffix(suffixTokens, isOperatorType);
+
+            if (Current.Kind == TokenKind.Dollar)
+            {
+                SyntaxToken misplacedDollar = ParseToken();
+                suffixTokens.Add(misplacedDollar);
+                Report(
+                    DiagnosticCodes.InvalidReadOnlyModifierPlacement,
+                    misplacedDollar.Span,
+                    "The read-only modifier must appear immediately after '[]' and before '?'."
+                );
+            }
         }
 
         return new TypeSyntax(nameToken, suffixTokens.AsReadOnly());

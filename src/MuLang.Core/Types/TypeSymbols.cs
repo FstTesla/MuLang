@@ -68,6 +68,21 @@ public static class TypeSymbols
     /// <exception cref="ArgumentException">Thrown when the type cannot be used as an array element.</exception>
     public static ArrayTypeSymbol Array(TypeSymbol elementType)
     {
+        return CreateArray(elementType, false);
+    }
+
+    /// <summary>Creates a read-only array type.</summary>
+    /// <param name="elementType">The array element type.</param>
+    /// <returns>The read-only array type.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="elementType" /> is <c>null</c>.</exception>
+    /// <exception cref="ArgumentException">Thrown when the type cannot be used as an array element.</exception>
+    public static ArrayTypeSymbol ReadOnlyArray(TypeSymbol elementType)
+    {
+        return CreateArray(elementType, true);
+    }
+
+    private static ArrayTypeSymbol CreateArray(TypeSymbol elementType, bool isReadOnly)
+    {
         if (elementType is null)
         {
             throw new ArgumentNullException(nameof(elementType));
@@ -81,6 +96,6 @@ public static class TypeSymbols
             );
         }
 
-        return new ArrayTypeSymbol(elementType);
+        return new ArrayTypeSymbol(elementType, isReadOnly);
     }
 }

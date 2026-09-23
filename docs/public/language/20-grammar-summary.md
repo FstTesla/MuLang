@@ -1,6 +1,6 @@
 # 20. Grammar summary
 
-This grammar describes the complete version-one syntax. A selected language profile may reject otherwise recognized function, loop, mutation, open-object, or trailing-comma constructs as defined in [Sections 18.2 through 18.7](18-language-profiles.md#182-user-defined-functions-and-recursion).
+This grammar describes the complete syntax for language version 2. Language version 1 rejects the read-only array additions. A selected language profile may reject otherwise recognized function, loop, mutation, open-object, or trailing-comma constructs as defined in [Sections 18.2 through 18.7](18-language-profiles.md#182-user-defined-functions-and-recursion).
 
 ```ebnf
 expression-root
@@ -89,7 +89,7 @@ return-statement
 
 type
     = primary-type nullable-suffix?
-      (array-suffix nullable-suffix?)* ;
+      (array-suffix read-only-suffix? nullable-suffix?)* ;
 
 primary-type
     = "bool"
@@ -104,11 +104,17 @@ primary-type
 array-suffix
     = "[]" ;
 
+read-only-suffix
+    = "$" ;
+
 nullable-suffix
     = "?" ;
 
 array-literal
     = "[" (expression ("," expression)* ","?)? "]" ;
+
+read-only-array-literal
+    = "$[" (expression ("," expression)* ","?)? "]" ;
 
 closed-object-literal
     = "{" property-initializer-list? "}" ;

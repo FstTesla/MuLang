@@ -103,6 +103,7 @@ internal static class SyntaxFacts
             TokenKind.NullKeyword or
             TokenKind.OpenParenthesis or
             TokenKind.OpenBracket or
+            TokenKind.ReadOnlyOpenBracket or
             TokenKind.OpenBrace or
             TokenKind.OpenObjectBrace or
             TokenKind.Plus or

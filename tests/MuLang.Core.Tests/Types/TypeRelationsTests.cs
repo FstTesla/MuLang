@@ -34,6 +34,71 @@ public sealed class TypeRelationsTests
     }
 
     [Test]
+    public void AppliesReadOnlyArrayCovariance()
+    {
+        TypeSymbol intArray = TypeSymbols.Array(TypeSymbols.Int);
+        TypeSymbol readOnlyIntArray = TypeSymbols.ReadOnlyArray(TypeSymbols.Int);
+        TypeSymbol readOnlyNumberArray = TypeSymbols.ReadOnlyArray(TypeSymbols.Number);
+        TypeSymbol readOnlyFloatArray = TypeSymbols.ReadOnlyArray(TypeSymbols.Float);
+        TypeSymbol readOnlyUnknownArray = TypeSymbols.ReadOnlyArray(TypeSymbols.Unknown);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(TypeRelations.IsAssignable(intArray, readOnlyIntArray), Is.True);
+            Assert.That(TypeRelations.IsAssignable(intArray, readOnlyNumberArray), Is.True);
+            Assert.That(
+                TypeRelations.IsAssignable(readOnlyIntArray, readOnlyNumberArray),
+                Is.True
+            );
+            Assert.That(
+                TypeRelations.IsAssignable(readOnlyIntArray, readOnlyUnknownArray),
+                Is.True
+            );
+            Assert.That(
+                TypeRelations.IsAssignable(readOnlyIntArray, readOnlyFloatArray),
+                Is.False
+            );
+            Assert.That(TypeRelations.IsAssignable(readOnlyIntArray, intArray), Is.False);
+        }
+    }
+
+    [Test]
+    public void AppliesNestedReadOnlyArrayCovariance()
+    {
+        TypeSymbol mutableNested = TypeSymbols.Array(
+            TypeSymbols.Array(TypeSymbols.Int)
+        );
+        TypeSymbol readOnlyNested = TypeSymbols.ReadOnlyArray(
+            TypeSymbols.ReadOnlyArray(TypeSymbols.Number)
+        );
+
+        Assert.That(
+            TypeRelations.IsAssignable(mutableNested, readOnlyNested),
+            Is.True
+        );
+    }
+
+    [Test]
+    public void DistinguishesArrayCapabilityInEquivalenceAndConversions()
+    {
+        TypeSymbol mutable = TypeSymbols.Array(TypeSymbols.Int);
+        TypeSymbol readOnly = TypeSymbols.ReadOnlyArray(TypeSymbols.Int);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(TypeRelations.AreEquivalent(mutable, readOnly), Is.False);
+            Assert.That(
+                TypeRelations.ClassifyConversion(mutable, readOnly),
+                Is.EqualTo(ConversionKind.Implicit)
+            );
+            Assert.That(
+                TypeRelations.ClassifyConversion(readOnly, mutable),
+                Is.EqualTo(ConversionKind.Checked)
+            );
+        }
+    }
+
+    [Test]
     public void AppliesStructuralObjectCompatibility()
     {
         ObjectTypeSymbol source = CreateObject(
@@ -161,6 +226,24 @@ public sealed class TypeRelationsTests
                 Is.Null
             );
         }
+    }
+
+    [Test]
+    public void FindsReadOnlyCommonArrayTypes()
+    {
+        TypeSymbol mutableInts = TypeSymbols.Array(TypeSymbols.Int);
+        TypeSymbol readOnlyFloats = TypeSymbols.ReadOnlyArray(TypeSymbols.Float);
+        TypeSymbol common =
+            TypeRelations.GetCommonType(mutableInts, readOnlyFloats) ??
+            throw new AssertionException("Expected a common type.");
+
+        Assert.That(
+            TypeRelations.AreEquivalent(
+                common,
+                TypeSymbols.ReadOnlyArray(TypeSymbols.Number)
+            ),
+            Is.True
+        );
     }
 
     [Test]

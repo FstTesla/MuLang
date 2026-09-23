@@ -17,6 +17,8 @@ Ordinary .NET hosts reference `MuLang.Compiler` and
 turns validated IR into a .NET delegate. Alternative exporters reference
 `MuLang.Compiler`, `MuLang.IR`, and the runtime-specific packages they need.
 
+The .NET exporter exposes independent read-only and mutable array adapter contracts. Provider arrays that do not support writes implement `IDotNetReadOnlyArrayValue`; existing mutable arrays continue to implement the unchanged `IDotNetArrayValue` contract.
+
 The standard-library packages are reserved for future opt-in modules and
 currently expose no modules. The compiler does not add constants, functions,
 or structured types implicitly.

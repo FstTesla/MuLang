@@ -41,6 +41,8 @@ Each operand MUST be evaluated exactly once.
 
 An array literal contains zero or more comma-separated expressions enclosed in square brackets.
 
+Language version 2 also provides read-only array literals opened by the single `$[` token and closed by `]`.
+
 A non-empty array literal MAY contain one trailing comma after its final expression.
 
 The availability of trailing commas depends on the language profile as defined in [Section 18.7](18-language-profiles.md#187-trailing-commas).
@@ -53,7 +55,9 @@ A mixture of `T` and the `null` literal has `T?` as its common type when all non
 
 An empty array literal requires an expected array type from its context.
 
-Array literals create mutable arrays. A runtime adapter MAY still reject a later mutation when the value crosses a provider boundary.
+Normal array literals create mutable arrays. Read-only array literals create values exposing only read capability.
+
+A read-only literal cannot be contextually converted to a mutable array. A normal literal may be contextually converted to a compatible read-only view without copying.
 
 ## 10.4. Object literals
 
@@ -138,6 +142,8 @@ Access to `length` through a nullable array is statically permitted and produces
 Array element syntax cannot be used to access `length`; array indexes always require `int`.
 
 The intrinsic `length` property is not considered an object property and is not visible to the `has` operator.
+
+Every array element read validates the retrieved runtime value against the statically expected element type. A mutation through another alias that invalidates the current shape therefore causes a runtime type error on the later read.
 
 ## 10.8. Function calls
 

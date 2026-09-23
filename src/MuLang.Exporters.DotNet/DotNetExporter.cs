@@ -94,7 +94,8 @@ public static class DotNetExporter
 
     private static readonly MethodInfo createArrayMethod = GetMethod(
         nameof(DotNetRuntimeOperations.CreateArray),
-        typeof(IEnumerable<object?>)
+        typeof(IEnumerable<object?>),
+        typeof(bool)
     );
 
     private static readonly MethodInfo createObjectMethod = GetMethod(
@@ -130,6 +131,7 @@ public static class DotNetExporter
 
     private static readonly MethodInfo getElementMethod = GetMethod(
         nameof(DotNetRuntimeOperations.GetElement),
+        typeof(DotNetRuntimeContext),
         typeof(object),
         typeof(object),
         typeof(bool),
@@ -464,7 +466,8 @@ public static class DotNetExporter
                     Expression.NewArrayInit(
                         typeof(object),
                         array.Elements.Select(element => slots[element])
-                    )
+                    ),
+                    Expression.Constant(array.Type.IsReadOnly)
                 )
             ),
             IrInstruction.CreateObject objectValue => Assign(
@@ -515,6 +518,7 @@ public static class DotNetExporter
                 element.Destination,
                 Expression.Call(
                     getElementMethod,
+                    context,
                     slots[element.Target],
                     slots[element.Index],
                     Expression.Constant(element.IsObjectAccess),

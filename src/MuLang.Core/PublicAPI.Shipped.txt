@@ -34,7 +34,7 @@ MuLang.Core.Environment.EnvironmentBuilder
 MuLang.Core.Environment.EnvironmentBuilder.AddFunction(string! id, string! name, System.Collections.Generic.IEnumerable<MuLang.Core.Symbols.ParameterSymbol!>! parameters, MuLang.Core.Types.TypeSymbol! returnType) -> MuLang.Core.Environment.EnvironmentBuilder!
 MuLang.Core.Environment.EnvironmentBuilder.AddGlobal(string! id, string! name, MuLang.Core.Types.TypeSymbol! type) -> MuLang.Core.Environment.EnvironmentBuilder!
 MuLang.Core.Environment.EnvironmentBuilder.AddType(MuLang.Core.Types.ObjectTypeSymbol! type) -> MuLang.Core.Environment.EnvironmentBuilder!
-MuLang.Core.Environment.EnvironmentBuilder.Build(MuLang.Core.LanguageVersion languageVersion = MuLang.Core.LanguageVersion.Version1) -> MuLang.Core.Environment.EnvironmentSchema!
+MuLang.Core.Environment.EnvironmentBuilder.Build(MuLang.Core.LanguageVersion languageVersion = MuLang.Core.LanguageVersion.Version2) -> MuLang.Core.Environment.EnvironmentSchema!
 MuLang.Core.Environment.EnvironmentBuilder.EnvironmentBuilder() -> void
 MuLang.Core.Environment.EnvironmentFingerprint
 MuLang.Core.Environment.EnvironmentFingerprint.<Clone>$() -> MuLang.Core.Environment.EnvironmentFingerprint!

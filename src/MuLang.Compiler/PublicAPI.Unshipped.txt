@@ -1,1 +1,4 @@
 #nullable enable
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.InvalidReadOnlyModifierPlacement = "MUL3029" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.RepeatedReadOnlyModifier = "MUL3028" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.UnsupportedLanguageVersionFeature = "MUL7013" -> string!

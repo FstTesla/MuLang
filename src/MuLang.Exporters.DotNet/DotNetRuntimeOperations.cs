@@ -69,6 +69,7 @@ internal static class DotNetRuntimeOperations
             double number => number != 0 && !double.IsNaN(number),
             string text => text.Length != 0,
             IDotNetObjectValue => true,
+            IDotNetReadOnlyArrayValue => true,
             IDotNetArrayValue => true,
             _ => throw InvalidValue(
                 "Runtime value has an unsupported truthiness representation.",
@@ -234,7 +235,12 @@ internal static class DotNetRuntimeOperations
             TypeKind.Unknown => true,
             TypeKind.Object => IsObject(value),
             TypeKind.StructuredObject => IsObject(value),
-            TypeKind.Array => TryGetArrayCount(value, out _),
+            TypeKind.Array => type is ArrayTypeSymbol arrayType &&
+            (
+                arrayType.IsReadOnly
+                    ? value is IDotNetReadOnlyArrayValue or IDotNetArrayValue
+                    : value is IDotNetArrayValue
+            ),
             _ => false,
         };
     }
@@ -249,9 +255,14 @@ internal static class DotNetRuntimeOperations
         return IsValueOfTypeDeep(context, value, type, span, 0);
     }
 
-    public static object CreateArray(IEnumerable<object?> elements)
+    public static object CreateArray(
+        IEnumerable<object?> elements,
+        bool isReadOnly
+    )
     {
-        return new DotNetArrayValue(elements);
+        return isReadOnly
+            ? new DotNetReadOnlyArrayValue(elements)
+            : new DotNetArrayValue(elements);
     }
 
     public static object CreateObject(IEnumerable<string> names, IEnumerable<object?> values)
@@ -350,6 +361,7 @@ internal static class DotNetRuntimeOperations
     }
 
     public static object? GetElement(
+        DotNetRuntimeContext context,
         object? target,
         object? index,
         bool isObjectAccess,
@@ -387,7 +399,7 @@ internal static class DotNetRuntimeOperations
             );
         }
 
-        return EnsureValueType(value, expectedType, span);
+        return EnsureValueTypeDeep(context, value, expectedType, span);
     }
 
     public static void SetElement(
@@ -976,6 +988,15 @@ internal static class DotNetRuntimeOperations
         int depth
     )
     {
+        if (
+            type.IsReadOnly
+                ? value is not IDotNetReadOnlyArrayValue and not IDotNetArrayValue
+                : value is not IDotNetArrayValue
+        )
+        {
+            return false;
+        }
+
         if (!TryGetArrayCount(value, out int count))
         {
             return false;
@@ -1143,6 +1164,7 @@ internal static class DotNetRuntimeOperations
         return value switch
         {
             IDotNetObjectValue objectValue => objectValue.Identity,
+            IDotNetReadOnlyArrayValue arrayValue => arrayValue.Identity,
             IDotNetArrayValue arrayValue => arrayValue.Identity,
             _ => value,
         };
@@ -1191,9 +1213,14 @@ internal static class DotNetRuntimeOperations
 
     private static bool TryGetArrayCount(object target, out int count)
     {
-        if (target is IDotNetArrayValue arrayValue)
+        if (target is IDotNetReadOnlyArrayValue arrayValue)
         {
             count = arrayValue.Count;
+            return true;
+        }
+        else if (target is IDotNetArrayValue mutableArrayValue)
+        {
+            count = mutableArrayValue.Count;
             return true;
         }
         else
@@ -1209,9 +1236,13 @@ internal static class DotNetRuntimeOperations
         out object? value
     )
     {
-        if (target is IDotNetArrayValue arrayValue)
+        if (target is IDotNetReadOnlyArrayValue arrayValue)
         {
             return arrayValue.TryGetElement(index, out value);
+        }
+        else if (target is IDotNetArrayValue mutableArrayValue)
+        {
+            return mutableArrayValue.TryGetElement(index, out value);
         }
         else
         {
@@ -1267,6 +1298,25 @@ internal static class DotNetRuntimeOperations
     )
     {
         if (!IsValueOfTypeShallow(value, expectedType))
+        {
+            throw new MuLangRuntimeException(
+                DotNetRuntimeErrorCodes.InvalidRuntimeValue,
+                $"Runtime value is incompatible with '{expectedType.DisplayName}'.",
+                span
+            );
+        }
+
+        return value;
+    }
+
+    private static object? EnsureValueTypeDeep(
+        DotNetRuntimeContext context,
+        object? value,
+        TypeSymbol expectedType,
+        TextSpan span
+    )
+    {
+        if (!IsValueOfTypeDeep(context, value, expectedType, span))
         {
             throw new MuLangRuntimeException(
                 DotNetRuntimeErrorCodes.InvalidRuntimeValue,
