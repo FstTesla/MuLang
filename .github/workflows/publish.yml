@@ -75,17 +75,16 @@ jobs:
           }
           $isStable = $channel -eq ''
           $createGitHubRelease = $channel -in '', 'beta', 'rc'
-          $stableChangelog = [System.IO.File]::ReadAllText('CHANGELOG.md')
-          $detailedChangelog = [System.IO.File]::ReadAllText(
-            'CHANGELOG.detailed.md'
-          )
-          $escapedVersion = [regex]::Escape($env:VERSION)
-          $pattern =
-            '(?ms)^## `' +
-            $escapedVersion +
-            '` - [^\r\n]+\r?\n\r?\n(?<notes>.*?)(?=^## |\z)'
-          $hasStableNotes = [regex]::IsMatch($stableChangelog, $pattern)
-          $hasDetailedNotes = [regex]::IsMatch($detailedChangelog, $pattern)
+          [string] $stableNotes = ./eng/Get-ChangelogReleaseNotes.ps1 `
+            -Path 'CHANGELOG.md' `
+            -Version $env:VERSION `
+            -AllowMissing
+          [string] $detailedNotes = ./eng/Get-ChangelogReleaseNotes.ps1 `
+            -Path 'CHANGELOG.detailed.md' `
+            -Version $env:VERSION `
+            -AllowMissing
+          $hasStableNotes = ![string]::IsNullOrWhiteSpace($stableNotes)
+          $hasDetailedNotes = ![string]::IsNullOrWhiteSpace($detailedNotes)
 
           if ($createGitHubRelease -and !$hasDetailedNotes) {
             throw "CHANGELOG.detailed.md does not contain release notes for version '$env:VERSION'."
@@ -182,25 +181,9 @@ jobs:
           RELEASE_NOTES_FILE: ${{ needs.pack.outputs.release_notes_file }}
           VERSION: ${{ needs.pack.outputs.version }}
         run: |
-          $changelog = [System.IO.File]::ReadAllText(
-            $env:RELEASE_NOTES_FILE
-          )
-          $escapedVersion = [regex]::Escape($env:VERSION)
-          $pattern =
-            '(?ms)^## `' +
-            $escapedVersion +
-            '` - [^\r\n]+\r?\n\r?\n(?<notes>.*?)(?=^## |\z)'
-          $match = [regex]::Match($changelog, $pattern)
-
-          if (!$match.Success) {
-            throw "'$env:RELEASE_NOTES_FILE' does not contain release notes for version '$env:VERSION'."
-          }
-
-          $notes = $match.Groups['notes'].Value.Trim()
-
-          if ([string]::IsNullOrWhiteSpace($notes)) {
-            throw "Release notes for version '$env:VERSION' are empty."
-          }
+          [string] $notes = ./eng/Get-ChangelogReleaseNotes.ps1 `
+            -Path $env:RELEASE_NOTES_FILE `
+            -Version $env:VERSION
 
           [System.IO.File]::WriteAllText(
             'artifacts/release-notes.md',

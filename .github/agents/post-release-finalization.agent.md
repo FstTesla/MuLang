@@ -23,6 +23,22 @@ Temporary artifact cleanup:
 - after cleanup, delete the top-level `artifacts` directory if it exists and
   is empty.
 
+When package validation requires a temporary `NuGet.config` or an explicit
+source list:
+
+- do not assume that `https://api.nuget.org/v3/index.json` is reachable or is
+  the machine's normal NuGet feed;
+- discover the effective repository, user, and machine sources first, using
+  `dotnet nuget list source` and the applicable NuGet configuration files;
+- add downloaded baseline packages as a local source without replacing the
+  environment's existing usable sources;
+- never hardcode or reintroduce nuget.org merely because the repository has no
+  `NuGet.config`;
+- do not copy credentials into temporary files or command output;
+- if a source introduced by the agent causes `NU1900` or another connectivity
+  warning, correct the temporary configuration and rerun the affected command
+  instead of accepting the warning as an environmental limitation.
+
 Before editing, verify all of the following:
 
 - `eng/PackageContract.psd1` defines the exact released package set and direct dependency graph;

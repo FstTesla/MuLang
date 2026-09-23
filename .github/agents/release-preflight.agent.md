@@ -26,6 +26,22 @@ modification:
 - after cleanup, delete the top-level `artifacts` directory if it exists and
   is empty.
 
+When package validation requires a temporary `NuGet.config` or an explicit
+source list:
+
+- do not assume that `https://api.nuget.org/v3/index.json` is reachable or is
+  the machine's normal NuGet feed;
+- discover the effective repository, user, and machine sources first, using
+  `dotnet nuget list source` and the applicable NuGet configuration files;
+- add downloaded baseline packages as a local source without replacing the
+  environment's existing usable sources;
+- never hardcode or reintroduce nuget.org merely because the repository has no
+  `NuGet.config`;
+- do not copy credentials into temporary files or command output;
+- if a source introduced by the agent causes `NU1900` or another connectivity
+  warning, correct the temporary configuration and rerun the affected command
+  instead of accepting the warning as an environmental limitation.
+
 Validate the target version against the repository release format:
 
 - stable `major.minor.patch`;
@@ -57,8 +73,8 @@ member-level `*REMOVED*` entries to exist at `HEAD`.
 8. Every target package's `PublicAPI.Shipped.txt` and `PublicAPI.Unshipped.txt` is valid and the analyzer reports no undeclared, stale, duplicate, malformed, or oblivious API entries.
 9. Every `*REMOVED*` public API entry for a package that remains in the target package set is intentional and represented as a breaking change in each required target changelog section. A package removed in its entirety is instead evidenced by the package-set diff and its API files at the base ref.
 10. Every entry in each target package's `CompatibilitySuppressions.xml` is necessary for the selected baseline and represented as a breaking change in each required target changelog section. Suppressions belonging to a removed package are reviewed at the base ref but need not be recreated at `HEAD`.
-11. Beta, RC, and stable releases contain a non-empty target-version section in `CHANGELOG.detailed.md`. Alpha releases may omit it only when the release has no package removal or rename, incompatible shipped API change, `*REMOVED*` entry, or compatibility suppression requiring breaking-change documentation.
-12. Stable releases additionally contain a non-empty consolidated target-version section in `CHANGELOG.md`; prerelease versions do not.
+11. Beta, RC, and stable releases contain a non-empty target-version section in `CHANGELOG.detailed.md`, as verified by `eng/Get-ChangelogReleaseNotes.ps1`. Alpha releases may omit it only when the release has no package removal or rename, incompatible shipped API change, `*REMOVED*` entry, or compatibility suppression requiring breaking-change documentation.
+12. Stable releases additionally contain a non-empty consolidated target-version section in `CHANGELOG.md`, as verified by `eng/Get-ChangelogReleaseNotes.ps1`; prerelease versions do not.
 13. The exact package and symbol-package artifact set, metadata, dependency graph, README, license, icon, XML documentation, strong names, repository commit, Source Link, and compiler/exporter consumer flow pass `eng/Verify-Packages.ps1`.
 14. The target version is greater than the selected baseline and its maturity suffix is consistent with the intended release.
 15. Every package removed or renamed since the incremental base is documented under `Breaking changes` in the required target section, including the replacement packages or migration path. The absence of the removed project and API files at `HEAD` is expected and is not itself a blocker.
@@ -66,6 +82,8 @@ member-level `*REMOVED*` entries to exist at `HEAD`.
 Use the package IDs from `eng/PackageContract.psd1`,
 `eng/Resolve-PackageValidationBaseline.ps1`, and
 `eng/Verify-Packages.ps1` rather than duplicating their logic.
+Use `eng/Get-ChangelogReleaseNotes.ps1` for changelog section detection and
+validation rather than duplicating its parsing logic.
 
 Finish with:
 

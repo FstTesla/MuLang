@@ -83,9 +83,11 @@ For every target version:
   the section heading;
 - require beta, RC, and stable versions to have a detailed section;
 - add an alpha section only when the agent was explicitly invoked to document that alpha;
-- reject a duplicate target-version section in `CHANGELOG.detailed.md`.
+- reject a duplicate target-version section in `CHANGELOG.detailed.md`;
+- validate every written detailed section with
+  `eng/Get-ChangelogReleaseNotes.ps1`.
 
-For a stable target version, additionally review the complete committed change set from the resolved stable base commit through `HEAD` and write a consolidated section to `CHANGELOG.md`. Identify both the displayed stable base version and the target version in the section heading. The stable section describes the final consumer-visible outcome since the preceding stable release. Do not concatenate prerelease entries mechanically. Omit changes introduced and later reverted, superseded intermediate behavior, and prerelease-only implementation history. Reject a duplicate target-version section in `CHANGELOG.md`.
+For a stable target version, additionally review the complete committed change set from the resolved stable base commit through `HEAD` and write a consolidated section to `CHANGELOG.md`. Identify both the displayed stable base version and the target version in the section heading. The stable section describes the final consumer-visible outcome since the preceding stable release. Do not concatenate prerelease entries mechanically. Omit changes introduced and later reverted, superseded intermediate behavior, and prerelease-only implementation history. Reject a duplicate target-version section in `CHANGELOG.md` and validate the written section with `eng/Get-ChangelogReleaseNotes.ps1`.
 
 Do not add prerelease sections to `CHANGELOG.md`.
 
