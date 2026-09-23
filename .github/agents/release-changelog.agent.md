@@ -10,15 +10,18 @@ You prepare MuLang changelog files immediately before a release tag is created.
 
 Require the user to provide:
 
-- an explicit incremental base Git ref, commit, or released MuLang version;
 - the target version without the `v` prefix.
 
-If the incremental base input is not itself a released MuLang version or a
-`v<version>` tag, also require the released version represented by that base,
-without the `v` prefix. This version is used as the starting version displayed
-in `CHANGELOG.detailed.md`.
+Unless the target is explicitly identified as the first MuLang release,
+require an explicit incremental base Git ref, commit, or released MuLang
+version.
 
-For a stable target version, also require an explicit stable base Git ref, commit, or released MuLang version. It identifies the preceding stable comparison point used for `CHANGELOG.md`. If that input is not itself a released MuLang version or a `v<version>` tag, also require the released version represented by that base, without the `v` prefix. This version is used as the starting version displayed in `CHANGELOG.md`. Do not select either base or its displayed version on the user's behalf.
+When an incremental base is required, if its input is not itself a released
+MuLang version or a `v<version>` tag, also require the released version
+represented by that base, without the `v` prefix. This version is used as the
+starting version displayed in `CHANGELOG.detailed.md`.
+
+For a stable target version with a preceding stable release, also require an explicit stable base Git ref, commit, or released MuLang version. It identifies the preceding stable comparison point used for `CHANGELOG.md`. If that input is not itself a released MuLang version or a `v<version>` tag, also require the released version represented by that base, without the `v` prefix. This version is used as the starting version displayed in `CHANGELOG.md`. When the user explicitly states that the target is the first stable release, do not require or invent a stable base. Do not select either base or its displayed version on the user's behalf.
 
 Stop and request any required missing value. Resolve each base input deterministically:
 
@@ -29,6 +32,11 @@ Stop and request any required missing value. Resolve each base input determinist
 4. Report the resolved ref, commit, and displayed base version before
    analyzing changes.
 5. Stop if neither form resolves.
+
+Use `eng/Get-ReleaseHistory.ps1` to verify any claim that the target is the
+first MuLang release or the first stable release. Stop if the reachable release
+tag history contradicts the claim. Do not infer first-release status from a
+missing changelog section.
 
 Use a non-destructive tag fetch when the repository checkout does not contain the requested tag. Do not create, delete, or move tags.
 
@@ -49,7 +57,7 @@ Validate that every required base resolves. Each displayed base version and the
 target version must either be stable SemVer or use exactly one of the
 `alpha.N`, `beta.N`, or `rc.N` suffixes, where `N` is a positive integer.
 
-Review the complete committed change set from the resolved incremental base commit through `HEAD`, including commit history, source diff, public API changes, language specification changes, runtime behavior, packaging, and consumer documentation. Do not classify changes solely from commit subjects.
+Unless the target is the first MuLang release, review the complete committed change set from the resolved incremental base commit through `HEAD`, including commit history, source diff, public API changes, language specification changes, runtime behavior, packaging, and consumer documentation. Do not classify changes solely from commit subjects.
 
 Treat `eng/PackageContract.psd1` at the target commit as the authoritative
 target release package set and dependency graph. Determine the base package
@@ -76,7 +84,7 @@ For a package removed entirely at the target:
 - do not require member-level `*REMOVED*` entries for APIs whose containing
   package was removed in its entirety.
 
-For every target version:
+For every target version other than the first MuLang release:
 
 - write the incremental release section to `CHANGELOG.detailed.md`;
 - identify both the displayed incremental base version and the target version in
@@ -87,7 +95,14 @@ For every target version:
 - validate every written detailed section with
   `eng/Get-ChangelogReleaseNotes.ps1`.
 
-For a stable target version, additionally review the complete committed change set from the resolved stable base commit through `HEAD` and write a consolidated section to `CHANGELOG.md`. Identify both the displayed stable base version and the target version in the section heading. The stable section describes the final consumer-visible outcome since the preceding stable release. Do not concatenate prerelease entries mechanically. Omit changes introduced and later reverted, superseded intermediate behavior, and prerelease-only implementation history. Reject a duplicate target-version section in `CHANGELOG.md` and validate the written section with `eng/Get-ChangelogReleaseNotes.ps1`.
+For a stable target version with a preceding stable release, additionally review the complete committed change set from the resolved stable base commit through `HEAD` and write a consolidated section to `CHANGELOG.md`. Identify both the displayed stable base version and the target version in the section heading. The stable section describes the final consumer-visible outcome since the preceding stable release. Do not concatenate prerelease entries mechanically. Omit changes introduced and later reverted, superseded intermediate behavior, and prerelease-only implementation history. Reject a duplicate target-version section in `CHANGELOG.md` and validate the written section with `eng/Get-ChangelogReleaseNotes.ps1`.
+
+For the first stable release, do not add a section to `CHANGELOG.md`. If it is
+not also the first MuLang release, still write the incremental section to
+`CHANGELOG.detailed.md` from the preceding non-stable release.
+
+For the first MuLang release, stable or non-stable, do not modify either
+changelog. There is no preceding release range to document.
 
 Do not add prerelease sections to `CHANGELOG.md`.
 
@@ -151,11 +166,11 @@ Use this section format:
 
 Omit empty category headings. Keep entries concise, factual, and understandable without reading commits or pull requests.
 
-Always write the detailed section, even when the incremental diff contains no
-consumer-visible changes. In that case, omit all category headings and write
-`No consumer-visible changes.` directly below the section heading. This
-explicit entry preserves the complete prerelease sequence without implying a
-substantive change.
+Except for the first MuLang release, always write the detailed section, even
+when the incremental diff contains no consumer-visible changes. In that case,
+omit all category headings and write `No consumer-visible changes.` directly
+below the section heading. This explicit entry preserves the complete
+prerelease sequence without implying a substantive change.
 
 Before editing, report and stop if:
 
@@ -168,6 +183,10 @@ Do not stop merely because a removed package has no target project, target API
 files, or member-level `*REMOVED*` entries. The package-set diff and the base
 API files are the required evidence for a complete package removal.
 
-For alpha, beta, and RC targets, modify only `CHANGELOG.detailed.md`. For stable targets, modify only `CHANGELOG.detailed.md` and `CHANGELOG.md`.
+For alpha, beta, and RC targets after the first MuLang release, modify only
+`CHANGELOG.detailed.md`. For stable targets after the first stable release,
+modify only `CHANGELOG.detailed.md` and `CHANGELOG.md`. For the first stable
+release after prereleases, modify only `CHANGELOG.detailed.md`. For the first
+MuLang release, modify neither changelog.
 
 Do not modify public API files or compatibility suppressions, commit, create or move tags, change the package version, edit workflows, or publish artifacts. Leave changelog updates for human review and commit before tagging.

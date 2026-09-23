@@ -8,7 +8,7 @@ user-invocable: true
 
 You perform the final MuLang release-readiness audit before a version tag is created.
 
-Require the user to provide the target version without the `v` prefix. Require an explicit incremental changelog base when the target version requires or includes detailed release notes. For a stable target, also require an explicit preceding stable base. Do not infer a missing base.
+Require the user to provide the target version without the `v` prefix. Require an explicit incremental changelog base unless the user explicitly states that the target is the first MuLang release. For a stable target, also require an explicit preceding stable base unless the user explicitly states that the target is the first stable release. Do not infer a missing base.
 
 Do not modify files, install new dependencies, commit, create or move tags, push, publish packages, create releases, or trigger workflows.
 
@@ -73,8 +73,8 @@ member-level `*REMOVED*` entries to exist at `HEAD`.
 8. Every target package's `PublicAPI.Shipped.txt` and `PublicAPI.Unshipped.txt` is valid and the analyzer reports no undeclared, stale, duplicate, malformed, or oblivious API entries.
 9. Every `*REMOVED*` public API entry for a package that remains in the target package set is intentional and represented as a breaking change in each required target changelog section. A package removed in its entirety is instead evidenced by the package-set diff and its API files at the base ref.
 10. Every entry in each target package's `CompatibilitySuppressions.xml` is necessary for the selected baseline and represented as a breaking change in each required target changelog section. Suppressions belonging to a removed package are reviewed at the base ref but need not be recreated at `HEAD`.
-11. Beta, RC, and stable releases contain a non-empty target-version section in `CHANGELOG.detailed.md`, as verified by `eng/Get-ChangelogReleaseNotes.ps1`. Alpha releases may omit it only when the release has no package removal or rename, incompatible shipped API change, `*REMOVED*` entry, or compatibility suppression requiring breaking-change documentation.
-12. Stable releases additionally contain a non-empty consolidated target-version section in `CHANGELOG.md`, as verified by `eng/Get-ChangelogReleaseNotes.ps1`; prerelease versions do not.
+11. Every release after the first MuLang release contains a non-empty target-version section in `CHANGELOG.detailed.md`, as verified by `eng/Get-ChangelogReleaseNotes.ps1`. The first MuLang release, whether stable or non-stable, does not require or modify either changelog.
+12. Stable releases after the first stable release additionally contain a non-empty consolidated target-version section in `CHANGELOG.md`, as verified by `eng/Get-ChangelogReleaseNotes.ps1`. The first stable release does not require or add a section to `CHANGELOG.md`; when preceded by non-stable releases, it still requires the incremental detailed section. Prerelease versions never add sections to `CHANGELOG.md`.
 13. The exact package and symbol-package artifact set, metadata, dependency graph, README, license, icon, XML documentation, strong names, repository commit, Source Link, and compiler/exporter consumer flow pass `eng/Verify-Packages.ps1`.
 14. The target version is greater than the selected baseline and its maturity suffix is consistent with the intended release.
 15. Every package removed or renamed since the incremental base is documented under `Breaking changes` in the required target section, including the replacement packages or migration path. The absence of the removed project and API files at `HEAD` is expected and is not itself a blocker.
@@ -84,6 +84,10 @@ Use the package IDs from `eng/PackageContract.psd1`,
 `eng/Verify-Packages.ps1` rather than duplicating their logic.
 Use `eng/Get-ChangelogReleaseNotes.ps1` for changelog section detection and
 validation rather than duplicating its parsing logic.
+Use `eng/Get-ReleaseHistory.ps1` to determine whether the target is the first
+MuLang release or the first stable release rather than inferring that status
+from missing changelog sections. Treat a user claim contradicted by the
+reachable release tag history as a blocker.
 
 Finish with:
 

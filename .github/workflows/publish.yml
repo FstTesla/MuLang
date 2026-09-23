@@ -29,6 +29,8 @@ jobs:
     steps:
       - name: Check out tagged commit
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up .NET
         uses: actions/setup-dotnet@v4
@@ -75,6 +77,9 @@ jobs:
           }
           $isStable = $channel -eq ''
           $createGitHubRelease = $channel -in '', 'beta', 'rc'
+          $history = ./eng/Get-ReleaseHistory.ps1 -Version $env:VERSION
+          $isFirstRelease = !$history.HasPreviousRelease
+          $isFirstStable = $isStable -and !$history.HasPreviousStable
           [string] $stableNotes = ./eng/Get-ChangelogReleaseNotes.ps1 `
             -Path 'CHANGELOG.md' `
             -Version $env:VERSION `
@@ -86,11 +91,11 @@ jobs:
           $hasStableNotes = ![string]::IsNullOrWhiteSpace($stableNotes)
           $hasDetailedNotes = ![string]::IsNullOrWhiteSpace($detailedNotes)
 
-          if ($createGitHubRelease -and !$hasDetailedNotes) {
+          if (!$isFirstRelease -and !$hasDetailedNotes) {
             throw "CHANGELOG.detailed.md does not contain release notes for version '$env:VERSION'."
           }
 
-          if ($isStable -and !$hasStableNotes) {
+          if ($isStable -and !$isFirstStable -and !$hasStableNotes) {
             throw "CHANGELOG.md does not contain consolidated release notes for version '$env:VERSION'."
           }
 
@@ -105,9 +110,9 @@ jobs:
           } else {
             ''
           }
-          $releaseNotesFile = if ($isStable) {
+          $releaseNotesFile = if ($hasStableNotes) {
             'CHANGELOG.md'
-          } elseif ($createGitHubRelease) {
+          } elseif ($hasDetailedNotes) {
             'CHANGELOG.detailed.md'
           } else {
             ''
@@ -175,7 +180,7 @@ jobs:
           path: artifacts/packages
 
       - name: Prepare GitHub release notes
-        if: needs.pack.outputs.create_github_release == 'true'
+        if: needs.pack.outputs.create_github_release == 'true' && needs.pack.outputs.release_notes_file != ''
         shell: pwsh
         env:
           RELEASE_NOTES_FILE: ${{ needs.pack.outputs.release_notes_file }}
@@ -256,10 +261,17 @@ jobs:
             $env:RELEASE_TAG,
             '--verify-tag',
             '--title',
-            "MuLang $env:VERSION",
-            '--notes-file',
-            'artifacts/release-notes.md'
+            "MuLang $env:VERSION"
           )
+
+          if (Test-Path 'artifacts/release-notes.md') {
+            $arguments += @(
+              '--notes-file',
+              'artifacts/release-notes.md'
+            )
+          } else {
+            $arguments += @('--notes', '')
+          }
 
           if ($env:VERSION.Contains('-', [StringComparison]::Ordinal)) {
             $arguments += '--prerelease'
