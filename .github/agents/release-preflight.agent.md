@@ -66,7 +66,7 @@ member-level `*REMOVED*` entries to exist at `HEAD`.
 1. The working tree has no uncommitted changes other than files the user explicitly excludes from the release.
 2. `HEAD` is published to the intended remote branch.
 3. The target local and remote tags do not already exist.
-4. The latest CI and documentation workflows for `HEAD` succeeded.
+4. The latest CI workflow for `HEAD` succeeded. If the documentation workflow ran for `HEAD`, it also succeeded. If it did not run because no changed path matched its configured `paths`, confirm that no changed path required that workflow and that DocFX with warnings as errors succeeded for `HEAD`; do not treat the skipped workflow as a blocker.
 5. Restore in locked mode, Debug and Release tests, DocFX with warnings as errors, pack, and local package verification succeed using the target version.
 6. The dynamically resolved package-validation baseline for each package in `eng/PackageContract.psd1` is a published predecessor, unless an explicit repository override intentionally selects another predecessor or disables validation.
 7. Package validation against each selected package baseline succeeds.
