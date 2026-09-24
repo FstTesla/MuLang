@@ -13,11 +13,12 @@ public sealed record LanguageProfile
     /// <param name="mutations">The mutation features.</param>
     /// <param name="multiLevelLoopControl">The multi-level loop control feature setting.</param>
     /// <param name="trailingCommas">The trailing commas feature setting.</param>
+    /// <param name="constantFolding">The compile-time constant folding feature setting.</param>
     /// <param name="conditionSemantics">The condition semantics.</param>
     /// <param name="shadowing">The shadowing policy.</param>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when a feature setting or flags value is not defined.</exception>
     /// <exception cref="ArgumentException">Thrown when <paramref name="languageVersion" /> is not supported.</exception>
-    public LanguageProfile(
+    internal LanguageProfile(
         LanguageVersion languageVersion,
         UserDefinedFunctionsFeature userDefinedFunctions,
         RecursionFeature recursion,
@@ -27,6 +28,7 @@ public sealed record LanguageProfile
         MutationFeatures mutations,
         MultiLevelLoopControlFeature multiLevelLoopControl,
         TrailingCommasFeature trailingCommas,
+        ConstantFoldingFeature constantFolding,
         ConditionSemantics conditionSemantics,
         ShadowingPolicy shadowing
     )
@@ -46,6 +48,7 @@ public sealed record LanguageProfile
         );
         ValidateDefined(multiLevelLoopControl, nameof(multiLevelLoopControl));
         ValidateDefined(trailingCommas, nameof(trailingCommas));
+        ValidateDefined(constantFolding, nameof(constantFolding));
         ValidateConditionSemantics(conditionSemantics, nameof(conditionSemantics));
         ValidateFlags(
             shadowing,
@@ -62,6 +65,7 @@ public sealed record LanguageProfile
         Mutations = mutations;
         MultiLevelLoopControl = multiLevelLoopControl;
         TrailingCommas = trailingCommas;
+        ConstantFolding = constantFolding;
         ConditionSemantics = conditionSemantics;
         Shadowing = shadowing;
         Fingerprint = LanguageProfileFingerprintFactory.Create(this);
@@ -93,6 +97,9 @@ public sealed record LanguageProfile
 
     /// <summary>Gets the trailing commas feature setting.</summary>
     public TrailingCommasFeature TrailingCommas { get; }
+
+    /// <summary>Gets the compile-time constant folding feature setting.</summary>
+    public ConstantFoldingFeature ConstantFolding { get; }
 
     /// <summary>Gets the condition semantics.</summary>
     public ConditionSemantics ConditionSemantics { get; }

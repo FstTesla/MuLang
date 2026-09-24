@@ -162,6 +162,9 @@ public static class DiagnosticCodes
     /// <summary>Gets the code for a type test that is statically known to be false.</summary>
     public const string ImpossibleTypeTest = "MUL3030";
 
+    /// <summary>Gets the code for a constant expression that fails during compile-time evaluation.</summary>
+    public const string ConstantEvaluationFailed = "MUL3031";
+
     /// <summary>Gets the code for disabled user-defined functions.</summary>
     public const string DisabledUserDefinedFunctions = "MUL7001";
 

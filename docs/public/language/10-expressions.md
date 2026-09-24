@@ -190,3 +190,26 @@ Its condition MUST satisfy the selected condition semantics in [Section 18.9](18
 Its branches MUST have a common type according to the language conversion rules.
 
 Only the selected branch is evaluated.
+
+## 10.11. Compile-time constant evaluation
+
+When compile-time constant folding is enabled by the selected language profile, the compiler MUST simplify constant primitive expressions after successful binding and before lowering, using the same primitive semantics as runtime evaluation.
+
+A constant primitive expression is a primitive literal or an expression whose required operands have been reduced to primitive literals. Compile-time evaluation applies to:
+
+- intrinsic unary and binary primitive operators;
+- primitive value conversions and checked casts;
+- primitive type tests and truthiness normalization;
+- null coalescing;
+- conditional expressions;
+- conditional Boolean operators.
+
+Compile-time evaluation MUST preserve source evaluation order and short-circuit behavior. An operand or conditional branch that is known not to be evaluated MUST NOT be evaluated for constant folding and MUST NOT produce a constant-evaluation diagnostic.
+
+Provider calls, user-defined calls, global or local reads, array and object creation, member access, and element access are not constant expressions. Constant subexpressions within them MAY still be simplified.
+
+If evaluating a required constant subexpression produces integer overflow, integer division or remainder by zero, an invalid shift count, or a failed checked cast, compilation MUST report an error and MUST NOT produce an executable artifact.
+
+The compiler MUST NOT materialize mutable arrays or objects as shared compile-time constants.
+
+When compile-time constant folding is disabled, the compiler MUST preserve these expressions for runtime evaluation and MUST NOT produce constant-evaluation diagnostics.

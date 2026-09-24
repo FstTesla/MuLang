@@ -8,7 +8,7 @@ A language profile is immutable and contains:
 - one independently typed enum value for each configurable concern;
 - a deterministic language-profile fingerprint.
 
-The standard profile for language version 1 preserves all language syntax, capabilities, and policies described by the rest of this specification unless this section explicitly permits a restriction. It enables user-defined functions, recursion, both loop kinds, provider function calls, open objects, every mutation kind, explicit loop-control levels, and trailing commas. It uses strict Boolean conditions and prohibits variable shadowing.
+The standard profile for language version 1 preserves all language syntax, capabilities, and policies described by the rest of this specification unless this section explicitly permits a restriction. It enables user-defined functions, recursion, both loop kinds, provider function calls, open objects, every mutation kind, explicit loop-control levels, trailing commas, and compile-time constant folding. It uses strict Boolean conditions and prohibits variable shadowing.
 
 The standard profile for language version 2 has the same configurable feature defaults and adds read-only array types and literals as an unconditional part of the type system for language version 2. Profiles for language version 1 reject `$` and `$[` with a language-version diagnostic.
 
@@ -26,6 +26,7 @@ The profile options and stable numeric values are:
 | `Mutations` | `None = 0`, `ObjectProperties = 1`, `ArrayElements = 2`, `PropertyRemoval = 4` | Yes |
 | `MultiLevelLoopControl` | `Disabled = 0`, `Enabled = 1` | No |
 | `TrailingCommas` | `Disabled = 0`, `Enabled = 1` | No |
+| `ConstantFolding` | `Disabled = 0`, `Enabled = 1` | No |
 | `ConditionSemantics` | `StrictBoolean = 0`, `Truthiness = 1` | No |
 | `Shadowing` | `None = 0`, `NestedScopes = 1`, `Globals = 2` | Yes |
 
@@ -130,6 +131,16 @@ The standard `LanguageProfiles.Version1` profile uses `StrictBoolean`.
 
 The standard `LanguageProfiles.Version2` profile also uses `StrictBoolean`.
 
-## 18.10. Diagnostics
+## 18.10. Compile-time constant folding
+
+`ConstantFoldingFeature.Enabled` performs the compile-time simplification defined in [Section 10.11](10-expressions.md#1011-compile-time-constant-evaluation) and reports failures in required constant expressions during compilation.
+
+`ConstantFoldingFeature.Disabled` bypasses the constant-folding pass. Expressions retain their ordinary runtime evaluation and failures remain runtime errors.
+
+Both standard language profiles enable compile-time constant folding.
+
+The option contributes to the language-profile fingerprint and therefore to compilation cache identity.
+
+## 18.11. Diagnostics
 
 Each disabled feature or independently controllable member MUST use its dedicated stable diagnostic code. Diagnostics do not carry separate feature metadata. Recognized disabled syntax SHOULD be retained sufficiently for later phases to recover and report independent diagnostics.

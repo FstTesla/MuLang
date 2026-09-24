@@ -12,6 +12,7 @@ public sealed class LanguageProfileBuilder
     private MutationFeatures mutations;
     private MultiLevelLoopControlFeature multiLevelLoopControl;
     private TrailingCommasFeature trailingCommas;
+    private ConstantFoldingFeature constantFolding;
     private ConditionSemantics conditionSemantics;
     private ShadowingPolicy shadowing;
 
@@ -38,6 +39,7 @@ public sealed class LanguageProfileBuilder
         mutations = profile.Mutations;
         multiLevelLoopControl = profile.MultiLevelLoopControl;
         trailingCommas = profile.TrailingCommas;
+        constantFolding = profile.ConstantFolding;
         conditionSemantics = profile.ConditionSemantics;
         shadowing = profile.Shadowing;
     }
@@ -221,6 +223,20 @@ public sealed class LanguageProfileBuilder
         return this;
     }
 
+    /// <summary>Sets the compile-time constant folding feature setting.</summary>
+    /// <param name="constantFolding">The compile-time constant folding feature setting.</param>
+    /// <returns>The same <see cref="LanguageProfileBuilder" /> instance, for chaining.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="constantFolding" /> is not defined.</exception>
+    public LanguageProfileBuilder WithConstantFolding(
+        ConstantFoldingFeature constantFolding
+    )
+    {
+        LanguageProfile.ValidateDefined(constantFolding, nameof(constantFolding));
+        this.constantFolding = constantFolding;
+
+        return this;
+    }
+
     /// <summary>Sets the condition semantics setting.</summary>
     /// <param name="conditionSemantics">The condition semantics.</param>
     /// <returns>The same <see cref="LanguageProfileBuilder" /> instance, for chaining.</returns>
@@ -288,6 +304,7 @@ public sealed class LanguageProfileBuilder
             mutations,
             multiLevelLoopControl,
             trailingCommas,
+            constantFolding,
             conditionSemantics,
             shadowing
         );

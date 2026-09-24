@@ -1,4 +1,4 @@
-using MuLang.Core.Types;
+using MuLang.Core.Evaluation;
 
 namespace MuLang.Compiler.Binding;
 
@@ -20,49 +20,15 @@ internal static class BoundTruthinessFacts
             return true;
         }
 
-        if (expression is not BoundExpression.Literal literal)
+        if (
+            expression is not BoundExpression.Literal literal ||
+            !PrimitiveValueOperations.TryGetTruthiness(literal.Value, out value)
+        )
         {
             value = false;
             return false;
         }
 
-        switch (literal.Type.Kind)
-        {
-            case TypeKind.Null:
-            {
-                value = false;
-                return true;
-            }
-
-            case TypeKind.Bool when literal.Value is bool boolean:
-            {
-                value = boolean;
-                return true;
-            }
-
-            case TypeKind.Int when literal.Value is long integer:
-            {
-                value = integer != 0;
-                return true;
-            }
-
-            case TypeKind.Float when literal.Value is double number:
-            {
-                value = number != 0 && !double.IsNaN(number);
-                return true;
-            }
-
-            case TypeKind.String when literal.Value is string text:
-            {
-                value = text.Length != 0;
-                return true;
-            }
-
-            default:
-            {
-                value = false;
-                return false;
-            }
-        }
+        return true;
     }
 }

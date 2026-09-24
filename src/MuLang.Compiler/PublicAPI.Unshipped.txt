@@ -1,1 +1,2 @@
 #nullable enable
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.ConstantEvaluationFailed = "MUL3031" -> string!

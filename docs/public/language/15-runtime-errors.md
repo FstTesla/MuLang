@@ -24,6 +24,8 @@ Runtime errors include:
 - provider function failure.
 - exhausted user-function call depth.
 
+When compile-time constant folding is enabled and an operation listed above is evaluated as a required constant expression, the corresponding failure is reported during compilation instead, as defined in [Section 10.11](10-expressions.md#1011-compile-time-constant-evaluation).
+
 Provider exceptions MUST be wrapped while preserving the original exception as the inner cause where the host runtime supports it.
 
 The language provides no source-level mechanism for catching runtime errors.

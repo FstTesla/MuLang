@@ -1,5 +1,6 @@
 using MuLang.Compiler.Binding;
 using MuLang.Compiler.Lowering;
+using MuLang.Compiler.Optimization;
 using MuLang.Compiler.Syntax;
 using MuLang.Core;
 using MuLang.Core.Diagnostics;
@@ -82,9 +83,27 @@ public static class MuLangCompiler
             return new CompilationResult(null, binding.Diagnostics);
         }
 
-        LoweringResult lowering = Lowerer.Lower(binding, environment);
+        BindingResult optimizedBinding = binding;
+        DiagnosticCollection optimizationDiagnostics = binding.Diagnostics;
+
+        if (profile.ConstantFolding == ConstantFoldingFeature.Enabled)
+        {
+            ConstantFoldingResult folding = ConstantFolder.Fold(binding);
+            optimizationDiagnostics = DiagnosticCollection.Create(
+                binding.Diagnostics.Concat(folding.Diagnostics)
+            );
+
+            if (optimizationDiagnostics.HasErrors)
+            {
+                return new CompilationResult(null, optimizationDiagnostics);
+            }
+
+            optimizedBinding = folding.Binding;
+        }
+
+        LoweringResult lowering = Lowerer.Lower(optimizedBinding, environment);
         DiagnosticCollection diagnostics = DiagnosticCollection.Create(
-            binding.Diagnostics.Concat(lowering.Diagnostics)
+            optimizationDiagnostics.Concat(lowering.Diagnostics)
         );
 
         return new CompilationResult(lowering.Program, diagnostics);

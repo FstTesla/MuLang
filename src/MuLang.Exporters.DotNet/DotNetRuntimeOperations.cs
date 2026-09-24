@@ -1,10 +1,10 @@
 using MuLang.Core.Environment;
+using MuLang.Core.Evaluation;
 using MuLang.Core.Runtime;
 using MuLang.Core.Text;
 using MuLang.Core.Types;
 using MuLang.IR;
 using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
 
 namespace MuLang.Exporters.DotNet;
 
@@ -61,13 +61,13 @@ internal static class DotNetRuntimeOperations
 
     public static bool Truthiness(object? value, TextSpan span)
     {
+        if (PrimitiveValueOperations.TryGetTruthiness(value, out bool result))
+        {
+            return result;
+        }
+
         return value switch
         {
-            null => false,
-            bool boolean => boolean,
-            long integer => integer != 0,
-            double number => number != 0 && !double.IsNaN(number),
-            string text => text.Length != 0,
             IDotNetObjectValue => true,
             IDotNetReadOnlyArrayValue => true,
             IDotNetArrayValue => true,
@@ -84,14 +84,13 @@ internal static class DotNetRuntimeOperations
         TextSpan span
     )
     {
-        return operation switch
-        {
-            IrUnaryOperator.Identity => operand,
-            IrUnaryOperator.Negate => Negate(operand, span),
-            IrUnaryOperator.LogicalNot => !RequireBoolean(operand, span),
-            IrUnaryOperator.BitwiseNot => ~RequireInt(operand, span),
-            _ => throw new InvalidOperationException("Unknown IR unary operator."),
-        };
+        return EvaluatePrimitive(
+            () => PrimitiveValueOperations.EvaluateUnary(
+                MapUnaryOperation(operation),
+                operand
+            ),
+            span
+        );
     }
 
     public static bool IsNull(object? value)
@@ -109,21 +108,6 @@ internal static class DotNetRuntimeOperations
     {
         return operation switch
         {
-            IrBinaryOperator.Add => Add(left, right, span),
-            IrBinaryOperator.Subtract => Subtract(left, right, span),
-            IrBinaryOperator.Multiply => Multiply(left, right, span),
-            IrBinaryOperator.Divide => Divide(left, right, span),
-            IrBinaryOperator.Remainder => Remainder(left, right, span),
-            IrBinaryOperator.LeftShift => LeftShift(left, right, span),
-            IrBinaryOperator.RightShift => RightShift(left, right, span),
-            IrBinaryOperator.LessThan =>
-                CompareRelational(left, right, span, static comparison => comparison < 0),
-            IrBinaryOperator.LessThanOrEqual =>
-                CompareRelational(left, right, span, static comparison => comparison <= 0),
-            IrBinaryOperator.GreaterThan =>
-                CompareRelational(left, right, span, static comparison => comparison > 0),
-            IrBinaryOperator.GreaterThanOrEqual =>
-                CompareRelational(left, right, span, static comparison => comparison >= 0),
             IrBinaryOperator.StructuralEqual =>
                 StructuralEquals(context, left, right, span),
             IrBinaryOperator.StructuralNotEqual =>
@@ -132,13 +116,14 @@ internal static class DotNetRuntimeOperations
                 IdentityEquals(context, left, right, span),
             IrBinaryOperator.IdentityNotEqual =>
                 !IdentityEquals(context, left, right, span),
-            IrBinaryOperator.BitwiseAnd =>
-                And(left, right, span),
-            IrBinaryOperator.BitwiseXor =>
-                Xor(left, right, span),
-            IrBinaryOperator.BitwiseOr =>
-                Or(left, right, span),
-            _ => throw new InvalidOperationException("Unknown IR binary operator."),
+            _ => EvaluatePrimitive(
+                () => PrimitiveValueOperations.EvaluateBinary(
+                    MapBinaryOperation(operation),
+                    left,
+                    right
+                ),
+                span
+            ),
         };
     }
 
@@ -164,6 +149,14 @@ internal static class DotNetRuntimeOperations
             );
         }
 
+        if (PrimitiveValueOperations.IsPrimitiveType(targetType))
+        {
+            return EvaluatePrimitive(
+                () => PrimitiveValueOperations.ConvertValue(value, targetType),
+                span
+            );
+        }
+
         if (targetType is NullableTypeSymbol nullable)
         {
             return value is null
@@ -177,11 +170,6 @@ internal static class DotNetRuntimeOperations
                 );
         }
 
-        if (targetType.Kind == TypeKind.String)
-        {
-            return ConvertToString(value, span);
-        }
-
         if (value is null)
         {
             throw new MuLangRuntimeException(
@@ -193,11 +181,6 @@ internal static class DotNetRuntimeOperations
 
         return targetType.Kind switch
         {
-            TypeKind.Bool when value is bool => value,
-            TypeKind.Int => ConvertToInt(value, span),
-            TypeKind.Float => ConvertToFloat(value, span),
-            TypeKind.Number => ConvertToNumber(value, span),
-            TypeKind.Unknown => value,
             TypeKind.Object when IsObject(value) => value,
             TypeKind.StructuredObject
                 when IsValueOfTypeDeep(context, value, targetType, span) => value,
@@ -460,212 +443,6 @@ internal static class DotNetRuntimeOperations
             : TryGetProperty(target, RequireString(key, span), out _);
     }
 
-    private static object Negate(object? value, TextSpan span)
-    {
-        if (value is long integer)
-        {
-            try
-            {
-                return checked(-integer);
-            }
-            catch (OverflowException exception)
-            {
-                throw IntegerOverflow(span, exception);
-            }
-        }
-
-        return -RequireFloatCompatible(value, span);
-    }
-
-    private static object Add(object? left, object? right, TextSpan span)
-    {
-        if (left is string leftString && right is string rightString)
-        {
-            return $"{leftString}{rightString}";
-        }
-
-        if (left is long leftInt && right is long rightInt)
-        {
-            try
-            {
-                return checked(leftInt + rightInt);
-            }
-            catch (OverflowException exception)
-            {
-                throw IntegerOverflow(span, exception);
-            }
-        }
-
-        return RequireFloatCompatible(left, span) +
-            RequireFloatCompatible(right, span);
-    }
-
-    private static object Subtract(object? left, object? right, TextSpan span)
-    {
-        if (left is long leftInt && right is long rightInt)
-        {
-            try
-            {
-                return checked(leftInt - rightInt);
-            }
-            catch (OverflowException exception)
-            {
-                throw IntegerOverflow(span, exception);
-            }
-        }
-
-        return RequireFloatCompatible(left, span) -
-            RequireFloatCompatible(right, span);
-    }
-
-    private static object Multiply(object? left, object? right, TextSpan span)
-    {
-        if (left is long leftInt && right is long rightInt)
-        {
-            try
-            {
-                return checked(leftInt * rightInt);
-            }
-            catch (OverflowException exception)
-            {
-                throw IntegerOverflow(span, exception);
-            }
-        }
-
-        return RequireFloatCompatible(left, span) *
-            RequireFloatCompatible(right, span);
-    }
-
-    private static object Divide(object? left, object? right, TextSpan span)
-    {
-        if (left is long leftInt && right is long rightInt)
-        {
-            if (rightInt == 0)
-            {
-                throw DivisionByZero(span);
-            }
-
-            if (leftInt == long.MinValue && rightInt == -1)
-            {
-                throw IntegerOverflow(span);
-            }
-
-            return leftInt / rightInt;
-        }
-
-        return RequireFloatCompatible(left, span) /
-            RequireFloatCompatible(right, span);
-    }
-
-    private static object Remainder(object? left, object? right, TextSpan span)
-    {
-        if (left is long leftInt && right is long rightInt)
-        {
-            if (rightInt == 0)
-            {
-                throw DivisionByZero(span);
-            }
-
-            if (leftInt == long.MinValue && rightInt == -1)
-            {
-                throw IntegerOverflow(span);
-            }
-
-            return leftInt % rightInt;
-        }
-
-        return RequireFloatCompatible(left, span) %
-            RequireFloatCompatible(right, span);
-    }
-
-    private static long LeftShift(object? left, object? right, TextSpan span)
-    {
-        long value = RequireInt(left, span);
-        int shift = RequireShift(right, span);
-
-        return value << shift;
-    }
-
-    private static long RightShift(object? left, object? right, TextSpan span)
-    {
-        long value = RequireInt(left, span);
-        int shift = RequireShift(right, span);
-
-        return value >> shift;
-    }
-
-    private static object And(object? left, object? right, TextSpan span)
-    {
-        if (left is bool leftBoolean && right is bool rightBoolean)
-        {
-            return leftBoolean & rightBoolean;
-        }
-
-        return RequireInt(left, span) & RequireInt(right, span);
-    }
-
-    private static object Xor(object? left, object? right, TextSpan span)
-    {
-        if (left is bool leftBoolean && right is bool rightBoolean)
-        {
-            return leftBoolean ^ rightBoolean;
-        }
-
-        return RequireInt(left, span) ^ RequireInt(right, span);
-    }
-
-    private static object Or(object? left, object? right, TextSpan span)
-    {
-        if (left is bool leftBoolean && right is bool rightBoolean)
-        {
-            return leftBoolean | rightBoolean;
-        }
-
-        return RequireInt(left, span) | RequireInt(right, span);
-    }
-
-    private static bool CompareRelational(
-        object? left,
-        object? right,
-        TextSpan span,
-        Func<int, bool> evaluateComparison
-    )
-    {
-        if (left is long leftInt && right is long rightInt)
-        {
-            return evaluateComparison(leftInt.CompareTo(rightInt));
-        }
-
-        if (left is double leftNumber && right is double rightNumber)
-        {
-            return !double.IsNaN(leftNumber) &&
-                !double.IsNaN(rightNumber) &&
-                evaluateComparison(leftNumber.CompareTo(rightNumber));
-        }
-
-        if (
-            left is long or double &&
-            right is long or double
-        )
-        {
-            double promotedLeft = RequireFloatCompatible(left, span);
-            double promotedRight = RequireFloatCompatible(right, span);
-
-            return !double.IsNaN(promotedLeft) &&
-                !double.IsNaN(promotedRight) &&
-                evaluateComparison(promotedLeft.CompareTo(promotedRight));
-        }
-
-        if (left is string leftString && right is string rightString)
-        {
-            return evaluateComparison(
-                StringComparer.Ordinal.Compare(leftString, rightString)
-            );
-        }
-
-        throw InvalidValue("Values cannot be ordered.", span);
-    }
-
     private static bool StructuralEquals(
         DotNetRuntimeContext context,
         object? left,
@@ -689,44 +466,20 @@ internal static class DotNetRuntimeOperations
         EnsureTraversalDepth(context, depth, span);
         context.Consume(span);
 
-        if (left is double leftDouble && right is double rightDouble)
-        {
-            // ReSharper disable once CompareOfFloatsByEqualityOperator
-            return leftDouble == rightDouble;
-        }
-
-        if (ReferenceEquals(left, right))
-        {
-            return true;
-        }
-
-        if (left is null || right is null)
-        {
-            return false;
-        }
-
-        if (left is long leftInt && right is double rightNumber)
-        {
-            // ReSharper disable once CompareOfFloatsByEqualityOperator
-            return leftInt == rightNumber;
-        }
-
-        if (left is double leftNumber && right is long rightInt)
-        {
-            // ReSharper disable once CompareOfFloatsByEqualityOperator
-            return leftNumber == rightInt;
-        }
-
         if (
-            left is bool or long or double or string ||
-            right is bool or long or double or string
+            PrimitiveValueOperations.IsPrimitiveValue(left) ||
+            PrimitiveValueOperations.IsPrimitiveValue(right)
         )
         {
-            return Equals(left, right);
+            return (bool)PrimitiveValueOperations.EvaluateBinary(
+                PrimitiveBinaryOperation.StructuralEqual,
+                left,
+                right
+            );
         }
 
-        object leftIdentity = GetIdentity(left);
-        object rightIdentity = GetIdentity(right);
+        object leftIdentity = GetIdentity(left!);
+        object rightIdentity = GetIdentity(right!);
         ReferencePair pair = new (leftIdentity, rightIdentity);
 
         if (!visited.Add(pair))
@@ -734,17 +487,17 @@ internal static class DotNetRuntimeOperations
             return true;
         }
 
-        if (TryGetArrayCount(left, out int leftCount))
+        if (TryGetArrayCount(left!, out int leftCount))
         {
-            if (!TryGetArrayCount(right, out int rightCount) || leftCount != rightCount)
+            if (!TryGetArrayCount(right!, out int rightCount) || leftCount != rightCount)
             {
                 return false;
             }
 
             for (int index = 0; index < leftCount; index++)
             {
-                TryGetArrayElement(left, index, out object? leftValue);
-                TryGetArrayElement(right, index, out object? rightValue);
+                TryGetArrayElement(left!, index, out object? leftValue);
+                TryGetArrayElement(right!, index, out object? rightValue);
 
                 if (!StructuralEquals(
                         context,
@@ -762,13 +515,13 @@ internal static class DotNetRuntimeOperations
             return true;
         }
 
-        if (!TryGetPropertyNames(left, out IReadOnlyCollection<string>? leftNames))
+        if (!TryGetPropertyNames(left!, out IReadOnlyCollection<string>? leftNames))
         {
             return false;
         }
 
         if (
-            !TryGetPropertyNames(right, out IReadOnlyCollection<string>? rightNames) ||
+            !TryGetPropertyNames(right!, out IReadOnlyCollection<string>? rightNames) ||
             leftNames.Count != rightNames.Count
         )
         {
@@ -778,8 +531,8 @@ internal static class DotNetRuntimeOperations
         foreach (string name in leftNames)
         {
             if (
-                !TryGetProperty(left, name, out object? leftValue) ||
-                !TryGetProperty(right, name, out object? rightValue) ||
+                !TryGetProperty(left!, name, out object? leftValue) ||
+                !TryGetProperty(right!, name, out object? rightValue) ||
                 !StructuralEquals(
                     context,
                     leftValue,
@@ -813,16 +566,20 @@ internal static class DotNetRuntimeOperations
         }
 
         if (
-            left is null ||
-            right is null ||
-            left is bool or long or double or string ||
-            right is bool or long or double or string
+            PrimitiveValueOperations.IsPrimitiveValue(left) ||
+            PrimitiveValueOperations.IsPrimitiveValue(right)
         )
         {
-            return StructuralEquals(context, left, right, span);
+            EnsureTraversalDepth(context, 0, span);
+            context.Consume(span);
+            return (bool)PrimitiveValueOperations.EvaluateBinary(
+                PrimitiveBinaryOperation.IdentityEqual,
+                left,
+                right
+            );
         }
 
-        return ReferenceEquals(GetIdentity(left), GetIdentity(right));
+        return ReferenceEquals(GetIdentity(left!), GetIdentity(right!));
     }
 
     private static bool IsValueOfTypeDeep(
@@ -1103,64 +860,11 @@ internal static class DotNetRuntimeOperations
         return true;
     }
 
-    private static string ConvertToString(object? value, TextSpan span)
-    {
-        return value switch
-        {
-            null => "null",
-            bool boolean => boolean ? "true" : "false",
-            long integer => integer.ToString(CultureInfo.InvariantCulture),
-            double.NaN => "NaN",
-            double.PositiveInfinity => "Infinity",
-            double.NegativeInfinity => "-Infinity",
-            double number => FormatNumber(number),
-            string text => text,
-            _ => throw InvalidValue("Value has no intrinsic string conversion.", span),
-        };
-    }
-
-    private static long ConvertToInt(
-        object value,
-        TextSpan span
-    )
-    {
-        return value is long integer
-            ? integer
-            : throw InvalidValue("Value cannot be converted to int.", span);
-    }
-
     private static long RequireInt(object? value, TextSpan span)
     {
         return value is long integer
             ? integer
             : throw InvalidValue("Expected an int value.", span);
-    }
-
-    private static double ConvertToFloat(object value, TextSpan span)
-    {
-        return value switch
-        {
-            long integer => integer,
-            double number => number,
-            _ => throw InvalidValue("Value cannot be converted to float.", span),
-        };
-    }
-
-    private static object ConvertToNumber(object value, TextSpan span)
-    {
-        return value is long or double
-            ? value
-            : throw InvalidValue("Value cannot be converted to number.", span);
-    }
-
-    private static double RequireFloatCompatible(object? value, TextSpan span)
-    {
-        return value switch
-        {
-            long integer => integer,
-            double number => number,
-            _ => throw InvalidValue("Expected a numeric value.", span),
-        };
     }
 
     private static string RequireString(object? value, TextSpan span)
@@ -1184,20 +888,81 @@ internal static class DotNetRuntimeOperations
         return (int)index;
     }
 
-    private static int RequireShift(object? value, TextSpan span)
+    private static T EvaluatePrimitive<T>(
+        Func<T> evaluate,
+        TextSpan span
+    )
     {
-        long shift = RequireInt(value, span);
-
-        if (shift is < 0 or > 63)
+        try
         {
+            return evaluate();
+        }
+        catch (PrimitiveOperationException exception)
+        {
+            string code = exception.Error switch
+            {
+                PrimitiveOperationError.InvalidValue =>
+                    DotNetRuntimeErrorCodes.InvalidRuntimeValue,
+                PrimitiveOperationError.IntegerOverflow =>
+                    DotNetRuntimeErrorCodes.IntegerOverflow,
+                PrimitiveOperationError.DivisionByZero =>
+                    DotNetRuntimeErrorCodes.DivisionByZero,
+                PrimitiveOperationError.InvalidShift =>
+                    DotNetRuntimeErrorCodes.InvalidShift,
+                _ => throw new InvalidOperationException(
+                    "Unknown primitive operation error."
+                ),
+            };
+
             throw new MuLangRuntimeException(
-                DotNetRuntimeErrorCodes.InvalidShift,
-                $"Shift count {shift} must be between 0 and 63.",
-                span
+                code,
+                exception.Message,
+                span,
+                exception.InnerException
             );
         }
+    }
 
-        return (int)shift;
+    private static PrimitiveUnaryOperation MapUnaryOperation(
+        IrUnaryOperator operation
+    )
+    {
+        return operation switch
+        {
+            IrUnaryOperator.Identity => PrimitiveUnaryOperation.Identity,
+            IrUnaryOperator.Negate => PrimitiveUnaryOperation.Negate,
+            IrUnaryOperator.LogicalNot => PrimitiveUnaryOperation.LogicalNot,
+            IrUnaryOperator.BitwiseNot => PrimitiveUnaryOperation.BitwiseNot,
+            _ => throw new InvalidOperationException("Unknown IR unary operator."),
+        };
+    }
+
+    private static PrimitiveBinaryOperation MapBinaryOperation(
+        IrBinaryOperator operation
+    )
+    {
+        return operation switch
+        {
+            IrBinaryOperator.Add => PrimitiveBinaryOperation.Add,
+            IrBinaryOperator.Subtract => PrimitiveBinaryOperation.Subtract,
+            IrBinaryOperator.Multiply => PrimitiveBinaryOperation.Multiply,
+            IrBinaryOperator.Divide => PrimitiveBinaryOperation.Divide,
+            IrBinaryOperator.Remainder => PrimitiveBinaryOperation.Remainder,
+            IrBinaryOperator.LeftShift => PrimitiveBinaryOperation.LeftShift,
+            IrBinaryOperator.RightShift => PrimitiveBinaryOperation.RightShift,
+            IrBinaryOperator.LessThan => PrimitiveBinaryOperation.LessThan,
+            IrBinaryOperator.LessThanOrEqual =>
+                PrimitiveBinaryOperation.LessThanOrEqual,
+            IrBinaryOperator.GreaterThan => PrimitiveBinaryOperation.GreaterThan,
+            IrBinaryOperator.GreaterThanOrEqual =>
+                PrimitiveBinaryOperation.GreaterThanOrEqual,
+            IrBinaryOperator.BitwiseAnd => PrimitiveBinaryOperation.BitwiseAnd,
+            IrBinaryOperator.BitwiseXor => PrimitiveBinaryOperation.BitwiseXor,
+            IrBinaryOperator.BitwiseOr => PrimitiveBinaryOperation.BitwiseOr,
+            _ => throw new InvalidOperationException(
+                "IR binary operator is not a primitive scalar operation."
+            ),
+        };
     }
 
     private static bool IsObject(object value)
@@ -1315,28 +1080,6 @@ internal static class DotNetRuntimeOperations
         );
     }
 
-    private static MuLangRuntimeException IntegerOverflow(
-        TextSpan span,
-        Exception? innerException = null
-    )
-    {
-        return new MuLangRuntimeException(
-            DotNetRuntimeErrorCodes.IntegerOverflow,
-            "Integer arithmetic overflowed.",
-            span,
-            innerException
-        );
-    }
-
-    private static MuLangRuntimeException DivisionByZero(TextSpan span)
-    {
-        return new MuLangRuntimeException(
-            DotNetRuntimeErrorCodes.DivisionByZero,
-            "Integer division or remainder by zero is not permitted.",
-            span
-        );
-    }
-
     private static object? EnsureValueType(
         object? value,
         TypeSymbol expectedType,
@@ -1372,16 +1115,6 @@ internal static class DotNetRuntimeOperations
         }
 
         return value;
-    }
-
-    private static string FormatNumber(double number)
-    {
-        string text = number.ToString("R", CultureInfo.InvariantCulture);
-
-        return text.Contains('.') ||
-            text.Contains('e', StringComparison.OrdinalIgnoreCase)
-                ? text
-                : $"{text}.0";
     }
 
     private static void EnsureTraversalDepth(

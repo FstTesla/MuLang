@@ -1,14 +1,14 @@
 - Standard library
 - New features:
   - Warnings
-  - Lower compile-time constants
   - Readonly locals
   - Readonly and optional object properties
   - Comments
   - User-defined types
   - First-class functions and function types
 - Feature flags:
-  - Readonly properties and locals
+  - Readonly locals
+  - Readonly and optional object properties
   - Comments
   - User-defined types
   - First-class functions and function types

@@ -18,6 +18,7 @@ internal static class LanguageProfileFingerprintFactory
         Append(canonical, "Mutations", profile.Mutations);
         Append(canonical, "MultiLevelLoopControl", profile.MultiLevelLoopControl);
         Append(canonical, "TrailingCommas", profile.TrailingCommas);
+        Append(canonical, "ConstantFolding", profile.ConstantFolding);
         Append(canonical, "ConditionSemantics", profile.ConditionSemantics);
         Append(canonical, "Shadowing", profile.Shadowing);
         byte[] hash = SHA256.HashData(Encoding.UTF8.GetBytes(canonical.ToString()));

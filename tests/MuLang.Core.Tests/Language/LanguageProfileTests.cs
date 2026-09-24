@@ -43,6 +43,10 @@ public sealed class LanguageProfileTests
                 Is.EqualTo(TrailingCommasFeature.Enabled)
             );
             Assert.That(
+                profile.ConstantFolding,
+                Is.EqualTo(ConstantFoldingFeature.Enabled)
+            );
+            Assert.That(
                 profile.ConditionSemantics,
                 Is.EqualTo(ConditionSemantics.StrictBoolean)
             );
@@ -102,6 +106,8 @@ public sealed class LanguageProfileTests
             Assert.That((int)MultiLevelLoopControlFeature.Enabled, Is.EqualTo(1));
             Assert.That((int)TrailingCommasFeature.Disabled, Is.Zero);
             Assert.That((int)TrailingCommasFeature.Enabled, Is.EqualTo(1));
+            Assert.That((int)ConstantFoldingFeature.Disabled, Is.Zero);
+            Assert.That((int)ConstantFoldingFeature.Enabled, Is.EqualTo(1));
             Assert.That((int)ConditionSemantics.StrictBoolean, Is.Zero);
             Assert.That((int)ConditionSemantics.Truthiness, Is.EqualTo(1));
             Assert.That((int)LanguageVersion.Version1, Is.Zero);
@@ -110,11 +116,11 @@ public sealed class LanguageProfileTests
     }
 
     [Test]
-    public void ProfileHasOnePublicConstructorAndReadOnlyProperties()
+    public void ProfileHasNoPublicConstructorsAndReadOnlyProperties()
     {
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(typeof(LanguageProfile).GetConstructors(), Has.Length.EqualTo(1));
+            Assert.That(typeof(LanguageProfile).GetConstructors(), Is.Empty);
             Assert.That(
                 typeof(LanguageProfile)
                     .GetProperties()
@@ -139,6 +145,7 @@ public sealed class LanguageProfileTests
             .WithUserDefinedFunctions(UserDefinedFunctionsFeature.Disabled)
             .WithLoops(LoopFeatures.While)
             .WithMutations(MutationFeatures.ArrayElements)
+            .WithConstantFolding(ConstantFoldingFeature.Disabled)
             .WithShadowing(ShadowingPolicy.Globals)
             .Build();
         LanguageProfile copy = new LanguageProfileBuilder(source).Build();
@@ -219,7 +226,7 @@ public sealed class LanguageProfileTests
             Assert.That(
                 first.Fingerprint.Value,
                 Is.EqualTo(
-                    "9942aab3a64506603b208ec96416ea46b2c94d2e0face8ce7b2a7bcd3adefe30"
+                    "b69de05cdff4ac08394d6da759d688b0233893cc155ae0c540fdc0befca4c9d0"
                 )
             );
         }
@@ -256,6 +263,7 @@ public sealed class LanguageProfileTests
     [TestCase("mutations")]
     [TestCase("loopControl")]
     [TestCase("trailingCommas")]
+    [TestCase("constantFolding")]
     [TestCase("conditions")]
     [TestCase("shadowing")]
     public void FingerprintChangesForEveryConfigurableSupportedConcern(string concern)
@@ -283,6 +291,9 @@ public sealed class LanguageProfileTests
             ),
             "trailingCommas" => TestLanguageProfileFactory.Create(
                 trailingCommas: TrailingCommasFeature.Disabled
+            ),
+            "constantFolding" => TestLanguageProfileFactory.Create(
+                constantFolding: ConstantFoldingFeature.Disabled
             ),
             "conditions" => TestLanguageProfileFactory.Create(
                 conditionSemantics: ConditionSemantics.Truthiness
@@ -340,6 +351,7 @@ public sealed class LanguageProfileTests
             MutationFeatures.PropertyRemoval,
             MultiLevelLoopControlFeature.Enabled,
             TrailingCommasFeature.Enabled,
+            ConstantFoldingFeature.Enabled,
             ConditionSemantics.Truthiness,
             ShadowingPolicy.None
         );
@@ -385,6 +397,7 @@ public sealed class LanguageProfileTests
             MutationFeatures.ObjectProperties,
             MultiLevelLoopControlFeature.Enabled,
             TrailingCommasFeature.Enabled,
+            ConstantFoldingFeature.Enabled,
             ConditionSemantics.StrictBoolean,
             ShadowingPolicy.None
         );
@@ -411,6 +424,9 @@ public sealed class LanguageProfileTests
         );
         yield return static () => TestLanguageProfileFactory.Create(
             trailingCommas: (TrailingCommasFeature)99
+        );
+        yield return static () => TestLanguageProfileFactory.Create(
+            constantFolding: (ConstantFoldingFeature)99
         );
         yield return static () => TestLanguageProfileFactory.Create(
             conditionSemantics: (ConditionSemantics)99
@@ -445,6 +461,8 @@ public sealed class LanguageProfileTests
             builder.WithMultiLevelLoopControl((MultiLevelLoopControlFeature)99);
         yield return static builder =>
             builder.WithTrailingCommas((TrailingCommasFeature)99);
+        yield return static builder =>
+            builder.WithConstantFolding((ConstantFoldingFeature)99);
         yield return static builder =>
             builder.WithConditionSemantics((ConditionSemantics)99);
         yield return static builder =>

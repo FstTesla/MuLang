@@ -721,37 +721,66 @@ public sealed class DotNetExporterTests
     [Test]
     public void OptionalElementAccessSkipsIndexEvaluationForNullTarget()
     {
+        int invocationCount = 0;
         EnvironmentSchema environment = new EnvironmentBuilder()
             .AddGlobal(
                 "global.values",
                 "values",
                 TypeSymbols.Nullable(TypeSymbols.Array(TypeSymbols.Int))
             )
+            .AddFunction("function.index", "index", [ ], TypeSymbols.Int)
             .Build();
         Func<DotNetRuntimeContext, object?> compiled = CompileExpression(
-            "values?.[1 / 0]",
+            "values?.[index()]",
             environment,
             TypeSymbols.Nullable(TypeSymbols.Int)
         );
         DotNetRuntimeContext context = CreateContext(
             environment,
-            [ new KeyValuePair<string, object?>("global.values", null) ]
+            [ new KeyValuePair<string, object?>("global.values", null) ],
+            [
+                new KeyValuePair<string, DotNetFunction>(
+                    "function.index",
+                    _ =>
+                    {
+                        invocationCount++;
+                        return 0L;
+                    }
+                ),
+            ]
         );
 
-        Assert.That(compiled(context), Is.Null);
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(compiled(context), Is.Null);
+            Assert.That(invocationCount, Is.Zero);
+        }
     }
 
     [Test]
     public void WrapsMinimumIntegerRemainderOverflow()
     {
-        EnvironmentSchema environment = CreateEmptyEnvironment();
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddGlobal("global.left", "left", TypeSymbols.Int)
+            .AddGlobal("global.right", "right", TypeSymbols.Int)
+            .Build();
         Func<DotNetRuntimeContext, object?> compiled = CompileExpression(
-            "-9223372036854775808 % -1",
+            "left % right",
             environment
+        );
+        DotNetRuntimeContext context = CreateContext(
+            environment,
+            [
+                new KeyValuePair<string, object?>(
+                    "global.left",
+                    long.MinValue
+                ),
+                new KeyValuePair<string, object?>("global.right", -1L),
+            ]
         );
 
         MuLangRuntimeException exception = RequireRuntimeException(
-            () => compiled(CreateContext(environment))
+            () => compiled(context)
         );
 
         Assert.That(exception.Code, Is.EqualTo("MUL6003"));
@@ -1607,9 +1636,10 @@ public sealed class DotNetExporterTests
     public void LowersShortCircuitToExplicitControlFlow()
     {
         EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddGlobal("global.flag", "flag", TypeSymbols.Bool)
             .AddFunction("function.touch", "touch", [ ], TypeSymbols.Bool)
             .Build();
-        IrProgram program = LowerExpression("true || touch()", environment);
+        IrProgram program = LowerExpression("flag || touch()", environment);
 
         using (Assert.EnterMultipleScope())
         {

@@ -13,6 +13,7 @@ public static class TestLanguageProfileFactory
         MutationFeatures? mutations = null,
         MultiLevelLoopControlFeature? multiLevelLoopControl = null,
         TrailingCommasFeature? trailingCommas = null,
+        ConstantFoldingFeature? constantFolding = null,
         ConditionSemantics? conditionSemantics = null,
         ShadowingPolicy? shadowing = null
     )
@@ -57,6 +58,11 @@ public static class TestLanguageProfileFactory
         if (trailingCommas is not null)
         {
             builder.WithTrailingCommas(trailingCommas.Value);
+        }
+
+        if (constantFolding is not null)
+        {
+            builder.WithConstantFolding(constantFolding.Value);
         }
 
         if (conditionSemantics is not null)

@@ -2,6 +2,8 @@
 
 The compiler MUST lower validated source into a runtime-independent typed intermediate representation before export.
 
+When enabled by the selected language profile, the compiler MUST perform compile-time constant evaluation as defined in [Section 10.11](10-expressions.md#1011-compile-time-constant-evaluation) after binding and before lowering. Folded expressions are represented by ordinary typed IR constants; the IR does not require a distinct constant-expression form.
+
 The portable IR compilation unit SHOULD contain:
 
 - compilation mode metadata;

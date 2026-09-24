@@ -1,1 +1,7 @@
 #nullable enable
+*REMOVED*MuLang.Core.LanguageProfile.LanguageProfile(MuLang.Core.LanguageVersion languageVersion, MuLang.Core.UserDefinedFunctionsFeature userDefinedFunctions, MuLang.Core.RecursionFeature recursion, MuLang.Core.LoopFeatures loops, MuLang.Core.ProviderFunctionCallsFeature providerFunctionCalls, MuLang.Core.OpenObjectsFeature openObjects, MuLang.Core.MutationFeatures mutations, MuLang.Core.MultiLevelLoopControlFeature multiLevelLoopControl, MuLang.Core.TrailingCommasFeature trailingCommas, MuLang.Core.ConditionSemantics conditionSemantics, MuLang.Core.ShadowingPolicy shadowing) -> void
+MuLang.Core.ConstantFoldingFeature
+MuLang.Core.ConstantFoldingFeature.Disabled = 0 -> MuLang.Core.ConstantFoldingFeature
+MuLang.Core.ConstantFoldingFeature.Enabled = 1 -> MuLang.Core.ConstantFoldingFeature
+MuLang.Core.LanguageProfile.ConstantFolding.get -> MuLang.Core.ConstantFoldingFeature
+MuLang.Core.LanguageProfileBuilder.WithConstantFolding(MuLang.Core.ConstantFoldingFeature constantFolding) -> MuLang.Core.LanguageProfileBuilder!

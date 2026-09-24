@@ -16,6 +16,7 @@ public static class LanguageProfiles
         MutationFeatures.PropertyRemoval,
         MultiLevelLoopControlFeature.Enabled,
         TrailingCommasFeature.Enabled,
+        ConstantFoldingFeature.Enabled,
         ConditionSemantics.StrictBoolean,
         ShadowingPolicy.None
     );
@@ -33,6 +34,7 @@ public static class LanguageProfiles
         MutationFeatures.PropertyRemoval,
         MultiLevelLoopControlFeature.Enabled,
         TrailingCommasFeature.Enabled,
+        ConstantFoldingFeature.Enabled,
         ConditionSemantics.StrictBoolean,
         ShadowingPolicy.None
     );
