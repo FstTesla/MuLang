@@ -1,5 +1,1 @@
 #nullable enable
-MuLang.Exporters.DotNet.IDotNetReadOnlyArrayValue
-MuLang.Exporters.DotNet.IDotNetReadOnlyArrayValue.Count.get -> int
-MuLang.Exporters.DotNet.IDotNetReadOnlyArrayValue.Identity.get -> object!
-MuLang.Exporters.DotNet.IDotNetReadOnlyArrayValue.TryGetElement(int index, out object? value) -> bool

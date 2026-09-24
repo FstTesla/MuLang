@@ -97,6 +97,7 @@ MuLang.Core.LanguageProfileFingerprint.Value.get -> string!
 MuLang.Core.LanguageProfiles
 MuLang.Core.LanguageVersion
 MuLang.Core.LanguageVersion.Version1 = 0 -> MuLang.Core.LanguageVersion
+MuLang.Core.LanguageVersion.Version2 = 1 -> MuLang.Core.LanguageVersion
 MuLang.Core.LoopFeatures
 MuLang.Core.LoopFeatures.For = 2 -> MuLang.Core.LoopFeatures
 MuLang.Core.LoopFeatures.None = 0 -> MuLang.Core.LoopFeatures
@@ -169,6 +170,7 @@ MuLang.Core.TrailingCommasFeature.Disabled = 0 -> MuLang.Core.TrailingCommasFeat
 MuLang.Core.TrailingCommasFeature.Enabled = 1 -> MuLang.Core.TrailingCommasFeature
 MuLang.Core.Types.ArrayTypeSymbol
 MuLang.Core.Types.ArrayTypeSymbol.ElementType.get -> MuLang.Core.Types.TypeSymbol!
+MuLang.Core.Types.ArrayTypeSymbol.IsReadOnly.get -> bool
 MuLang.Core.Types.ConversionKind
 MuLang.Core.Types.ConversionKind.Checked = 3 -> MuLang.Core.Types.ConversionKind
 MuLang.Core.Types.ConversionKind.Identity = 1 -> MuLang.Core.Types.ConversionKind
@@ -239,6 +241,7 @@ static MuLang.Core.LanguageProfile.operator ==(MuLang.Core.LanguageProfile? left
 static MuLang.Core.LanguageProfileFingerprint.operator !=(MuLang.Core.LanguageProfileFingerprint? left, MuLang.Core.LanguageProfileFingerprint? right) -> bool
 static MuLang.Core.LanguageProfileFingerprint.operator ==(MuLang.Core.LanguageProfileFingerprint? left, MuLang.Core.LanguageProfileFingerprint? right) -> bool
 static MuLang.Core.LanguageProfiles.Version1.get -> MuLang.Core.LanguageProfile!
+static MuLang.Core.LanguageProfiles.Version2.get -> MuLang.Core.LanguageProfile!
 static MuLang.Core.Text.SourceText.From(string! text) -> MuLang.Core.Text.SourceText!
 static MuLang.Core.Text.TextPosition.operator !=(MuLang.Core.Text.TextPosition left, MuLang.Core.Text.TextPosition right) -> bool
 static MuLang.Core.Text.TextPosition.operator ==(MuLang.Core.Text.TextPosition left, MuLang.Core.Text.TextPosition right) -> bool
@@ -259,6 +262,7 @@ static MuLang.Core.Types.TypeSymbols.Null.get -> MuLang.Core.Types.TypeSymbol!
 static MuLang.Core.Types.TypeSymbols.Nullable(MuLang.Core.Types.TypeSymbol! underlyingType) -> MuLang.Core.Types.NullableTypeSymbol!
 static MuLang.Core.Types.TypeSymbols.Number.get -> MuLang.Core.Types.TypeSymbol!
 static MuLang.Core.Types.TypeSymbols.Object.get -> MuLang.Core.Types.TypeSymbol!
+static MuLang.Core.Types.TypeSymbols.ReadOnlyArray(MuLang.Core.Types.TypeSymbol! elementType) -> MuLang.Core.Types.ArrayTypeSymbol!
 static MuLang.Core.Types.TypeSymbols.String.get -> MuLang.Core.Types.TypeSymbol!
 static MuLang.Core.Types.TypeSymbols.Unknown.get -> MuLang.Core.Types.TypeSymbol!
 static MuLang.Core.Types.TypeSymbols.Void.get -> MuLang.Core.Types.TypeSymbol!

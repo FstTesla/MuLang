@@ -28,6 +28,10 @@ MuLang.Exporters.DotNet.IDotNetObjectValue.PropertyNames.get -> System.Collectio
 MuLang.Exporters.DotNet.IDotNetObjectValue.TryGetProperty(string! name, out object? value) -> bool
 MuLang.Exporters.DotNet.IDotNetObjectValue.TryRemoveProperty(string! name) -> bool
 MuLang.Exporters.DotNet.IDotNetObjectValue.TrySetProperty(string! name, object? value) -> bool
+MuLang.Exporters.DotNet.IDotNetReadOnlyArrayValue
+MuLang.Exporters.DotNet.IDotNetReadOnlyArrayValue.Count.get -> int
+MuLang.Exporters.DotNet.IDotNetReadOnlyArrayValue.Identity.get -> object!
+MuLang.Exporters.DotNet.IDotNetReadOnlyArrayValue.TryGetElement(int index, out object? value) -> bool
 const MuLang.Exporters.DotNet.DotNetRuntimeErrorCodes.BudgetExceeded = "MUL6011" -> string!
 const MuLang.Exporters.DotNet.DotNetRuntimeErrorCodes.CallDepthExceeded = "MUL6017" -> string!
 const MuLang.Exporters.DotNet.DotNetRuntimeErrorCodes.Cancelled = "MUL6016" -> string!
