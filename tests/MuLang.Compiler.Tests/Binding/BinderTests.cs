@@ -2,6 +2,7 @@ using MuLang.Compiler.Binding;
 using MuLang.Compiler.Diagnostics;
 using MuLang.Compiler.Syntax;
 using MuLang.Core;
+using MuLang.Core.Diagnostics;
 using MuLang.Core.Environment;
 using MuLang.Core.Symbols;
 using MuLang.Core.Text;
@@ -448,6 +449,29 @@ public sealed class BinderTests
             AssertDiagnostic(invalidNumericPromotion, DiagnosticCodes.InvalidConversion);
             AssertDiagnostic(invalidStringCast, DiagnosticCodes.InvalidConversion);
             AssertDiagnostic(invalidObjectCast, DiagnosticCodes.InvalidConversion);
+        }
+    }
+
+    [Test]
+    public void WarnsForStaticallyImpossibleTypeTests()
+    {
+        BindingResult result = BindExpression(
+            "1 is float",
+            CreateEmptyEnvironment()
+        );
+        Diagnostic diagnostic = result.Diagnostics.Single(
+            static diagnostic =>
+                diagnostic.Code == DiagnosticCodes.ImpossibleTypeTest
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(diagnostic.Severity, Is.EqualTo(DiagnosticSeverity.Warning));
+            Assert.That(result.Diagnostics.HasErrors, Is.False);
+            Assert.That(
+                ((BoundRoot.Expression)result.Root).Value.Type,
+                Is.SameAs(TypeSymbols.Bool)
+            );
         }
     }
 

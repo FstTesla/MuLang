@@ -81,7 +81,7 @@ Common array types preserve a mutable type only for equivalent mutable arrays. C
 
 An explicit checked cast uses the infix `as` operator followed by a non-void type.
 
-A checked cast validates runtime conformance and never changes the runtime value or its representation.
+A checked cast validates runtime conformance when the source type does not already prove success and never changes the runtime value or its representation. An implementation SHOULD omit the runtime conformance operation when static assignability proves that the cast must succeed.
 
 A cast is statically permitted when the source and target types can describe the same runtime value. This includes removal of nullability, refinement from `unknown`, concrete-kind checks from `number`, structural object checks, and array shape or capability checks.
 
@@ -90,6 +90,8 @@ Representation-changing operations are not checked casts. In particular, the imp
 A failed checked cast produces a MuLang runtime error at the `as` expression source span.
 
 For every statically permitted `value as Type`, and excluding operational failures, `value is Type` evaluates to `true` if and only if the corresponding `as` expression completes successfully when applied to the same unchanged runtime value.
+
+Recursive runtime conformance MUST safely handle cyclic object and array graphs by tracking active logical identities and target types. Revisiting an active identity under a target already implied by its active target type succeeds coinductively.
 
 An `as` expression has the target type. It does not change the static type of the original variable or expression elsewhere in the program.
 

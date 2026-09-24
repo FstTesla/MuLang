@@ -155,14 +155,7 @@ If the existing `ConversionKind` abstraction cannot express this distinction cle
 
 ### 4.3. Bind `is` consistently
 
-Keep `is` available for every non-void operand and non-void tested type unless a narrower static restriction is required for consistency with `as`.
-
-Determine whether statically impossible tests should:
-
-- remain valid and evaluate to `false`; or
-- receive a diagnostic matching an unavailable `as` cast.
-
-The selected rule must preserve the stated equivalence for every pair of well-formed corresponding expressions and be documented explicitly.
+Keep `is` available for every non-void operand and non-void tested type. A statically impossible test remains valid and evaluates to `false`, but produces a warning diagnostic.
 
 ## 5. Runtime changes
 
@@ -210,7 +203,7 @@ Runtime numeric conformance must be:
 
 Replace the shallow generic-object conversion check with the same conformance check used by `is object`.
 
-Review cyclic and deeply nested object graphs. If runtime conformance is intended to support cycles, add pair or identity tracking appropriate to a single-value type traversal. Otherwise, document traversal-depth failure as an operational limitation shared by both operators.
+Track active logical runtime identities and target types during deep conformance. A recursive visit succeeds coinductively when an active target type already implies the newly requested target, while independent aliases are revalidated normally.
 
 ## 6. IR validation and exporter changes
 
@@ -222,12 +215,14 @@ Update IR validation so that:
 - type-test targets remain non-void;
 - exporter behavior cannot reintroduce transforming checked casts.
 
-Review the current `IrInstruction.Convert` representation. If its Boolean checked flag is insufficient to enforce the distinction, replace it with an explicit conversion mode.
+Replace the Boolean conversion flags with one explicit IR conversion kind that distinguishes value conversions from checked casts.
 
 The .NET exporter must route:
 
 - implicit conversions through conversion execution;
 - checked casts through shared conformance plus identity-preserving return.
+
+Statically guaranteed source casts lower to typed copies and do not execute runtime conformance.
 
 ## 7. Test plan
 

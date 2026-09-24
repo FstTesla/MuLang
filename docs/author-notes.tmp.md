@@ -1,5 +1,7 @@
 - Standard library
 - New features:
+  - Warnings
+  - Lower compile-time constants
   - Readonly locals
   - Readonly and optional object properties
   - Comments

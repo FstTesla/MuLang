@@ -1750,11 +1750,23 @@ internal sealed class Binder
             return new BoundExpression.Error(syntax);
         }
 
+        if (TypeRelations.AreEquivalent(expression.Type, targetType))
+        {
+            return expression;
+        }
+
+        ConversionKind conversion = TypeRelations.IsAssignable(
+            expression.Type,
+            targetType
+        )
+            ? ConversionKind.Implicit
+            : ConversionKind.Checked;
+
         return new BoundExpression.Conversion(
             syntax,
             targetType,
             expression,
-            ConversionKind.Checked,
+            conversion,
             true
         );
     }
@@ -1770,6 +1782,14 @@ internal sealed class Binder
                 DiagnosticCodes.InvalidVoidExpression,
                 syntax.Expression.Span,
                 "A void expression cannot be tested with 'is'."
+            );
+        }
+        else if (!TypeRelations.IsCastable(expression.Type, testedType))
+        {
+            ReportWarning(
+                DiagnosticCodes.ImpossibleTypeTest,
+                syntax.Span,
+                $"Type test from '{expression.Type.DisplayName}' to '{testedType.DisplayName}' is statically known to be false."
             );
         }
 
@@ -2804,5 +2824,23 @@ internal sealed class Binder
         }
 
         Report(code, span, message);
+    }
+
+    private void ReportWarning(
+        string code,
+        TextSpan span,
+        string message,
+        DiagnosticCategory category = DiagnosticCategory.Type
+    )
+    {
+        diagnostics.Add(
+            new Diagnostic(
+                code,
+                DiagnosticSeverity.Warning,
+                category,
+                span,
+                message
+            )
+        );
     }
 }

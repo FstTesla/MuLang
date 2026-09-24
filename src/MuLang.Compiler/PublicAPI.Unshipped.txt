@@ -1,1 +1,2 @@
 #nullable enable
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.ImpossibleTypeTest = "MUL3030" -> string!

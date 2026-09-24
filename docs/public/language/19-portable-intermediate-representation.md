@@ -35,7 +35,7 @@ The IR validator MUST require a truthiness-normalization destination to have typ
 
 Array types transported through IR retain their read-only capability. Array creation records that capability, mutable-to-read-only conversions are representation-preserving, acquisition of mutable capability requires a checked conversion, and `SetElement` MUST be rejected when the target slot has a read-only array type.
 
-Conversion instructions MUST distinguish checked casts from implicit or contextual conversions. Checked casts validate the same runtime conformance relation as type-test instructions and return the original runtime value unchanged. Other conversion instructions may change representation where the language specifies an implicit or contextual conversion.
+Conversion instructions use an explicit conversion kind that distinguishes checked casts from value conversions. Checked casts validate the same runtime conformance relation as type-test instructions and return the original runtime value unchanged. Value conversions may change representation where the language specifies an implicit, contextual, or compiler-required conversion. Statically guaranteed casts SHOULD lower directly to a typed copy rather than a conversion instruction.
 
 Provider-call validation accepts arguments assignable through read-only array covariance.
 

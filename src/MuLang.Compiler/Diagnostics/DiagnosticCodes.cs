@@ -159,6 +159,9 @@ public static class DiagnosticCodes
     /// <summary>Gets the code for a misplaced read-only type modifier.</summary>
     public const string InvalidReadOnlyModifierPlacement = "MUL3029";
 
+    /// <summary>Gets the code for a type test that is statically known to be false.</summary>
+    public const string ImpossibleTypeTest = "MUL3030";
+
     /// <summary>Gets the code for disabled user-defined functions.</summary>
     public const string DisabledUserDefinedFunctions = "MUL7001";
 

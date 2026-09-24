@@ -858,25 +858,35 @@ public sealed class DotNetExporterTests
     [Test]
     public void TypeTestsUseRuntimeNumericRepresentation()
     {
-        EnvironmentSchema environment = CreateEmptyEnvironment();
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddGlobal("global.value", "value", TypeSymbols.Number)
+            .Build();
         Func<DotNetRuntimeContext, object?> intIsFloat = CompileExpression(
-            "1 is float",
+            "value is float",
             environment
         );
         Func<DotNetRuntimeContext, object?> floatIsInt = CompileExpression(
-            "1.0 is int",
+            "value is int",
             environment
         );
         Func<DotNetRuntimeContext, object?> intIsNumber = CompileExpression(
-            "1 is number",
+            "value is number",
             environment
+        );
+        DotNetRuntimeContext integerContext = CreateContext(
+            environment,
+            [ new KeyValuePair<string, object?>("global.value", 1L) ]
+        );
+        DotNetRuntimeContext floatContext = CreateContext(
+            environment,
+            [ new KeyValuePair<string, object?>("global.value", 1.0) ]
         );
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(intIsFloat(CreateContext(environment)), Is.False);
-            Assert.That(floatIsInt(CreateContext(environment)), Is.False);
-            Assert.That(intIsNumber(CreateContext(environment)), Is.True);
+            Assert.That(intIsFloat(integerContext), Is.False);
+            Assert.That(floatIsInt(floatContext), Is.False);
+            Assert.That(intIsNumber(integerContext), Is.True);
         }
     }
 
@@ -1166,6 +1176,23 @@ public sealed class DotNetExporterTests
     }
 
     [Test]
+    public void StaticallyGuaranteedCastDoesNotConsumeAdditionalBudget()
+    {
+        EnvironmentSchema environment = CreateEmptyEnvironment();
+        Func<DotNetRuntimeContext, object?> compiled = CompileExpression(
+            "1 as int",
+            environment,
+            TypeSymbols.Int
+        );
+        DotNetRuntimeContext context = CreateContext(
+            environment,
+            executionBudget: 2
+        );
+
+        Assert.That(compiled(context), Is.EqualTo(1L));
+    }
+
+    [Test]
     public void EnforcesCancellation()
     {
         EnvironmentSchema environment = CreateEmptyEnvironment();
@@ -1348,6 +1375,54 @@ public sealed class DotNetExporterTests
         );
 
         Assert.That(exception.Code, Is.EqualTo("MUL6015"));
+    }
+
+    [Test]
+    public void CyclicObjectConformanceTracksRuntimeIdentity()
+    {
+        ObjectTypeSymbol itemType = new (
+            "type.item",
+            "Item",
+            false,
+            [
+                new ObjectPropertySymbol("self", TypeSymbols.Object),
+                new ObjectPropertySymbol("label", TypeSymbols.String),
+            ]
+        );
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddType(itemType)
+            .AddGlobal("global.value", "value", TypeSymbols.Unknown)
+            .Build();
+        Func<DotNetRuntimeContext, object?> typeTest = CompileExpression(
+            "value is Item",
+            environment,
+            TypeSymbols.Bool
+        );
+        Func<DotNetRuntimeContext, object?> cast = CompileExpression(
+            "value as Item",
+            environment,
+            itemType
+        );
+        MutableObjectValue value = new (
+            [ new KeyValuePair<string, object?>("label", "value") ]
+        );
+        value.Set("self", value);
+        DotNetRuntimeContext typeTestContext = CreateContext(
+            environment,
+            [ new KeyValuePair<string, object?>("global.value", value) ],
+            maximumTraversalDepth: 2
+        );
+        DotNetRuntimeContext castContext = CreateContext(
+            environment,
+            [ new KeyValuePair<string, object?>("global.value", value) ],
+            maximumTraversalDepth: 2
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(typeTest(typeTestContext), Is.True);
+            Assert.That(cast(castContext), Is.SameAs(value));
+        }
     }
 
     [Test]

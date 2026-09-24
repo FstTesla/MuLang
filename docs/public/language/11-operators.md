@@ -99,6 +99,8 @@ Bitwise operations do not perform overflow checks.
 
 Runtime numeric conformance follows concrete representation: `int` values conform to `int` and `number`, while `float` values conform to `float` and `number`. Type tests do not apply the implicit `int`-to-`float` conversion.
 
+When the operand's static type and the tested type cannot describe the same runtime value, the test remains valid, evaluates to `false`, and produces a warning diagnostic.
+
 For `T[]`, conformance requires mutable runtime capability and recursive conformance of every current element to `T`. For `T[]$`, read capability is sufficient. Array tests are shape-based and do not require a reified nominal element type.
 
 For `null`, `is` evaluates to `true` only when the tested type is nullable. The `is` operator does not narrow the operand in any subsequent expression or statement.

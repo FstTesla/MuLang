@@ -76,7 +76,7 @@ public static class DotNetExporter
         typeof(object),
         typeof(TypeSymbol),
         typeof(TypeSymbol),
-        typeof(bool),
+        typeof(IrConversionKind),
         typeof(TextSpan)
     );
 
@@ -421,7 +421,7 @@ public static class DotNetExporter
                     slots[conversion.Source],
                     Expression.Constant(slotMetadata[conversion.Source].Type),
                     Expression.Constant(conversion.TargetType),
-                    Expression.Constant(conversion.IsCast),
+                    Expression.Constant(conversion.Kind),
                     Expression.Constant(conversion.Span)
                 )
             ),

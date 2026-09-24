@@ -17,11 +17,13 @@ Each release heading identifies the incremental version range covered by the sec
 ### Breaking changes
 
 - Changed [`is` and `as` checked-cast semantics](https://fsttesla.github.io/MuLang/language/08-assignability-and-conversions.html#88-explicit-checked-casts) to use the same runtime-conformance relation. A statically permitted `value as T` now succeeds exactly when `value is T` is `true` for the same unchanged value, and a successful cast preserves the runtime representation and identity. Consequently, `as` no longer converts primitive values or `null` to `string`, promotes `int` to `float`, or converts between the concrete runtime kinds represented by `number`. Use string concatenation for primitive formatting, `integer + 0.0` to promote a statically typed `int`, and standard-library numeric functions for intentional numeric transformations.
+- Replaced `IrInstruction.Convert.IsChecked` with the `IrInstruction.Convert.Kind` property and `IrConversionKind` enum. Custom IR producers and exporters must distinguish value conversions from checked casts through the new constructor parameter.
 
 ### New features
 
+- Added warning `MUL3030` when an `is` test is statically known to be false while retaining the expression and its runtime result.
+- Added logical-identity tracking to recursive runtime conformance so cyclic object and array graphs can be tested and cast without exhausting the traversal-depth limit.
 - Added `TypeRelations.IsCastable` for checking whether two static types permit a runtime-conformance cast.
-- Added `IrInstruction.Convert.IsCast` so portable IR and exporters can distinguish identity-preserving checked casts from implicit and contextual conversions.
 
 ## `0.1.0` → `0.2.0-alpha.1` - 2026-09-24
 

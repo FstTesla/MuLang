@@ -65,7 +65,13 @@ public sealed class IrValidatorTests
             ],
             [
                 new IrInstruction.CreateArray(default, 0, readOnlyType, [ ]),
-                new IrInstruction.Convert(default, 1, 0, mutableType, false),
+                new IrInstruction.Convert(
+                    default,
+                    1,
+                    0,
+                    mutableType,
+                    IrConversionKind.ValueConversion
+                ),
             ],
             1
         );
@@ -93,7 +99,13 @@ public sealed class IrValidatorTests
             ],
             [
                 new IrInstruction.CreateArray(default, 0, readOnlyType, [ ]),
-                new IrInstruction.Convert(default, 1, 0, mutableType, true),
+                new IrInstruction.Convert(
+                    default,
+                    1,
+                    0,
+                    mutableType,
+                    IrConversionKind.CheckedCast
+                ),
             ],
             1
         );
@@ -114,10 +126,13 @@ public sealed class IrValidatorTests
             ],
             [
                 new IrInstruction.Constant(default, 0, TypeSymbols.Int, 1L),
-                new IrInstruction.Convert(default, 1, 0, TypeSymbols.Float, true)
-                {
-                    IsCast = true,
-                },
+                new IrInstruction.Convert(
+                    default,
+                    1,
+                    0,
+                    TypeSymbols.Float,
+                    IrConversionKind.CheckedCast
+                ),
             ],
             1
         );
@@ -142,10 +157,13 @@ public sealed class IrValidatorTests
             ],
             [
                 new IrInstruction.Constant(default, 0, TypeSymbols.Number, 1.0),
-                new IrInstruction.Convert(default, 1, 0, TypeSymbols.Float, true)
-                {
-                    IsCast = true,
-                },
+                new IrInstruction.Convert(
+                    default,
+                    1,
+                    0,
+                    TypeSymbols.Float,
+                    IrConversionKind.CheckedCast
+                ),
             ],
             1
         );

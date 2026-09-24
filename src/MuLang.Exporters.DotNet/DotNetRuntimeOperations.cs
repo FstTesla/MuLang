@@ -147,13 +147,13 @@ internal static class DotNetRuntimeOperations
         object? value,
         TypeSymbol sourceType,
         TypeSymbol targetType,
-        bool isCast,
+        IrConversionKind conversionKind,
         TextSpan span
     )
     {
-        if (isCast)
+        if (conversionKind == IrConversionKind.CheckedCast)
         {
-            if (IsValueOfTypeDeep(context, value, targetType, span, 0))
+            if (IsValueOfTypeDeep(context, value, targetType, span))
             {
                 return value;
             }
@@ -174,7 +174,7 @@ internal static class DotNetRuntimeOperations
                     value,
                     GetNonNullable(sourceType),
                     nullable.UnderlyingType,
-                    false,
+                    IrConversionKind.ValueConversion,
                     span
                 );
         }
@@ -202,9 +202,9 @@ internal static class DotNetRuntimeOperations
             TypeKind.Unknown => value,
             TypeKind.Object when IsObject(value) => value,
             TypeKind.StructuredObject
-                when IsValueOfTypeDeep(context, value, targetType, span, 0) => value,
+                when IsValueOfTypeDeep(context, value, targetType, span) => value,
             TypeKind.Array
-                when IsValueOfTypeDeep(context, value, targetType, span, 0) => value,
+                when IsValueOfTypeDeep(context, value, targetType, span) => value,
             _ => throw new MuLangRuntimeException(
                 DotNetRuntimeErrorCodes.InvalidConversion,
                 $"Runtime value cannot be converted to '{targetType.DisplayName}'.",
@@ -220,7 +220,7 @@ internal static class DotNetRuntimeOperations
         TextSpan span
     )
     {
-        return IsValueOfTypeDeep(context, value, type, span, 0);
+        return IsValueOfTypeDeep(context, value, type, span);
     }
 
     internal static bool IsValueOfTypeShallow(object? value, TypeSymbol type)
@@ -262,7 +262,9 @@ internal static class DotNetRuntimeOperations
         TextSpan span
     )
     {
-        return IsValueOfTypeDeep(context, value, type, span, 0);
+        IDictionary<object, ISet<TypeSymbol>> activeTypes =
+            new Dictionary<object, ISet<TypeSymbol>>(ReferenceEqualityComparer.Instance);
+        return IsValueOfTypeDeep(context, value, type, activeTypes, span, 0);
     }
 
     public static object CreateArray(
@@ -829,66 +831,131 @@ internal static class DotNetRuntimeOperations
         DotNetRuntimeContext context,
         object? value,
         TypeSymbol type,
+        IDictionary<object, ISet<TypeSymbol>> activeTypes,
         TextSpan span,
         int depth
     )
     {
-        EnsureTraversalDepth(context, depth, span);
-        context.Consume(span);
+        object? identity =
+            RequiresIdentityTracking(type) &&
+            value is
+                IDotNetObjectValue or
+                IDotNetReadOnlyArrayValue or
+                IDotNetArrayValue
+                ? GetIdentity(value)
+                : null;
+        ISet<TypeSymbol>? types = null;
 
-        if (type is NullableTypeSymbol nullable)
+        if (identity is not null)
         {
-            return value is null ||
-                IsValueOfTypeDeep(
+            if (activeTypes.TryGetValue(identity, out types))
+            {
+                if (
+                    types.Any(
+                        activeType =>
+                            TypeRelations.IsAssignable(activeType, type) &&
+                            TypeRelations.IsCastable(activeType, type)
+                    )
+                )
+                {
+                    return true;
+                }
+            }
+            else
+            {
+                types = new HashSet<TypeSymbol>(ReferenceEqualityComparer.Instance);
+                activeTypes.Add(identity, types);
+            }
+
+            types.Add(type);
+        }
+
+        try
+        {
+            EnsureTraversalDepth(context, depth, span);
+            context.Consume(span);
+
+            if (type is NullableTypeSymbol nullable)
+            {
+                return value is null ||
+                    IsValueOfTypeDeep(
+                        context,
+                        value,
+                        nullable.UnderlyingType,
+                        activeTypes,
+                        span,
+                        depth + 1
+                    );
+            }
+
+            if (value is null)
+            {
+                return false;
+            }
+
+            return type.Kind switch
+            {
+                TypeKind.Bool => value is bool,
+                TypeKind.Int => value is long,
+                TypeKind.Float => value is double,
+                TypeKind.Number => value is long or double,
+                TypeKind.String => value is string,
+                TypeKind.Unknown => true,
+                TypeKind.Object => IsGenericObject(
                     context,
                     value,
-                    nullable.UnderlyingType,
+                    activeTypes,
                     span,
                     depth + 1
-                );
+                ),
+                TypeKind.StructuredObject => IsStructuredObject(
+                    context,
+                    value,
+                    (ObjectTypeSymbol)type,
+                    activeTypes,
+                    span,
+                    depth + 1
+                ),
+                TypeKind.Array => IsArrayOfType(
+                    context,
+                    value,
+                    (ArrayTypeSymbol)type,
+                    activeTypes,
+                    span,
+                    depth + 1
+                ),
+                _ => false,
+            };
         }
-
-        if (value is null)
+        finally
         {
-            return false;
+            if (identity is not null && types is not null)
+            {
+                types.Remove(type);
+
+                if (types.Count == 0)
+                {
+                    activeTypes.Remove(identity);
+                }
+            }
         }
+    }
 
-        return type.Kind switch
-        {
-            TypeKind.Bool => value is bool,
-            TypeKind.Int => value is long,
-            TypeKind.Float => value is double,
-            TypeKind.Number => value is long or double,
-            TypeKind.String => value is string,
-            TypeKind.Unknown => true,
-            TypeKind.Object => IsGenericObject(
-                context,
-                value,
-                span,
-                depth + 1
-            ),
-            TypeKind.StructuredObject => IsStructuredObject(
-                context,
-                value,
-                (ObjectTypeSymbol)type,
-                span,
-                depth + 1
-            ),
-            TypeKind.Array => IsArrayOfType(
-                context,
-                value,
-                (ArrayTypeSymbol)type,
-                span,
-                depth + 1
-            ),
-            _ => false,
-        };
+    private static bool RequiresIdentityTracking(TypeSymbol type)
+    {
+        return type is NullableTypeSymbol nullable
+            ? RequiresIdentityTracking(nullable.UnderlyingType)
+            : type.Kind is
+                TypeKind.Object or
+                TypeKind.StructuredObject or
+                TypeKind.Array;
     }
 
     private static bool IsStructuredObject(
         DotNetRuntimeContext context,
         object value,
         ObjectTypeSymbol type,
+        IDictionary<object, ISet<TypeSymbol>> activeTypes,
         TextSpan span,
         int depth
     )
@@ -914,6 +981,7 @@ internal static class DotNetRuntimeOperations
                     context,
                     propertyValue,
                     property.Type,
+                    activeTypes,
                     span,
                     depth + 1
                 ))
@@ -945,6 +1013,7 @@ internal static class DotNetRuntimeOperations
                         context,
                         additionalValue,
                         TypeSymbols.Nullable(TypeSymbols.Unknown),
+                        activeTypes,
                         span,
                         depth + 1
                     )
@@ -961,6 +1030,7 @@ internal static class DotNetRuntimeOperations
     private static bool IsGenericObject(
         DotNetRuntimeContext context,
         object value,
+        IDictionary<object, ISet<TypeSymbol>> activeTypes,
         TextSpan span,
         int depth
     )
@@ -978,6 +1048,7 @@ internal static class DotNetRuntimeOperations
                     context,
                     propertyValue,
                     TypeSymbols.Nullable(TypeSymbols.Unknown),
+                    activeTypes,
                     span,
                     depth + 1
                 )
@@ -994,6 +1065,7 @@ internal static class DotNetRuntimeOperations
         DotNetRuntimeContext context,
         object value,
         ArrayTypeSymbol type,
+        IDictionary<object, ISet<TypeSymbol>> activeTypes,
         TextSpan span,
         int depth
     )
@@ -1020,6 +1092,7 @@ internal static class DotNetRuntimeOperations
                     context,
                     element,
                     type.ElementType,
+                    activeTypes,
                     span,
                     depth + 1
                 )

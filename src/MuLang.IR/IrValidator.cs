@@ -444,24 +444,24 @@ public static class IrValidator
                     break;
                 }
 
-                ConversionKind conversionKind = TypeRelations.ClassifyConversion(
-                    sourceSlot.Type,
-                    conversion.TargetType
-                );
-                bool isValid = conversion.IsCast
-                    ? conversion.IsChecked &&
+                bool isValid = conversion.Kind switch
+                {
+                    IrConversionKind.CheckedCast =>
                         TypeRelations.IsCastable(
                             sourceSlot.Type,
                             conversion.TargetType
-                        )
-                    : conversionKind != ConversionKind.None &&
-                        (
-                            !RequiresCheckedArrayCapabilityAcquisition(
-                                sourceSlot.Type,
-                                conversion.TargetType
-                            ) ||
-                            conversion.IsChecked
-                        );
+                        ),
+                    IrConversionKind.ValueConversion =>
+                        TypeRelations.ClassifyConversion(
+                            sourceSlot.Type,
+                            conversion.TargetType
+                        ) != ConversionKind.None &&
+                        !RequiresCheckedArrayCapabilityAcquisition(
+                            sourceSlot.Type,
+                            conversion.TargetType
+                        ),
+                    _ => false,
+                };
 
                 if (!isValid)
                 {
@@ -1533,7 +1533,10 @@ public static class IrValidator
             return;
         }
 
-        if (!TypeRelations.AreEquivalent(destinationSlot.Type, sourceSlot.Type))
+        if (
+            !TypeRelations.IsAssignable(sourceSlot.Type, destinationSlot.Type) ||
+            !TypeRelations.IsCastable(sourceSlot.Type, destinationSlot.Type)
+        )
         {
             Report(
                 diagnostics,

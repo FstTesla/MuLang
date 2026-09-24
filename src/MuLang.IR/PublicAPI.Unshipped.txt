@@ -1,3 +1,12 @@
 #nullable enable
-MuLang.IR.IrInstruction.Convert.IsCast.get -> bool
-MuLang.IR.IrInstruction.Convert.IsCast.init -> void
+*REMOVED*MuLang.IR.IrInstruction.Convert.Convert(MuLang.Core.Text.TextSpan Span, int Destination, int Source, MuLang.Core.Types.TypeSymbol! TargetType, bool IsChecked) -> void
+*REMOVED*MuLang.IR.IrInstruction.Convert.Deconstruct(out MuLang.Core.Text.TextSpan Span, out int Destination, out int Source, out MuLang.Core.Types.TypeSymbol! TargetType, out bool IsChecked) -> void
+*REMOVED*MuLang.IR.IrInstruction.Convert.IsChecked.get -> bool
+*REMOVED*MuLang.IR.IrInstruction.Convert.IsChecked.init -> void
+MuLang.IR.IrConversionKind
+MuLang.IR.IrConversionKind.CheckedCast = 1 -> MuLang.IR.IrConversionKind
+MuLang.IR.IrConversionKind.ValueConversion = 0 -> MuLang.IR.IrConversionKind
+MuLang.IR.IrInstruction.Convert.Convert(MuLang.Core.Text.TextSpan Span, int Destination, int Source, MuLang.Core.Types.TypeSymbol! TargetType, MuLang.IR.IrConversionKind Kind) -> void
+MuLang.IR.IrInstruction.Convert.Deconstruct(out MuLang.Core.Text.TextSpan Span, out int Destination, out int Source, out MuLang.Core.Types.TypeSymbol! TargetType, out MuLang.IR.IrConversionKind Kind) -> void
+MuLang.IR.IrInstruction.Convert.Kind.get -> MuLang.IR.IrConversionKind
+MuLang.IR.IrInstruction.Convert.Kind.init -> void
