@@ -26,6 +26,10 @@ Each release heading identifies the incremental version range covered by the sec
 - Added logical-identity tracking to recursive runtime conformance so cyclic object and array graphs can be tested and cast without exhausting the traversal-depth limit.
 - Added `TypeRelations.IsCastable` for checking whether two static types permit a runtime-conformance cast.
 
+### Fixes
+
+- Removed redundant runtime-conformance execution for statically guaranteed `as` casts, preventing avoidable execution-budget, cancellation, and traversal failures.
+
 ## `0.1.0` → `0.2.0-alpha.1` - 2026-09-24
 
 ### Breaking changes
