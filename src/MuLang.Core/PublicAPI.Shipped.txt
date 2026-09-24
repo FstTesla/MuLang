@@ -253,6 +253,7 @@ static MuLang.Core.Types.TypeRelations.AreEquivalent(MuLang.Core.Types.TypeSymbo
 static MuLang.Core.Types.TypeRelations.ClassifyConversion(MuLang.Core.Types.TypeSymbol! source, MuLang.Core.Types.TypeSymbol! target) -> MuLang.Core.Types.ConversionKind
 static MuLang.Core.Types.TypeRelations.GetCommonType(MuLang.Core.Types.TypeSymbol! left, MuLang.Core.Types.TypeSymbol! right) -> MuLang.Core.Types.TypeSymbol?
 static MuLang.Core.Types.TypeRelations.IsAssignable(MuLang.Core.Types.TypeSymbol! source, MuLang.Core.Types.TypeSymbol! target) -> bool
+static MuLang.Core.Types.TypeRelations.IsCastable(MuLang.Core.Types.TypeSymbol! source, MuLang.Core.Types.TypeSymbol! target) -> bool
 static MuLang.Core.Types.TypeSymbols.Array(MuLang.Core.Types.TypeSymbol! elementType) -> MuLang.Core.Types.ArrayTypeSymbol!
 static MuLang.Core.Types.TypeSymbols.Bool.get -> MuLang.Core.Types.TypeSymbol!
 static MuLang.Core.Types.TypeSymbols.Error.get -> MuLang.Core.Types.TypeSymbol!

@@ -30,6 +30,7 @@ const MuLang.Compiler.Diagnostics.DiagnosticCodes.ExpectedExpression = "MUL2002"
 const MuLang.Compiler.Diagnostics.DiagnosticCodes.FunctionConflict = "MUL3023" -> string!
 const MuLang.Compiler.Diagnostics.DiagnosticCodes.FunctionDeclarationAfterStatement = "MUL2011" -> string!
 const MuLang.Compiler.Diagnostics.DiagnosticCodes.FunctionDeclarationNotAllowed = "MUL2010" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.ImpossibleTypeTest = "MUL3030" -> string!
 const MuLang.Compiler.Diagnostics.DiagnosticCodes.InvalidAssignmentTarget = "MUL2004" -> string!
 const MuLang.Compiler.Diagnostics.DiagnosticCodes.InvalidCallTarget = "MUL3010" -> string!
 const MuLang.Compiler.Diagnostics.DiagnosticCodes.InvalidCharacter = "MUL1001" -> string!
