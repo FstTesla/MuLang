@@ -12,7 +12,7 @@ Stable entries describe the incremental change since the preceding prerelease. T
 
 Each release heading identifies the incremental version range covered by the section, from the comparison version to the released version.
 
-## `0.1.0` → `0.2.0-alpha.1` - 2026-09-23
+## `0.1.0` → `0.2.0-alpha.1` - 2026-09-24
 
 ### Breaking changes
 

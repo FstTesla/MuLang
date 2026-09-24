@@ -1,7 +1,8 @@
 - Standard library
 - New features:
-  - Readonly covariant array type
-  - Readonly properties and locals
+  - Readonly locals
+  - Readonly and optional object properties
+  - Equivalence check between `is` and `as`
   - Comments
   - User-defined types
   - First-class functions and function types
