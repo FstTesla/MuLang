@@ -10,7 +10,7 @@ A runtime failure MUST be represented as a MuLang runtime error containing:
 Runtime errors include:
 
 - null operand where a non-null value is required;
-- failed checked conversion;
+- failed checked cast;
 - integer overflow;
 - division or remainder by integer zero;
 - invalid shift count;
@@ -30,11 +30,8 @@ The language provides no source-level mechanism for catching runtime errors.
 
 ## 15.1. Intentionally non-preventable runtime errors
 
-Language version 1 intentionally permits two categories of data-dependent runtime failure that source code cannot always prevent through a prior check:
+Property assignment, array element assignment, or property removal can be rejected by the runtime adapter even though no source-level capability predicate is available.
 
-- a checked `as` conversion can fail even though no general convertibility predicate is available;
-- a property assignment, array element assignment, or property removal can be rejected by the runtime adapter even though no source-level capability predicate is available.
-
-These limitations are part of the language version 1 contract rather than omissions in static validation.
+A semantic checked-cast failure is preventable by testing the same unchanged value with the corresponding `is` expression. Operational failures encountered while evaluating either operation remain possible.
 
 Provider failures, environment incompatibility, cancellation, and budget exhaustion are operational failures controlled outside the source program and are not considered semantic check gaps.

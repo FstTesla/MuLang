@@ -789,6 +789,9 @@ internal sealed class Lowerer
                 expression.Type,
                 expression.ConversionKind == ConversionKind.Checked
             )
+            {
+                IsCast = expression.IsCast,
+            }
         );
 
         return destination;
@@ -934,7 +937,7 @@ internal sealed class Lowerer
                     result,
                     left,
                     expression.Type,
-                    false
+                    true
                 )
             );
         }

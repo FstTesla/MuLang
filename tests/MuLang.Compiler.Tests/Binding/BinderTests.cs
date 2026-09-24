@@ -424,16 +424,29 @@ public sealed class BinderTests
             "1.0 as int",
             CreateEmptyEnvironment()
         );
+        BindingResult invalidNumericPromotion = BindExpression(
+            "1 as float",
+            CreateEmptyEnvironment()
+        );
+        BindingResult invalidStringCast = BindExpression(
+            "1 as string",
+            CreateEmptyEnvironment()
+        );
         BindingResult invalidObjectCast = BindExpression(
             "{} as string",
             CreateEmptyEnvironment()
         );
+        BoundExpression.Conversion intConversion = (BoundExpression.Conversion)
+            ((BoundRoot.Expression)intCast.Root).Value;
 
         using (Assert.EnterMultipleScope())
         {
             Assert.That(intCast.Diagnostics, Is.Empty);
             Assert.That(floatCast.Diagnostics, Is.Empty);
+            Assert.That(intConversion.IsCast, Is.True);
             AssertDiagnostic(invalidNumericCast, DiagnosticCodes.InvalidConversion);
+            AssertDiagnostic(invalidNumericPromotion, DiagnosticCodes.InvalidConversion);
+            AssertDiagnostic(invalidStringCast, DiagnosticCodes.InvalidConversion);
             AssertDiagnostic(invalidObjectCast, DiagnosticCodes.InvalidConversion);
         }
     }
@@ -453,6 +466,7 @@ public sealed class BinderTests
         using (Assert.EnterMultipleScope())
         {
             Assert.That(conversion.ConversionKind, Is.EqualTo(ConversionKind.Implicit));
+            Assert.That(conversion.IsCast, Is.False);
             Assert.That(conversion.Type, Is.SameAs(TypeSymbols.Number));
             Assert.That(result.Diagnostics, Is.Empty);
         }

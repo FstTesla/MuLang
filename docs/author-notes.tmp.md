@@ -2,7 +2,6 @@
 - New features:
   - Readonly locals
   - Readonly and optional object properties
-  - Equivalence check between `is` and `as`
   - Comments
   - User-defined types
   - First-class functions and function types

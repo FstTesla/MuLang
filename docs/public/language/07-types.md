@@ -24,17 +24,19 @@ The primitive types are:
 
 Primitive values are immutable.
 
-`number` is a non-null common supertype of `int` and `float`. It has no dedicated runtime representation and no dedicated literal syntax.
+`number` is a non-null common supertype of `int` and `float`. It has no dedicated runtime representation and no dedicated literal syntax. Every runtime `number` value retains its concrete `int` or `float` representation.
+
+Runtime type conformance observes that concrete representation and does not apply numeric promotion. An `int` value therefore conforms to `int` and `number`, but not to `float`.
 
 ## 7.3. The `unknown` type
 
 `unknown` is the top type for non-null values.
 
-Every non-null value is assignable to `unknown`. A nullable value is not assignable to `unknown` unless its nullability is removed by an explicit checked conversion at runtime.
+Every non-null value is assignable to `unknown`. A nullable value is not assignable to `unknown` unless its nullability is removed by an explicit checked cast at runtime.
 
 `unknown?` is the top type for all values, including `null`.
 
-A value whose static type is `unknown` cannot be used by an operation requiring a more specific type without an explicit checked conversion.
+A value whose static type is `unknown` cannot be used by an operation requiring a more specific type without an explicit checked cast.
 
 Equality, identity comparison, assignment to another compatible location, argument passing to an `unknown` parameter, and return as `unknown` remain valid.
 

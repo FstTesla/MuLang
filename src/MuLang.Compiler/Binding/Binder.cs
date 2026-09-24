@@ -1739,17 +1739,13 @@ internal sealed class Binder
     {
         BoundExpression expression = BindExpression(syntax.Expression);
         TypeSymbol targetType = BindType(syntax.Type);
-        ConversionKind conversion = TypeRelations.ClassifyConversion(
-            expression.Type,
-            targetType
-        );
 
-        if (conversion == ConversionKind.None)
+        if (!TypeRelations.IsCastable(expression.Type, targetType))
         {
             Report(
                 DiagnosticCodes.InvalidConversion,
                 syntax.Span,
-                $"Type '{expression.Type.DisplayName}' cannot be converted to '{targetType.DisplayName}'."
+                $"Type '{expression.Type.DisplayName}' cannot be cast to '{targetType.DisplayName}'."
             );
             return new BoundExpression.Error(syntax);
         }
@@ -1758,7 +1754,8 @@ internal sealed class Binder
             syntax,
             targetType,
             expression,
-            conversion
+            ConversionKind.Checked,
+            true
         );
     }
 
@@ -2560,8 +2557,8 @@ internal sealed class Binder
 
         if (operatorKind == TokenKind.Plus && resultType.Kind == TypeKind.String)
         {
-            left = ConvertImplicit(left, TypeSymbols.String, true);
-            right = ConvertImplicit(right, TypeSymbols.String, true);
+            left = ConvertRequiredOperand(left, TypeSymbols.String);
+            right = ConvertRequiredOperand(right, TypeSymbols.String);
             return;
         }
 
@@ -2643,14 +2640,14 @@ internal sealed class Binder
                 expression.Syntax,
                 targetType,
                 expression,
-                conversionKind
+                conversionKind,
+                false
             );
     }
 
     private static BoundExpression ConvertImplicit(
         BoundExpression expression,
-        TypeSymbol targetType,
-        bool force = false
+        TypeSymbol targetType
     )
     {
         if (TypeRelations.AreEquivalent(expression.Type, targetType))
@@ -2658,16 +2655,18 @@ internal sealed class Binder
             return expression;
         }
 
-        ConversionKind conversionKind = force
-            ? ConversionKind.Implicit
-            : TypeRelations.ClassifyConversion(expression.Type, targetType);
+        ConversionKind conversionKind = TypeRelations.ClassifyConversion(
+            expression.Type,
+            targetType
+        );
 
         return conversionKind is ConversionKind.Identity or ConversionKind.Implicit
             ? new BoundExpression.Conversion(
                 expression.Syntax,
                 targetType,
                 expression,
-                ConversionKind.Implicit
+                ConversionKind.Implicit,
+                false
             )
             : expression;
     }

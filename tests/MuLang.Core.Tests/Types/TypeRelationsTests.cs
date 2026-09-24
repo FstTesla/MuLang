@@ -195,6 +195,24 @@ public sealed class TypeRelationsTests
     }
 
     [Test]
+    public void DistinguishesCheckedCastsFromTransformingConversions()
+    {
+        TypeSymbol nullableInt = TypeSymbols.Nullable(TypeSymbols.Int);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(TypeRelations.IsCastable(TypeSymbols.Int, TypeSymbols.Float), Is.False);
+            Assert.That(TypeRelations.IsCastable(TypeSymbols.Int, TypeSymbols.Number), Is.True);
+            Assert.That(TypeRelations.IsCastable(TypeSymbols.Number, TypeSymbols.Int), Is.True);
+            Assert.That(TypeRelations.IsCastable(TypeSymbols.Number, TypeSymbols.Float), Is.True);
+            Assert.That(TypeRelations.IsCastable(TypeSymbols.Bool, TypeSymbols.String), Is.False);
+            Assert.That(TypeRelations.IsCastable(TypeSymbols.Null, TypeSymbols.String), Is.False);
+            Assert.That(TypeRelations.IsCastable(TypeSymbols.Unknown, TypeSymbols.String), Is.True);
+            Assert.That(TypeRelations.IsCastable(nullableInt, TypeSymbols.Int), Is.True);
+        }
+    }
+
+    [Test]
     public void FindsCommonTypesForNumbersAndNullability()
     {
         TypeSymbol nullableInt = TypeSymbols.Nullable(TypeSymbols.Int);

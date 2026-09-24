@@ -76,7 +76,8 @@ internal abstract record BoundExpression(
         SyntaxNode Syntax,
         TypeSymbol Type,
         BoundExpression Expression,
-        ConversionKind ConversionKind
+        ConversionKind ConversionKind,
+        bool IsCast
     ) : BoundExpression(Syntax, Type);
 
     internal sealed record Truthiness(

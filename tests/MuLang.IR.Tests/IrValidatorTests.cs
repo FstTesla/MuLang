@@ -102,6 +102,58 @@ public sealed class IrValidatorTests
     }
 
     [Test]
+    public void RejectsTransformingCheckedCast()
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder().Build();
+        IrProgram program = CreateProgram(
+            environment,
+            TypeSymbols.Float,
+            [
+                new IrSlot(0, IrSlotKind.Temporary, TypeSymbols.Int, null),
+                new IrSlot(1, IrSlotKind.Temporary, TypeSymbols.Float, null),
+            ],
+            [
+                new IrInstruction.Constant(default, 0, TypeSymbols.Int, 1L),
+                new IrInstruction.Convert(default, 1, 0, TypeSymbols.Float, true)
+                {
+                    IsCast = true,
+                },
+            ],
+            1
+        );
+
+        Assert.That(
+            IrValidator.Validate(program, environment)
+                .Select(static diagnostic => diagnostic.Code),
+            Does.Contain(IrDiagnosticCodes.TypeMismatch)
+        );
+    }
+
+    [Test]
+    public void AcceptsRuntimeRepresentationCast()
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder().Build();
+        IrProgram program = CreateProgram(
+            environment,
+            TypeSymbols.Float,
+            [
+                new IrSlot(0, IrSlotKind.Temporary, TypeSymbols.Number, null),
+                new IrSlot(1, IrSlotKind.Temporary, TypeSymbols.Float, null),
+            ],
+            [
+                new IrInstruction.Constant(default, 0, TypeSymbols.Number, 1.0),
+                new IrInstruction.Convert(default, 1, 0, TypeSymbols.Float, true)
+                {
+                    IsCast = true,
+                },
+            ],
+            1
+        );
+
+        Assert.That(IrValidator.Validate(program, environment), Is.Empty);
+    }
+
+    [Test]
     public void RejectsElementWriteThroughReadOnlyArraySlot()
     {
         EnvironmentSchema environment = new EnvironmentBuilder()

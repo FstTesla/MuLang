@@ -26,21 +26,19 @@ Conversion from `unknown` or `unknown?` to a more specific type requires an expl
 
 `int` and `float` are implicitly convertible to `number`.
 
-`number` is explicitly convertible to `int` and `float`. The conversion validates the concrete runtime numeric kind and value.
+The implicit `int`-to-`float` conversion changes the runtime representation. Runtime conformance and checked casts do not apply this conversion.
 
-An explicit conversion from `number` to `int` MUST fail at runtime when its concrete value is a `float` that is not finite, is not integral, or is outside the signed 64-bit range.
+A value of static type `number` may be checked-cast to `int` or `float`. The cast succeeds only when the concrete runtime representation already matches the target type and returns the original value unchanged.
 
-An explicit conversion from `number` to `float` converts a concrete `int` value to `float` and preserves a concrete `float` value.
-
-There is no conversion from `float` to `int`.
+There is no checked cast from a statically known `int` to `float` or from a statically known `float` to `int`.
 
 Integer arithmetic is checked. Overflow produces a runtime error.
 
 ## 8.5. String conversion
 
-Primitive values and `null` can be converted to `string`.
+Primitive values and `null` are contextually converted to `string` by string concatenation.
 
-The conversion is explicit except when performed implicitly by string concatenation.
+The `as` operator does not perform string conversion. A checked cast to `string` only validates that a value whose static type does not determine its runtime representation, such as `unknown`, already contains a string.
 
 The result uses the culture-independent source representation of the value:
 
@@ -79,18 +77,22 @@ Both `S[]` and `S[]$` may convert implicitly to a compatible `T[]$`. A read-only
 
 Common array types preserve a mutable type only for equivalent mutable arrays. Compatible mutable and read-only operands otherwise use the least compatible read-only array view.
 
-## 8.8. Explicit checked conversions
+## 8.8. Explicit checked casts
 
-An explicit conversion uses the infix `as` operator followed by a non-void type.
+An explicit checked cast uses the infix `as` operator followed by a non-void type.
 
-A checked conversion performs runtime validation when static validation cannot prove success.
+A checked cast validates runtime conformance and never changes the runtime value or its representation.
 
-A failed checked conversion produces a MuLang runtime error at the `as` expression source span.
+A cast is statically permitted when the source and target types can describe the same runtime value. This includes removal of nullability, refinement from `unknown`, concrete-kind checks from `number`, structural object checks, and array shape or capability checks.
 
-The language does not provide a general predicate that determines whether an `as` conversion will succeed. The `is` operator tests runtime assignability, which is intentionally distinct from convertibility. In particular, a value can be convertible to a type without being assignable to that type.
+Representation-changing operations are not checked casts. In particular, the implicit conversion from `int` to `float` and the contextual conversion to `string` cannot be requested with `as`.
+
+A failed checked cast produces a MuLang runtime error at the `as` expression source span.
+
+For every statically permitted `value as Type`, and excluding operational failures, `value is Type` evaluates to `true` if and only if the corresponding `as` expression completes successfully when applied to the same unchanged runtime value.
 
 An `as` expression has the target type. It does not change the static type of the original variable or expression elsewhere in the program.
 
 The `as` operator is left-associative.
 
-Array checked conversions are shape-based. Conversion to `T[]` requires runtime write capability and current recursive conformance of every element to `T`. Conversion to `T[]$` requires read capability and the same element conformance. A successful conversion preserves identity and does not establish a permanent invariant against later mutation through another alias.
+Array checked casts are shape-based. A cast to `T[]` requires runtime write capability and current recursive conformance of every element to `T`. A cast to `T[]$` requires read capability and the same element conformance. A successful cast preserves identity and does not establish a permanent invariant against later mutation through another alias.

@@ -1,1 +1,2 @@
 #nullable enable
+static MuLang.Core.Types.TypeRelations.IsCastable(MuLang.Core.Types.TypeSymbol! source, MuLang.Core.Types.TypeSymbol! target) -> bool

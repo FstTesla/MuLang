@@ -126,6 +126,90 @@ public static class TypeRelations
                     : ConversionKind.None;
     }
 
+    /// <summary>Determines whether a value of one type can be checked for runtime conformance to another type.</summary>
+    /// <param name="source">The source type.</param>
+    /// <param name="target">The target type.</param>
+    /// <returns><c>true</c> if a checked cast from the source type to the target type is permitted; otherwise, <c>false</c>.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when either type is <c>null</c>.</exception>
+    public static bool IsCastable(TypeSymbol source, TypeSymbol target)
+    {
+        ValidateTypes(source, target);
+
+        if (source.Kind == TypeKind.Error || target.Kind == TypeKind.Error)
+        {
+            return true;
+        }
+
+        if (source.Kind == TypeKind.Void || target.Kind == TypeKind.Void)
+        {
+            return false;
+        }
+
+        if (AreEquivalent(source, target))
+        {
+            return true;
+        }
+
+        if (target is NullableTypeSymbol targetNullable)
+        {
+            if (source.Kind == TypeKind.Null)
+            {
+                return true;
+            }
+
+            TypeSymbol innerSource = source is NullableTypeSymbol sourceNullable
+                ? sourceNullable.UnderlyingType
+                : source;
+            return IsCastable(innerSource, targetNullable.UnderlyingType);
+        }
+
+        if (source is NullableTypeSymbol sourceNullableType)
+        {
+            return IsCastable(sourceNullableType.UnderlyingType, target);
+        }
+
+        if (source.Kind == TypeKind.Null)
+        {
+            return false;
+        }
+
+        if (source.Kind == TypeKind.Unknown)
+        {
+            return true;
+        }
+
+        if (target.Kind == TypeKind.Unknown)
+        {
+            return true;
+        }
+
+        if (
+            source.Kind is TypeKind.Int or TypeKind.Float &&
+            target.Kind == TypeKind.Number
+        )
+        {
+            return true;
+        }
+
+        if (
+            source.Kind == TypeKind.Number &&
+            target.Kind is TypeKind.Int or TypeKind.Float
+        )
+        {
+            return true;
+        }
+
+        if (
+            source.Kind is TypeKind.Object or TypeKind.StructuredObject &&
+            target.Kind is TypeKind.Object or TypeKind.StructuredObject
+        )
+        {
+            return true;
+        }
+
+        return source is ArrayTypeSymbol && target is ArrayTypeSymbol;
+    }
+
     /// <summary>Gets the most specific type that can represent values of both types.</summary>
     /// <param name="left">The first type.</param>
     /// <param name="right">The second type.</param>
@@ -234,7 +318,7 @@ public static class TypeRelations
             return true;
         }
 
-        if (target.Kind == TypeKind.Void || source.Kind == TypeKind.Void)
+        if (source.Kind == TypeKind.Void || target.Kind == TypeKind.Void)
         {
             return false;
         }

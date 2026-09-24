@@ -147,14 +147,36 @@ internal static class DotNetRuntimeOperations
         object? value,
         TypeSymbol sourceType,
         TypeSymbol targetType,
+        bool isCast,
         TextSpan span
     )
     {
+        if (isCast)
+        {
+            if (IsValueOfTypeDeep(context, value, targetType, span, 0))
+            {
+                return value;
+            }
+
+            throw new MuLangRuntimeException(
+                DotNetRuntimeErrorCodes.InvalidConversion,
+                $"Runtime value cannot be cast to '{targetType.DisplayName}'.",
+                span
+            );
+        }
+
         if (targetType is NullableTypeSymbol nullable)
         {
             return value is null
                 ? null
-                : ConvertValue(context, value, GetNonNullable(sourceType), nullable.UnderlyingType, span);
+                : ConvertValue(
+                    context,
+                    value,
+                    GetNonNullable(sourceType),
+                    nullable.UnderlyingType,
+                    false,
+                    span
+                );
         }
 
         if (targetType.Kind == TypeKind.String)
@@ -198,18 +220,6 @@ internal static class DotNetRuntimeOperations
         TextSpan span
     )
     {
-        TypeSymbol nonNullableType = type is NullableTypeSymbol nullable
-            ? nullable.UnderlyingType
-            : type;
-
-        if (
-            value is long &&
-            nonNullableType.Kind is TypeKind.Float or TypeKind.Number
-        )
-        {
-            return true;
-        }
-
         return IsValueOfTypeDeep(context, value, type, span, 0);
     }
 

@@ -1,1 +1,3 @@
 #nullable enable
+MuLang.IR.IrInstruction.Convert.IsCast.get -> bool
+MuLang.IR.IrInstruction.Convert.IsCast.init -> void

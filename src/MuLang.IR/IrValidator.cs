@@ -448,15 +448,22 @@ public static class IrValidator
                     sourceSlot.Type,
                     conversion.TargetType
                 );
+                bool isValid = conversion.IsCast
+                    ? conversion.IsChecked &&
+                        TypeRelations.IsCastable(
+                            sourceSlot.Type,
+                            conversion.TargetType
+                        )
+                    : conversionKind != ConversionKind.None &&
+                        (
+                            !RequiresCheckedArrayCapabilityAcquisition(
+                                sourceSlot.Type,
+                                conversion.TargetType
+                            ) ||
+                            conversion.IsChecked
+                        );
 
-                if (
-                    conversionKind == ConversionKind.None ||
-                    RequiresCheckedArrayCapabilityAcquisition(
-                        sourceSlot.Type,
-                        conversion.TargetType
-                    ) &&
-                    !conversion.IsChecked
-                )
+                if (!isValid)
                 {
                     Report(
                         diagnostics,

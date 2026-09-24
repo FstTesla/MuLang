@@ -91,15 +91,19 @@ The right operand of `<<` and `>>` MUST be between 0 and 63 inclusive. A value o
 
 Bitwise operations do not perform overflow checks.
 
-## 11.6. Type conversion, type checking, and property existence
+## 11.6. Checked casts, type checking, and property existence
 
-`value as Type` performs the explicit checked conversion defined in [Section 8.8](08-assignability-and-conversions.md#88-explicit-checked-conversions).
+`value as Type` performs the explicit checked cast defined in [Section 8.8](08-assignability-and-conversions.md#88-explicit-checked-casts). It returns the original runtime value unchanged when the value conforms to the target type and otherwise produces a failed-cast runtime error.
 
 `value is Type` evaluates to `true` when the runtime value conforms to the specified non-void type.
+
+Runtime numeric conformance follows concrete representation: `int` values conform to `int` and `number`, while `float` values conform to `float` and `number`. Type tests do not apply the implicit `int`-to-`float` conversion.
 
 For `T[]`, conformance requires mutable runtime capability and recursive conformance of every current element to `T`. For `T[]$`, read capability is sufficient. Array tests are shape-based and do not require a reified nominal element type.
 
 For `null`, `is` evaluates to `true` only when the tested type is nullable. The `is` operator does not narrow the operand in any subsequent expression or statement.
+
+For every statically permitted `as` expression, the corresponding `is` expression predicts its semantic success when both observe the same unchanged runtime value. Cancellation, exhausted execution limits, incompatible environments, and provider failures are operational failures outside this guarantee.
 
 `target has key` checks whether an object currently contains a property. The key expression MUST have type `string`.
 

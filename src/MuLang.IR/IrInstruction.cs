@@ -70,14 +70,18 @@ public abstract record IrInstruction(TextSpan Span)
     /// <param name="Destination">The destination slot.</param>
     /// <param name="Source">The source slot.</param>
     /// <param name="TargetType">The target type.</param>
-    /// <param name="IsChecked">Whether overflow checking is required.</param>
+    /// <param name="IsChecked">Whether the conversion validates runtime conformance.</param>
     public sealed record Convert(
         TextSpan Span,
         int Destination,
         int Source,
         TypeSymbol TargetType,
         bool IsChecked
-    ) : IrInstruction(Span);
+    ) : IrInstruction(Span)
+    {
+        /// <summary>Gets a value indicating whether the conversion is a checked cast.</summary>
+        public bool IsCast { get; init; }
+    }
 
     /// <summary>Converts a value to its truthiness result.</summary>
     /// <param name="Span">The source span.</param>
