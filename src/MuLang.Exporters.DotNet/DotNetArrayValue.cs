@@ -1,8 +1,6 @@
 namespace MuLang.Exporters.DotNet;
 
-internal sealed class DotNetArrayValue :
-    IDotNetArrayValue,
-    IDotNetReadOnlyArrayValue
+internal sealed class DotNetArrayValue : IDotNetArrayValue, IDotNetReadOnlyArrayValue
 {
     private readonly IList<object?> elements;
 

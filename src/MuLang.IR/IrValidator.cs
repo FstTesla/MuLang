@@ -455,11 +455,7 @@ public static class IrValidator
                         TypeRelations.ClassifyConversion(
                             sourceSlot.Type,
                             conversion.TargetType
-                        ) != ConversionKind.None &&
-                        !RequiresCheckedArrayCapabilityAcquisition(
-                            sourceSlot.Type,
-                            conversion.TargetType
-                        ),
+                        ) != ConversionKind.None,
                     _ => false,
                 };
 
@@ -1004,18 +1000,6 @@ public static class IrValidator
             TypeKind.Unknown => value is not null,
             _ => false,
         };
-    }
-
-    private static bool RequiresCheckedArrayCapabilityAcquisition(
-        TypeSymbol source,
-        TypeSymbol target
-    )
-    {
-        TypeSymbol nonNullableSource = GetNonNullable(source);
-        TypeSymbol nonNullableTarget = GetNonNullable(target);
-
-        return nonNullableSource is ArrayTypeSymbol { IsReadOnly: true } &&
-            nonNullableTarget is ArrayTypeSymbol { IsReadOnly: false };
     }
 
     private static bool AreEquivalent(

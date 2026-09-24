@@ -172,6 +172,37 @@ public sealed class IrValidatorTests
     }
 
     [Test]
+    public void RejectsCastOnlyPairAsValueConversion()
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder().Build();
+        IrProgram program = CreateProgram(
+            environment,
+            TypeSymbols.Int,
+            [
+                new IrSlot(0, IrSlotKind.Temporary, TypeSymbols.Number, null),
+                new IrSlot(1, IrSlotKind.Temporary, TypeSymbols.Int, null),
+            ],
+            [
+                new IrInstruction.Constant(default, 0, TypeSymbols.Number, 1L),
+                new IrInstruction.Convert(
+                    default,
+                    1,
+                    0,
+                    TypeSymbols.Int,
+                    IrConversionKind.ValueConversion
+                ),
+            ],
+            1
+        );
+
+        Assert.That(
+            IrValidator.Validate(program, environment)
+                .Select(static diagnostic => diagnostic.Code),
+            Does.Contain(IrDiagnosticCodes.TypeMismatch)
+        );
+    }
+
+    [Test]
     public void RejectsElementWriteThroughReadOnlyArraySlot()
     {
         EnvironmentSchema environment = new EnvironmentBuilder()

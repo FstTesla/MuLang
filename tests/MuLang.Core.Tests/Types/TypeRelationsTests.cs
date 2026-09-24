@@ -93,7 +93,7 @@ public sealed class TypeRelationsTests
             );
             Assert.That(
                 TypeRelations.ClassifyConversion(readOnly, mutable),
-                Is.EqualTo(ConversionKind.Checked)
+                Is.EqualTo(ConversionKind.None)
             );
         }
     }
@@ -133,6 +133,10 @@ public sealed class TypeRelationsTests
             Assert.That(TypeRelations.IsAssignable(equivalentOpenSource, openTarget), Is.True);
             Assert.That(TypeRelations.IsAssignable(source, closedTarget), Is.False);
             Assert.That(TypeRelations.IsAssignable(source, TypeSymbols.Object), Is.True);
+            Assert.That(
+                TypeRelations.ClassifyConversion(source, openTarget),
+                Is.EqualTo(ConversionKind.None)
+            );
         }
     }
 
@@ -165,11 +169,11 @@ public sealed class TypeRelationsTests
         {
             Assert.That(
                 TypeRelations.ClassifyConversion(TypeSymbols.Number, TypeSymbols.Int),
-                Is.EqualTo(ConversionKind.Checked)
+                Is.EqualTo(ConversionKind.None)
             );
             Assert.That(
                 TypeRelations.ClassifyConversion(TypeSymbols.Number, TypeSymbols.Float),
-                Is.EqualTo(ConversionKind.Checked)
+                Is.EqualTo(ConversionKind.None)
             );
             Assert.That(
                 TypeRelations.ClassifyConversion(TypeSymbols.Int, TypeSymbols.Float),
@@ -189,6 +193,10 @@ public sealed class TypeRelationsTests
             );
             Assert.That(
                 TypeRelations.ClassifyConversion(nullableObject, TypeSymbols.String),
+                Is.EqualTo(ConversionKind.None)
+            );
+            Assert.That(
+                TypeRelations.ClassifyConversion(TypeSymbols.Unknown, TypeSymbols.Int),
                 Is.EqualTo(ConversionKind.None)
             );
         }

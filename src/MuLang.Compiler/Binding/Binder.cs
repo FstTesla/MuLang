@@ -2680,7 +2680,7 @@ internal sealed class Binder
             targetType
         );
 
-        return conversionKind is ConversionKind.Identity or ConversionKind.Implicit
+        return conversionKind == ConversionKind.Implicit
             ? new BoundExpression.Conversion(
                 expression.Syntax,
                 targetType,

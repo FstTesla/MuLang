@@ -784,9 +784,7 @@ internal sealed class Lowerer
 
         if (
             expression.IsCast &&
-            expression.ConversionKind is
-                ConversionKind.Identity or
-                ConversionKind.Implicit
+            expression.ConversionKind == ConversionKind.Implicit
         )
         {
             builder.Emit(

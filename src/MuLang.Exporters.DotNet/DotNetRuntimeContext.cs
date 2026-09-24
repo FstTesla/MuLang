@@ -242,7 +242,6 @@ public sealed class DotNetRuntimeContext
                     span
                 );
             }
-
         }
     }
 

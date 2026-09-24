@@ -145,7 +145,6 @@ internal static class DotNetRuntimeOperations
     public static object? ConvertValue(
         DotNetRuntimeContext context,
         object? value,
-        TypeSymbol sourceType,
         TypeSymbol targetType,
         IrConversionKind conversionKind,
         TextSpan span
@@ -172,7 +171,6 @@ internal static class DotNetRuntimeOperations
                 : ConvertValue(
                     context,
                     value,
-                    GetNonNullable(sourceType),
                     nullable.UnderlyingType,
                     IrConversionKind.ValueConversion,
                     span
@@ -196,7 +194,7 @@ internal static class DotNetRuntimeOperations
         return targetType.Kind switch
         {
             TypeKind.Bool when value is bool => value,
-            TypeKind.Int => ConvertToInt(value, sourceType, span),
+            TypeKind.Int => ConvertToInt(value, span),
             TypeKind.Float => ConvertToFloat(value, span),
             TypeKind.Number => ConvertToNumber(value, span),
             TypeKind.Unknown => value,
@@ -1123,47 +1121,12 @@ internal static class DotNetRuntimeOperations
 
     private static long ConvertToInt(
         object value,
-        TypeSymbol sourceType,
         TextSpan span
     )
     {
-        if (value is long integer)
-        {
-            return integer;
-        }
-
-        if (
-            GetNonNullable(sourceType).Kind == TypeKind.Number &&
-            value is double number &&
-            double.IsFinite(number) &&
-            // ReSharper disable once CompareOfFloatsByEqualityOperator
-            Math.Truncate(number) == number &&
-            number is >= long.MinValue and <= long.MaxValue
-        )
-        {
-            try
-            {
-                return checked((long)number);
-            }
-            catch (OverflowException exception)
-            {
-                throw new MuLangRuntimeException(
-                    DotNetRuntimeErrorCodes.InvalidConversion,
-                    "Value cannot be converted to int.",
-                    span,
-                    exception
-                );
-            }
-        }
-
-        throw InvalidValue("Value cannot be converted to int.", span);
-    }
-
-    private static TypeSymbol GetNonNullable(TypeSymbol type)
-    {
-        return type is NullableTypeSymbol nullable
-            ? nullable.UnderlyingType
-            : type;
+        return value is long integer
+            ? integer
+            : throw InvalidValue("Value cannot be converted to int.", span);
     }
 
     private static long RequireInt(object? value, TextSpan span)

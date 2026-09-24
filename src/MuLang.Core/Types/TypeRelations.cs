@@ -108,7 +108,7 @@ public static class TypeRelations
             IsObjectAssignable(sourceObject, targetObject);
     }
 
-    /// <summary>Classifies the conversion from one type to another.</summary>
+    /// <summary>Classifies a value conversion from one type to another, independently of checked casts.</summary>
     /// <param name="source">The source type.</param>
     /// <param name="target">The target type.</param>
     /// <returns>The classified conversion kind.</returns>
@@ -328,22 +328,9 @@ public static class TypeRelations
             return true;
         }
 
-        if (source.Kind == TypeKind.Unknown)
-        {
-            return true;
-        }
-
         if (source is NullableTypeSymbol sourceNullable)
         {
             return CanConvertChecked(sourceNullable.UnderlyingType, target);
-        }
-
-        if (
-            source.Kind == TypeKind.Number &&
-            target.Kind is TypeKind.Int or TypeKind.Float
-        )
-        {
-            return true;
         }
 
         if (
@@ -360,21 +347,7 @@ public static class TypeRelations
             return true;
         }
 
-        if (
-            source.Kind is TypeKind.Object or TypeKind.StructuredObject &&
-            target.Kind is TypeKind.Object or TypeKind.StructuredObject
-        )
-        {
-            return true;
-        }
-
-        if (source is ArrayTypeSymbol && target is ArrayTypeSymbol)
-        {
-            return true;
-        }
-
-        return target is NullableTypeSymbol targetNullable &&
-            CanConvertChecked(source, targetNullable.UnderlyingType);
+        return false;
     }
 
     internal static bool IsViewCompatible(TypeSymbol source, TypeSymbol target)
