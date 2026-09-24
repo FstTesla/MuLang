@@ -12,6 +12,19 @@ Stable entries describe the incremental change since the preceding prerelease. T
 
 Each release heading identifies the incremental version range covered by the section, from the comparison version to the released version.
 
+## `0.2.0-alpha.2` → `0.2.0-alpha.3` - 2026-09-24
+
+### Breaking changes
+
+- Removed the public `LanguageProfile` constructor. Hosts must now create or customize profiles through [`LanguageProfileBuilder`](https://fsttesla.github.io/MuLang/api/MuLang.Core.LanguageProfileBuilder.html).
+- Enabled [compile-time constant folding](https://fsttesla.github.io/MuLang/language/10-expressions.html#1011-compile-time-constant-evaluation) in both standard language profiles. Integer overflow, integer division or remainder by zero, invalid shift counts, and failed checked casts in required constant expressions now produce compilation error `MUL3031` and no executable artifact instead of failing at runtime. Hosts that require the previous behavior must disable constant folding in their profile.
+- Changed every standard language-profile fingerprint by adding constant folding to the profile identity. Cached or persisted IR compiled with earlier fingerprints must be recompiled.
+
+### New features
+
+- Added primitive constant folding before lowering for intrinsic operators, value conversions, checked casts, type tests, truthiness, null coalescing, conditional expressions, and conditional Boolean operators while preserving evaluation order and short-circuit behavior.
+- Added the [`ConstantFoldingFeature`](https://fsttesla.github.io/MuLang/language/18-language-profiles.html#1810-compile-time-constant-folding) profile option, the `LanguageProfile.ConstantFolding` property, and `LanguageProfileBuilder.WithConstantFolding`. Disabling the feature preserves runtime evaluation and runtime failures for constant expressions.
+
 ## `0.2.0-alpha.1` → `0.2.0-alpha.2` - 2026-09-24
 
 ### Breaking changes

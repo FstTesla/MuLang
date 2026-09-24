@@ -1,5 +1,6 @@
 - Standard library
 - New features:
+  - IR serialization
   - Warnings
   - Readonly locals
   - Readonly and optional object properties
