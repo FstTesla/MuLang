@@ -116,6 +116,9 @@ array-literal
 read-only-array-literal
     = "$[" (expression ("," expression)* ","?)? "]" ;
 
+non-finite-float-literal
+    = ("+" | "-")? ("infty" | "nan") ;
+
 closed-object-literal
     = "{" property-initializer-list? "}" ;
 

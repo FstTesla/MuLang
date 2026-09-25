@@ -46,6 +46,13 @@ Language version 1 reserves:
 - `void`
 - `while`
 
+Language version 1.1 additionally reserves:
+
+- `infty`
+- `nan`
+
+When compiling an earlier language version, each identifier occurrence whose spelling becomes reserved in a later supported version produces a warning while remaining an identifier.
+
 Provider-defined function, global, and type names MUST NOT use reserved keywords.
 
 ## 5.5. Boolean literals
@@ -70,13 +77,17 @@ The complete signed value MUST be representable as a signed 64-bit integer. A va
 
 ## 5.8. Float literals
 
-A float literal consists of an optional leading `+` or `-` sign and a numeric portion containing a decimal separator, an exponent, or both.
+A finite float literal consists of an optional leading `+` or `-` sign and a numeric portion containing a decimal separator, an exponent, or both.
 
 Float literals use `.` as the decimal separator and are independent of host culture.
 
-Float values use IEEE 754 binary64 semantics. The source syntax does not provide literals for NaN or infinity.
+The complete finite value MUST be representable as a finite IEEE 754 binary64 value. A numeric portion that overflows to infinity is a compile-time error.
 
 The lexer emits the sign and unsigned numeric portion as separate tokens. The parser combines them into one signed literal syntax node under the same rules as integer literals.
+
+Language version 1.1 additionally provides the `infty` and `nan` keyword literals for positive infinity and NaN. An optional separate `+` or `-` token is combined with either keyword under the same rules as finite numeric literals. `-infty` denotes negative infinity. Both signed forms of `nan` denote NaN without preserving a distinct sign.
+
+Float values and operations use IEEE 754 binary64 semantics.
 
 ## 5.9. String literals
 

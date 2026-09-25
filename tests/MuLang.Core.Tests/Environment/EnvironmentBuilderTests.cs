@@ -74,6 +74,46 @@ public sealed class EnvironmentBuilderTests
     }
 
     [Test]
+    public void ReservesNonFiniteLiteralNamesOnlyInVersionOneOne()
+    {
+        IReadOnlyList<Func<EnvironmentBuilder>> builderFactories =
+        [
+            static () => new EnvironmentBuilder().AddType(
+                new ObjectTypeSymbol("type.infty", "infty", false, [ ])
+            ),
+            static () => new EnvironmentBuilder().AddGlobal(
+                "global.infty",
+                "infty",
+                TypeSymbols.Float
+            ),
+            static () => new EnvironmentBuilder().AddFunction(
+                "function.nan",
+                "nan",
+                [ ],
+                TypeSymbols.Float
+            ),
+            static () => new EnvironmentBuilder().AddFunction(
+                "function.value",
+                "value",
+                [ new ParameterSymbol("nan", TypeSymbols.Float) ],
+                TypeSymbols.Float
+            ),
+        ];
+
+        foreach (Func<EnvironmentBuilder> createBuilder in builderFactories)
+        {
+            Assert.That(
+                () => createBuilder().Build(LanguageVersion.Version1),
+                Throws.Nothing
+            );
+            Assert.That(
+                () => createBuilder().Build(LanguageVersion.Version1_1),
+                Throws.InvalidOperationException
+            );
+        }
+    }
+
+    [Test]
     public void ProducesOrderIndependentFingerprint()
     {
         ObjectTypeSymbol firstType = CreateItemType();

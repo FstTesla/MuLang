@@ -92,6 +92,25 @@ public sealed class ParserTests
         }
     }
 
+    [TestCase("+ infty", (int)TokenKind.InftyKeyword)]
+    [TestCase("- nan", (int)TokenKind.NanKeyword)]
+    public void CombinesLeadingSignWithNonFiniteFloatLiteral(
+        string source,
+        int literalKind
+    )
+    {
+        SyntaxTree tree = ParseExpression(source);
+        ExpressionRootSyntax root = (ExpressionRootSyntax)tree.Root;
+        LiteralExpressionSyntax literal = (LiteralExpressionSyntax)root.Expression;
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(literal.SignToken, Is.Not.Null);
+            Assert.That(literal.LiteralToken.Kind, Is.EqualTo((TokenKind)literalKind));
+            Assert.That(tree.Diagnostics, Is.Empty);
+        }
+    }
+
     [Test]
     public void ParsesPostfixExpressionsLeftToRight()
     {

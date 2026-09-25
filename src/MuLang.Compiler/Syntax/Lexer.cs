@@ -252,7 +252,7 @@ internal sealed class Lexer
         TextSpan span = TextSpan.FromBounds(start, position);
         string text = source.GetText(span);
 
-        return new SyntaxToken(GetKeywordKind(text), span);
+        return new SyntaxToken(GetKeywordKind(text, span), span);
     }
 
     private SyntaxToken ReadNumber()
@@ -487,7 +487,7 @@ internal sealed class Lexer
         return new SyntaxToken(kind, TextSpan.FromBounds(start, position));
     }
 
-    private static TokenKind GetKeywordKind(string text)
+    private TokenKind GetKeywordKind(string text, TextSpan span)
     {
         return text switch
         {
@@ -502,8 +502,20 @@ internal sealed class Lexer
             "func" => TokenKind.FuncKeyword,
             "has" => TokenKind.HasKeyword,
             "if" => TokenKind.IfKeyword,
+            "infty" => GetVersionedKeywordKind(
+                TokenKind.InftyKeyword,
+                LanguageVersion.Version1_1,
+                text,
+                span
+            ),
             "int" => TokenKind.IntKeyword,
             "is" => TokenKind.IsKeyword,
+            "nan" => GetVersionedKeywordKind(
+                TokenKind.NanKeyword,
+                LanguageVersion.Version1_1,
+                text,
+                span
+            ),
             "null" => TokenKind.NullKeyword,
             "number" => TokenKind.NumberKeyword,
             "object" => TokenKind.ObjectKeyword,
@@ -515,6 +527,41 @@ internal sealed class Lexer
             "void" => TokenKind.VoidKeyword,
             "while" => TokenKind.WhileKeyword,
             _ => TokenKind.Identifier,
+        };
+    }
+
+    private TokenKind GetVersionedKeywordKind(
+        TokenKind keywordKind,
+        LanguageVersion introducedVersion,
+        string text,
+        TextSpan span
+    )
+    {
+        if (Profile.LanguageVersion >= introducedVersion)
+        {
+            return keywordKind;
+        }
+
+        diagnostics.Add(
+            new Diagnostic(
+                DiagnosticCodes.FutureReservedKeyword,
+                DiagnosticSeverity.Warning,
+                DiagnosticCategory.Lexical,
+                span,
+                $"Identifier '{text}' becomes a reserved keyword in language version {GetLanguageVersionText(introducedVersion)}."
+            )
+        );
+
+        return TokenKind.Identifier;
+    }
+
+    private static string GetLanguageVersionText(LanguageVersion version)
+    {
+        return version switch
+        {
+            LanguageVersion.Version1 => "1",
+            LanguageVersion.Version1_1 => "1.1",
+            _ => throw new ArgumentOutOfRangeException(nameof(version)),
         };
     }
 

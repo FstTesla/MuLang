@@ -1,1 +1,2 @@
 #nullable enable
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.FutureReservedKeyword = "MUL1005" -> string!

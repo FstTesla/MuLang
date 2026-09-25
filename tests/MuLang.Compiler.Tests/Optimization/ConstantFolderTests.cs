@@ -53,6 +53,61 @@ public sealed class ConstantFolderTests
         }
     }
 
+    [TestCase("infty + 5.0", double.PositiveInfinity)]
+    [TestCase("-infty + 5.0", double.NegativeInfinity)]
+    public void FoldsInfinityArithmetic(string source, double expected)
+    {
+        CompilationResult result = CompileExpression(source);
+        IrProgram program = RequireProgram(result);
+        IrInstruction.Constant constant = GetInstructions(program)
+            .OfType<IrInstruction.Constant>()
+            .Single();
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.Diagnostics, Is.Empty);
+            Assert.That(constant.Value, Is.EqualTo(expected));
+        }
+    }
+
+    [Test]
+    public void FoldsIndeterminateInfinityArithmeticToNan()
+    {
+        CompilationResult result = CompileExpression("infty + -infty");
+        IrProgram program = RequireProgram(result);
+        IrInstruction.Constant constant = GetInstructions(program)
+            .OfType<IrInstruction.Constant>()
+            .Single();
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.Diagnostics, Is.Empty);
+            Assert.That(constant.Value, Is.TypeOf<double>());
+            Assert.That(double.IsNaN((double)constant.Value!), Is.True);
+        }
+    }
+
+    [TestCase("\"\" + infty", "infty")]
+    [TestCase("\"\" + -infty", "-infty")]
+    [TestCase("\"\" + nan", "nan")]
+    public void UsesLiteralSpellingForNonFiniteStringConversion(
+        string source,
+        string expected
+    )
+    {
+        CompilationResult result = CompileExpression(source);
+        IrProgram program = RequireProgram(result);
+        IrInstruction.Constant constant = GetInstructions(program)
+            .OfType<IrInstruction.Constant>()
+            .Single();
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.Diagnostics, Is.Empty);
+            Assert.That(constant.Value, Is.EqualTo(expected));
+        }
+    }
+
     [TestCase("false && 1 / 0 == 0", false)]
     [TestCase("true ? 1 == 1 : 1 / 0 == 0", true)]
     [TestCase("(1 as int?) ?? 1 / 0", 1L)]
@@ -243,9 +298,7 @@ public sealed class ConstantFolderTests
 
     private static IReadOnlyList<IrInstruction> GetInstructions(IrProgram program)
     {
-        return program.Blocks
-            .SelectMany(static block => block.Instructions)
-            .ToArray();
+        return [ .. program.Blocks.SelectMany(static block => block.Instructions) ];
     }
 
     private static string FormatDiagnostics(DiagnosticCollection diagnostics)

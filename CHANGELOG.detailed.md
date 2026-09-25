@@ -12,6 +12,19 @@ Stable entries describe the incremental change since the preceding prerelease. T
 
 Each release heading identifies the incremental version range covered by the section, from the comparison version to the released version.
 
+## `0.2.0-alpha.3` → `0.2.0-alpha.4` - 2026-09-25
+
+### Breaking changes
+
+- Reserved `infty` and `nan` as keywords in language version 1.1. Environment schemas targeting version 1.1 can no longer expose provider types, globals, functions, or parameters with those language names; version 1 continues to treat them as identifiers.
+- Changed the culture-independent string conversion of positive infinity, negative infinity, and NaN from `Infinity`, `-Infinity`, and `NaN` to the source-compatible spellings `infty`, `-infty`, and `nan`.
+
+### New features
+
+- Added the language version 1.1 `infty` and `nan` float literals for IEEE 754 positive infinity and NaN. The parser accepts separate leading signs, including `-infty`, `+nan`, and `-nan`, while finite decimal literals that overflow remain compile-time errors.
+- Added lexical warning `MUL1005` for every use in an earlier language version of an identifier spelling that becomes reserved in a later supported version. Version 1 code may still use `infty` and `nan`, but now receives migration warnings because version 1.1 reserves them.
+- Added the versioned, canonical, textual MuIR (`.muir`) format for serializing and deserializing portable `IrProgram` graphs. `MuLang.IR` now provides UTF-8 and text APIs, explicit polymorphic wire tokens, source-span preservation, strict parsing diagnostics, configurable resource limits, and byte-stable round trips.
+
 ## `0.2.0-alpha.2` → `0.2.0-alpha.3` - 2026-09-24
 
 ### Breaking changes

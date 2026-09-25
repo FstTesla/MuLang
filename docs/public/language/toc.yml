@@ -42,3 +42,5 @@
   href: 20-grammar-summary.md
 - name: 21. Draft review decisions
   href: 21-draft-review-decisions.md
+- name: 22. MuIR serialization format
+  href: 22-muir-format.md

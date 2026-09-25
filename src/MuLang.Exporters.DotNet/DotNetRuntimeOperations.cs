@@ -1024,20 +1024,19 @@ internal static class DotNetRuntimeOperations
 
     private static bool TryGetArrayCount(object target, out int count)
     {
-        if (target is IDotNetReadOnlyArrayValue arrayValue)
+        switch (target)
         {
-            count = arrayValue.Count;
-            return true;
-        }
-        else if (target is IDotNetArrayValue mutableArrayValue)
-        {
-            count = mutableArrayValue.Count;
-            return true;
-        }
-        else
-        {
-            count = 0;
-            return false;
+            case IDotNetReadOnlyArrayValue arrayValue:
+                count = arrayValue.Count;
+                return true;
+
+            case IDotNetArrayValue mutableArrayValue:
+                count = mutableArrayValue.Count;
+                return true;
+
+            default:
+                count = 0;
+                return false;
         }
     }
 
@@ -1047,18 +1046,17 @@ internal static class DotNetRuntimeOperations
         out object? value
     )
     {
-        if (target is IDotNetReadOnlyArrayValue arrayValue)
+        switch (target)
         {
-            return arrayValue.TryGetElement(index, out value);
-        }
-        else if (target is IDotNetArrayValue mutableArrayValue)
-        {
-            return mutableArrayValue.TryGetElement(index, out value);
-        }
-        else
-        {
-            value = null;
-            return false;
+            case IDotNetReadOnlyArrayValue arrayValue:
+                return arrayValue.TryGetElement(index, out value);
+
+            case IDotNetArrayValue mutableArrayValue:
+                return mutableArrayValue.TryGetElement(index, out value);
+
+            default:
+                value = null;
+                return false;
         }
     }
 

@@ -1,1 +1,63 @@
 #nullable enable
+MuLang.IR.Serialization.MuIrDiagnostic
+MuLang.IR.Serialization.MuIrDiagnostic.Code.get -> string!
+MuLang.IR.Serialization.MuIrDiagnostic.Column.get -> int
+MuLang.IR.Serialization.MuIrDiagnostic.Length.get -> int
+MuLang.IR.Serialization.MuIrDiagnostic.Line.get -> int
+MuLang.IR.Serialization.MuIrDiagnostic.Message.get -> string!
+MuLang.IR.Serialization.MuIrDiagnostic.MuIrDiagnostic(string! code, MuLang.Core.Diagnostics.DiagnosticSeverity severity, int offset, int length, int line, int column, string! message) -> void
+MuLang.IR.Serialization.MuIrDiagnostic.Offset.get -> int
+MuLang.IR.Serialization.MuIrDiagnostic.Severity.get -> MuLang.Core.Diagnostics.DiagnosticSeverity
+MuLang.IR.Serialization.MuIrDiagnosticCodes
+MuLang.IR.Serialization.MuIrReadResult
+MuLang.IR.Serialization.MuIrReadResult.Diagnostics.get -> System.Collections.Generic.IReadOnlyList<MuLang.IR.Serialization.MuIrDiagnostic!>!
+MuLang.IR.Serialization.MuIrReadResult.Program.get -> MuLang.IR.IrProgram?
+MuLang.IR.Serialization.MuIrReadResult.Success.get -> bool
+MuLang.IR.Serialization.MuIrReader
+MuLang.IR.Serialization.MuIrReaderOptions
+MuLang.IR.Serialization.MuIrReaderOptions.MaximumBlocksPerFunction.get -> int
+MuLang.IR.Serialization.MuIrReaderOptions.MaximumDiagnostics.get -> int
+MuLang.IR.Serialization.MuIrReaderOptions.MaximumDocumentLength.get -> int
+MuLang.IR.Serialization.MuIrReaderOptions.MaximumFunctions.get -> int
+MuLang.IR.Serialization.MuIrReaderOptions.MaximumInstructionsPerBlock.get -> int
+MuLang.IR.Serialization.MuIrReaderOptions.MaximumListElements.get -> int
+MuLang.IR.Serialization.MuIrReaderOptions.MaximumSlotsPerFunction.get -> int
+MuLang.IR.Serialization.MuIrReaderOptions.MaximumStringLength.get -> int
+MuLang.IR.Serialization.MuIrReaderOptions.MaximumTokenLength.get -> int
+MuLang.IR.Serialization.MuIrReaderOptions.MaximumTypeNestingDepth.get -> int
+MuLang.IR.Serialization.MuIrReaderOptions.MaximumTypes.get -> int
+MuLang.IR.Serialization.MuIrReaderOptions.MuIrReaderOptions(int maximumDocumentLength = 16777216, int maximumStringLength = 1048576, int maximumTokenLength = 1048576, int maximumTypeNestingDepth = 64, int maximumTypes = 10000, int maximumFunctions = 1000, int maximumSlotsPerFunction = 100000, int maximumBlocksPerFunction = 100000, int maximumInstructionsPerBlock = 100000, int maximumListElements = 100000, int maximumDiagnostics = 100) -> void
+MuLang.IR.Serialization.MuIrSerializationException
+MuLang.IR.Serialization.MuIrSerializationException.MuIrSerializationException(string! message) -> void
+MuLang.IR.Serialization.MuIrSerializationException.MuIrSerializationException(string! message, System.Exception! innerException) -> void
+MuLang.IR.Serialization.MuIrWriter
+const MuLang.IR.Serialization.MuIrDiagnosticCodes.DuplicateDeclaration = "MUIR0008" -> string!
+const MuLang.IR.Serialization.MuIrDiagnosticCodes.InvalidEscape = "MUIR0005" -> string!
+const MuLang.IR.Serialization.MuIrDiagnosticCodes.InvalidInstruction = "MUIR0013" -> string!
+const MuLang.IR.Serialization.MuIrDiagnosticCodes.InvalidMagic = "MUIR0001" -> string!
+const MuLang.IR.Serialization.MuIrDiagnosticCodes.InvalidNumber = "MUIR0010" -> string!
+const MuLang.IR.Serialization.MuIrDiagnosticCodes.InvalidSpan = "MUIR0015" -> string!
+const MuLang.IR.Serialization.MuIrDiagnosticCodes.InvalidTerminator = "MUIR0014" -> string!
+const MuLang.IR.Serialization.MuIrDiagnosticCodes.InvalidToken = "MUIR0003" -> string!
+const MuLang.IR.Serialization.MuIrDiagnosticCodes.InvalidType = "MUIR0012" -> string!
+const MuLang.IR.Serialization.MuIrDiagnosticCodes.InvalidUtf8 = "MUIR0006" -> string!
+const MuLang.IR.Serialization.MuIrDiagnosticCodes.LimitExceeded = "MUIR0018" -> string!
+const MuLang.IR.Serialization.MuIrDiagnosticCodes.MaterializationFailed = "MUIR0019" -> string!
+const MuLang.IR.Serialization.MuIrDiagnosticCodes.MissingSection = "MUIR0007" -> string!
+const MuLang.IR.Serialization.MuIrDiagnosticCodes.NumericOverflow = "MUIR0011" -> string!
+const MuLang.IR.Serialization.MuIrDiagnosticCodes.TrailingContent = "MUIR0017" -> string!
+const MuLang.IR.Serialization.MuIrDiagnosticCodes.UndefinedReference = "MUIR0009" -> string!
+const MuLang.IR.Serialization.MuIrDiagnosticCodes.UnexpectedToken = "MUIR0016" -> string!
+const MuLang.IR.Serialization.MuIrDiagnosticCodes.UnsupportedVersion = "MUIR0002" -> string!
+const MuLang.IR.Serialization.MuIrDiagnosticCodes.UnterminatedString = "MUIR0004" -> string!
+static MuLang.IR.Serialization.MuIrReader.Read(System.IO.Stream! stream) -> MuLang.IR.Serialization.MuIrReadResult!
+static MuLang.IR.Serialization.MuIrReader.Read(System.IO.Stream! stream, bool leaveOpen) -> MuLang.IR.Serialization.MuIrReadResult!
+static MuLang.IR.Serialization.MuIrReader.Read(System.IO.Stream! stream, bool leaveOpen, MuLang.IR.Serialization.MuIrReaderOptions? options) -> MuLang.IR.Serialization.MuIrReadResult!
+static MuLang.IR.Serialization.MuIrReader.Read(System.IO.TextReader! reader) -> MuLang.IR.Serialization.MuIrReadResult!
+static MuLang.IR.Serialization.MuIrReader.Read(System.IO.TextReader! reader, MuLang.IR.Serialization.MuIrReaderOptions? options) -> MuLang.IR.Serialization.MuIrReadResult!
+static MuLang.IR.Serialization.MuIrReader.Read(string! text) -> MuLang.IR.Serialization.MuIrReadResult!
+static MuLang.IR.Serialization.MuIrReader.Read(string! text, MuLang.IR.Serialization.MuIrReaderOptions? options) -> MuLang.IR.Serialization.MuIrReadResult!
+static MuLang.IR.Serialization.MuIrReaderOptions.Default.get -> MuLang.IR.Serialization.MuIrReaderOptions!
+static MuLang.IR.Serialization.MuIrWriter.Write(MuLang.IR.IrProgram! program, System.IO.Stream! stream, bool leaveOpen = true) -> void
+static MuLang.IR.Serialization.MuIrWriter.Write(MuLang.IR.IrProgram! program, System.IO.TextWriter! writer) -> void
+static MuLang.IR.Serialization.MuIrWriter.WriteToString(MuLang.IR.IrProgram! program) -> string!

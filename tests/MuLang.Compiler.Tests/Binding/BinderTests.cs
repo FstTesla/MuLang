@@ -28,6 +28,85 @@ public sealed class BinderTests
         }
     }
 
+    [TestCase("infty", double.PositiveInfinity)]
+    [TestCase("+infty", double.PositiveInfinity)]
+    [TestCase("-infty", double.NegativeInfinity)]
+    public void BindsInfinityLiterals(string source, double expected)
+    {
+        BindingResult result = BindExpression(
+            source,
+            CreateEmptyEnvironment(LanguageVersion.Version1_1),
+            profile: LanguageProfiles.Version1_1
+        );
+        BoundRoot.Expression root = (BoundRoot.Expression)result.Root;
+        BoundExpression.Literal literal = (BoundExpression.Literal)root.Value;
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(literal.Type, Is.SameAs(TypeSymbols.Float));
+            Assert.That(literal.Value, Is.EqualTo(expected));
+            Assert.That(result.Diagnostics, Is.Empty);
+        }
+    }
+
+    [TestCase("nan")]
+    [TestCase("+nan")]
+    [TestCase("-nan")]
+    public void BindsNanLiterals(string source)
+    {
+        BindingResult result = BindExpression(
+            source,
+            CreateEmptyEnvironment(LanguageVersion.Version1_1),
+            profile: LanguageProfiles.Version1_1
+        );
+        BoundRoot.Expression root = (BoundRoot.Expression)result.Root;
+        BoundExpression.Literal literal = (BoundExpression.Literal)root.Value;
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(literal.Type, Is.SameAs(TypeSymbols.Float));
+            Assert.That(literal.Value, Is.TypeOf<double>());
+            Assert.That(double.IsNaN((double)literal.Value!), Is.True);
+            Assert.That(result.Diagnostics, Is.Empty);
+        }
+    }
+
+    [Test]
+    public void RejectsFiniteFloatLiteralThatOverflowsToInfinity()
+    {
+        BindingResult result = BindExpression(
+            "1e999",
+            CreateEmptyEnvironment(LanguageVersion.Version1_1),
+            profile: LanguageProfiles.Version1_1
+        );
+
+        AssertDiagnostic(result, DiagnosticCodes.InvalidFloatLiteral);
+    }
+
+    [Test]
+    public void ResolvesNonFiniteLiteralNamesAsVersionOneIdentifiers()
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddGlobal("global.infty", "infty", TypeSymbols.Float)
+            .Build(LanguageVersion.Version1);
+        BindingResult result = BindExpression(
+            "infty",
+            environment,
+            profile: LanguageProfiles.Version1
+        );
+        BoundRoot.Expression root = (BoundRoot.Expression)result.Root;
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(root.Value, Is.TypeOf<BoundExpression.Global>());
+            Assert.That(
+                result.Diagnostics.Select(static diagnostic => diagnostic.Code),
+                Is.EqualTo([ DiagnosticCodes.FutureReservedKeyword ])
+            );
+            Assert.That(result.Diagnostics.HasErrors, Is.False);
+        }
+    }
+
     [Test]
     public void ReportsUndefinedVariables()
     {

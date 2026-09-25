@@ -73,7 +73,11 @@ internal static class SyntaxFacts
 
     public static bool IsNumericLiteral(TokenKind kind)
     {
-        return kind is TokenKind.IntegerLiteral or TokenKind.NumberLiteral;
+        return kind is
+            TokenKind.IntegerLiteral or
+            TokenKind.NumberLiteral or
+            TokenKind.InftyKeyword or
+            TokenKind.NanKeyword;
     }
 
     public static bool IsAssignmentTarget(ExpressionSyntax expression)
@@ -97,6 +101,8 @@ internal static class SyntaxFacts
             TokenKind.Identifier or
             TokenKind.IntegerLiteral or
             TokenKind.NumberLiteral or
+            TokenKind.InftyKeyword or
+            TokenKind.NanKeyword or
             TokenKind.StringLiteral or
             TokenKind.TrueKeyword or
             TokenKind.FalseKeyword or

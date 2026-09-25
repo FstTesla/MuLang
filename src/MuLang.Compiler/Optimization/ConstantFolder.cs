@@ -11,9 +11,7 @@ internal sealed class ConstantFolder
 {
     private readonly IList<Diagnostic> diagnostics = [ ];
 
-    private ConstantFolder()
-    {
-    }
+    private ConstantFolder() { }
 
     public static ConstantFoldingResult Fold(BindingResult binding)
     {
@@ -24,12 +22,7 @@ internal sealed class ConstantFolder
 
         ConstantFolder folder = new ();
         BoundRoot root = folder.FoldRoot(binding.Root);
-        BindingResult foldedBinding = new (
-            root,
-            binding.Diagnostics,
-            binding.CompilationMode,
-            binding.LanguageProfileFingerprint
-        );
+        BindingResult foldedBinding = binding with { Root = root };
 
         return new ConstantFoldingResult(
             foldedBinding,
@@ -47,8 +40,8 @@ internal sealed class ConstantFolder
             ),
             BoundRoot.Program program => new BoundRoot.Program(
                 program.Syntax,
-                program.Functions.Select(FoldFunction).ToArray(),
-                program.Statements.Select(FoldStatement).ToArray(),
+                [ .. program.Functions.Select(FoldFunction) ],
+                [ .. program.Statements.Select(FoldStatement) ],
                 program.ResultType
             ),
             _ => throw new InvalidOperationException("Unknown bound root."),
@@ -57,10 +50,7 @@ internal sealed class ConstantFolder
 
     private BoundFunction FoldFunction(BoundFunction function)
     {
-        return new BoundFunction(
-            function.Symbol,
-            function.Statements.Select(FoldStatement).ToArray()
-        );
+        return function with { Statements = [.. function.Statements.Select(FoldStatement)] };
     }
 
     private BoundStatement FoldStatement(BoundStatement statement)
@@ -69,7 +59,7 @@ internal sealed class ConstantFolder
         {
             BoundStatement.Block block => new BoundStatement.Block(
                 block.Syntax,
-                block.Statements.Select(FoldStatement).ToArray()
+                [ .. block.Statements.Select(FoldStatement) ]
             ),
             BoundStatement.VariableDeclaration declaration =>
                 new BoundStatement.VariableDeclaration(
@@ -174,19 +164,12 @@ internal sealed class ConstantFolder
             BoundExpression.Array array => new BoundExpression.Array(
                 array.Syntax,
                 array.ArrayType,
-                array.Elements.Select(FoldExpression).ToArray()
+                [ .. array.Elements.Select(FoldExpression) ]
             ),
             BoundExpression.Object objectValue => new BoundExpression.Object(
                 objectValue.Syntax,
                 objectValue.ObjectType,
-                objectValue.Properties
-                    .Select(
-                        property => new BoundExpression.ObjectProperty(
-                            property.Name,
-                            FoldExpression(property.Value)
-                        )
-                    )
-                    .ToArray()
+                [ .. objectValue.Properties.Select(property => property with { Value = FoldExpression(property.Value) }) ]
             ),
             BoundExpression.Unary unary => FoldUnary(unary),
             BoundExpression.Binary binary => FoldBinary(binary),
@@ -204,12 +187,12 @@ internal sealed class ConstantFolder
             BoundExpression.ProviderCall call => new BoundExpression.ProviderCall(
                 call.Syntax,
                 call.Function,
-                call.Arguments.Select(FoldExpression).ToArray()
+                [ .. call.Arguments.Select(FoldExpression) ]
             ),
             BoundExpression.UserCall call => new BoundExpression.UserCall(
                 call.Syntax,
                 call.Function,
-                call.Arguments.Select(FoldExpression).ToArray()
+                [ .. call.Arguments.Select(FoldExpression) ]
             ),
             BoundExpression.MemberAccess member => new BoundExpression.MemberAccess(
                 member.Syntax,
@@ -263,7 +246,7 @@ internal sealed class ConstantFolder
 
             if (isAnd ? !leftValue : leftValue)
             {
-                return CreateLiteral(expression, isAnd ? false : true);
+                return CreateLiteral(expression, !isAnd);
             }
 
             BoundExpression selectedRight = FoldExpression(expression.Right);

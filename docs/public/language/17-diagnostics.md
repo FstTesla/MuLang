@@ -19,6 +19,8 @@ Every diagnostic MUST contain:
 
 The compiler SHOULD continue after recoverable errors to report multiple independent diagnostics.
 
+An identifier that becomes a reserved keyword in a later supported language version produces lexical warning `MUL1005` on every occurrence. The selected earlier version continues to parse and bind the token as an identifier.
+
 Diagnostics for syntax or capabilities disabled by the selected language profile are defined in [Section 18.11](18-language-profiles.md#1811-diagnostics).
 
 No executable artifact may be produced when error diagnostics are present.

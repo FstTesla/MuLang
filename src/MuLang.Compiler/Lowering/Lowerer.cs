@@ -782,10 +782,7 @@ internal sealed class Lowerer
         int sourceSlot = LowerExpression(expression.Expression);
         int destination = CreateTemporary(expression.Type);
 
-        if (
-            expression.IsCast &&
-            expression.ConversionKind == ConversionKind.Implicit
-        )
+        if (expression is { IsCast: true, ConversionKind: ConversionKind.Implicit })
         {
             builder.Emit(
                 new IrInstruction.Copy(

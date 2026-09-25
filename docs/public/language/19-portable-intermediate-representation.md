@@ -43,4 +43,6 @@ Provider-call validation accepts arguments assignable through read-only array co
 
 Runtime exporters MUST NOT perform name resolution, type inference, overload resolution, or high-level control-flow interpretation.
 
-Language version 1 does not require the IR to be public or serializable.
+Portable IR MAY be persisted and exchanged as a MuIR document with the `.muir` extension. MuIR is versioned independently from the MuLang language and profile versions. A host that reads MuIR MUST validate the reconstructed program against its selected environment through the ordinary IR validator before export or execution.
+
+The normative MuIR version 1 format is defined in [Section 22](22-muir-format.md).

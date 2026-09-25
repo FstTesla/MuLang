@@ -9,4 +9,8 @@
     <ProjectReference Include="..\MuLang.TestSupport\MuLang.TestSupport.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="Serialization\Fixtures\*.muir" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

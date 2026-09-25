@@ -46,10 +46,10 @@ The result uses the culture-independent source representation of the value:
 - an `int` uses signed invariant decimal notation;
 - a finite `float` uses the shortest round-trip decimal representation accepted by the float-literal grammar;
 - a `number` uses the representation of its concrete runtime kind;
-- positive infinity, negative infinity, and NaN use `Infinity`, `-Infinity`, and `NaN`, respectively;
+- positive infinity, negative infinity, and NaN use `infty`, `-infty`, and `nan`, respectively;
 - a `string` is unchanged and is not surrounded by quotes or escaped.
 
-`Infinity`, `-Infinity`, and `NaN` are runtime string representations and are not valid source literals.
+The non-finite representations are valid language version 1.1 source literals.
 
 Objects and arrays have no intrinsic string conversion.
 

@@ -15,6 +15,9 @@ public static class DiagnosticCodes
     /// <summary>Gets the code for an invalid numeric literal.</summary>
     public const string InvalidNumber = "MUL1004";
 
+    /// <summary>Gets the code for an identifier reserved in a later language version.</summary>
+    public const string FutureReservedKeyword = "MUL1005";
+
     /// <summary>Gets the code for an unexpected token.</summary>
     public const string UnexpectedToken = "MUL2001";
 

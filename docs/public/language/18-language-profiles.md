@@ -10,7 +10,7 @@ A language profile is immutable and contains:
 
 The standard profile for language version 1 preserves all language syntax, capabilities, and policies described by the rest of this specification unless this section explicitly permits a restriction. It enables user-defined functions, recursion, both loop kinds, provider function calls, open objects, every mutation kind, explicit loop-control levels, trailing commas, and compile-time constant folding. It uses strict Boolean conditions and prohibits variable shadowing.
 
-The standard profile for language version 1.1 has the same configurable feature defaults and adds read-only array types and literals as an unconditional part of the type system for language version 1.1. Profiles for language version 1 reject `$` and `$[` with a language-version diagnostic.
+The standard profile for language version 1.1 has the same configurable feature defaults and adds read-only array types and literals together with the `infty` and `nan` float literals as unconditional language features. Profiles for language version 1 reject `$` and `$[` with a language-version diagnostic and treat `infty` and `nan` as identifiers.
 
 Language version 1.1 is the default for compiler, lexer, parser, profile-builder, and environment-builder APIs. Hosts MAY select language version 1 explicitly.
 

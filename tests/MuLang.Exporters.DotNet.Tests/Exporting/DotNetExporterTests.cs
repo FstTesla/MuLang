@@ -1107,6 +1107,60 @@ public sealed class DotNetExporterTests
         Assert.That(compiled(CreateContext(environment)), Is.EqualTo("1.0"));
     }
 
+    [TestCase(double.PositiveInfinity, "infty")]
+    [TestCase(double.NegativeInfinity, "-infty")]
+    [TestCase(double.NaN, "nan")]
+    public void FormatsNonFiniteNumberConcatenation(
+        double value,
+        string expected
+    )
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddGlobal("global.value", "value", TypeSymbols.Float)
+            .Build();
+        Func<DotNetRuntimeContext, object?> compiled = CompileExpression(
+            "\"\" + value",
+            environment
+        );
+        DotNetRuntimeContext context = CreateContext(
+            environment,
+            [ new KeyValuePair<string, object?>("global.value", value) ]
+        );
+
+        Assert.That(compiled(context), Is.EqualTo(expected));
+    }
+
+    [TestCase("infty", double.PositiveInfinity)]
+    [TestCase("-infty", double.NegativeInfinity)]
+    public void ExecutesInfinityLiterals(string source, double expected)
+    {
+        EnvironmentSchema environment = CreateEmptyEnvironment(
+            LanguageVersion.Version1_1
+        );
+        Func<DotNetRuntimeContext, object?> compiled = CompileExpression(
+            source,
+            environment
+        );
+
+        Assert.That(compiled(CreateContext(environment)), Is.EqualTo(expected));
+    }
+
+    [Test]
+    public void ExecutesNanLiteral()
+    {
+        EnvironmentSchema environment = CreateEmptyEnvironment(
+            LanguageVersion.Version1_1
+        );
+        Func<DotNetRuntimeContext, object?> compiled = CompileExpression(
+            "nan",
+            environment
+        );
+        object? result = compiled(CreateContext(environment));
+
+        Assert.That(result, Is.TypeOf<double>());
+        Assert.That(double.IsNaN((double)result!), Is.True);
+    }
+
     [Test]
     public void RejectsClrArraysWithoutAnAdapter()
     {

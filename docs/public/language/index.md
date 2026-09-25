@@ -27,3 +27,4 @@ The key words **MUST**, **MUST NOT**, **REQUIRED**, **SHOULD**, **SHOULD NOT**, 
 19. [Portable intermediate representation](19-portable-intermediate-representation.md)
 20. [Grammar summary](20-grammar-summary.md)
 21. [Draft review decisions](21-draft-review-decisions.md)
+22. [MuIR serialization format](22-muir-format.md)

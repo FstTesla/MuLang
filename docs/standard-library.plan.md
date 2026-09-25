@@ -214,9 +214,6 @@ Default language names are chosen to avoid collisions in the flat environment. F
 | `e` | `float` |
 | `pi` | `float` |
 | `tau` | `float` |
-| `nan` | `float` |
-| `positiveInfinity` | `float` |
-| `negativeInfinity` | `float` |
 | `minInt` | `int` |
 | `maxInt` | `int` |
 
@@ -407,7 +404,7 @@ Ignore-case operations use Unicode invariant case comparison and never use the p
 
 Parsing is invariant, consumes the complete input, and does not ignore leading or trailing whitespace.
 
-Integer and finite float forms follow MuLang source numeric syntax. Float parsing additionally accepts the runtime spellings `NaN`, `Infinity`, and `-Infinity`.
+Integer and finite float forms follow MuLang source numeric syntax. Float parsing additionally accepts the runtime spellings `nan`, `infty`, and `-infty`.
 
 Boolean parsing accepts only `true` and `false`.
 

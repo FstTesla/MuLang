@@ -33,6 +33,13 @@ internal static class LanguageNames
         "while",
     };
 
+    private static readonly IReadOnlySet<string> versionOneOneReservedKeywords =
+        new HashSet<string>(StringComparer.Ordinal)
+        {
+            "infty",
+            "nan",
+        };
+
     public static void ValidateIdentifier(string value, string parameterName)
     {
         if (string.IsNullOrWhiteSpace(value))
@@ -94,5 +101,15 @@ internal static class LanguageNames
 
             offset += consumed;
         }
+    }
+
+    public static bool IsReservedKeyword(
+        string value,
+        LanguageVersion languageVersion
+    )
+    {
+        return reservedKeywords.Contains(value) ||
+            languageVersion >= LanguageVersion.Version1_1 &&
+            versionOneOneReservedKeywords.Contains(value);
     }
 }

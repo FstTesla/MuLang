@@ -376,6 +376,7 @@ internal static class PrimitiveValueOperations
     {
         if (left is double leftDouble && right is double rightDouble)
         {
+            // ReSharper disable once CompareOfFloatsByEqualityOperator
             return leftDouble == rightDouble;
         }
 
@@ -391,11 +392,13 @@ internal static class PrimitiveValueOperations
 
         if (left is long leftInt && right is double rightNumber)
         {
+            // ReSharper disable once CompareOfFloatsByEqualityOperator
             return leftInt == rightNumber;
         }
 
         if (left is double leftNumber && right is long rightInt)
         {
+            // ReSharper disable once CompareOfFloatsByEqualityOperator
             return leftNumber == rightInt;
         }
 
@@ -471,9 +474,9 @@ internal static class PrimitiveValueOperations
             null => "null",
             bool boolean => boolean ? "true" : "false",
             long integer => integer.ToString(CultureInfo.InvariantCulture),
-            double.NaN => "NaN",
-            double.PositiveInfinity => "Infinity",
-            double.NegativeInfinity => "-Infinity",
+            double.NaN => "nan",
+            double.PositiveInfinity => "infty",
+            double.NegativeInfinity => "-infty",
             double number => FormatNumber(number),
             string text => text,
             _ => throw InvalidValue("Value has no intrinsic string conversion."),

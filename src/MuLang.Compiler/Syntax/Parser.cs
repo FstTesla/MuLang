@@ -707,6 +707,8 @@ internal sealed class Parser
         {
             TokenKind.IntegerLiteral or
                 TokenKind.NumberLiteral or
+                TokenKind.InftyKeyword or
+                TokenKind.NanKeyword or
                 TokenKind.StringLiteral or
                 TokenKind.TrueKeyword or
                 TokenKind.FalseKeyword or

@@ -34,7 +34,7 @@ The postfix property-removal token `~` is a statement terminator and is not part
 
 Non-associative operators cannot be chained at the same precedence without parentheses.
 
-When `+` or `-` immediately precedes a numeric token in a literal position, the parser forms a signed numeric literal rather than a unary expression.
+When `+` or `-` immediately precedes a numeric token or non-finite float keyword in a literal position, the parser forms a signed numeric literal rather than a unary expression.
 
 ## 11.3. Arithmetic operators
 

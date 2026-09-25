@@ -1,0 +1,78 @@
+muir 1
+mode program
+environment "env"
+profile "profile"
+types 13
+type t0 intrinsic int
+type t1 intrinsic bool
+type t2 nullable t0
+type t3 intrinsic float
+type t4 intrinsic string
+type t5 array mutable t0
+type t6 object named "provider.sample" "Sample" open 2 ["value" t0 required, "label" t4 optional]
+type t7 intrinsic number
+type t8 array readonly t7
+type t9 object anonymous "<anonymous>" closed 1 ["items" t8 required]
+type t10 intrinsic unknown
+type t11 intrinsic object
+type t12 intrinsic void
+
+entry "$entry" t0 bb0 slots 11 blocks 3 {
+  slot %0 parameter t0 "input"
+  slot %1 local t1 "flag"
+  slot %2 temporary t2 none
+  slot %3 temporary t3 none
+  slot %4 temporary t4 none
+  slot %5 temporary t5 none
+  slot %6 temporary t6 none
+  slot %7 temporary t9 none
+  slot %8 temporary t10 none
+  slot %9 temporary t7 none
+  slot %10 temporary t11 none
+  block bb0 instructions 28 {
+    ins constant 0 1 %1 t1 bool true
+    ins constant 1 1 %0 t0 int 42
+    ins constant 2 1 %2 t2 null
+    ins constant 3 1 %3 t3 float negative-zero
+    ins constant 4 1 %3 t3 float nan
+    ins constant 5 1 %3 t3 float positive-infinity
+    ins constant 6 1 %3 t3 float negative-infinity
+    ins constant 7 1 %3 t3 float 1.2345678901234567
+    ins constant 8 1 %4 t4 string "a\n\"b\"\u{1}"
+    ins copy 8 1 %9 %0
+    ins load-global 9 1 %0 "global.value"
+    ins unary 10 1 %9 negate %0
+    ins binary 11 1 %9 add %0 %0
+    ins convert 12 1 %9 %0 t7 value
+    ins truthiness 13 1 %1 %8
+    ins type-test 14 1 %1 %8 t6
+    ins is-null 15 1 %1 %2
+    ins has-property 16 1 %1 %6 %4
+    ins create-array 17 1 %5 t5 [%0]
+    ins create-object 18 1 %6 t6 ["value": %0]
+    ins get-property 19 1 %0 %6 "value" false false
+    ins set-property 20 1 %6 "value" %0
+    ins remove-property 21 1 %6 "value"
+    ins get-element 22 1 %0 %5 %0 false true
+    ins set-element 23 1 %5 %0 %0 false
+    ins remove-element-property 24 1 %6 %4
+    ins provider-call 25 1 %0 "provider.call" t0 [%0]
+    ins user-call 26 1 none "user.call" t12 [%0]
+    term branch 27 1 %1 bb1 bb2
+  }
+  block bb1 instructions 0 {
+    term jump 28 1 bb2
+  }
+  block bb2 instructions 0 {
+    term return 29 1 %0
+  }
+}
+users 1
+
+user "user.call" t12 bb0 slots 1 blocks 1 {
+  slot %0 parameter t0 "value"
+  block bb0 instructions 0 {
+    term return 30 0 none
+  }
+}
+end

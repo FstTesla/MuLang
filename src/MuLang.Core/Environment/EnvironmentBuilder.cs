@@ -98,7 +98,7 @@ public sealed class EnvironmentBuilder
     /// <param name="languageVersion">The language version.</param>
     /// <returns>The immutable environment schema.</returns>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="languageVersion" /> is not defined.</exception>
-    /// <exception cref="InvalidOperationException">Thrown when a referenced structured type is not registered by the same instance.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when a symbol name is reserved in the selected language version or a referenced structured type is not registered by the same instance.</exception>
     public EnvironmentSchema Build(LanguageVersion languageVersion = LanguageVersion.Version1_1)
     {
         if (!Enum.IsDefined(languageVersion))
@@ -112,6 +112,7 @@ public sealed class EnvironmentBuilder
             [ .. globalsByName.Values.OrderBy(static global => global.Name, StringComparer.Ordinal) ];
         IReadOnlyCollection<FunctionSymbol> functions =
             [ .. functionsByName.Values.OrderBy(static function => function.Name, StringComparer.Ordinal) ];
+        ValidateLanguageVersionNames(languageVersion, types, globals, functions);
         ValidateReferencedTypes(types, globals, functions);
         EnvironmentFingerprint fingerprint = EnvironmentFingerprintFactory.Create(
             languageVersion,
@@ -127,6 +128,50 @@ public sealed class EnvironmentBuilder
             functions,
             fingerprint
         );
+    }
+
+    private static void ValidateLanguageVersionNames(
+        LanguageVersion languageVersion,
+        IReadOnlyCollection<ObjectTypeSymbol> types,
+        IReadOnlyCollection<GlobalSymbol> globals,
+        IReadOnlyCollection<FunctionSymbol> functions
+    )
+    {
+        foreach (ObjectTypeSymbol type in types)
+        {
+            ValidateName(type.Name, "type", languageVersion);
+        }
+
+        foreach (GlobalSymbol global in globals)
+        {
+            ValidateName(global.Name, "global", languageVersion);
+        }
+
+        foreach (FunctionSymbol function in functions)
+        {
+            ValidateName(function.Name, "function", languageVersion);
+
+            foreach (ParameterSymbol parameter in function.Parameters)
+            {
+                ValidateName(parameter.Name, "parameter", languageVersion);
+            }
+        }
+
+        static void ValidateName(
+            string name,
+            string symbolKind,
+            LanguageVersion languageVersion
+        )
+        {
+            if (!LanguageNames.IsReservedKeyword(name, languageVersion))
+            {
+                return;
+            }
+
+            throw new InvalidOperationException(
+                $"The {symbolKind} name '{name}' is reserved in language version {languageVersion}."
+            );
+        }
     }
 
     private void ValidateReferencedTypes(

@@ -1,6 +1,7 @@
 using MuLang.Compiler.Diagnostics;
 using MuLang.Compiler.Syntax;
 using MuLang.Core;
+using MuLang.Core.Diagnostics;
 using MuLang.Core.Text;
 
 namespace MuLang.Compiler.Tests.Syntax;
@@ -34,6 +35,64 @@ public sealed class LexerTests
         LexResult result = Lexer.Lex(SourceText.From("float"));
 
         Assert.That(result.Tokens[0].Kind, Is.EqualTo(TokenKind.FloatKeyword));
+    }
+
+    [Test]
+    public void RecognizesNonFiniteFloatKeywordsInVersionOneOne()
+    {
+        LexResult result = Lexer.Lex(
+            SourceText.From("infty nan"),
+            LanguageProfiles.Version1_1
+        );
+
+        Assert.That(
+            result.Tokens.Select(static token => token.Kind),
+            Is.EqualTo(
+                [
+                    TokenKind.InftyKeyword,
+                    TokenKind.NanKeyword,
+                    TokenKind.EndOfFile,
+                ]
+            )
+        );
+        Assert.That(result.Diagnostics, Is.Empty);
+    }
+
+    [Test]
+    public void WarnsForNonFiniteFloatIdentifiersInVersionOne()
+    {
+        LexResult result = Lexer.Lex(
+            SourceText.From("infty nan"),
+            LanguageProfiles.Version1
+        );
+
+        Assert.That(
+            result.Tokens.Select(static token => token.Kind),
+            Is.EqualTo(
+                [
+                    TokenKind.Identifier,
+                    TokenKind.Identifier,
+                    TokenKind.EndOfFile,
+                ]
+            )
+        );
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(
+                result.Diagnostics.Select(static diagnostic => diagnostic.Code),
+                Is.EqualTo(
+                    [
+                        DiagnosticCodes.FutureReservedKeyword,
+                        DiagnosticCodes.FutureReservedKeyword,
+                    ]
+                )
+            );
+            Assert.That(
+                result.Diagnostics,
+                Has.All.Property("Severity").EqualTo(DiagnosticSeverity.Warning)
+            );
+            Assert.That(result.Diagnostics.HasErrors, Is.False);
+        }
     }
 
     [Test]

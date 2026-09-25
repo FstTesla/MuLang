@@ -1074,6 +1074,24 @@ internal sealed class Binder
                 return new BoundExpression.Literal(syntax, TypeSymbols.Float, value);
             }
 
+            case TokenKind.InftyKeyword:
+            {
+                double value = syntax.SignToken?.Kind == TokenKind.Minus
+                    ? double.NegativeInfinity
+                    : double.PositiveInfinity;
+
+                return new BoundExpression.Literal(syntax, TypeSymbols.Float, value);
+            }
+
+            case TokenKind.NanKeyword:
+            {
+                return new BoundExpression.Literal(
+                    syntax,
+                    TypeSymbols.Float,
+                    double.NaN
+                );
+            }
+
             case TokenKind.StringLiteral:
             {
                 return new BoundExpression.Literal(
