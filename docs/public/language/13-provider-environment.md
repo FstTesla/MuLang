@@ -11,6 +11,8 @@ The provider supplies an immutable static environment containing:
 
 Every structured object type referenced directly or indirectly by a global, function parameter, function return type, array element, nullable type, or structured property MUST be registered in the static environment. Every reference to the same stable type identifier MUST resolve to the same type declaration.
 
+Structured object declarations MAY be self-recursive or mutually recursive. Hosts construct a recursive declaration graph atomically; no partially initialized type declaration is observable. Recursive references still obey the same-instance registration requirement for each stable provider type identifier.
+
 Profile compatibility requirements for provider-declared open structured types are defined in [Section 18.5](18-language-profiles.md#185-open-objects).
 
 The compiler resolves source names exclusively against local declarations and the static environment.

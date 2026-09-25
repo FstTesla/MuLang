@@ -1,4 +1,10 @@
 #nullable enable
+MuLang.IR.IrSlot.IrSlot(int id, MuLang.IR.IrSlotKind kind, MuLang.Core.Types.TypeSymbol! type, string? name, MuLang.IR.IrSlotMutability mutability) -> void
+MuLang.IR.IrSlot.Mutability.get -> MuLang.IR.IrSlotMutability
+MuLang.IR.IrSlot.Mutability.init -> void
+MuLang.IR.IrSlotMutability
+MuLang.IR.IrSlotMutability.Mutable = 0 -> MuLang.IR.IrSlotMutability
+MuLang.IR.IrSlotMutability.ReadOnly = 1 -> MuLang.IR.IrSlotMutability
 MuLang.IR.Serialization.MuIrDiagnostic
 MuLang.IR.Serialization.MuIrDiagnostic.Code.get -> string!
 MuLang.IR.Serialization.MuIrDiagnostic.Column.get -> int

@@ -92,7 +92,7 @@ public static class MuIrWriter
         {
             this.program = program;
             this.writer = writer;
-            (types, typeIds) = CollectTypes(program);
+            (types, typeIds) = MuIrTypeTableBuilder.Build(program);
         }
 
         public void Write()
@@ -170,7 +170,10 @@ public static class MuIrWriter
 
             int index = 0;
 
-            foreach (ObjectPropertySymbol property in type.Properties)
+            foreach (ObjectPropertySymbol property in type.Properties.OrderBy(
+                    static property => property.Name,
+                    StringComparer.Ordinal
+                ))
             {
                 if (index++ > 0)
                 {
@@ -203,6 +206,7 @@ public static class MuIrWriter
                 Line(
                     $"  slot %{slot.Id.ToString(CultureInfo.InvariantCulture)} " +
                     $"{GetSlotKind(slot.Kind)} {TypeReference(slot.Type)} " +
+                    $"{GetSlotMutability(slot.Mutability)} " +
                     (slot.Name is null ? "none" : Quote(slot.Name))
                 );
             }
@@ -388,114 +392,6 @@ public static class MuIrWriter
             writer.Write('\n');
         }
 
-        private static (IReadOnlyList<TypeSymbol>, IReadOnlyDictionary<TypeSymbol, int>)
-            CollectTypes(IrProgram program)
-        {
-            List<TypeSymbol> types = [ ];
-            Dictionary<TypeSymbol, int> ids = new (ReferenceEqualityComparer.Instance);
-            HashSet<TypeSymbol> active = new (ReferenceEqualityComparer.Instance);
-
-            void Add(TypeSymbol type)
-            {
-                if (ids.ContainsKey(type))
-                {
-                    return;
-                }
-
-                if (!active.Add(type))
-                {
-                    throw new MuIrSerializationException(
-                        $"Type '{type.DisplayName}' contains a recursive structural definition."
-                    );
-                }
-
-                switch (type)
-                {
-                    case NullableTypeSymbol nullable:
-                        Add(nullable.UnderlyingType);
-                        break;
-
-                    case ArrayTypeSymbol array:
-                        Add(array.ElementType);
-                        break;
-
-                    case ObjectTypeSymbol structured:
-                        foreach (ObjectPropertySymbol property in structured.Properties)
-                        {
-                            Add(property.Type);
-                        }
-                        break;
-                }
-
-                active.Remove(type);
-
-                if (type.Kind == TypeKind.Error)
-                {
-                    throw new MuIrSerializationException(
-                        "The compiler error-recovery type cannot be serialized."
-                    );
-                }
-
-                ids.Add(type, types.Count);
-                types.Add(type);
-            }
-
-            void AddFunction(IrFunction function)
-            {
-                Add(function.ReturnType);
-
-                foreach (IrSlot slot in function.Slots)
-                {
-                    Add(slot.Type);
-                }
-
-                foreach (IrInstruction instruction in function.Blocks.SelectMany(
-                        static block => block.Instructions
-                    ))
-                {
-                    switch (instruction)
-                    {
-                        case IrInstruction.Constant value:
-                            Add(value.Type);
-                            break;
-
-                        case IrInstruction.Convert value:
-                            Add(value.TargetType);
-                            break;
-
-                        case IrInstruction.TypeTest value:
-                            Add(value.TestedType);
-                            break;
-
-                        case IrInstruction.CreateArray value:
-                            Add(value.Type);
-                            break;
-
-                        case IrInstruction.CreateObject value:
-                            Add(value.Type);
-                            break;
-
-                        case IrInstruction.ProviderCall value:
-                            Add(value.ReturnType);
-                            break;
-
-                        case IrInstruction.UserCall value:
-                            Add(value.ReturnType);
-                            break;
-                    }
-                }
-            }
-
-            AddFunction(program.EntryFunction);
-
-            foreach (IrFunction function in program.UserFunctions)
-            {
-                AddFunction(function);
-            }
-
-            return (types, ids);
-        }
-
         private static string GetCompilationMode(CompilationMode mode)
         {
             return mode switch
@@ -536,6 +432,18 @@ public static class MuIrWriter
                 IrSlotKind.Temporary => "temporary",
                 _ => throw new MuIrSerializationException(
                     $"Slot kind '{kind}' is not supported."
+                ),
+            };
+        }
+
+        private static string GetSlotMutability(IrSlotMutability mutability)
+        {
+            return mutability switch
+            {
+                IrSlotMutability.Mutable => "mutable",
+                IrSlotMutability.ReadOnly => "readonly",
+                _ => throw new MuIrSerializationException(
+                    $"Slot mutability '{mutability}' is not supported."
                 ),
             };
         }

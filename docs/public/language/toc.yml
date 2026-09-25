@@ -44,3 +44,5 @@
   href: 21-draft-review-decisions.md
 - name: 22. MuIR serialization format
   href: 22-muir-format.md
+- name: 23. User-defined functions
+  href: 23-user-defined-functions.md

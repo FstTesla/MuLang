@@ -1,210 +1,88 @@
-# MuIR Serialization Implementation Plan
+# MuIR Canonical Type Graph and Slot Capability Plan
 
 ## Goal
 
-Implement a simple, deterministic, pseudo-human-readable textual format for portable MuLang IR.
+Strengthen MuIR canonicalization by deduplicating type-table entries according
+to their complete MuIR wire definition rather than `TypeSymbol` reference
+identity, while supporting recursive structured-object graphs and persisted
+read-only local slots.
 
-The format:
+After this change, two IR graphs that differ only in whether equivalent
+composite `TypeSymbol` instances are shared MUST serialize to byte-identical
+MuIR.
 
-- uses the `.muir` extension;
-- is named MuIR;
-- supports serialization and deserialization of `IrProgram`;
-- preserves all information currently represented by the public IR model;
-- is independent from .NET runtime type names and serializer-specific metadata;
-- can be inspected and reasonably edited by a person;
-- has an explicit format version;
-- produces stable output for the same IR graph;
-- reconstructs an IR graph that can be validated through the existing `IrValidator`.
+The change must:
 
-MuIR is a transport and persistence format for portable IR. It is not a source language, an alternate compiler frontend, or a replacement for IR validation.
+- preserve every piece of type metadata represented by MuIR;
+- support self-recursive and mutually recursive object types;
+- materialize recursive type graphs atomically;
+- validate read-only local definitions in `IrValidator`;
+- preserve deterministic first-occurrence ordering;
+- retain canonical serialize-read-serialize behavior;
+- preserve existing constructors and defaults for non-recursive types and
+  mutable slots;
+- canonicalize structured-object properties by ordinal name;
+- keep recursive equivalence and canonicalization bounded and deterministic.
 
-## Scope
+## Current behavior
 
-The first version covers:
+`MuIrWriter.CollectTypes` currently maintains:
 
-- program metadata;
-- entry and user-defined functions;
-- slots;
-- basic blocks;
-- every current instruction and terminator;
-- source spans;
-- intrinsic, nullable, array, and structured object types;
-- supported IR constant values;
-- precise parse diagnostics;
-- canonical serialization;
-- round-trip tests;
-- format-version rejection;
-- defensive parsing limits.
+- a `Dictionary<TypeSymbol, int>` using `ReferenceEqualityComparer`;
+- an active reference-identity set for recursive-definition detection;
+- one type-table entry per distinct in-memory `TypeSymbol` instance.
 
-The first version does not include:
+`ObjectTypeSymbol` currently requires a complete property collection in its
+constructor, so public callers cannot construct self-recursive or mutually
+recursive immutable object graphs.
 
-- binary encoding;
-- compression;
-- encryption or signing;
-- embedded source text;
-- embedded environment declarations or provider implementations;
-- automatic environment reconstruction;
-- migration between incompatible MuIR versions;
-- preservation of comments or non-canonical whitespace;
-- asynchronous APIs unless a demonstrated host requirement justifies them.
+`IrSlot` currently transports ID, kind, type, and source name, but no
+mutability capability. `IrValidator` therefore cannot distinguish a
+read-only local initializer from later writes.
 
-## Package and dependency placement
+Intrinsic types are already naturally deduplicated because `TypeSymbols`
+exposes singleton instances. Composite factories are not interned:
 
-Implement the format in the existing `MuLang.IR` project under the `MuLang.IR.Serialization` namespace.
+- `TypeSymbols.Nullable` returns a new `NullableTypeSymbol`;
+- `TypeSymbols.Array` returns a new mutable `ArrayTypeSymbol`;
+- `TypeSymbols.ReadOnlyArray` returns a new read-only `ArrayTypeSymbol`;
+- `ObjectTypeSymbol.CreateAnonymous` returns a new anonymous object type.
 
-This keeps the dependency graph unchanged:
+Consequently, semantically and wire-identical composite instances can produce
+duplicate type-table entries. The output is canonical for one object graph,
+but not necessarily for two graphs with the same complete MuIR content and
+different instance sharing.
 
-- `MuLang.IR` continues to depend only on `MuLang.Core`;
-- `MuLang.Compiler` can serialize compilation output without a new package;
-- exporters can deserialize MuIR by referencing the package they already consume;
-- no JSON or third-party serialization dependency is introduced.
+## Non-goals
 
-Add implementation files under `src/MuLang.IR/Serialization` and tests under `tests/MuLang.IR.Tests/Serialization`.
+This work does not:
 
-## Format principles
+- add global or process-wide type interning;
+- change `TypeSymbol` equality or hashing;
+- change `TypeRelations.AreEquivalent`;
+- merge types based only on language-level assignability or equivalence;
+- reorder functions, slots, blocks, instructions, or operands;
+- make provider type IDs alone define wire identity;
+- add source syntax for user-defined object declarations or read-only locals;
+- add read-only object properties;
+- add function types or first-class function values;
+- expose partially initialized `TypeSymbol` instances.
 
-### Textual and line-oriented
+## Wire identity contract
 
-MuIR v1 is UTF-8 text. The canonical writer uses UTF-8 without a byte-order mark and `\n` as the wire-format line ending, independently of the host operating system.
+Two types are deduplicated only when every field emitted by the canonical MuIR
+writer is identical.
 
-The document is organized into explicit sections. Metadata and declarations occupy one line where practical. Functions and blocks use braces and indentation. Each instruction and terminator occupies one line.
+All string comparisons use `StringComparer.Ordinal`.
 
-The reader accepts:
+### Intrinsic types
 
-- `\n` and `\r\n`;
-- insignificant horizontal whitespace between tokens;
-- blank lines;
-- comments beginning with `#` outside string literals.
+Intrinsic wire identity consists of:
 
-The writer emits:
+- the `intrinsic` type form;
+- the stable MuIR intrinsic token.
 
-- two-space indentation;
-- one space between ordinary tokens;
-- no comments;
-- no trailing whitespace;
-- one blank line between top-level function declarations;
-- one final newline.
-
-### Explicit versioning
-
-Every document starts with a mandatory magic and format version:
-
-- magic: `muir`;
-- version: positive decimal integer;
-- initial version: `1`.
-
-The reader rejects:
-
-- missing or invalid magic;
-- version zero;
-- unsupported versions;
-- trailing data after the complete document.
-
-Version numbers describe the serialized format, not the MuLang language version. The language-profile fingerprint remains separate metadata.
-
-### Stable textual tokens
-
-Do not serialize .NET enum names, numeric enum values, record type names, assembly-qualified names, or reflection metadata.
-
-Define explicit, case-sensitive wire tokens for:
-
-- compilation modes;
-- slot kinds;
-- unary operators;
-- binary operators;
-- conversion kinds;
-- instruction opcodes;
-- terminators;
-- type constructors;
-- constant representations.
-
-Token mappings are part of the MuIR compatibility contract and must be tested exhaustively.
-
-### Canonical output
-
-The writer preserves the declared order of:
-
-- user functions;
-- slots;
-- basic blocks;
-- instructions;
-- array elements;
-- object value properties.
-
-Structured type properties are emitted in their existing declared order. The writer does not silently normalize the IR graph or change semantically observable collection order.
-
-Type-table identifiers are assigned by deterministic first occurrence while traversing:
-
-1. entry function return type;
-2. entry function slots and instructions;
-3. user functions in declared order;
-4. each user function's return type, slots, and instructions;
-5. nested type components in declaration order.
-
-Serializing the same graph twice must produce byte-identical output.
-
-## Document structure
-
-MuIR v1 contains the following sections in fixed order:
-
-1. magic and format version;
-2. program metadata;
-3. type table;
-4. entry function;
-5. user functions;
-6. explicit end of document.
-
-Fixed section ordering simplifies the parser, prevents ambiguous recovery, and makes diffs predictable.
-
-### Program metadata
-
-Persist:
-
-- compilation mode;
-- environment fingerprint;
-- language-profile fingerprint.
-
-Fingerprints are quoted strings and are reconstructed through their public constructors. The reader reports invalid empty or whitespace-only values as format diagnostics rather than leaking constructor exceptions.
-
-### References and identifiers
-
-Use dedicated prefixes for local wire references:
-
-- type references: `t` followed by a non-negative decimal identifier;
-- slot references: `%` followed by a non-negative decimal identifier;
-- block references: `bb` followed by a non-negative decimal identifier.
-
-Function IDs, provider symbol IDs, source names, property names, type names, type IDs, and fingerprints are quoted strings.
-
-String escaping follows a small format-owned rule set:
-
-- quote;
-- backslash;
-- newline;
-- carriage return;
-- tab;
-- Unicode scalar escape.
-
-The reader rejects invalid escapes, unpaired surrogates, and invalid UTF-8.
-
-### Source spans
-
-Every instruction and terminator carries its existing `TextSpan`.
-
-Encode spans as two non-negative decimal integers:
-
-- start;
-- length.
-
-The reader uses checked arithmetic and rejects spans whose end would exceed `int.MaxValue`.
-
-Spans continue to refer to the original MuLang source. Parse diagnostics for the `.muir` document use separate document offsets and line/column information.
-
-## Type table
-
-Emit every referenced type once and refer to it by type-table identifier elsewhere in the document.
-
-The type table supports:
+The token distinguishes:
 
 - `bool`;
 - `int`;
@@ -214,535 +92,677 @@ The type table supports:
 - `unknown`;
 - `object`;
 - `void`;
-- internal `null` where present in a representable IR graph;
-- nullable types;
-- mutable arrays;
-- read-only arrays;
-- named structured object types;
-- anonymous structured object types.
+- `null`.
 
-Do not serialize `TypeKind.Error`. The writer rejects it because it represents compiler recovery rather than portable executable IR.
+The compiler error-recovery type remains unrepresentable.
 
-### Composite types
+### Nullable types
 
-Nullable type definitions contain one underlying type reference.
+Nullable wire identity consists of:
 
-Array type definitions contain:
+- the `nullable` type form;
+- the canonical identity of the underlying type.
 
-- one element type reference;
-- an explicit mutable or read-only capability token.
+Two separately allocated nullable types therefore share an entry when their
+underlying types have the same complete wire definition.
 
-Structured object type definitions contain:
+### Array types
 
-- optional provider type ID;
+Array wire identity consists of:
+
+- the `array` type form;
+- mutable or read-only capability;
+- the canonical identity of the element type.
+
+Mutable and read-only arrays never share an entry.
+
+### Structured object types
+
+Structured-object wire identity consists of:
+
+- the `object` type form;
+- named or anonymous identity kind;
+- provider type ID for named types;
 - language-facing name;
-- open or closed marker;
-- ordered property declarations.
+- open or closed state;
+- property count;
+- the property set sorted by ordinal property name.
 
-Each property declaration contains:
+Each property contributes:
 
-- quoted property name;
-- property type reference;
-- required or optional marker.
+- property name;
+- canonical identity of its type;
+- required or optional state.
 
-The reader reconstructs:
+Property order is not part of wire identity. Before building the key, the
+writer sorts properties by name with `StringComparer.Ordinal`. Object types
+with the same complete property definitions in different declared orders
+therefore share one entry and produce the same canonical bytes.
 
-- provider types through the public `ObjectTypeSymbol` constructor;
-- anonymous types through `ObjectTypeSymbol.CreateAnonymous`;
-- nullable and array types through `TypeSymbols` factories.
+Named types with the same provider ID but different names, openness, property
+names, optionality, or property types remain distinct. Named and anonymous
+types never share an entry.
 
-Type definitions may refer only to previously declared type identifiers in MuIR v1. The writer therefore emits dependencies before dependants. This avoids placeholders and partially initialized type objects.
+## Fields intentionally excluded
 
-The reader reports duplicate type identifiers, undefined references, invalid composites, and invalid property declarations as format diagnostics.
+The wire key MUST NOT use:
 
-## Constants
+- object reference identity;
+- CLR type names;
+- process-specific hash codes;
+- `TypeSymbol.DisplayName` as a substitute for structured metadata;
+- `TypeRelations.AreEquivalent`;
+- assignability or castability;
+- the source occurrence that first referenced the type;
+- final textual escaping or formatting.
 
-The writer supports the portable constant domain accepted by compiler-produced IR:
+`TypeRelations.AreEquivalent` is deliberately excluded because it represents
+language semantics, not complete persistence identity. In particular, it can
+consider structured types equivalent without preserving every named-type
+metadata field transported by MuIR.
 
-- `null`;
-- `bool`;
-- signed 64-bit integer;
-- binary64 floating-point value;
-- string.
+## Internal model
 
-The constant encoding includes an explicit value-kind token. Do not infer the runtime representation from the destination type because `number` and `unknown` may contain either integer or floating-point values.
+Represent type collection as a finite directed graph rather than a tree.
 
-Integer values use invariant decimal notation.
+Each discovered source node contains:
 
-Finite floating-point values use invariant round-trip notation. Define dedicated tokens for:
+- one discriminant for each MuIR type form;
+- the intrinsic token where applicable;
+- child edges for nullable and array forms;
+- array capability;
+- structured-object identity fields;
+- an immutable property-key sequence sorted by ordinal property name.
 
-- positive infinity;
-- negative infinity;
-- NaN;
-- negative zero.
+Each property key should contain:
 
-The reader must reproduce the same ordinary finite `double` value and preserve negative zero. MuIR v1 does not preserve NaN payload bits because MuLang does not expose them semantically.
+- ordinal property name;
+- a child graph edge;
+- optionality.
 
-Although `IrInstruction.Constant.Value` is typed as `object?`, arbitrary host objects are not portable. The writer rejects unsupported runtime values with a serialization exception identifying the function, block, and instruction.
+The graph model must be independent from final type IDs. It must support
+edges to nodes that have not yet been assigned an emitted ID.
 
-After materialization, constant compatibility remains subject to `IrValidator`.
+Canonical nodes represent equivalence classes in the graph's stable
+coinductive partition. A canonical node contains:
 
-## Functions, slots, and blocks
+- its scalar wire metadata;
+- labelled edges to canonical nodes;
+- the sorted canonical property sequence;
+- one representative `TypeSymbol` for non-property emission metadata;
+- its strongly connected component;
+- its final type-table ID.
 
-### Functions
+## Collection algorithm
 
-Each function declaration contains:
+Collection proceeds in four stages.
 
-- quoted function ID;
-- return type reference;
-- entry block reference;
-- slot declarations;
-- block declarations.
+### Graph discovery
 
-The entry function is marked explicitly. User functions use the same body grammar and appear in `IrProgram.UserFunctions` order.
+Traverse IR type roots in the existing deterministic order. Cache discovered
+nodes by source reference identity so every source object becomes one graph
+node.
 
-### Slots
+When visiting a structured object:
 
-Each slot declaration contains:
+1. create and cache its graph node before following properties;
+2. sort properties by ordinal name;
+3. add labelled edges to each property type;
+4. revisit an existing graph node when an edge closes a cycle.
 
-- slot ID;
-- explicit slot-kind token;
-- type reference;
-- optional quoted source-level name.
+Reference identity is used only to discover the finite source graph. A
+back-edge is valid and no longer produces a serialization exception.
 
-Absence of a name uses a dedicated `none` token rather than an empty string.
+Reject `TypeKind.Error` during discovery.
 
-### Basic blocks
+### Coinductive partitioning
 
-Each block declaration contains:
+Compute complete wire equivalence through deterministic partition refinement.
 
-- block ID;
-- zero or more instructions;
-- exactly one terminator.
+1. Assign initial colors from scalar wire metadata and ordered edge labels,
+   excluding edge targets.
+2. Build each refinement signature from scalar metadata, edge labels, and the
+   previous color of every edge target.
+3. Sort distinct signatures ordinally and assign deterministic new colors.
+4. Repeat until the partition is stable.
 
-The reader treats a missing or duplicate terminator as a format error. Control-flow validity, definite assignment, slot compatibility, and target existence remain the responsibility of `IrValidator`.
+Nodes in the same final partition are wire-equivalent and become one
+canonical node. This intentionally applies equi-recursive structural
+equivalence: bisimilar finite recursive graphs share one wire definition even
+when their source cycle lengths or instance sharing differ.
 
-## Instruction encoding
+Signature equality and hashing must be explicit and ordinal. Do not use
+`TypeRelations.AreEquivalent`, final type IDs, process hashes, or source
+encounter ordinals as semantic inputs.
 
-Define one stable lowercase, hyphen-separated opcode for every `IrInstruction` subtype:
+### Strongly connected components
 
-| IR instruction | MuIR opcode |
-|---|---|
-| `Constant` | `constant` |
-| `Copy` | `copy` |
-| `LoadGlobal` | `load-global` |
-| `Unary` | `unary` |
-| `Binary` | `binary` |
-| `Convert` | `convert` |
-| `Truthiness` | `truthiness` |
-| `TypeTest` | `type-test` |
-| `IsNull` | `is-null` |
-| `HasProperty` | `has-property` |
-| `CreateArray` | `create-array` |
-| `CreateObject` | `create-object` |
-| `GetProperty` | `get-property` |
-| `SetProperty` | `set-property` |
-| `RemoveProperty` | `remove-property` |
-| `GetElement` | `get-element` |
-| `SetElement` | `set-element` |
-| `RemoveElementProperty` | `remove-element-property` |
-| `ProviderCall` | `provider-call` |
-| `UserCall` | `user-call` |
+Build the quotient graph of canonical nodes and compute its strongly
+connected components.
 
-Each opcode has a fixed operand count and operand order. Encode optional destination slots with `none`. Encode Boolean flags with `true` and `false`.
+Order the SCC condensation graph with dependencies before dependants. Within
+one recursive SCC, order canonical nodes by their stable final refinement
+signature. Forward references are allowed among nodes in the same SCC.
 
-Collection operands use delimited lists:
+This produces deterministic IDs independent from:
 
-- array element slots;
-- object property values;
-- provider-call arguments;
-- user-call arguments.
+- source object identity;
+- duplicate equivalent nodes;
+- property declaration order;
+- DFS back-edge shape;
+- source construction order inside a recursive group.
 
-Object property values retain their declared order and contain a quoted name plus a slot reference.
+### Source-reference mapping
 
-The parser dispatches directly by opcode and reports unknown opcodes without attempting reflection-based construction.
+Map every encountered source `TypeSymbol` instance to its canonical partition
+and final type ID. `TypeReference` continues accepting the original type
+instance stored by an IR node and resolves it through this map.
 
-## Terminator encoding
+The existing IR traversal order remains unchanged:
 
-Define stable tokens for:
+1. entry-function return type;
+2. entry-function slots;
+3. entry-function instruction-owned types;
+4. user functions in declared order, using the same per-function order;
+5. nested type edges in canonical wire order.
 
-| IR terminator | MuIR token |
-|---|---|
-| `Jump` | `jump` |
-| `Branch` | `branch` |
-| `Return` | `return` |
+For unrelated acyclic components with no dependency ordering constraint,
+first unique IR occurrence remains the final tie-breaker. Recursive SCC
+members never use source encounter order as a semantic tie-breaker.
 
-Return without a value uses the `none` token.
+## Writer integration
 
-## Public API
+Change the writer's type state to expose:
 
-Introduce a small API surface in `MuLang.IR.Serialization`.
+- an ordered quotient graph of canonical type nodes;
+- a reference map from every encountered `TypeSymbol` instance to the
+  canonical node or type ID.
 
-### Writing
+`TypeReference` continues to accept the original `TypeSymbol` stored by an IR
+node. It resolves that instance through the reference cache and emits the
+canonical node's ID.
 
-Provide `MuIrWriter` entry points for:
+`WriteType` emits scalar metadata from the representative and structured
+properties from the canonical node in ordinal name order. Because the wire
+key includes every emitted field, any source instance represented by that
+node produces the same definition.
 
-- serializing to a `TextWriter`;
-- serializing to a `Stream` as canonical UTF-8;
-- serializing to a string for diagnostics and tests.
+Type definitions may reference any valid `tN`, including a later definition
+in the same recursive SCC. Keep unsupported-type failures explicit through
+`MuIrSerializationException`.
 
-Writing APIs:
+## Reader behavior
 
-- require a non-null `IrProgram`;
-- leave caller-owned writers and streams open by default;
-- expose an explicit `leaveOpen` choice where the API creates an intermediate writer;
-- throw `MuIrSerializationException` for representability failures;
-- allow ordinary I/O exceptions to propagate.
+The type-reference token grammar remains unchanged, but the backward-only
+reference restriction is removed.
 
-MuIR v1 has no formatting options. A single canonical writer avoids compatibility differences between option combinations.
+The reader must parse every type definition into an unresolved descriptor
+before constructing any `TypeSymbol`. After all definitions are available,
+it validates references, builds the type graph atomically, and only then
+constructs functions and the final `IrProgram`.
 
-### Reading
+Undefined references, duplicate type IDs, incomplete definitions, and type
+graphs that cannot be finalized fail without exposing a partial graph.
 
-Provide `MuIrReader` entry points for:
+The reader may continue accepting a non-canonical document that declares the
+same complete wire definition more than once. Re-serializing that program
+will collapse duplicate definitions into canonical form.
 
-- reading from a `TextReader`;
-- reading UTF-8 from a `Stream`;
-- reading from a string.
+The reader may also accept object properties in any declaration order.
+Re-serialization sorts those properties by ordinal name.
 
-Return `MuIrReadResult` containing:
+The normative specification should distinguish:
 
-- `IrProgram? Program`;
-- an immutable ordered collection of `MuIrDiagnostic`;
-- a success indicator derived from the absence of error diagnostics.
+- accepted MuIR, which may contain redundant type definitions;
+- canonical MuIR, which contains one entry per complete wire definition.
 
-Return no program when any lexical, syntactic, reference-resolution, or materialization error occurs. Do not expose a partially constructed IR graph.
+Canonical fixtures MUST remain byte-identical after read and write.
 
-`MuIrDiagnostic` contains:
+Do not reject repeated named provider IDs when their complete wire
+definitions differ. Environment compatibility remains the responsibility of
+`IrValidator` and the host environment.
 
-- stable diagnostic code;
-- severity;
-- zero-based document offset and length;
-- one-based line and column;
-- message.
+## Atomic type-graph builder
 
-Malformed content is reported through the result rather than ordinary exceptions. Null arguments, disposed streams, I/O failures, and programmer misuse continue to throw.
+Add a Core builder for immutable recursive object graphs.
 
-### Semantic validation
+The public builder API should:
 
-Deserialization reconstructs the IR but does not reconstruct an `EnvironmentSchema`.
+- declare named and anonymous object handles without publishing a
+  `TypeSymbol`;
+- express property types through builder-owned type expressions that can
+  reference declared handles and existing intrinsic types;
+- compose nullable, mutable-array, and read-only-array expressions around
+  handles;
+- define every object's metadata and property set exactly once;
+- validate duplicate builder keys and properties, invalid composites, and
+  incomplete handles;
+- finalize the complete graph in one operation;
+- return immutable completed `ObjectTypeSymbol` instances or an immutable
+  handle-to-symbol result.
 
-The documented consumption flow is:
+Internally, finalization may allocate object shells and connect them in two
+phases, but shells MUST remain inaccessible until every definition validates
+and the graph is complete. Published `ObjectTypeSymbol` instances remain
+immutable and thread-safe.
 
-1. read the MuIR document;
-2. require a successful `MuIrReadResult`;
-3. supply the host-selected environment;
-4. call `IrValidator.Validate`;
-5. export only when validation succeeds.
+Keep existing `ObjectTypeSymbol` constructors and
+`CreateAnonymous` behavior unchanged for ordinary acyclic callers.
 
-Do not duplicate environment resolution, provider lookup, CFG checks, or type checking in the MuIR reader.
+The compiler and MuIR reader should use the same builder rather than
+maintaining separate recursive-type construction mechanisms. Environment
+hosts use the builder result with the existing `EnvironmentBuilder.AddType`
+flow, where duplicate provider IDs and language names remain invalid.
 
-Consider a convenience API that accepts an `EnvironmentSchema` only after the basic reader is complete. It must delegate to `IrValidator` and must not introduce a second validation implementation.
+## Recursive semantic operations
 
-## Internal implementation
+Update operations that recursively compare or traverse type definitions.
 
-### Lexer
+At minimum:
 
-Implement a dedicated lexer over `ReadOnlyMemory<char>` or an equivalent buffered abstraction.
+- `TypeRelations.AreEquivalent` must track active type pairs and terminate
+  coinductively;
+- assignability, castability, common-type, and view-compatibility paths that
+  recurse through `AreEquivalent` must preserve their existing semantics;
+- `IrValidator` must compare recursive deserialized types against recursive
+  environment types without stack overflow;
+- environment referenced-type validation must retain same-instance
+  registration requirements for provider named types while accepting cycles;
+- fingerprint generation must terminate and remain deterministic for
+  recursive environment graphs;
+- exporter/runtime type traversal must be audited for recursive static-type
+  graphs independently from its existing cyclic runtime-value protection.
 
-It recognizes:
+Tests must distinguish logical type-pair recursion from runtime value-graph
+recursion.
 
-- keywords and wire tokens;
-- decimal integers;
-- punctuation;
-- quoted strings;
-- comments;
-- end of document.
+## Read-only local slots
 
-Track document offset, line, and column while lexing. Preserve token spans for diagnostics.
+Add an explicit `IrSlotMutability` enum:
 
-Do not use regular expressions for the complete parser and do not deserialize through reflection.
+- `Mutable = 0`;
+- `ReadOnly = 1`.
 
-### Parser
+Preserve the current four-argument `IrSlot` constructor and deconstruction
+shape. Existing construction maps to `Mutable`. Add an API for constructing a
+slot with explicit capability without changing existing call sites.
 
-Implement a recursive-descent parser with explicit methods for:
+Parameter slots are read-only and implicitly defined at function entry.
+`IrValidator` rejects mutable parameters and every instruction that defines a
+parameter slot. Temporary slots remain mutable.
 
-- header;
-- metadata;
-- type table;
-- type definitions;
-- functions;
-- slots;
-- blocks;
-- instructions;
-- terminators;
-- spans;
-- lists;
-- literals.
+For a read-only local, `IrValidator` must require:
 
-Use local recovery boundaries at:
+- exactly one syntactic defining instruction in the function;
+- no other instruction that writes that slot;
+- ordinary definite-assignment rules before every read.
 
-- the next top-level section;
-- the next function;
-- the next block;
-- the next instruction or terminator line.
+The defining instruction may execute repeatedly when its source declaration
+is inside a loop; read-only means one permitted definition site, not one
+runtime write for the entire function invocation.
 
-Accumulate useful independent diagnostics, but stop materialization if any error exists.
+Compiler lowering for a future read-only local declaration must converge all
+initializer control flow before that one definition site. Assignments after
+initialization remain binding errors and would also be rejected if present in
+custom IR.
 
-### Materialization
+MuIR slot declarations add a mandatory `mutable` or `readonly` token. Current
+local and temporary slots serialize as `mutable`; parameter slots serialize
+as `readonly`. Slot capability does not contribute to the type-table wire
+identity.
 
-Separate parsed wire data from public IR construction.
+The canonical slot grammar becomes:
 
-Use internal immutable syntax or DTO records that contain only:
+```text
+slot ::= "slot" slot-ref slot-kind type-ref slot-mutability (string | "none")
+slot-mutability ::= "mutable" | "readonly"
+```
 
-- primitive values;
-- token spans;
-- unresolved integer references;
-- ordered child collections.
+## Complexity and resource behavior
 
-Resolve types first, then construct functions and the final `IrProgram`. Catch expected constructor validation failures at the materialization boundary and convert them into MuIR diagnostics. Do not broadly catch unexpected exceptions.
+Graph discovery and SCC construction should be linear in:
 
-### Writer
+- encountered type references;
+- distinct source type nodes;
+- structured-object properties.
 
-Implement the writer without reflection.
+Partition refinement may require multiple passes over nodes and edges. It
+must terminate because every pass either stabilizes or strictly splits a
+finite partition. Avoid recursive hashing of descendant graphs and avoid
+unbounded recursion on the CLR stack.
 
-Use exhaustive pattern matching over:
-
-- `TypeSymbol` variants;
-- `IrInstruction` variants;
-- `IrTerminator` variants;
-- supported constant runtime values.
-
-Unexpected future variants fail explicitly with `MuIrSerializationException`. Compiler exhaustiveness warnings and tests should make additions visible when the IR model evolves.
-
-## Defensive parsing
-
-Treat `.muir` input as potentially untrusted.
-
-Introduce `MuIrReaderOptions` with conservative defaults for:
-
-- maximum document length;
-- maximum string length;
-- maximum token length;
-- maximum type nesting depth;
-- maximum number of types;
-- maximum number of functions;
-- maximum slots per function;
-- maximum blocks per function;
-- maximum instructions per block;
-- maximum elements in any operand list;
-- maximum accumulated diagnostics.
-
-Limits must be configurable upward by trusted hosts. Values must be validated when options are constructed.
-
-Use checked numeric parsing and avoid recursive algorithms whose stack usage is controlled solely by input. Report limit violations as format diagnostics.
-
-## Compatibility policy
-
-MuIR v1 compatibility is based on the textual wire contract, not the current C# model names.
-
-Rules:
-
-- adding a new optional reader behavior does not change canonical v1 output;
-- adding an instruction, terminator, type kind, or required field requires a new MuIR version unless it can be represented by an already reserved construct;
-- changing an existing token or operand order requires a new version;
-- readers reject unsupported versions rather than guessing;
-- writers emit only the latest version they explicitly support;
-- version-specific readers remain isolated behind a small dispatch layer;
-- canonical v1 fixtures remain permanent compatibility tests.
-
-Do not promise forward compatibility with unknown opcodes in v1. Silently ignoring executable IR would be unsafe.
-
-## Diagnostics
-
-Reserve a MuIR-specific diagnostic prefix distinct from compiler and IR validation diagnostics.
-
-Define codes for at least:
-
-- invalid magic;
-- unsupported version;
-- invalid token;
-- unterminated string;
-- invalid escape;
-- invalid UTF-8;
-- missing section;
-- duplicate declaration;
-- undefined reference;
-- invalid numeric value;
-- numeric overflow;
-- invalid type definition;
-- invalid instruction;
-- invalid terminator;
-- invalid span;
-- unexpected token;
-- trailing content;
-- configured limit exceeded;
-- constructor/materialization failure.
-
-Messages should name the offending token or reference and the declaration being parsed where practical.
+Document and test practical bounds through existing MuIR reader limits.
 
 ## Test plan
 
-### Writer coverage
+### Sharing-independent canonical output
 
-Add focused tests for:
+Build pairs of `IrProgram` graphs with the same complete wire definitions but
+different instance sharing:
 
-- every instruction subtype;
-- every terminator subtype;
-- every operator and conversion token;
-- every supported type shape;
-- mutable and read-only arrays;
-- named and anonymous structured objects;
-- required and optional object properties;
-- every supported constant runtime representation;
-- special floating-point values;
-- nullable constants;
-- escaped strings;
-- source spans;
-- absent optional destinations, names, and return values.
+- one shared nullable instance versus multiple fresh nullable instances;
+- one shared mutable-array instance versus multiple fresh mutable arrays;
+- one shared read-only array instance versus multiple fresh read-only arrays;
+- shared nested nullable/array combinations versus freshly rebuilt trees;
+- one shared anonymous object type versus separately created identical
+  anonymous types;
+- one named object instance versus separately created named objects with the
+  same complete metadata;
+- object types with the same properties declared in different orders.
 
-### Reader coverage
+For each pair, require:
 
-Add focused tests for:
+- byte-identical MuIR;
+- the same type count;
+- the same type-reference IDs at every occurrence;
+- successful read-write canonical round trip.
 
-- all valid constructs;
-- comments and accepted whitespace;
-- both accepted line-ending forms;
-- invalid magic and versions;
-- malformed strings and escapes;
-- duplicate and undefined references;
-- invalid composite types;
-- invalid enum and opcode tokens;
-- malformed lists;
-- missing terminators;
-- overflowed identifiers and spans;
-- unsupported constants;
-- each configured resource limit;
-- multiple recoverable diagnostics in one document;
-- no partially returned program after an error.
+### Wire-distinct metadata
 
-### Round-trip coverage
+Require separate type entries when any complete wire field differs:
 
-For compiler-produced programs representing expression and program modes:
+- intrinsic token;
+- nullable underlying type;
+- array capability;
+- array element type;
+- named versus anonymous identity;
+- provider ID;
+- language-facing name;
+- open versus closed state;
+- property count;
+- property name;
+- property optionality;
+- property type.
 
-1. compile source to `IrProgram`;
-2. serialize to canonical MuIR;
-3. deserialize;
-4. validate against the original environment;
-5. serialize the reconstructed program again;
-6. require byte-identical canonical output;
-7. export and execute both programs;
-8. require equivalent results and observable provider calls.
+Include cases that `TypeRelations.AreEquivalent` considers equivalent but that
+have different persisted metadata other than property order. They MUST remain
+distinct.
 
-Include programs with:
+### Recursive graph canonicalization
 
-- user functions;
-- control-flow branches and loops;
-- provider calls;
-- conversions and checked casts;
-- truthiness normalization;
-- object and array operations;
-- read-only arrays;
-- nullable values;
-- property removal;
-- short-circuit evaluation.
+Verify that:
 
-### Compatibility fixtures
+- acyclic child definitions precede parents;
+- self-recursive named and anonymous objects round-trip;
+- mutually recursive environment object types round-trip;
+- mutually recursive structural user types do not require persisted source
+  names;
+- recursive edges through nullable, mutable-array, and read-only-array forms
+  round-trip;
+- bisimilar recursive graphs with different instance sharing or cycle
+  expansion produce byte-identical MuIR;
+- non-bisimilar recursive graphs remain distinct;
+- forward references inside an SCC materialize atomically;
+- malformed or undefined recursive references return no partial graph;
+- property child IDs are assigned in ordinal property-name order;
+- first unique occurrence remains deterministic across functions, slots, and
+  instruction-owned types.
 
-Commit hand-reviewed canonical `.muir` fixtures under the IR test project.
+### Read-only slot validation
 
-Fixtures cover:
+Verify that:
 
-- a minimal expression program;
-- a multi-function program;
-- the complete v1 instruction set;
-- the complete v1 type and constant set.
+- existing local and temporary slots serialize as `mutable`;
+- existing parameter slots default to and serialize as `readonly`;
+- explicit mutable and read-only local slots round-trip;
+- mutable parameters, parameter definition sites, and read-only temporaries
+  are rejected;
+- a read-only local with one definition site is accepted;
+- zero or multiple definition sites are rejected;
+- reads before definite assignment remain rejected;
+- a definition site in a loop is accepted while another write site is not;
+- mutable slot behavior is unchanged.
 
-Tests deserialize every fixture and compare reserialization byte-for-byte. Fixture changes require explicit format-compatibility review.
+### Existing format coverage
 
-### Public API checks
+Retain and run:
 
-Update `PublicAPI.Unshipped.txt` for all new public types and members.
+- minimal and complete canonical fixtures;
+- all instruction and operator token tests;
+- special and finite floating-point constant tests;
+- malformed-input and resource-limit tests;
+- compiler to MuIR to reader to validator to exporter execution tests.
 
-Run:
+If fixture bytes change unexpectedly, treat that as an implementation defect.
+This implementation intentionally updates the fixtures once to:
 
-- `MuLang.IR.Tests`;
-- compiler tests that inspect lowered IR;
-- .NET exporter tests using at least one deserialize-before-export path;
-- repository API compatibility checks.
+- sort structured properties by ordinal name;
+- include the mandatory slot mutability token.
 
-## Documentation changes
+After that reviewed migration, fixture bytes remain compatibility-locked.
 
-After implementation:
+### Performance regression coverage
 
-- update `docs/public/language/19-portable-intermediate-representation.md` to state that portable IR can be persisted as MuIR;
-- document the `.muir` extension and versioning contract;
-- document the read, validate, export lifecycle;
-- update `docs/public/packages.md` with the serialization responsibility of `MuLang.IR`;
-- add the feature to the detailed changelog;
-- publish the complete MuIR v1 grammar or wire specification in a dedicated public document.
+Add a focused test with many freshly allocated but wire-identical composite
+types. Verify that:
 
-Do not make this plan the permanent format specification. Once implemented, move normative details into public documentation and keep tests and fixtures as executable compatibility evidence.
+- the output contains one canonical definition;
+- serialization completes without recursive growth proportional to the
+  number of repeated occurrences;
+- no fixed wall-clock threshold is required.
+
+Add recursive stress cases with large SCCs and deep acyclic tails. Verify
+termination through configured structural limits without fixed wall-clock
+assertions.
+
+## Documentation updates
+
+Update `docs/public/language/22-muir-format.md` to specify:
+
+- complete wire-definition identity;
+- canonical deduplication independent of `TypeSymbol` sharing;
+- property-order independence and ordinal property emission;
+- forward type references and recursive SCC ordering;
+- coinductive equivalence of recursive wire graphs;
+- slot mutability tokens and validation scope;
+- acceptance and normalization of redundant non-canonical definitions;
+- named types with differing complete definitions remaining distinct.
+
+No changelog entry is required if this change lands before the first release
+that contains MuIR. If MuIR has already been released, record the stronger
+canonicalization guarantee and assess whether the format version must change.
+
+## Future language extensions
+
+The canonical wire-definition model should remain extensible without turning
+future source declarations into nominal MuIR types by default.
+
+### User-defined object types
+
+User-defined object types are expected to behave structurally, like declared
+object shapes rather than general aliases or nominal classes.
+
+The compiler should resolve a user-defined object declaration to the ordinary
+structured `ObjectTypeSymbol` shape before lowering. Its source declaration
+name should not be persisted in MuIR and should not contribute to wire
+identity.
+
+Two user-defined object declarations with the same complete structural
+definition should therefore share one canonical MuIR type even when their
+source names differ.
+
+This rule does not alter existing provider object types. A provider type that
+already carries a stable provider ID and language-facing name remains a named
+MuIR object, and those fields remain part of its complete wire definition.
+
+No separate nominal type-declaration table is needed solely for structural
+user-defined object types.
+
+Recursive user-defined object shapes are supported through the shared atomic
+type-graph builder. Their source declaration names are still erased before
+lowering. MuIR persists the recursive structural graph through ordinary
+`tN` references, including forward references within a strongly connected
+component.
+
+### Configurable open-property type
+
+If an open object can specify the type of undeclared properties rather than
+always using `unknown?`, the resolved residual property type becomes part of:
+
+- `ObjectTypeSymbol` or its future equivalent;
+- the MuIR object definition;
+- complete wire identity;
+- runtime conformance and IR validation.
+
+The residual type should be canonicalized like any other child type and
+emitted before the containing object. Existing documents would imply the
+historical `unknown?` residual type. Adding the field likely requires a new
+MuIR format version unless the first released grammar reserves an
+unambiguous backward-compatible representation.
+
+### Read-only object properties
+
+If properties gain a read-only modifier, each property key must additionally
+contain its mutability capability. Required/optional and mutable/read-only
+remain independent dimensions.
+
+Property sorting continues to use ordinal property name. Two otherwise
+identical object types that differ in one property's write capability remain
+wire-distinct.
+
+The validator must reject property writes through a read-only property. A
+legacy property definition would imply the historical mutable capability.
+Persisting this semantic field likely requires a new MuIR format version.
+
+### Read-only local variables
+
+Local-variable mutability is persisted and validated in `IrValidator`.
+`IrSlot` carries the capability and MuIR emits it explicitly. Existing locals
+and temporaries default to mutable; existing parameters default to read-only,
+matching their established source semantics.
+
+### First-class functions and function types
+
+Function types should be structural. Their complete wire identity should
+contain every call-signature field with runtime or validation significance,
+including:
+
+- parameter types in declared order;
+- return type;
+- variadic state, if supported;
+- calling capability, effects, or other invocation modifiers, if supported.
+
+Source aliases or declaration names for function types should not be
+persisted. Equivalent signatures should share one canonical function-type
+entry.
+
+Function values remain distinct from function types. Two functions with the
+same signature are different values and bodies. Top-level function values can
+refer to stable `IrFunction` IDs already carried by the program. New
+instructions will be required to load, pass, store, and invoke function
+values.
+
+If closures are introduced, MuIR must also represent captured values and the
+relationship between a function body and its capture environment. Function
+parameter order remains identity-bearing even though object-property order
+does not.
+
+Adding a function type form, first-class function instructions, or closure
+representation requires a new MuIR format version.
+
+### Compatibility rule for future fields
+
+Every future field with execution or validation semantics must be included in
+the complete wire-definition key. Metadata erased before lowering must not be
+persisted merely because it existed in source.
+
+Version 1 documents retain their historical defaults. A version 1 reader must
+reject documents using future type forms, fields, or instructions rather than
+guessing their meaning.
 
 ## Implementation sequence
 
-### Phase 1: Freeze MuIR v1
+### Phase 1: Freeze identity rules
 
-- finalize keywords, punctuation, opcode tokens, and operand order;
-- define the normative grammar;
-- define canonical whitespace and escaping;
-- define the constant domain;
-- define diagnostic codes;
-- add hand-reviewed fixture drafts.
+- add tests that demonstrate the current instance-sharing-dependent output;
+- encode all complete wire fields in test cases;
+- confirm differing property order produces identical canonical bytes;
+- define coinductive equality for recursive structural graphs;
+- define deterministic SCC and forward-reference ordering;
+- define read-only local definition-site validation;
+- confirm `TypeRelations.AreEquivalent` is not used.
 
-Do not implement the writer and reader against separate informal assumptions.
+### Phase 2: Add atomic recursive type construction
 
-### Phase 2: Shared format primitives
+- add the Core type-graph builder and opaque handles;
+- preserve existing acyclic construction APIs;
+- use internal shells only during atomic finalization;
+- update environment validation and fingerprints for cycles;
+- make `TypeRelations` recursive comparisons coinductive;
+- add self-recursive and mutually recursive Core tests.
 
-- add wire-token mappings;
-- add string escaping and unescaping;
-- add invariant integer and floating-point codecs;
-- add source-location tracking;
-- add reader options and diagnostics;
-- test every primitive independently.
+### Phase 3: Introduce canonical wire graph nodes
 
-### Phase 3: Canonical writer
+- add internal graph-node and sorted property-edge models;
+- implement deterministic partition refinement;
+- merge bisimilar nodes into canonical quotient nodes;
+- compute SCCs and stable IDs with forward references;
+- resolve every original type occurrence through the reference cache;
+- emit one representative per canonical graph partition;
+- retain existing serialization errors.
 
-- collect and order the type table;
-- write metadata and types;
-- write functions, slots, and blocks;
-- implement every instruction and terminator;
-- reject unsupported types and constant values explicitly;
-- add snapshot and determinism tests.
+### Phase 4: Integrate the reader
 
-Completing the writer first provides canonical test inputs for the reader.
+- parse all type declarations into unresolved descriptors;
+- resolve forward and backward references;
+- materialize through the shared atomic builder;
+- expose no symbols before successful graph finalization;
+- add malformed recursive graph and reader-limit tests.
 
-### Phase 4: Reader and materializer
+### Phase 5: Add read-only slot capability
 
-- implement lexer;
-- implement parser and recovery;
-- parse into internal wire records;
-- resolve type and IR references;
-- construct the public IR graph;
-- enforce configured limits;
-- add malformed-input and diagnostic-location tests.
+- add slot mutability while preserving the existing constructor and
+  deconstruction shape;
+- add mandatory MuIR slot capability tokens;
+- identify every instruction destination consistently;
+- enforce one definition site for read-only locals in `IrValidator`;
+- enforce implicit definition and no write sites for read-only parameters;
+- retain existing mutable-local and temporary behavior;
+- add writer, reader, validator, and control-flow tests.
 
-### Phase 5: End-to-end validation
+### Phase 6: Expand compatibility tests
 
-- add compile/write/read/validate/export tests;
-- verify canonical reserialization;
-- verify language-profile and environment fingerprints survive exactly;
-- verify all existing exporter behavior after deserialization;
-- run API compatibility checks.
+- add sharing-independent equality tests;
+- add every metadata-distinction test;
+- add nested, recursive, SCC, and high-duplication tests;
+- rerun canonical fixture and end-to-end tests.
 
-### Phase 6: Public documentation
+### Phase 7: Update specification and validate
 
-- publish the MuIR v1 specification;
-- update IR and package documentation;
-- update the changelog;
-- mark fixture files as compatibility artifacts.
+- update the normative MuIR canonicalization rules;
+- update IR and type-system documentation for recursive graphs and slot
+  capability;
+- run formatter and analyzers;
+- run targeted MuIR and exporter tests;
+- run the complete solution in Debug and Release;
+- build DocFX with warnings as errors;
+- inspect the final diff for unrelated changes.
 
 ## Acceptance criteria
 
-The implementation is complete when:
+The work is complete when:
 
-- every public IR node has an explicit MuIR v1 encoding;
-- every compiler-produced valid `IrProgram` using supported constants can be serialized;
-- every canonical MuIR v1 document can be deserialized without host-specific type metadata;
-- deserialized programs validate through the existing `IrValidator`;
-- serialize-read-serialize produces byte-identical output;
-- deserialized programs export and execute equivalently to their in-memory originals;
-- unsupported constants and future unknown IR nodes fail explicitly;
-- malformed or oversized input produces bounded, location-aware diagnostics;
-- unsupported versions are rejected;
-- no third-party serialization dependency is added;
-- public API baselines, tests, documentation, and compatibility fixtures are updated.
+- no type-table lookup uses `TypeRelations.AreEquivalent` or source reference
+  identity as the deduplication rule;
+- reference identity is used only for finite source-graph discovery and
+  source-to-canonical mapping;
+- complete wire-equivalent types share exactly one type-table entry;
+- bisimilar recursive wire graphs share canonical partitions;
+- any difference in emitted type metadata produces a distinct entry;
+- property declaration order is normalized by ordinal property name and does
+  not produce a distinct entry;
+- acyclic type IDs remain dependency-first;
+- recursive SCCs use deterministic IDs and valid forward references;
+- equivalent IR graphs with different type-instance sharing serialize to
+  byte-identical MuIR;
+- recursive environment and user structural object graphs can be built
+  atomically and remain immutable after publication;
+- `TypeRelations`, environment validation, fingerprints, `IrValidator`, and
+  exporters terminate on supported recursive static-type graphs;
+- existing `IrSlot` construction remains mutable by default;
+- read-only locals round-trip and `IrValidator` enforces one definition site;
+- canonical fixtures are intentionally migrated once for property sorting and
+  slot capability, then remain byte-identical;
+- read-write canonical round trips remain stable;
+- no package dependency changes;
+- all targeted and full validation commands pass.

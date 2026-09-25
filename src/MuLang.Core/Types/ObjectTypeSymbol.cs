@@ -6,7 +6,9 @@ namespace MuLang.Core.Types;
 /// <summary>Represents a structured MuLang object type.</summary>
 public sealed class ObjectTypeSymbol : TypeSymbol
 {
-    private readonly IReadOnlyDictionary<string, ObjectPropertySymbol> propertiesByName;
+    private IReadOnlyDictionary<string, ObjectPropertySymbol> propertiesByName;
+    private bool isComplete;
+    private IReadOnlyCollection<ObjectPropertySymbol> properties;
 
     /// <summary>Initializes a new instance of the <see cref="ObjectTypeSymbol" /> class.</summary>
     /// <param name="id">The provider identifier.</param>
@@ -21,13 +23,15 @@ public sealed class ObjectTypeSymbol : TypeSymbol
         bool isOpen,
         IEnumerable<ObjectPropertySymbol> properties
     )
-        : this(id, name, isOpen, properties, true) { }
+        : this(id, name, isOpen, true)
+    {
+        Complete(properties);
+    }
 
     private ObjectTypeSymbol(
         string? id,
         string name,
         bool isOpen,
-        IEnumerable<ObjectPropertySymbol> properties,
         bool validateProviderIdentity
     )
         : base(TypeKind.StructuredObject)
@@ -42,30 +46,11 @@ public sealed class ObjectTypeSymbol : TypeSymbol
             LanguageNames.ValidateIdentifier(name, nameof(name));
         }
 
-        if (properties is null)
-        {
-            throw new ArgumentNullException(nameof(properties));
-        }
-
-        IReadOnlyCollection<ObjectPropertySymbol> propertyList = [ .. properties ];
-
-        IGrouping<string, ObjectPropertySymbol>? duplicate = propertyList
-            .GroupBy(static property => property.Name, StringComparer.Ordinal)
-            .FirstOrDefault(static group => group.Count() > 1);
-
-        if (duplicate is not null)
-        {
-            throw new ArgumentException(
-                $"Property '{duplicate.Key}' is declared more than once.",
-                nameof(properties)
-            );
-        }
-
         Id = id;
         Name = name;
         IsOpen = isOpen;
-        Properties = propertyList;
-        propertiesByName = propertyList.ToFrozenDictionary(
+        properties = [ ];
+        propertiesByName = properties.ToFrozenDictionary(
             static property => property.Name,
             StringComparer.Ordinal
         );
@@ -81,7 +66,7 @@ public sealed class ObjectTypeSymbol : TypeSymbol
     public bool IsOpen { get; }
 
     /// <summary>Gets the declared properties.</summary>
-    public IReadOnlyCollection<ObjectPropertySymbol> Properties { get; }
+    public IReadOnlyCollection<ObjectPropertySymbol> Properties => properties;
 
     /// <inheritdoc />
     public override string DisplayName => Name;
@@ -109,6 +94,52 @@ public sealed class ObjectTypeSymbol : TypeSymbol
         IEnumerable<ObjectPropertySymbol> properties
     )
     {
-        return new ObjectTypeSymbol(null, "<anonymous>", isOpen, properties, false);
+        ObjectTypeSymbol type = new (null, "<anonymous>", isOpen, false);
+        type.Complete(properties);
+        return type;
+    }
+
+    internal static ObjectTypeSymbol CreateIncomplete(
+        string? id,
+        string name,
+        bool isOpen
+    )
+    {
+        return new ObjectTypeSymbol(id, name, isOpen, id is not null);
+    }
+
+    internal void Complete(IEnumerable<ObjectPropertySymbol> properties)
+    {
+        if (isComplete)
+        {
+            throw new InvalidOperationException(
+                $"Structured type '{DisplayName}' is already complete."
+            );
+        }
+
+        if (properties is null)
+        {
+            throw new ArgumentNullException(nameof(properties));
+        }
+
+        IReadOnlyCollection<ObjectPropertySymbol> propertyList = [ .. properties ];
+        IGrouping<string, ObjectPropertySymbol>? duplicate = propertyList
+            .GroupBy(static property => property.Name, StringComparer.Ordinal)
+            .FirstOrDefault(static group => group.Count() > 1);
+
+        if (duplicate is not null)
+        {
+            throw new ArgumentException(
+                $"Property '{duplicate.Key}' is declared more than once.",
+                nameof(properties)
+            );
+        }
+
+        this.properties = propertyList;
+        propertiesByName = propertyList.ToFrozenDictionary(
+            static property => property.Name,
+            StringComparer.Ordinal
+        );
+        isComplete = true;
     }
 }

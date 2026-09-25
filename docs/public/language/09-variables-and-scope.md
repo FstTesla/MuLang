@@ -30,7 +30,7 @@ Function names and variable names occupy distinct namespaces because functions a
 
 Top-level user-defined functions are visible throughout the complete program, including within functions declared earlier. Direct and mutual recursion are supported.
 
-The availability of user-defined functions and recursion depends on the language profile as defined in [Section 18.2](18-language-profiles.md#182-user-defined-functions-and-recursion).
+The complete user-function contract is defined in [Section 23](23-user-defined-functions.md). Its availability and recursion depend on the language profile as defined in [Section 18.2](18-language-profiles.md#182-user-defined-functions-and-recursion).
 
 Function parameters establish the root variable scope of their function body. Parameters are definitely assigned, immutable, and cannot be shadowed by local or global variables.
 

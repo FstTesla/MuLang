@@ -6,7 +6,7 @@ types 1
 type t0 intrinsic int
 
 entry "$entry" t0 bb0 slots 1 blocks 1 {
-  slot %0 temporary t0 none
+  slot %0 temporary t0 mutable none
   block bb0 instructions 1 {
     ins constant 0 1 %0 t0 int 42
     term return 0 1 %0

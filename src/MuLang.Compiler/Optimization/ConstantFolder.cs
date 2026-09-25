@@ -50,7 +50,7 @@ internal sealed class ConstantFolder
 
     private BoundFunction FoldFunction(BoundFunction function)
     {
-        return function with { Statements = [.. function.Statements.Select(FoldStatement)] };
+        return function with { Statements = [ .. function.Statements.Select(FoldStatement) ] };
     }
 
     private BoundStatement FoldStatement(BoundStatement statement)

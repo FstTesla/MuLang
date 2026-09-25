@@ -160,6 +160,8 @@ When the selected loop is a `for` statement, `continue` transfers control to tha
 
 `return` exits the current user-defined function or the top-level program.
 
+User-defined function return contracts are specified in [Section 23.5](23-user-defined-functions.md#235-returns-and-control-flow).
+
 A non-void function or program requires a return expression assignable to its declared result type.
 
 A void function or program permits only `return` without an expression.

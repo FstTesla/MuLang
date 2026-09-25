@@ -260,6 +260,152 @@ public sealed class MuIrSerializationTests
         );
     }
 
+    [Test]
+    public void EquivalentCompositeInstancesShareCanonicalTypeEntries()
+    {
+        ArrayTypeSymbol shared = TypeSymbols.Array(TypeSymbols.Int);
+        IrProgram sharedProgram = CreateTypeOnlyProgram([ shared, shared ]);
+        IrProgram distinctProgram = CreateTypeOnlyProgram(
+            [
+                TypeSymbols.Array(TypeSymbols.Int),
+                TypeSymbols.Array(TypeSymbols.Int),
+            ]
+        );
+
+        Assert.That(
+            MuIrWriter.WriteToString(distinctProgram),
+            Is.EqualTo(MuIrWriter.WriteToString(sharedProgram))
+        );
+    }
+
+    [Test]
+    public void PropertyOrderDoesNotAffectCanonicalOutput()
+    {
+        ObjectTypeSymbol first = ObjectTypeSymbol.CreateAnonymous(
+            false,
+            [
+                new ObjectPropertySymbol("zeta", TypeSymbols.String),
+                new ObjectPropertySymbol("alpha", TypeSymbols.Int),
+            ]
+        );
+        ObjectTypeSymbol second = ObjectTypeSymbol.CreateAnonymous(
+            false,
+            [
+                new ObjectPropertySymbol("alpha", TypeSymbols.Int),
+                new ObjectPropertySymbol("zeta", TypeSymbols.String),
+            ]
+        );
+
+        Assert.That(
+            MuIrWriter.WriteToString(CreateTypeOnlyProgram([ first ])),
+            Is.EqualTo(MuIrWriter.WriteToString(CreateTypeOnlyProgram([ second ])))
+        );
+    }
+
+    [Test]
+    public void SelfRecursiveObjectRoundTripsWithForwardReference()
+    {
+        ObjectTypeGraphBuilder builder = new ();
+        ObjectTypeGraphReference node = builder.DeclareAnonymous("node", false);
+        builder.AddProperty(node, "next", builder.Nullable(node));
+        ObjectTypeSymbol type = (ObjectTypeSymbol)builder.Build()[node];
+        string text = MuIrWriter.WriteToString(CreateTypeOnlyProgram([ type ]));
+
+        MuIrReadResult result = MuIrReader.Read(text);
+        ObjectTypeSymbol reconstructed = (ObjectTypeSymbol)result.Program!.Slots[0].Type;
+        NullableTypeSymbol next =
+            (NullableTypeSymbol)reconstructed.Properties.Single().Type;
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.Success, Is.True);
+            Assert.That(next.UnderlyingType, Is.SameAs(reconstructed));
+            Assert.That(MuIrWriter.WriteToString(result.Program), Is.EqualTo(text));
+        }
+    }
+
+    [Test]
+    public void MutuallyRecursiveObjectsRoundTripCanonically()
+    {
+        ObjectTypeGraphBuilder builder = new ();
+        ObjectTypeGraphReference first = builder.DeclareNamed(
+            "first",
+            "type.first",
+            "First",
+            false
+        );
+        ObjectTypeGraphReference second = builder.DeclareNamed(
+            "second",
+            "type.second",
+            "Second",
+            false
+        );
+        builder.AddProperty(first, "second", second);
+        builder.AddProperty(second, "first", first);
+        IReadOnlyDictionary<ObjectTypeGraphReference, TypeSymbol> graph =
+            builder.Build();
+        string text = MuIrWriter.WriteToString(
+            CreateTypeOnlyProgram([ graph[first], graph[second] ])
+        );
+
+        MuIrReadResult result = MuIrReader.Read(text);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.Success, Is.True);
+            Assert.That(MuIrWriter.WriteToString(result.Program!), Is.EqualTo(text));
+            Assert.That(
+                TypeRelations.AreEquivalent(
+                    graph[first],
+                    result.Program!.Slots[0].Type
+                ),
+                Is.True
+            );
+        }
+    }
+
+    [Test]
+    public void BisimilarRecursiveCycleExpansionsSerializeIdentically()
+    {
+        ObjectTypeSymbol selfRecursive = CreateRecursiveCycle(1);
+        ObjectTypeSymbol twoNodeCycle = CreateRecursiveCycle(2);
+
+        Assert.That(
+            MuIrWriter.WriteToString(CreateTypeOnlyProgram([ twoNodeCycle ])),
+            Is.EqualTo(
+                MuIrWriter.WriteToString(CreateTypeOnlyProgram([ selfRecursive ]))
+            )
+        );
+    }
+
+    [Test]
+    public void ReadOnlyLocalMutabilityRoundTrips()
+    {
+        IrProgram program = CreateMinimalProgram();
+        IrSlot source = program.EntryFunction.Slots[0];
+        IrSlot readOnly = new (
+            source.Id,
+            IrSlotKind.Local,
+            source.Type,
+            "value",
+            IrSlotMutability.ReadOnly
+        );
+        program = program with
+        {
+            EntryFunction = program.EntryFunction with
+            {
+                Slots = [ readOnly ],
+            },
+        };
+
+        MuIrReadResult result = MuIrReader.Read(MuIrWriter.WriteToString(program));
+
+        Assert.That(
+            result.Program!.Slots.Single().Mutability,
+            Is.EqualTo(IrSlotMutability.ReadOnly)
+        );
+    }
+
     [TestCase(IrUnaryOperator.Identity, "identity")]
     [TestCase(IrUnaryOperator.Negate, "negate")]
     [TestCase(IrUnaryOperator.LogicalNot, "logical-not")]
@@ -368,7 +514,7 @@ public sealed class MuIrSerializationTests
         );
         IReadOnlyList<IrSlot> slots =
         [
-            new (0, IrSlotKind.Parameter, TypeSymbols.Int, "input"),
+            new (0, IrSlotKind.Local, TypeSymbols.Int, "input"),
             new (1, IrSlotKind.Local, TypeSymbols.Bool, "flag"),
             new (2, IrSlotKind.Temporary, nullableInt, null),
             new (3, IrSlotKind.Temporary, TypeSymbols.Float, null),
@@ -525,5 +671,62 @@ public sealed class MuIrSerializationTests
             entry,
             [ ]
         );
+    }
+
+    private static IrProgram CreateTypeOnlyProgram(
+        IReadOnlyList<TypeSymbol> slotTypes
+    )
+    {
+        IrFunction entry = new (
+            "$entry",
+            TypeSymbols.Void,
+            0,
+            [
+                .. slotTypes.Select(
+                    static (type, id) => new IrSlot(
+                        id,
+                        IrSlotKind.Temporary,
+                        type,
+                        null
+                    )
+                ),
+            ],
+            [
+                new IrBasicBlock(
+                    0,
+                    [ ],
+                    new IrTerminator.Return(default, null)
+                ),
+            ]
+        );
+
+        return new IrProgram(
+            new EnvironmentFingerprint("env"),
+            CompilationMode.Program,
+            new LanguageProfileFingerprint("profile"),
+            entry,
+            [ ]
+        );
+    }
+
+    private static ObjectTypeSymbol CreateRecursiveCycle(int length)
+    {
+        ObjectTypeGraphBuilder builder = new ();
+        IReadOnlyList<ObjectTypeGraphReference> nodes =
+        [
+            .. Enumerable.Range(0, length)
+                .Select(index => builder.DeclareAnonymous($"node{index}", false)),
+        ];
+
+        for (int index = 0; index < nodes.Count; index++)
+        {
+            builder.AddProperty(
+                nodes[index],
+                "next",
+                nodes[(index + 1) % nodes.Count]
+            );
+        }
+
+        return (ObjectTypeSymbol)builder.Build()[nodes[0]];
     }
 }

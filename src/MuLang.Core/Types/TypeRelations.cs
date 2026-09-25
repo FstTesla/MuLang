@@ -11,7 +11,15 @@ public static class TypeRelations
     public static bool AreEquivalent(TypeSymbol left, TypeSymbol right)
     {
         ValidateTypes(left, right);
+        return AreEquivalent(left, right, new HashSet<TypePair>());
+    }
 
+    private static bool AreEquivalent(
+        TypeSymbol left,
+        TypeSymbol right,
+        ISet<TypePair> active
+    )
+    {
         if (ReferenceEquals(left, right))
         {
             return true;
@@ -22,17 +30,30 @@ public static class TypeRelations
             return false;
         }
 
-        return (left, right) switch
+        TypePair pair = new (left, right);
+
+        if (!active.Add(pair))
+        {
+            return true;
+        }
+
+        bool equivalent = (left, right) switch
         {
             (NullableTypeSymbol leftNullable, NullableTypeSymbol rightNullable) =>
-                AreEquivalent(leftNullable.UnderlyingType, rightNullable.UnderlyingType),
+                AreEquivalent(
+                    leftNullable.UnderlyingType,
+                    rightNullable.UnderlyingType,
+                    active
+                ),
             (ArrayTypeSymbol leftArray, ArrayTypeSymbol rightArray) =>
                 leftArray.IsReadOnly == rightArray.IsReadOnly &&
-                AreEquivalent(leftArray.ElementType, rightArray.ElementType),
+                AreEquivalent(leftArray.ElementType, rightArray.ElementType, active),
             (ObjectTypeSymbol leftObject, ObjectTypeSymbol rightObject) =>
-                AreEquivalent(leftObject, rightObject),
+                AreEquivalent(leftObject, rightObject, active),
             _ => false,
         };
+        active.Remove(pair);
+        return equivalent;
     }
 
     /// <summary>Determines whether a value of one type can be assigned to another type.</summary>
@@ -497,7 +518,8 @@ public static class TypeRelations
 
     private static bool AreEquivalent(
         ObjectTypeSymbol left,
-        ObjectTypeSymbol right
+        ObjectTypeSymbol right,
+        ISet<TypePair> active
     )
     {
         if (left.IsOpen != right.IsOpen || left.Properties.Count != right.Properties.Count)
@@ -514,7 +536,7 @@ public static class TypeRelations
 
             if (
                 leftProperty.IsOptional != rightProperty.IsOptional ||
-                !AreEquivalent(leftProperty.Type, rightProperty.Type)
+                !AreEquivalent(leftProperty.Type, rightProperty.Type, active)
             )
             {
                 return false;
@@ -536,4 +558,6 @@ public static class TypeRelations
             throw new ArgumentNullException(nameof(right));
         }
     }
+
+    private readonly record struct TypePair(TypeSymbol Left, TypeSymbol Right);
 }

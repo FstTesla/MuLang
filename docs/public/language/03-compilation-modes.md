@@ -16,7 +16,7 @@ Program mode accepts a sequence of statements followed by the end of the source 
 
 Program mode MAY begin with zero or more top-level function declarations. All function declarations MUST precede executable statements.
 
-The availability of user-defined function declarations and recursion depends on the language profile as defined in [Section 18.2](18-language-profiles.md#182-user-defined-functions-and-recursion).
+User-defined functions are specified in [Section 23](23-user-defined-functions.md). Their availability and recursion depend on the language profile as defined in [Section 18.2](18-language-profiles.md#182-user-defined-functions-and-recursion).
 
 A pure expression is not a statement. A function call is the only expression permitted as an expression statement.
 

@@ -206,8 +206,9 @@ public static class MuIrReader
     {
         private readonly Lexer lexer;
         private readonly MuIrReaderOptions options;
+        private readonly List<TypeDescriptor> typeDescriptors = [ ];
         private readonly List<TypeSymbol> types = [ ];
-        private readonly List<int> typeDepths = [ ];
+        private int declaredTypeCount;
         private Token current;
 
         public DocumentParser(string text, MuIrReaderOptions options)
@@ -238,12 +239,14 @@ public static class MuIrReader
             string profileValue = ReadString();
             Expect("types", MuIrDiagnosticCodes.MissingSection);
             int typeCount = ReadCount(options.MaximumTypes, "type");
+            declaredTypeCount = typeCount;
 
             for (int index = 0; index < typeCount; index++)
             {
                 ParseType(index);
             }
 
+            MaterializeTypes();
             IrFunction entry = ParseFunction("entry");
             Expect("users", MuIrDiagnosticCodes.MissingSection);
             int userCount = ReadCount(options.MaximumFunctions - 1, "user function");
@@ -295,71 +298,30 @@ public static class MuIrReader
 
             string kind = ReadAtom();
 
-            try
+            TypeDescriptor descriptor = kind switch
             {
-                TypeSymbol type;
-                int depth;
-
-                switch (kind)
-                {
-                    case "intrinsic":
-                        type = ReadIntrinsicType();
-                        depth = 1;
-                        break;
-
-                    case "nullable":
-                    {
-                        (TypeSymbol underlying, int underlyingDepth) = ReadPreviousType();
-                        type = TypeSymbols.Nullable(underlying);
-                        depth = checked(underlyingDepth + 1);
-                        break;
-                    }
-
-                    case "array":
-                    {
-                        bool isReadOnly = ReadChoice("mutable", "readonly") == "readonly";
-                        (TypeSymbol element, int elementDepth) = ReadPreviousType();
-                        type = isReadOnly
-                            ? TypeSymbols.ReadOnlyArray(element)
-                            : TypeSymbols.Array(element);
-                        depth = checked(elementDepth + 1);
-                        break;
-                    }
-
-                    case "object":
-                        (type, depth) = ReadObjectType();
-                        break;
-
-                    default:
-                        Fail(
-                            MuIrDiagnosticCodes.InvalidType,
-                            $"Unknown type definition kind '{kind}'."
-                        );
-                        throw new UnreachableException();
-                }
-
-                if (depth > options.MaximumTypeNestingDepth)
-                {
-                    Fail(
-                        MuIrDiagnosticCodes.LimitExceeded,
-                        $"Type 't{id}' exceeds the nesting-depth limit."
-                    );
-                }
-
-                types.Add(type);
-                typeDepths.Add(depth);
-            }
-            catch (OverflowException)
-            {
-                Fail(MuIrDiagnosticCodes.LimitExceeded, "Type nesting depth overflowed.");
-            }
-            catch (ArgumentException exception)
-            {
-                Fail(MuIrDiagnosticCodes.InvalidType, exception.Message);
-            }
+                "intrinsic" => new IntrinsicTypeDescriptor(ReadIntrinsicType()),
+                "nullable" => new NullableTypeDescriptor(ReadTypeReferenceId()),
+                "array" => new ArrayTypeDescriptor(
+                    ReadChoice("mutable", "readonly") == "readonly",
+                    ReadTypeReferenceId()
+                ),
+                "object" => ReadObjectType(),
+                _ => InvalidTypeDescriptor(kind),
+            };
+            typeDescriptors.Add(descriptor);
         }
 
-        private (TypeSymbol Type, int Depth) ReadObjectType()
+        private TypeDescriptor InvalidTypeDescriptor(string kind)
+        {
+            Fail(
+                MuIrDiagnosticCodes.InvalidType,
+                $"Unknown type definition kind '{kind}'."
+            );
+            throw new UnreachableException();
+        }
+
+        private ObjectTypeDescriptor ReadObjectType()
         {
             string identity = ReadChoice("named", "anonymous");
             string? id = identity == "named" ? ReadString() : null;
@@ -367,8 +329,7 @@ public static class MuIrReader
             bool isOpen = ReadChoice("open", "closed") == "open";
             int propertyCount = ReadCount(options.MaximumListElements, "object property");
             Expect("[");
-            List<ObjectPropertySymbol> properties = new (propertyCount);
-            int depth = 1;
+            List<ObjectPropertyDescriptor> properties = new (propertyCount);
 
             for (int index = 0; index < propertyCount; index++)
             {
@@ -378,12 +339,15 @@ public static class MuIrReader
                 }
 
                 string propertyName = ReadString();
-                (TypeSymbol propertyType, int propertyDepth) = ReadPreviousType();
+                int propertyType = ReadTypeReferenceId();
                 bool isOptional = ReadChoice("required", "optional") == "optional";
                 properties.Add(
-                    new ObjectPropertySymbol(propertyName, propertyType, isOptional)
+                    new ObjectPropertyDescriptor(
+                        propertyName,
+                        propertyType,
+                        isOptional
+                    )
                 );
-                depth = Math.Max(depth, checked(propertyDepth + 1));
             }
 
             Expect("]");
@@ -398,10 +362,165 @@ public static class MuIrReader
                     );
                 }
 
-                return (ObjectTypeSymbol.CreateAnonymous(isOpen, properties), depth);
+                return new ObjectTypeDescriptor(null, name, isOpen, properties);
             }
 
-            return (new ObjectTypeSymbol(id, name, isOpen, properties), depth);
+            return new ObjectTypeDescriptor(id, name, isOpen, properties);
+        }
+
+        private void MaterializeTypes()
+        {
+            ValidateTypeNesting();
+            ObjectTypeGraphBuilder builder = new ();
+            ObjectTypeGraphReference?[] references =
+                new ObjectTypeGraphReference?[typeDescriptors.Count];
+
+            for (int index = 0; index < typeDescriptors.Count; index++)
+            {
+                switch (typeDescriptors[index])
+                {
+                    case IntrinsicTypeDescriptor intrinsic:
+                        references[index] = builder.From(intrinsic.Type);
+                        break;
+
+                    case ObjectTypeDescriptor { Id: { } id } value:
+                        references[index] = builder.DeclareNamed(
+                            $"t{index}",
+                            id,
+                            value.Name,
+                            value.IsOpen
+                        );
+                        break;
+
+                    case ObjectTypeDescriptor value:
+                        references[index] = builder.DeclareAnonymous(
+                            $"t{index}",
+                            value.IsOpen
+                        );
+                        break;
+                }
+            }
+
+            HashSet<int> active = [ ];
+
+            ObjectTypeGraphReference Resolve(int id)
+            {
+                if (references[id] is { } resolved)
+                {
+                    return resolved;
+                }
+
+                if (!active.Add(id))
+                {
+                    Fail(
+                        MuIrDiagnosticCodes.InvalidType,
+                        "A recursive type cycle must contain an object type."
+                    );
+                }
+
+                ObjectTypeGraphReference value = typeDescriptors[id] switch
+                {
+                    NullableTypeDescriptor nullable =>
+                        builder.Nullable(Resolve(nullable.UnderlyingType)),
+                    ArrayTypeDescriptor { IsReadOnly: true } array =>
+                        builder.ReadOnlyArray(Resolve(array.ElementType)),
+                    ArrayTypeDescriptor array =>
+                        builder.Array(Resolve(array.ElementType)),
+                    _ => throw new InvalidOperationException(
+                        "The MuIR type descriptor is invalid."
+                    ),
+                };
+                active.Remove(id);
+                references[id] = value;
+                return value;
+            }
+
+            try
+            {
+                for (int index = 0; index < typeDescriptors.Count; index++)
+                {
+                    _ = Resolve(index);
+                }
+
+                for (int index = 0; index < typeDescriptors.Count; index++)
+                {
+                    if (typeDescriptors[index] is not ObjectTypeDescriptor objectType)
+                    {
+                        continue;
+                    }
+
+                    foreach (ObjectPropertyDescriptor property in objectType.Properties)
+                    {
+                        builder.AddProperty(
+                            references[index]!,
+                            property.Name,
+                            Resolve(property.Type),
+                            property.IsOptional
+                        );
+                    }
+                }
+
+                IReadOnlyDictionary<ObjectTypeGraphReference, TypeSymbol> result =
+                    builder.Build();
+
+                for (int index = 0; index < references.Length; index++)
+                {
+                    types.Add(result[references[index]!]);
+                }
+            }
+            catch (ArgumentException exception)
+            {
+                Fail(MuIrDiagnosticCodes.InvalidType, exception.Message);
+            }
+            catch (InvalidOperationException exception)
+            {
+                Fail(MuIrDiagnosticCodes.MaterializationFailed, exception.Message);
+            }
+        }
+
+        private void ValidateTypeNesting()
+        {
+            for (int index = 0; index < typeDescriptors.Count; index++)
+            {
+                Visit(index, 1, new HashSet<int>());
+            }
+
+            void Visit(int id, int depth, ISet<int> active)
+            {
+                if (depth > options.MaximumTypeNestingDepth)
+                {
+                    Fail(
+                        MuIrDiagnosticCodes.LimitExceeded,
+                        $"Type 't{id}' exceeds the nesting-depth limit."
+                    );
+                }
+
+                if (!active.Add(id))
+                {
+                    return;
+                }
+
+                switch (typeDescriptors[id])
+                {
+                    case NullableTypeDescriptor nullable:
+                        Visit(nullable.UnderlyingType, depth + 1, active);
+                        break;
+
+                    case ArrayTypeDescriptor array:
+                        Visit(array.ElementType, depth + 1, active);
+                        break;
+
+                    case ObjectTypeDescriptor objectType:
+                        foreach (ObjectPropertyDescriptor property in objectType.Properties)
+                        {
+                            Visit(property.Type, depth + 1, active);
+                        }
+
+                        break;
+                }
+
+                active.Remove(id);
+            }
         }
 
         private IrFunction ParseFunction(string expectedKind)
@@ -423,8 +542,9 @@ public static class MuIrReader
                 int slotId = ReadReference('%', MuIrDiagnosticCodes.InvalidInstruction);
                 IrSlotKind kind = ReadSlotKind();
                 TypeSymbol type = ReadTypeReference();
+                IrSlotMutability mutability = ReadSlotMutability();
                 string? name = ReadOptionalString();
-                slots.Add(new IrSlot(slotId, kind, type, name));
+                slots.Add(new IrSlot(slotId, kind, type, name, mutability));
             }
 
             List<IrBasicBlock> blocks = new (blockCount);
@@ -789,7 +909,7 @@ public static class MuIrReader
 
         private TypeSymbol ReadTypeReference()
         {
-            int id = ReadReference('t', MuIrDiagnosticCodes.UndefinedReference);
+            int id = ReadTypeReferenceId();
 
             if ((uint)id >= (uint)types.Count)
             {
@@ -802,19 +922,19 @@ public static class MuIrReader
             return types[id];
         }
 
-        private (TypeSymbol Type, int Depth) ReadPreviousType()
+        private int ReadTypeReferenceId()
         {
             int id = ReadReference('t', MuIrDiagnosticCodes.UndefinedReference);
 
-            if ((uint)id >= (uint)types.Count)
+            if ((uint)id >= (uint)declaredTypeCount)
             {
                 Fail(
                     MuIrDiagnosticCodes.UndefinedReference,
-                    $"Type reference 't{id}' must refer to a previous definition."
+                    $"Type reference 't{id}' is undefined."
                 );
             }
 
-            return (types[id], typeDepths[id]);
+            return id;
         }
 
         private T RequireType<T>()
@@ -871,6 +991,27 @@ public static class MuIrReader
         private IrSlotKind InvalidSlotKind(string value)
         {
             Fail(MuIrDiagnosticCodes.UnexpectedToken, $"Unknown slot kind '{value}'.");
+            throw new UnreachableException();
+        }
+
+        private IrSlotMutability ReadSlotMutability()
+        {
+            string value = ReadAtom();
+
+            return value switch
+            {
+                "mutable" => IrSlotMutability.Mutable,
+                "readonly" => IrSlotMutability.ReadOnly,
+                _ => InvalidSlotMutability(value),
+            };
+        }
+
+        private IrSlotMutability InvalidSlotMutability(string value)
+        {
+            Fail(
+                MuIrDiagnosticCodes.UnexpectedToken,
+                $"Unknown slot mutability '{value}'."
+            );
             throw new UnreachableException();
         }
 
@@ -1182,6 +1323,30 @@ public static class MuIrReader
             );
         }
     }
+
+    private abstract record TypeDescriptor;
+
+    private sealed record IntrinsicTypeDescriptor(TypeSymbol Type)
+        : TypeDescriptor;
+
+    private sealed record NullableTypeDescriptor(int UnderlyingType)
+        : TypeDescriptor;
+
+    private sealed record ArrayTypeDescriptor(bool IsReadOnly, int ElementType)
+        : TypeDescriptor;
+
+    private sealed record ObjectTypeDescriptor(
+        string? Id,
+        string Name,
+        bool IsOpen,
+        IReadOnlyList<ObjectPropertyDescriptor> Properties
+    ) : TypeDescriptor;
+
+    private sealed record ObjectPropertyDescriptor(
+        string Name,
+        int Type,
+        bool IsOptional
+    );
 
     private sealed class Lexer
     {

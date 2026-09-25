@@ -51,4 +51,49 @@ public sealed class MuIrSerializationTests
             Assert.That(deserializedExport.Delegate!(context), Is.EqualTo(42L));
         }
     }
+
+    [Test]
+    public void DeserializedRecursiveTypeGraphExports()
+    {
+        ObjectTypeGraphBuilder builder = new ();
+        ObjectTypeGraphReference node = builder.DeclareAnonymous("node", false);
+        builder.AddProperty(node, "next", builder.Nullable(node));
+        ObjectTypeSymbol type = (ObjectTypeSymbol)builder.Build()[node];
+        EnvironmentSchema environment = new EnvironmentBuilder().Build();
+        IrProgram program = new (
+            environment.Fingerprint,
+            CompilationMode.Program,
+            LanguageProfiles.Version1_1.Fingerprint,
+            new IrFunction(
+                "$entry",
+                TypeSymbols.Void,
+                0,
+                [ new IrSlot(0, IrSlotKind.Temporary, type, null) ],
+                [
+                    new IrBasicBlock(
+                        0,
+                        [ ],
+                        new IrTerminator.Return(default, null)
+                    ),
+                ]
+            ),
+            [ ]
+        );
+        MuIrReadResult read = MuIrReader.Read(MuIrWriter.WriteToString(program));
+
+        DotNetExportResult export = DotNetExporter.Export(
+            read.Program!,
+            environment
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(read.Success, Is.True);
+            Assert.That(export.Diagnostics.HasErrors, Is.False);
+            Assert.That(
+                export.Delegate!(new DotNetRuntimeContext(environment, [ ], [ ])),
+                Is.Null
+            );
+        }
+    }
 }

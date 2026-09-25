@@ -163,6 +163,7 @@ public static class IrValidator
             ValidateBlock(functionProgram, environment, blocksById, block, diagnostics);
         }
 
+        ValidateReadOnlySlots(functionProgram, diagnostics);
         ValidateDefinitions(functionProgram, blocksById, diagnostics);
     }
 
@@ -236,6 +237,87 @@ public static class IrValidator
                     $"IR slot {slot.Id} has invalid type '{slot.Type.DisplayName}'."
                 );
             }
+
+            if (!Enum.IsDefined(slot.Mutability))
+            {
+                Report(
+                    diagnostics,
+                    IrDiagnosticCodes.InvalidSlot,
+                    default,
+                    $"IR slot {slot.Id} has invalid mutability."
+                );
+            }
+            else if (slot.Kind == IrSlotKind.Parameter)
+            {
+                if (slot.Mutability != IrSlotMutability.ReadOnly)
+                {
+                    Report(
+                        diagnostics,
+                        IrDiagnosticCodes.InvalidSlot,
+                        default,
+                        $"IR parameter slot {slot.Id} must be read-only."
+                    );
+                }
+            }
+            else if (
+                slot.Kind == IrSlotKind.Temporary &&
+                slot.Mutability == IrSlotMutability.ReadOnly
+            )
+            {
+                Report(
+                    diagnostics,
+                    IrDiagnosticCodes.InvalidSlot,
+                    default,
+                    $"IR temporary slot {slot.Id} cannot be read-only."
+                );
+            }
+        }
+    }
+
+    private static void ValidateReadOnlySlots(
+        IrProgram program,
+        ICollection<Diagnostic> diagnostics
+    )
+    {
+        foreach (IrSlot slot in program.Slots)
+        {
+            if (slot.Mutability != IrSlotMutability.ReadOnly)
+            {
+                continue;
+            }
+
+            IReadOnlyList<TextSpan> definitions =
+            [
+                .. program.Blocks
+                    .SelectMany(static block => block.Instructions)
+                    .Where(instruction => GetDestination(instruction) == slot.Id)
+                    .Select(static instruction => instruction.Span),
+            ];
+
+            int expectedDefinitions =
+                slot.Kind == IrSlotKind.Parameter
+                    ? 0
+                    : slot.Kind == IrSlotKind.Local
+                        ? 1
+                        : definitions.Count;
+
+            if (definitions.Count == expectedDefinitions)
+            {
+                continue;
+            }
+
+            Report(
+                diagnostics,
+                IrDiagnosticCodes.InvalidSlot,
+                definitions.Count > expectedDefinitions
+                    ? definitions[expectedDefinitions]
+                    : default,
+                slot.Kind == IrSlotKind.Parameter
+                    ? $"Read-only IR parameter slot {slot.Id} cannot have a definition site."
+                    : definitions.Count == 0
+                        ? $"Read-only IR local slot {slot.Id} has no definition site."
+                        : $"Read-only IR local slot {slot.Id} has more than one definition site."
+            );
         }
     }
 

@@ -47,6 +47,8 @@ The language-profile and environment fingerprints remain separate.
 
 ## 18.2. User-defined functions and recursion
 
+The language semantics of user-defined functions are defined in [Section 23](23-user-defined-functions.md).
+
 When user-defined functions are disabled, function declarations remain recognizable for recovery but are rejected with a dedicated diagnostic. Calls resolved to a user-defined function are also rejected. Provider calls remain independently configurable.
 
 When recursion is disabled and user-defined functions are enabled, the compiler MUST reject every strongly connected component in the user-function call graph that contains more than one function or a self-edge. Each participating function receives one useful diagnostic without diagnostics for every possible call path. Provider calls do not create recursion edges.

@@ -66,8 +66,9 @@ function-header(kind) ::=
     block*
   "}"
 
-slot ::= "slot" slot-ref slot-kind type-ref (string | "none")
+slot ::= "slot" slot-ref slot-kind type-ref slot-mutability (string | "none")
 slot-kind ::= "parameter" | "local" | "temporary"
+slot-mutability ::= "mutable" | "readonly"
 
 block ::=
   "block" block-ref "instructions" integer "{"
@@ -86,11 +87,13 @@ block-ref ::= "bb" integer
 
 The two integers in a span are the source start and length. Both MUST fit in a signed 32-bit integer, and their checked sum MUST also fit.
 
-The document MUST contain exactly one entry function. User-function, slot, block, instruction, property, element, and argument order is preserved.
+The document MUST contain exactly one entry function. User-function, slot, block, instruction, element, and argument order is preserved. Object properties are normalized by ordinal property name.
+
+Parameter slots MUST be `readonly`, are implicitly defined at function entry, and cannot be instruction destinations. Temporary slots MUST be `mutable`. A read-only local has exactly one syntactic defining instruction; `IrValidator` enforces that constraint together with ordinary definite assignment.
 
 ## 22.3. Type table
 
-Type identifiers are contiguous and zero-based. A definition MUST use the next identifier in sequence. Composite definitions may refer only to earlier definitions.
+Type identifiers are contiguous and zero-based. A definition MUST use the next identifier in sequence. Composite definitions may refer to any declared type identifier, including a later definition, so finite object-type graphs can be self-recursive or mutually recursive.
 
 ```text
 type-definition ::=
@@ -115,6 +118,19 @@ object-property ::= string type-ref ("required" | "optional")
 For a named object, the first string after `named` is its stable provider type identifier and the following string is its language name. An anonymous object has no provider identifier and MUST use `<anonymous>` as its name.
 
 The compiler error-recovery type is not representable. A writer MUST fail explicitly when that type occurs.
+
+The reader parses the complete type table before materialization and publishes no partially initialized type. Recursive cycles consisting only of nullable or array wrappers, with no structured-object node, are invalid.
+
+Canonical type identity is the complete wire definition. The writer:
+
+- ignores source `TypeSymbol` reference sharing;
+- sorts object properties by name with ordinal comparison;
+- computes recursive structural identity coinductively;
+- merges bisimilar finite recursive type graphs;
+- orders acyclic dependencies before dependants;
+- permits forward references within a recursive strongly connected component.
+
+Provider ID, language name, openness, property name, optionality, property type, and array capability remain identity-bearing. Property declaration order does not.
 
 ## 22.4. Constants
 
@@ -219,11 +235,12 @@ The canonical writer MUST:
 - emit one space between ordinary tokens;
 - emit no comments or trailing whitespace;
 - emit one final line feed;
-- preserve function, slot, block, instruction, property, element, and argument order;
-- assign type identifiers deterministically with dependencies before dependants;
+- preserve function, slot, block, instruction, element, and argument order;
+- emit object properties by ordinal name;
+- assign type identifiers deterministically, with acyclic dependencies before dependants and stable ordering inside recursive components;
 - use the tokens and operand orders defined by this section.
 
-Serializing the same IR graph twice MUST produce byte-identical output. Reading canonical MuIR and writing the reconstructed program MUST reproduce the same bytes.
+Serializing wire-equivalent IR graphs MUST produce byte-identical output regardless of equivalent type-instance sharing or object-property declaration order. Reading canonical MuIR and writing the reconstructed program MUST reproduce the same bytes.
 
 Readers MAY accept non-canonical whitespace and comments, but writers MUST emit only canonical form.
 

@@ -375,6 +375,12 @@ public sealed class UserFunctionTests
                 ),
                 Is.EqualTo(1)
             );
+            Assert.That(
+                program.UserFunctions[0].Slots.Single(
+                    static slot => slot.Kind == IrSlotKind.Parameter
+                ).Mutability,
+                Is.EqualTo(IrSlotMutability.ReadOnly)
+            );
             Assert.That(IrValidator.Validate(program, environment), Is.Empty);
         }
     }

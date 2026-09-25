@@ -28,3 +28,4 @@ The key words **MUST**, **MUST NOT**, **REQUIRED**, **SHOULD**, **SHOULD NOT**, 
 20. [Grammar summary](20-grammar-summary.md)
 21. [Draft review decisions](21-draft-review-decisions.md)
 22. [MuIR serialization format](22-muir-format.md)
+23. [User-defined functions](23-user-defined-functions.md)

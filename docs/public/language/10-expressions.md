@@ -149,7 +149,7 @@ Every array element read validates the retrieved runtime value against the stati
 
 Functions may be declared by the provider or by leading top-level `func` declarations in program mode.
 
-The declaration and invocation of user-defined functions are controlled as defined in [Section 18.2](18-language-profiles.md#182-user-defined-functions-and-recursion). Calls to provider functions are independently controlled as defined in [Section 18.4](18-language-profiles.md#184-provider-calls).
+User-defined function declaration, invocation, parameters, scope, returns, and recursion are specified in [Section 23](23-user-defined-functions.md). Their availability is controlled as defined in [Section 18.2](18-language-profiles.md#182-user-defined-functions-and-recursion). Calls to provider functions are independently controlled as defined in [Section 18.4](18-language-profiles.md#184-provider-calls).
 
 Function names are resolved only in call position.
 
