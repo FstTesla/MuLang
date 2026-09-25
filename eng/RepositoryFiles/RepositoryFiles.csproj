@@ -12,7 +12,6 @@
     <SkipResolvePackageAssets>true</SkipResolvePackageAssets>
     <EnableDefaultItems>false</EnableDefaultItems>
     <RepositoryFileExcludes>
-      $(MSBuildProjectFullPath);
       ..\..\MuLang.slnx;
       ..\..\eng\RepositoryFiles\RepositoryFiles.csproj;
       ..\..\.git\**\*;
