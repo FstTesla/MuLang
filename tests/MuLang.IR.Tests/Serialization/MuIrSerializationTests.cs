@@ -303,6 +303,28 @@ public sealed class MuIrSerializationTests
     }
 
     [Test]
+    public void ProviderObjectIdentityDoesNotAffectCanonicalOutput()
+    {
+        ObjectTypeSymbol first = new (
+            "provider.first",
+            "First",
+            false,
+            [ new ObjectPropertySymbol("value", TypeSymbols.Int) ]
+        );
+        ObjectTypeSymbol second = new (
+            "provider.second",
+            "Second",
+            false,
+            [ new ObjectPropertySymbol("value", TypeSymbols.Int) ]
+        );
+
+        Assert.That(
+            MuIrWriter.WriteToString(CreateTypeOnlyProgram([ first ])),
+            Is.EqualTo(MuIrWriter.WriteToString(CreateTypeOnlyProgram([ second ])))
+        );
+    }
+
+    [Test]
     public void SelfRecursiveObjectRoundTripsWithForwardReference()
     {
         ObjectTypeGraphBuilder builder = new ();
@@ -319,6 +341,7 @@ public sealed class MuIrSerializationTests
         using (Assert.EnterMultipleScope())
         {
             Assert.That(result.Success, Is.True);
+            Assert.That(reconstructed.Id, Is.Null);
             Assert.That(next.UnderlyingType, Is.SameAs(reconstructed));
             Assert.That(MuIrWriter.WriteToString(result.Program), Is.EqualTo(text));
         }

@@ -59,7 +59,9 @@ internal sealed class Lowerer
             bindingResult.CompilationMode,
             bindingResult.LanguageProfileFingerprint
         );
-        IrProgram program = lowerer.LowerRoot(bindingResult.Root);
+        IrProgram program = IrTypeProjector.Project(
+            lowerer.LowerRoot(bindingResult.Root)
+        );
 
         return new LoweringResult(program, DiagnosticCollection.Empty);
     }

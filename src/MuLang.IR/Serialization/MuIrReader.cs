@@ -323,9 +323,6 @@ public static class MuIrReader
 
         private ObjectTypeDescriptor ReadObjectType()
         {
-            string identity = ReadChoice("named", "anonymous");
-            string? id = identity == "named" ? ReadString() : null;
-            string name = ReadString();
             bool isOpen = ReadChoice("open", "closed") == "open";
             int propertyCount = ReadCount(options.MaximumListElements, "object property");
             Expect("[");
@@ -352,20 +349,7 @@ public static class MuIrReader
 
             Expect("]");
 
-            if (id is null)
-            {
-                if (name != "<anonymous>")
-                {
-                    Fail(
-                        MuIrDiagnosticCodes.InvalidType,
-                        "An anonymous object type must use the name '<anonymous>'."
-                    );
-                }
-
-                return new ObjectTypeDescriptor(null, name, isOpen, properties);
-            }
-
-            return new ObjectTypeDescriptor(id, name, isOpen, properties);
+            return new ObjectTypeDescriptor(isOpen, properties);
         }
 
         private void MaterializeTypes()
@@ -381,15 +365,6 @@ public static class MuIrReader
                 {
                     case IntrinsicTypeDescriptor intrinsic:
                         references[index] = builder.From(intrinsic.Type);
-                        break;
-
-                    case ObjectTypeDescriptor { Id: { } id } value:
-                        references[index] = builder.DeclareNamed(
-                            $"t{index}",
-                            id,
-                            value.Name,
-                            value.IsOpen
-                        );
                         break;
 
                     case ObjectTypeDescriptor value:
@@ -1336,8 +1311,6 @@ public static class MuIrReader
         : TypeDescriptor;
 
     private sealed record ObjectTypeDescriptor(
-        string? Id,
-        string Name,
         bool IsOpen,
         IReadOnlyList<ObjectPropertyDescriptor> Properties
     ) : TypeDescriptor;

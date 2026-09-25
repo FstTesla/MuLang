@@ -100,7 +100,7 @@ type-definition ::=
     "type" type-ref "intrinsic" intrinsic-type
   | "type" type-ref "nullable" type-ref
   | "type" type-ref "array" array-capability type-ref
-  | "type" type-ref "object" object-identity string openness integer
+  | "type" type-ref "object" openness integer
       "[" object-property-list? "]"
 
 intrinsic-type ::=
@@ -108,14 +108,11 @@ intrinsic-type ::=
   | "unknown" | "object" | "void" | "null"
 
 array-capability ::= "mutable" | "readonly"
-object-identity  ::= "anonymous" | "named" string
 openness         ::= "open" | "closed"
 
 object-property-list ::= object-property ("," object-property)*
 object-property ::= string type-ref ("required" | "optional")
 ```
-
-For a named object, the first string after `named` is its stable provider type identifier and the following string is its language name. An anonymous object has no provider identifier and MUST use `<anonymous>` as its name.
 
 The compiler error-recovery type is not representable. A writer MUST fail explicitly when that type occurs.
 
@@ -130,7 +127,9 @@ Canonical type identity is the complete wire definition. The writer:
 - orders acyclic dependencies before dependants;
 - permits forward references within a recursive strongly connected component.
 
-Provider ID, language name, openness, property name, optionality, property type, and array capability remain identity-bearing. Property declaration order does not.
+Openness, property name, optionality, property type, and array capability remain identity-bearing. Property declaration order does not.
+
+Provider type IDs, language-facing object type names, and named-versus-anonymous origin are not represented. The environment fingerprint identifies the required provider schema, while IR validation compares the reconstructed object type structurally.
 
 ## 22.4. Constants
 

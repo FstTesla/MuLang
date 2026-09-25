@@ -150,20 +150,7 @@ public static class MuIrWriter
         {
             StringBuilder line = new ();
             line.Append(prefix);
-            line.Append("object ");
-
-            if (type.Id is null)
-            {
-                line.Append("anonymous ");
-            }
-            else
-            {
-                line.Append("named ");
-                line.Append(Quote(type.Id));
-                line.Append(' ');
-            }
-
-            line.Append(Quote(type.Name));
+            line.Append("object");
             line.Append(type.IsOpen ? " open " : " closed ");
             line.Append(type.Properties.Count.ToString(CultureInfo.InvariantCulture));
             line.Append(" [");

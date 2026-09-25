@@ -62,7 +62,7 @@ This work does not:
 - change `TypeRelations.AreEquivalent`;
 - merge types based only on language-level assignability or equivalence;
 - reorder functions, slots, blocks, instructions, or operands;
-- make provider type IDs alone define wire identity;
+- change provider type registration or environment fingerprint identity;
 - add source syntax for user-defined object declarations or read-only locals;
 - add read-only object properties;
 - add function types or first-class function values;
@@ -121,9 +121,6 @@ Mutable and read-only arrays never share an entry.
 Structured-object wire identity consists of:
 
 - the `object` type form;
-- named or anonymous identity kind;
-- provider type ID for named types;
-- language-facing name;
 - open or closed state;
 - property count;
 - the property set sorted by ordinal property name.
@@ -139,9 +136,9 @@ writer sorts properties by name with `StringComparer.Ordinal`. Object types
 with the same complete property definitions in different declared orders
 therefore share one entry and produce the same canonical bytes.
 
-Named types with the same provider ID but different names, openness, property
-names, optionality, or property types remain distinct. Named and anonymous
-types never share an entry.
+Provider type ID, language-facing name, and named-versus-anonymous origin are
+erased by lowering and excluded from MuIR. Provider and user types with the
+same complete structural definition share an entry.
 
 ## Fields intentionally excluded
 
@@ -153,6 +150,9 @@ The wire key MUST NOT use:
 - `TypeSymbol.DisplayName` as a substitute for structured metadata;
 - `TypeRelations.AreEquivalent`;
 - assignability or castability;
+- provider type ID;
+- language-facing object type name;
+- named-versus-anonymous origin;
 - the source occurrence that first referenced the type;
 - final textual escaping or formatting.
 
@@ -171,7 +171,7 @@ Each discovered source node contains:
 - the intrinsic token where applicable;
 - child edges for nullable and array forms;
 - array capability;
-- structured-object identity fields;
+- structured-object openness;
 - an immutable property-key sequence sorted by ordinal property name.
 
 Each property key should contain:
@@ -318,9 +318,8 @@ The normative specification should distinguish:
 
 Canonical fixtures MUST remain byte-identical after read and write.
 
-Do not reject repeated named provider IDs when their complete wire
-definitions differ. Environment compatibility remains the responsibility of
-`IrValidator` and the host environment.
+Environment compatibility and provider identity remain the responsibility of
+the program environment fingerprint, `IrValidator`, and the host environment.
 
 ## Atomic type-graph builder
 
@@ -446,8 +445,8 @@ different instance sharing:
 - shared nested nullable/array combinations versus freshly rebuilt trees;
 - one shared anonymous object type versus separately created identical
   anonymous types;
-- one named object instance versus separately created named objects with the
-  same complete metadata;
+- provider object types with different IDs and names but the same structural
+  metadata;
 - object types with the same properties declared in different orders.
 
 For each pair, require:
@@ -465,25 +464,22 @@ Require separate type entries when any complete wire field differs:
 - nullable underlying type;
 - array capability;
 - array element type;
-- named versus anonymous identity;
-- provider ID;
-- language-facing name;
 - open versus closed state;
 - property count;
 - property name;
 - property optionality;
 - property type.
 
-Include cases that `TypeRelations.AreEquivalent` considers equivalent but that
-have different persisted metadata other than property order. They MUST remain
-distinct.
+Include cases that differ in every persisted structural field and require
+distinct entries.
 
 ### Recursive graph canonicalization
 
 Verify that:
 
 - acyclic child definitions precede parents;
-- self-recursive named and anonymous objects round-trip;
+- self-recursive provider and anonymous structural objects round-trip as
+  structural MuIR objects;
 - mutually recursive environment object types round-trip;
 - mutually recursive structural user types do not require persisted source
   names;
@@ -556,7 +552,8 @@ Update `docs/public/language/22-muir-format.md` to specify:
 - coinductive equivalence of recursive wire graphs;
 - slot mutability tokens and validation scope;
 - acceptance and normalization of redundant non-canonical definitions;
-- named types with differing complete definitions remaining distinct.
+- omission of provider ID, object type name, and named-versus-anonymous
+  origin.
 
 No changelog entry is required if this change lands before the first release
 that contains MuIR. If MuIR has already been released, record the stronger
@@ -581,9 +578,9 @@ Two user-defined object declarations with the same complete structural
 definition should therefore share one canonical MuIR type even when their
 source names differ.
 
-This rule does not alter existing provider object types. A provider type that
-already carries a stable provider ID and language-facing name remains a named
-MuIR object, and those fields remain part of its complete wire definition.
+Provider object types retain stable IDs and language-facing names in the
+environment model and environment fingerprint. Lowering projects them to
+anonymous structural IR types, so those fields do not enter MuIR.
 
 No separate nominal type-declaration table is needed solely for structural
 user-defined object types.

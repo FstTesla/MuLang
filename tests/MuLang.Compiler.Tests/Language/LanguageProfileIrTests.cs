@@ -134,6 +134,47 @@ public sealed class LanguageProfileIrTests
         }
     }
 
+    [Test]
+    public void LoweringProjectsProviderObjectTypesToStructuralIrTypes()
+    {
+        ObjectTypeGraphBuilder graphBuilder = new();
+        ObjectTypeGraphReference node = graphBuilder.DeclareNamed(
+            "node",
+            "type.node",
+            "Node",
+            false
+        );
+        graphBuilder.AddProperty(node, "next", graphBuilder.Nullable(node));
+        ObjectTypeSymbol providerType =
+            (ObjectTypeSymbol)graphBuilder.Build()[node];
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddType(providerType)
+            .AddGlobal("global.node", "node", providerType)
+            .Build();
+        CompilationResult result = MuLangCompiler.Compile(
+            "node",
+            environment,
+            CompilationMode.Expression,
+            providerType
+        );
+        ObjectTypeSymbol irType = (ObjectTypeSymbol)(
+            result.Program?.ResultType ??
+            throw new AssertionException("Expected an IR program.")
+        );
+        NullableTypeSymbol next =
+            (NullableTypeSymbol)irType.Properties.Single().Type;
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.Diagnostics, Is.Empty);
+            Assert.That(irType.Id, Is.Null);
+            Assert.That(irType.Name, Is.EqualTo("<anonymous>"));
+            Assert.That(next.UnderlyingType, Is.SameAs(irType));
+            Assert.That(TypeRelations.AreEquivalent(irType, providerType), Is.True);
+            Assert.That(IrValidator.Validate(result.Program!, environment), Is.Empty);
+        }
+    }
+
     private static IrProgram LowerExpression(
         string source,
         EnvironmentSchema environment,

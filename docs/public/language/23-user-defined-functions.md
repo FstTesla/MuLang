@@ -108,3 +108,5 @@ Parameter slots are read-only, are implicitly defined at function entry, and hav
 Calls use `IrInstruction.UserCall` and reference the target function ID. The IR validator requires argument count and types, return type, and destination shape to match the target function.
 
 Each function has independent slot and control-flow namespaces. No IR instruction may reference a slot or block owned by another function.
+
+Object types in function signatures and slots are lowered to structural IR types. Source or provider declaration names are not retained in the function IR.

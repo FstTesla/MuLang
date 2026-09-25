@@ -313,9 +313,6 @@ internal static class MuIrTypeTableBuilder
 
                 case ObjectTypeSymbol structured:
                     Append(builder, "object");
-                    Append(builder, structured.Id is null ? "anonymous" : "named");
-                    Append(builder, structured.Id ?? "");
-                    Append(builder, structured.Name);
                     Append(builder, structured.IsOpen ? "open" : "closed");
                     Append(
                         builder,

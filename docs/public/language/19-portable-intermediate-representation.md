@@ -45,6 +45,8 @@ Provider-call validation accepts arguments assignable through read-only array co
 
 Structured object types transported through IR MAY be self-recursive or mutually recursive. Structural equivalence and validation operate coinductively and MUST terminate for finite type graphs.
 
+Structured object types in IR are purely structural. Lowering MUST erase provider type IDs, language-facing type names, and named-versus-anonymous origin while preserving openness, properties, optionality, capabilities, and recursive edges. Provider symbol IDs and the environment fingerprint remain unchanged.
+
 Runtime exporters MUST NOT perform name resolution, type inference, overload resolution, or high-level control-flow interpretation.
 
 Portable IR MAY be persisted and exchanged as a MuIR document with the `.muir` extension. MuIR is versioned independently from the MuLang language and profile versions. A host that reads MuIR MUST validate the reconstructed program against its selected environment through the ordinary IR validator before export or execution.

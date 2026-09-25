@@ -9,10 +9,10 @@ type t2 nullable t0
 type t3 intrinsic float
 type t4 intrinsic string
 type t5 array mutable t0
-type t6 object named "provider.sample" "Sample" open 2 ["label" t4 optional, "value" t0 required]
+type t6 object open 2 ["label" t4 optional, "value" t0 required]
 type t7 intrinsic number
 type t8 array readonly t7
-type t9 object anonymous "<anonymous>" closed 1 ["items" t8 required]
+type t9 object closed 1 ["items" t8 required]
 type t10 intrinsic unknown
 type t11 intrinsic object
 type t12 intrinsic void
