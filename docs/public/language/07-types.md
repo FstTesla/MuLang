@@ -85,7 +85,7 @@ A known property remains a known property even when optional.
 
 A mutable array type is written as an element type followed by `[]`.
 
-Language version 2 adds read-only array views, written with `$` immediately after the array suffix: `T[]$`.
+Language version 1.1 adds read-only array views, written with `$` immediately after the array suffix: `T[]$`.
 
 The `$` modifier removes write capability from the immediately preceding array construction. It is shallow: contained objects and arrays retain the capabilities expressed by their own types.
 

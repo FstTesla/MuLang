@@ -117,7 +117,7 @@ public sealed record LanguageProfile
     {
         ValidateDefined(value, parameterName);
 
-        if (value is not LanguageVersion.Version1 and not LanguageVersion.Version2)
+        if (value is not LanguageVersion.Version1 and not LanguageVersion.Version1_1)
         {
             throw new ArgumentException(
                 $"Language version '{value}' is not supported.",

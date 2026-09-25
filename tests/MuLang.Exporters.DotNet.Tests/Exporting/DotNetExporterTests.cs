@@ -300,7 +300,7 @@ public sealed class DotNetExporterTests
     [Test]
     public void ExecutesReadOnlyArrayLiteralReadsAndLength()
     {
-        EnvironmentSchema environment = CreateEmptyEnvironment(LanguageVersion.Version2);
+        EnvironmentSchema environment = CreateEmptyEnvironment(LanguageVersion.Version1_1);
         Func<DotNetRuntimeContext, object?> compiled = CompileExpression(
             "$[1, 2].length + $[3][0]",
             environment,
@@ -319,7 +319,7 @@ public sealed class DotNetExporterTests
                               }
                               return $[values()][0][0];
                               """;
-        EnvironmentSchema environment = CreateEmptyEnvironment(LanguageVersion.Version2);
+        EnvironmentSchema environment = CreateEmptyEnvironment(LanguageVersion.Version1_1);
         Func<DotNetRuntimeContext, object?> compiled = CompileProgram(
             source,
             environment,
@@ -332,7 +332,7 @@ public sealed class DotNetExporterTests
     [Test]
     public void PreservesIdentityAcrossReadOnlyViews()
     {
-        EnvironmentSchema environment = CreateEmptyEnvironment(LanguageVersion.Version2);
+        EnvironmentSchema environment = CreateEmptyEnvironment(LanguageVersion.Version1_1);
         Func<DotNetRuntimeContext, object?> compiled = CompileExpression(
             "[1] === ([1] as int[]$)",
             environment,
@@ -341,7 +341,7 @@ public sealed class DotNetExporterTests
         MutableArrayValue value = new ([ 1L ]);
         EnvironmentSchema globalEnvironment = new EnvironmentBuilder()
             .AddGlobal("global.values", "values", TypeSymbols.Array(TypeSymbols.Int))
-            .Build(LanguageVersion.Version2);
+            .Build(LanguageVersion.Version1_1);
         Func<DotNetRuntimeContext, object?> globalCompiled = CompileExpression(
             "values === (values as int[]$)",
             globalEnvironment,
@@ -372,7 +372,7 @@ public sealed class DotNetExporterTests
                               mutable[0] = 2;
                               return view[0];
                               """;
-        EnvironmentSchema environment = CreateEmptyEnvironment(LanguageVersion.Version2);
+        EnvironmentSchema environment = CreateEmptyEnvironment(LanguageVersion.Version1_1);
         Func<DotNetRuntimeContext, object?> compiled = CompileProgram(
             source,
             environment,
@@ -385,7 +385,7 @@ public sealed class DotNetExporterTests
     [Test]
     public void CheckedMutableCapabilityAcquisitionUsesRuntimeCapability()
     {
-        EnvironmentSchema environment = CreateEmptyEnvironment(LanguageVersion.Version2);
+        EnvironmentSchema environment = CreateEmptyEnvironment(LanguageVersion.Version1_1);
         Func<DotNetRuntimeContext, object?> mutableCast = CompileExpression(
             "[1] as int[]$ as int[]",
             environment,
@@ -419,7 +419,7 @@ public sealed class DotNetExporterTests
                 "values",
                 TypeSymbols.ReadOnlyArray(TypeSymbols.Int)
             )
-            .Build(LanguageVersion.Version2);
+            .Build(LanguageVersion.Version1_1);
         Func<DotNetRuntimeContext, object?> compiled = CompileExpression(
             "values[0]",
             environment,
@@ -447,7 +447,7 @@ public sealed class DotNetExporterTests
                 "values",
                 TypeSymbols.ReadOnlyArray(TypeSymbols.Unknown)
             )
-            .Build(LanguageVersion.Version2);
+            .Build(LanguageVersion.Version1_1);
         Func<DotNetRuntimeContext, object?> mutableTest = CompileExpression(
             "values is int[]",
             environment,
@@ -491,7 +491,7 @@ public sealed class DotNetExporterTests
                 ],
                 TypeSymbols.Bool
             )
-            .Build(LanguageVersion.Version2);
+            .Build(LanguageVersion.Version1_1);
         Func<DotNetRuntimeContext, object?> compiled = CompileExpression(
             "inspect(values, values)",
             environment,
@@ -536,7 +536,7 @@ public sealed class DotNetExporterTests
                 TypeSymbols.Array(TypeSymbols.Unknown)
             )
             .AddFunction("function.mutate", "mutate", [ ], TypeSymbols.Void)
-            .Build(LanguageVersion.Version2);
+            .Build(LanguageVersion.Version1_1);
         Func<DotNetRuntimeContext, object?> compiled = CompileProgram(
             source,
             environment,
@@ -1887,8 +1887,8 @@ public sealed class DotNetExporterTests
 
     private static LanguageProfile GetProfile(EnvironmentSchema environment)
     {
-        return environment.LanguageVersion == LanguageVersion.Version2
-            ? LanguageProfiles.Version2
+        return environment.LanguageVersion == LanguageVersion.Version1_1
+            ? LanguageProfiles.Version1_1
             : LanguageProfiles.Version1;
     }
 

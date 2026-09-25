@@ -16,7 +16,7 @@ The standard library is a collection of provider modules, not a privileged langu
 
 ## Dependencies
 
-The initial library depends on the read-only array support implemented for `LanguageVersion.Version2`.
+The initial library depends on the read-only array support implemented for `LanguageVersion.Version1_1`.
 
 In particular:
 
@@ -24,7 +24,7 @@ In particular:
 - `objectKeys` returns `string[]$`;
 - `objectValues` returns `unknown?[]$`;
 - provider implementations need the read-only array runtime contract;
-- standard-library declarations require `LanguageVersion.Version2`.
+- standard-library declarations require `LanguageVersion.Version1_1`.
 
 The standard-library projects remain outside the compiler and exporter dependency graph:
 
@@ -548,7 +548,7 @@ Compile and execute source against:
 - host declarations plus selected modules;
 - declaration-only environments missing implementations;
 - runtime bindings with missing or duplicate entries;
-- Version 1 environments attempting to use Version 2 modules;
+- Version 1 environments attempting to use Version 1.1 modules;
 - read-only array arguments and results.
 
 ## Documentation and packaging
@@ -561,7 +561,7 @@ Update package READMEs and conceptual documentation with:
 - module catalog;
 - stable identifier policy;
 - deterministic and nondeterministic module metadata;
-- Version 2 requirement;
+- Version 1.1 requirement;
 - runtime service configuration;
 - collision behavior;
 - no implicit compiler or facade integration.

@@ -7,11 +7,11 @@ namespace MuLang.Core.Tests.Environment;
 public sealed class EnvironmentBuilderTests
 {
     [Test]
-    public void UsesLanguageVersionTwoByDefault()
+    public void UsesLanguageVersionOneOneByDefault()
     {
         EnvironmentSchema schema = new EnvironmentBuilder().Build();
 
-        Assert.That(schema.LanguageVersion, Is.EqualTo(LanguageVersion.Version2));
+        Assert.That(schema.LanguageVersion, Is.EqualTo(LanguageVersion.Version1_1));
     }
 
     [Test]
@@ -110,14 +110,14 @@ public sealed class EnvironmentBuilderTests
     {
         EnvironmentSchema mutable = new EnvironmentBuilder()
             .AddGlobal("global.values", "values", TypeSymbols.Array(TypeSymbols.Int))
-            .Build(LanguageVersion.Version2);
+            .Build(LanguageVersion.Version1_1);
         EnvironmentSchema readOnly = new EnvironmentBuilder()
             .AddGlobal(
                 "global.values",
                 "values",
                 TypeSymbols.ReadOnlyArray(TypeSymbols.Int)
             )
-            .Build(LanguageVersion.Version2);
+            .Build(LanguageVersion.Version1_1);
 
         Assert.That(readOnly.Fingerprint, Is.Not.EqualTo(mutable.Fingerprint));
     }

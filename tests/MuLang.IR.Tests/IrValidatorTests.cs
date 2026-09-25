@@ -53,7 +53,7 @@ public sealed class IrValidatorTests
     public void RejectsUncheckedReadOnlyCapabilityAcquisition()
     {
         EnvironmentSchema environment = new EnvironmentBuilder()
-            .Build(LanguageVersion.Version2);
+            .Build(LanguageVersion.Version1_1);
         ArrayTypeSymbol readOnlyType = TypeSymbols.ReadOnlyArray(TypeSymbols.Int);
         ArrayTypeSymbol mutableType = TypeSymbols.Array(TypeSymbols.Int);
         IrProgram program = CreateProgram(
@@ -87,7 +87,7 @@ public sealed class IrValidatorTests
     public void AcceptsCheckedReadOnlyCapabilityAcquisition()
     {
         EnvironmentSchema environment = new EnvironmentBuilder()
-            .Build(LanguageVersion.Version2);
+            .Build(LanguageVersion.Version1_1);
         ArrayTypeSymbol readOnlyType = TypeSymbols.ReadOnlyArray(TypeSymbols.Int);
         ArrayTypeSymbol mutableType = TypeSymbols.Array(TypeSymbols.Int);
         IrProgram program = CreateProgram(
@@ -206,7 +206,7 @@ public sealed class IrValidatorTests
     public void RejectsElementWriteThroughReadOnlyArraySlot()
     {
         EnvironmentSchema environment = new EnvironmentBuilder()
-            .Build(LanguageVersion.Version2);
+            .Build(LanguageVersion.Version1_1);
         ArrayTypeSymbol readOnlyType = TypeSymbols.ReadOnlyArray(TypeSymbols.Int);
         IrProgram program = CreateProgram(
             environment,
@@ -247,7 +247,7 @@ public sealed class IrValidatorTests
                 ],
                 TypeSymbols.Bool
             )
-            .Build(LanguageVersion.Version2);
+            .Build(LanguageVersion.Version1_1);
         ArrayTypeSymbol mutableType = TypeSymbols.Array(TypeSymbols.Int);
         IrProgram program = CreateProgram(
             environment,
@@ -285,7 +285,7 @@ public sealed class IrValidatorTests
         return new IrProgram(
             environment.Fingerprint,
             CompilationMode.Expression,
-            LanguageProfiles.Version2.Fingerprint,
+            LanguageProfiles.Version1_1.Fingerprint,
             new IrFunction(
                 "$entry",
                 resultType,

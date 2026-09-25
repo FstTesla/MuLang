@@ -21,9 +21,9 @@ public static class LanguageProfiles
         ShadowingPolicy.None
     );
 
-    /// <summary>Gets the standard profile for MuLang language version 2.</summary>
-    public static LanguageProfile Version2 { get; } = new (
-        LanguageVersion.Version2,
+    /// <summary>Gets the standard profile for MuLang language version 1.1.</summary>
+    public static LanguageProfile Version1_1 { get; } = new (
+        LanguageVersion.Version1_1,
         UserDefinedFunctionsFeature.Enabled,
         RecursionFeature.Enabled,
         LoopFeatures.While | LoopFeatures.For,

@@ -114,7 +114,7 @@ public sealed class LanguageProfileIrTests
     }
 
     [Test]
-    public void CompilerUsesLanguageVersionTwoByDefault()
+    public void CompilerUsesLanguageVersionOneOneByDefault()
     {
         EnvironmentSchema environment = new EnvironmentBuilder().Build();
         CompilationResult result = MuLangCompiler.Compile(
@@ -129,7 +129,7 @@ public sealed class LanguageProfileIrTests
             Assert.That(result.Diagnostics, Is.Empty);
             Assert.That(
                 result.Program?.LanguageProfileFingerprint,
-                Is.EqualTo(LanguageProfiles.Version2.Fingerprint)
+                Is.EqualTo(LanguageProfiles.Version1_1.Fingerprint)
             );
         }
     }

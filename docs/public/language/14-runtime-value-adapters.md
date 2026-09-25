@@ -26,7 +26,7 @@ Adapters do not define or customize truthiness. Determining truthiness MUST NOT 
 
 The condition-semantics profile option and truthiness rules are defined in [Section 18.9](18-language-profiles.md#189-conditions).
 
-Language version 1 does not represent static array mutability. Language version 2 represents read-only array capability in the static type while retaining runtime adapter capability checks.
+Language version 1 does not represent static array mutability. Language version 1.1 represents read-only array capability in the static type while retaining runtime adapter capability checks.
 
 An adapter MAY reject a mutation or removal at runtime. Previous completed side effects are not rolled back.
 

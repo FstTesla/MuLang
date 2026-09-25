@@ -71,7 +71,7 @@ An array of `T` is not implicitly assignable to an array of another element type
 
 This rule prevents writes through a widened mutable array reference from violating the original element type.
 
-Language version 2 permits an array of `S` to be observed as `T[]$` when `S` is representation-safe for reads as `T`. The relation permits equivalent types, non-null values to `unknown`, nullable lifting, `int` or `float` to `number`, structured objects to `object`, and recursively compatible read-only array views. It does not permit representation-changing conversions such as `int` to `float`.
+Language version 1.1 permits an array of `S` to be observed as `T[]$` when `S` is representation-safe for reads as `T`. The relation permits equivalent types, non-null values to `unknown`, nullable lifting, `int` or `float` to `number`, structured objects to `object`, and recursively compatible read-only array views. It does not permit representation-changing conversions such as `int` to `float`.
 
 Both `S[]` and `S[]$` may convert implicitly to a compatible `T[]$`. A read-only array is never implicitly assignable to a mutable array.
 

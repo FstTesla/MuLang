@@ -10,9 +10,9 @@ A language profile is immutable and contains:
 
 The standard profile for language version 1 preserves all language syntax, capabilities, and policies described by the rest of this specification unless this section explicitly permits a restriction. It enables user-defined functions, recursion, both loop kinds, provider function calls, open objects, every mutation kind, explicit loop-control levels, trailing commas, and compile-time constant folding. It uses strict Boolean conditions and prohibits variable shadowing.
 
-The standard profile for language version 2 has the same configurable feature defaults and adds read-only array types and literals as an unconditional part of the type system for language version 2. Profiles for language version 1 reject `$` and `$[` with a language-version diagnostic.
+The standard profile for language version 1.1 has the same configurable feature defaults and adds read-only array types and literals as an unconditional part of the type system for language version 1.1. Profiles for language version 1 reject `$` and `$[` with a language-version diagnostic.
 
-Language version 2 is the default for compiler, lexer, parser, profile-builder, and environment-builder APIs. Hosts MAY select language version 1 explicitly.
+Language version 1.1 is the default for compiler, lexer, parser, profile-builder, and environment-builder APIs. Hosts MAY select language version 1 explicitly.
 
 The profile options and stable numeric values are:
 
@@ -30,7 +30,7 @@ The profile options and stable numeric values are:
 | `ConditionSemantics` | `StrictBoolean = 0`, `Truthiness = 1` | No |
 | `Shadowing` | `None = 0`, `NestedScopes = 1`, `Globals = 2` | Yes |
 
-Both condition-semantics values are supported in language versions 1 and 2. Profile construction MUST reject unknown enum values, unknown flag bits, and unsupported language versions. A dependent option MAY be enabled while its prerequisite is disabled; it remains dormant rather than making the profile invalid.
+Both condition-semantics values are supported in language versions 1 and 1.1. Profile construction MUST reject unknown enum values, unknown flag bits, and unsupported language versions. A dependent option MAY be enabled while its prerequisite is disabled; it remains dormant rather than making the profile invalid.
 
 ## 18.1. Profile fingerprint and compilation identity
 
@@ -129,7 +129,7 @@ Truthiness is contextual. It does not add an implicit conversion to `bool`, a so
 
 The standard `LanguageProfiles.Version1` profile uses `StrictBoolean`.
 
-The standard `LanguageProfiles.Version2` profile also uses `StrictBoolean`.
+The standard `LanguageProfiles.Version1_1` profile also uses `StrictBoolean`.
 
 ## 18.10. Compile-time constant folding
 

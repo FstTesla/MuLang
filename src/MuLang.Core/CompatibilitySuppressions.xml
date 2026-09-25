@@ -1,3 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- https://learn.microsoft.com/dotnet/fundamentals/package-validation/diagnostic-ids -->
 <Suppressions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>F:MuLang.Core.LanguageVersion.Version2</Target>
+    <Left>lib/net10.0/MuLang.Core.dll</Left>
+    <Right>lib/net10.0/MuLang.Core.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:MuLang.Core.LanguageProfile.#ctor(MuLang.Core.LanguageVersion,MuLang.Core.UserDefinedFunctionsFeature,MuLang.Core.RecursionFeature,MuLang.Core.LoopFeatures,MuLang.Core.ProviderFunctionCallsFeature,MuLang.Core.OpenObjectsFeature,MuLang.Core.MutationFeatures,MuLang.Core.MultiLevelLoopControlFeature,MuLang.Core.TrailingCommasFeature,MuLang.Core.ConditionSemantics,MuLang.Core.ShadowingPolicy)</Target>
+    <Left>lib/net10.0/MuLang.Core.dll</Left>
+    <Right>lib/net10.0/MuLang.Core.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:MuLang.Core.LanguageProfiles.get_Version2</Target>
+    <Left>lib/net10.0/MuLang.Core.dll</Left>
+    <Right>lib/net10.0/MuLang.Core.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
 </Suppressions>

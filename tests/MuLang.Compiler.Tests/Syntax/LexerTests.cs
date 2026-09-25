@@ -41,7 +41,7 @@ public sealed class LexerTests
     {
         LexResult result = Lexer.Lex(
             SourceText.From("?. ?.[ ?: ?? @{ $[ $ === !== == != <= >= << >> && || ~"),
-            LanguageProfiles.Version2
+            LanguageProfiles.Version1_1
         );
 
         Assert.That(
@@ -93,7 +93,7 @@ public sealed class LexerTests
     }
 
     [Test]
-    public void UsesLanguageVersionTwoByDefault()
+    public void UsesLanguageVersionOneOneByDefault()
     {
         LexResult result = Lexer.Lex(SourceText.From("$[1] int[]$"));
 

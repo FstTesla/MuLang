@@ -24,7 +24,7 @@ internal sealed class Lexer
 
     public static LexResult Lex(SourceText source)
     {
-        return Lex(source, LanguageProfiles.Version2);
+        return Lex(source, LanguageProfiles.Version1_1);
     }
 
     public static LexResult Lex(SourceText source, LanguageProfile profile)
@@ -94,7 +94,7 @@ internal sealed class Lexer
 
         if (TryRead("$["))
         {
-            ReportVersionTwoFeature(start, "$[");
+            ReportVersionOneOneFeature(start, "$[");
             return CreateToken(TokenKind.ReadOnlyOpenBracket, start);
         }
 
@@ -202,7 +202,7 @@ internal sealed class Lexer
 
         if (kind == TokenKind.Dollar)
         {
-            ReportVersionTwoFeature(start, "$");
+            ReportVersionOneOneFeature(start, "$");
         }
 
         if (kind == TokenKind.Bad)
@@ -221,9 +221,9 @@ internal sealed class Lexer
         return CreateToken(kind, start);
     }
 
-    private void ReportVersionTwoFeature(int start, string text)
+    private void ReportVersionOneOneFeature(int start, string text)
     {
-        if (Profile.LanguageVersion >= LanguageVersion.Version2)
+        if (Profile.LanguageVersion >= LanguageVersion.Version1_1)
         {
             return;
         }
@@ -234,7 +234,7 @@ internal sealed class Lexer
                 DiagnosticSeverity.Error,
                 DiagnosticCategory.Lexical,
                 new TextSpan(start, text.Length),
-                $"Syntax '{text}' requires language version 2."
+                $"Syntax '{text}' requires language version 1.1."
             )
         );
     }

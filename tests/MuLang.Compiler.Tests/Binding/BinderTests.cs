@@ -90,8 +90,8 @@ public sealed class BinderTests
     {
         BindingResult result = BindExpression(
             "$[1, 2]",
-            CreateEmptyEnvironment(LanguageVersion.Version2),
-            profile: LanguageProfiles.Version2
+            CreateEmptyEnvironment(LanguageVersion.Version1_1),
+            profile: LanguageProfiles.Version1_1
         );
         BoundRoot.Expression root = (BoundRoot.Expression)result.Root;
         BoundExpression.Array array = (BoundExpression.Array)root.Value;
@@ -109,9 +109,9 @@ public sealed class BinderTests
     {
         BindingResult result = BindProgram(
             "var values: int[]$ = $[];",
-            CreateEmptyEnvironment(LanguageVersion.Version2),
+            CreateEmptyEnvironment(LanguageVersion.Version1_1),
             TypeSymbols.Void,
-            LanguageProfiles.Version2
+            LanguageProfiles.Version1_1
         );
 
         Assert.That(result.Diagnostics, Is.Empty);
@@ -122,9 +122,9 @@ public sealed class BinderTests
     {
         BindingResult result = BindProgram(
             "var values: int[] = $[1];",
-            CreateEmptyEnvironment(LanguageVersion.Version2),
+            CreateEmptyEnvironment(LanguageVersion.Version1_1),
             TypeSymbols.Void,
-            LanguageProfiles.Version2
+            LanguageProfiles.Version1_1
         );
 
         AssertDiagnostic(result, DiagnosticCodes.TypeMismatch);
@@ -135,9 +135,9 @@ public sealed class BinderTests
     {
         BindingResult result = BindProgram(
             "var values: number[]$ = [1, 2];",
-            CreateEmptyEnvironment(LanguageVersion.Version2),
+            CreateEmptyEnvironment(LanguageVersion.Version1_1),
             TypeSymbols.Void,
-            LanguageProfiles.Version2
+            LanguageProfiles.Version1_1
         );
         BoundRoot.Program root = (BoundRoot.Program)result.Root;
         BoundStatement.VariableDeclaration declaration =
@@ -154,8 +154,8 @@ public sealed class BinderTests
     {
         BindingResult result = BindExpression(
             "true ? [1] : $[2.0]",
-            CreateEmptyEnvironment(LanguageVersion.Version2),
-            profile: LanguageProfiles.Version2
+            CreateEmptyEnvironment(LanguageVersion.Version1_1),
+            profile: LanguageProfiles.Version1_1
         );
         BoundRoot.Expression root = (BoundRoot.Expression)result.Root;
 
@@ -173,9 +173,9 @@ public sealed class BinderTests
     {
         BindingResult result = BindProgram(
             "var values: int[]$ = [1]; values[0] = 2;",
-            CreateEmptyEnvironment(LanguageVersion.Version2),
+            CreateEmptyEnvironment(LanguageVersion.Version1_1),
             TypeSymbols.Void,
-            LanguageProfiles.Version2
+            LanguageProfiles.Version1_1
         );
 
         AssertDiagnostic(result, DiagnosticCodes.ReadOnlyTarget);

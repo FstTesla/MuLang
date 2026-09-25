@@ -1,7 +1,13 @@
 #nullable enable
+*REMOVED*MuLang.Core.Environment.EnvironmentBuilder.Build(MuLang.Core.LanguageVersion languageVersion = MuLang.Core.LanguageVersion.Version2) -> MuLang.Core.Environment.EnvironmentSchema!
 *REMOVED*MuLang.Core.LanguageProfile.LanguageProfile(MuLang.Core.LanguageVersion languageVersion, MuLang.Core.UserDefinedFunctionsFeature userDefinedFunctions, MuLang.Core.RecursionFeature recursion, MuLang.Core.LoopFeatures loops, MuLang.Core.ProviderFunctionCallsFeature providerFunctionCalls, MuLang.Core.OpenObjectsFeature openObjects, MuLang.Core.MutationFeatures mutations, MuLang.Core.MultiLevelLoopControlFeature multiLevelLoopControl, MuLang.Core.TrailingCommasFeature trailingCommas, MuLang.Core.ConditionSemantics conditionSemantics, MuLang.Core.ShadowingPolicy shadowing) -> void
+*REMOVED*MuLang.Core.LanguageVersion.Version2 = 1 -> MuLang.Core.LanguageVersion
+*REMOVED*static MuLang.Core.LanguageProfiles.Version2.get -> MuLang.Core.LanguageProfile!
 MuLang.Core.ConstantFoldingFeature
 MuLang.Core.ConstantFoldingFeature.Disabled = 0 -> MuLang.Core.ConstantFoldingFeature
 MuLang.Core.ConstantFoldingFeature.Enabled = 1 -> MuLang.Core.ConstantFoldingFeature
+MuLang.Core.Environment.EnvironmentBuilder.Build(MuLang.Core.LanguageVersion languageVersion = MuLang.Core.LanguageVersion.Version1_1) -> MuLang.Core.Environment.EnvironmentSchema!
 MuLang.Core.LanguageProfile.ConstantFolding.get -> MuLang.Core.ConstantFoldingFeature
 MuLang.Core.LanguageProfileBuilder.WithConstantFolding(MuLang.Core.ConstantFoldingFeature constantFolding) -> MuLang.Core.LanguageProfileBuilder!
+MuLang.Core.LanguageVersion.Version1_1 = 1 -> MuLang.Core.LanguageVersion
+static MuLang.Core.LanguageProfiles.Version1_1.get -> MuLang.Core.LanguageProfile!

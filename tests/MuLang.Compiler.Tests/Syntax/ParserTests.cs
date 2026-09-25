@@ -180,7 +180,7 @@ public sealed class ParserTests
         SyntaxTree literalTree = Parser.Parse(
             SourceText.From("$[1, 2]"),
             CompilationMode.Expression,
-            LanguageProfiles.Version2
+            LanguageProfiles.Version1_1
         );
         ExpressionRootSyntax literalRoot = (ExpressionRootSyntax)literalTree.Root;
         ArrayLiteralExpressionSyntax literal =
@@ -188,7 +188,7 @@ public sealed class ParserTests
         SyntaxTree typeTree = Parser.Parse(
             SourceText.From("value as int[]$?"),
             CompilationMode.Expression,
-            LanguageProfiles.Version2
+            LanguageProfiles.Version1_1
         );
         ExpressionRootSyntax typeRoot = (ExpressionRootSyntax)typeTree.Root;
         ConversionExpressionSyntax conversion =
@@ -204,7 +204,7 @@ public sealed class ParserTests
     }
 
     [Test]
-    public void UsesLanguageVersionTwoByDefault()
+    public void UsesLanguageVersionOneOneByDefault()
     {
         SyntaxTree tree = ParseExpression("$[1]");
 
@@ -218,7 +218,7 @@ public sealed class ParserTests
         SyntaxTree tree = Parser.Parse(
             SourceText.From(source),
             CompilationMode.Expression,
-            LanguageProfiles.Version2
+            LanguageProfiles.Version1_1
         );
 
         Assert.That(

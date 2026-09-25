@@ -55,13 +55,13 @@ public sealed class LanguageProfileTests
     }
 
     [Test]
-    public void VersionTwoProfilePreservesFeatureDefaults()
+    public void VersionOneOneProfilePreservesFeatureDefaults()
     {
-        LanguageProfile profile = LanguageProfiles.Version2;
+        LanguageProfile profile = LanguageProfiles.Version1_1;
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(profile.LanguageVersion, Is.EqualTo(LanguageVersion.Version2));
+            Assert.That(profile.LanguageVersion, Is.EqualTo(LanguageVersion.Version1_1));
             Assert.That(profile.Mutations, Is.EqualTo(LanguageProfiles.Version1.Mutations));
             Assert.That(profile.Fingerprint, Is.Not.EqualTo(LanguageProfiles.Version1.Fingerprint));
         }
@@ -111,7 +111,7 @@ public sealed class LanguageProfileTests
             Assert.That((int)ConditionSemantics.StrictBoolean, Is.Zero);
             Assert.That((int)ConditionSemantics.Truthiness, Is.EqualTo(1));
             Assert.That((int)LanguageVersion.Version1, Is.Zero);
-            Assert.That((int)LanguageVersion.Version2, Is.EqualTo(1));
+            Assert.That((int)LanguageVersion.Version1_1, Is.EqualTo(1));
         }
     }
 
@@ -135,7 +135,7 @@ public sealed class LanguageProfileTests
     {
         LanguageProfile profile = new LanguageProfileBuilder().Build();
 
-        Assert.That(profile, Is.EqualTo(LanguageProfiles.Version2));
+        Assert.That(profile, Is.EqualTo(LanguageProfiles.Version1_1));
     }
 
     [Test]

@@ -41,7 +41,7 @@ Each operand MUST be evaluated exactly once.
 
 An array literal contains zero or more comma-separated expressions enclosed in square brackets.
 
-Language version 2 also provides read-only array literals opened by the single `$[` token and closed by `]`.
+Language version 1.1 also provides read-only array literals opened by the single `$[` token and closed by `]`.
 
 A non-empty array literal MAY contain one trailing comma after its final expression.
 

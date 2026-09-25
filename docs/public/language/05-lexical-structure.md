@@ -101,6 +101,6 @@ String values are sequences of Unicode scalar values and are compared ordinally.
 
 ## 5.10. Read-only array tokens
 
-Language version 2 recognizes `$` as a postfix type-capability token and `$[` as the single opening token of a read-only array literal.
+Language version 1.1 recognizes `$` as a postfix type-capability token and `$[` as the single opening token of a read-only array literal.
 
-The lexer MUST recognize `$[` before standalone `$`. Language version 1 recognizes both token shapes for recovery but reports that they require language version 2.
+The lexer MUST recognize `$[` before standalone `$`. Language version 1 recognizes both token shapes for recovery but reports that they require language version 1.1.
