@@ -10,6 +10,7 @@ const MuLang.Compiler.Diagnostics.DiagnosticCodes.BreakOutsideLoop = "MUL4001" -
 const MuLang.Compiler.Diagnostics.DiagnosticCodes.CannotAssignGlobal = "MUL3012" -> string!
 const MuLang.Compiler.Diagnostics.DiagnosticCodes.CannotAssignParameter = "MUL3027" -> string!
 const MuLang.Compiler.Diagnostics.DiagnosticCodes.CannotInferType = "MUL3007" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.ConstantEvaluationFailed = "MUL3031" -> string!
 const MuLang.Compiler.Diagnostics.DiagnosticCodes.ContinueOutsideLoop = "MUL4002" -> string!
 const MuLang.Compiler.Diagnostics.DiagnosticCodes.DisabledArrayElementMutation = "MUL7008" -> string!
 const MuLang.Compiler.Diagnostics.DiagnosticCodes.DisabledForLoop = "MUL7004" -> string!

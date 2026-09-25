@@ -5,6 +5,9 @@ MuLang.Core.CompilationMode.Program = 1 -> MuLang.Core.CompilationMode
 MuLang.Core.ConditionSemantics
 MuLang.Core.ConditionSemantics.StrictBoolean = 0 -> MuLang.Core.ConditionSemantics
 MuLang.Core.ConditionSemantics.Truthiness = 1 -> MuLang.Core.ConditionSemantics
+MuLang.Core.ConstantFoldingFeature
+MuLang.Core.ConstantFoldingFeature.Disabled = 0 -> MuLang.Core.ConstantFoldingFeature
+MuLang.Core.ConstantFoldingFeature.Enabled = 1 -> MuLang.Core.ConstantFoldingFeature
 MuLang.Core.Diagnostics.Diagnostic
 MuLang.Core.Diagnostics.Diagnostic.<Clone>$() -> MuLang.Core.Diagnostics.Diagnostic!
 MuLang.Core.Diagnostics.Diagnostic.Category.get -> MuLang.Core.Diagnostics.DiagnosticCategory
@@ -34,7 +37,7 @@ MuLang.Core.Environment.EnvironmentBuilder
 MuLang.Core.Environment.EnvironmentBuilder.AddFunction(string! id, string! name, System.Collections.Generic.IEnumerable<MuLang.Core.Symbols.ParameterSymbol!>! parameters, MuLang.Core.Types.TypeSymbol! returnType) -> MuLang.Core.Environment.EnvironmentBuilder!
 MuLang.Core.Environment.EnvironmentBuilder.AddGlobal(string! id, string! name, MuLang.Core.Types.TypeSymbol! type) -> MuLang.Core.Environment.EnvironmentBuilder!
 MuLang.Core.Environment.EnvironmentBuilder.AddType(MuLang.Core.Types.ObjectTypeSymbol! type) -> MuLang.Core.Environment.EnvironmentBuilder!
-MuLang.Core.Environment.EnvironmentBuilder.Build(MuLang.Core.LanguageVersion languageVersion = MuLang.Core.LanguageVersion.Version2) -> MuLang.Core.Environment.EnvironmentSchema!
+MuLang.Core.Environment.EnvironmentBuilder.Build(MuLang.Core.LanguageVersion languageVersion = MuLang.Core.LanguageVersion.Version1_1) -> MuLang.Core.Environment.EnvironmentSchema!
 MuLang.Core.Environment.EnvironmentBuilder.EnvironmentBuilder() -> void
 MuLang.Core.Environment.EnvironmentFingerprint
 MuLang.Core.Environment.EnvironmentFingerprint.<Clone>$() -> MuLang.Core.Environment.EnvironmentFingerprint!
@@ -55,9 +58,9 @@ MuLang.Core.Environment.EnvironmentSchema.Types.get -> System.Collections.Generi
 MuLang.Core.LanguageProfile
 MuLang.Core.LanguageProfile.<Clone>$() -> MuLang.Core.LanguageProfile!
 MuLang.Core.LanguageProfile.ConditionSemantics.get -> MuLang.Core.ConditionSemantics
+MuLang.Core.LanguageProfile.ConstantFolding.get -> MuLang.Core.ConstantFoldingFeature
 MuLang.Core.LanguageProfile.Equals(MuLang.Core.LanguageProfile? other) -> bool
 MuLang.Core.LanguageProfile.Fingerprint.get -> MuLang.Core.LanguageProfileFingerprint!
-MuLang.Core.LanguageProfile.LanguageProfile(MuLang.Core.LanguageVersion languageVersion, MuLang.Core.UserDefinedFunctionsFeature userDefinedFunctions, MuLang.Core.RecursionFeature recursion, MuLang.Core.LoopFeatures loops, MuLang.Core.ProviderFunctionCallsFeature providerFunctionCalls, MuLang.Core.OpenObjectsFeature openObjects, MuLang.Core.MutationFeatures mutations, MuLang.Core.MultiLevelLoopControlFeature multiLevelLoopControl, MuLang.Core.TrailingCommasFeature trailingCommas, MuLang.Core.ConditionSemantics conditionSemantics, MuLang.Core.ShadowingPolicy shadowing) -> void
 MuLang.Core.LanguageProfile.LanguageVersion.get -> MuLang.Core.LanguageVersion
 MuLang.Core.LanguageProfile.Loops.get -> MuLang.Core.LoopFeatures
 MuLang.Core.LanguageProfile.MultiLevelLoopControl.get -> MuLang.Core.MultiLevelLoopControlFeature
@@ -79,6 +82,7 @@ MuLang.Core.LanguageProfileBuilder.EnableShadowing(MuLang.Core.ShadowingPolicy s
 MuLang.Core.LanguageProfileBuilder.LanguageProfileBuilder() -> void
 MuLang.Core.LanguageProfileBuilder.LanguageProfileBuilder(MuLang.Core.LanguageProfile! profile) -> void
 MuLang.Core.LanguageProfileBuilder.WithConditionSemantics(MuLang.Core.ConditionSemantics conditionSemantics) -> MuLang.Core.LanguageProfileBuilder!
+MuLang.Core.LanguageProfileBuilder.WithConstantFolding(MuLang.Core.ConstantFoldingFeature constantFolding) -> MuLang.Core.LanguageProfileBuilder!
 MuLang.Core.LanguageProfileBuilder.WithLanguageVersion(MuLang.Core.LanguageVersion languageVersion) -> MuLang.Core.LanguageProfileBuilder!
 MuLang.Core.LanguageProfileBuilder.WithLoops(MuLang.Core.LoopFeatures loops) -> MuLang.Core.LanguageProfileBuilder!
 MuLang.Core.LanguageProfileBuilder.WithMultiLevelLoopControl(MuLang.Core.MultiLevelLoopControlFeature multiLevelLoopControl) -> MuLang.Core.LanguageProfileBuilder!
@@ -97,7 +101,7 @@ MuLang.Core.LanguageProfileFingerprint.Value.get -> string!
 MuLang.Core.LanguageProfiles
 MuLang.Core.LanguageVersion
 MuLang.Core.LanguageVersion.Version1 = 0 -> MuLang.Core.LanguageVersion
-MuLang.Core.LanguageVersion.Version2 = 1 -> MuLang.Core.LanguageVersion
+MuLang.Core.LanguageVersion.Version1_1 = 1 -> MuLang.Core.LanguageVersion
 MuLang.Core.LoopFeatures
 MuLang.Core.LoopFeatures.For = 2 -> MuLang.Core.LoopFeatures
 MuLang.Core.LoopFeatures.None = 0 -> MuLang.Core.LoopFeatures
@@ -241,7 +245,7 @@ static MuLang.Core.LanguageProfile.operator ==(MuLang.Core.LanguageProfile? left
 static MuLang.Core.LanguageProfileFingerprint.operator !=(MuLang.Core.LanguageProfileFingerprint? left, MuLang.Core.LanguageProfileFingerprint? right) -> bool
 static MuLang.Core.LanguageProfileFingerprint.operator ==(MuLang.Core.LanguageProfileFingerprint? left, MuLang.Core.LanguageProfileFingerprint? right) -> bool
 static MuLang.Core.LanguageProfiles.Version1.get -> MuLang.Core.LanguageProfile!
-static MuLang.Core.LanguageProfiles.Version2.get -> MuLang.Core.LanguageProfile!
+static MuLang.Core.LanguageProfiles.Version1_1.get -> MuLang.Core.LanguageProfile!
 static MuLang.Core.Text.SourceText.From(string! text) -> MuLang.Core.Text.SourceText!
 static MuLang.Core.Text.TextPosition.operator !=(MuLang.Core.Text.TextPosition left, MuLang.Core.Text.TextPosition right) -> bool
 static MuLang.Core.Text.TextPosition.operator ==(MuLang.Core.Text.TextPosition left, MuLang.Core.Text.TextPosition right) -> bool
