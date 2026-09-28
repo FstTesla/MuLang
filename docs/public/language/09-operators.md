@@ -1,14 +1,14 @@
-# 11. Operators
+# 9. Operators
 
-## 11.1. General rules
+## 9.1. General rules
 
-Operator behavior is defined by MuLang types and MUST NOT be delegated directly to host-runtime operator resolution.
+Operator behavior is defined exclusively by this specification. Host-language operator rules do not affect it.
 
 No user-defined operators exist.
 
-The selected language profile determines whether Boolean contexts use strict Boolean conditions or truthiness as defined in [Section 18.9](18-language-profiles.md#189-conditions).
+The selected language profile determines whether Boolean contexts use strict Boolean conditions or truthiness as defined in [Section 14.8](14-language-profiles.md#148-conditions).
 
-## 11.2. Precedence
+## 9.2. Precedence
 
 Operators are listed from highest to lowest precedence.
 
@@ -34,9 +34,9 @@ The postfix property-removal token `~` is a statement terminator and is not part
 
 Non-associative operators cannot be chained at the same precedence without parentheses.
 
-When `+` or `-` immediately precedes a numeric token or non-finite float keyword in a literal position, the parser forms a signed numeric literal rather than a unary expression.
+When `+` or `-` immediately precedes a numeric token or non-finite float keyword in a position where a literal is permitted, the sign is part of the literal rather than a unary expression.
 
-## 11.3. Arithmetic operators
+## 9.3. Arithmetic operators
 
 Arithmetic operators operate on `int`, `float`, and `number`.
 
@@ -60,7 +60,7 @@ Non-string operands are converted using the string conversion rules before conca
 
 Objects and arrays cannot participate in intrinsic string concatenation.
 
-## 11.4. Relational operators
+## 9.4. Relational operators
 
 Relational operators are defined for:
 
@@ -69,7 +69,7 @@ Relational operators are defined for:
 
 No ordering is defined for booleans, arrays, or objects.
 
-## 11.5. Bitwise and eager Boolean operators
+## 9.5. Bitwise and eager Boolean operators
 
 `~`, `<<`, and `>>` require `int` operands and produce an `int`.
 
@@ -91,25 +91,25 @@ The right operand of `<<` and `>>` MUST be between 0 and 63 inclusive. A value o
 
 Bitwise operations do not perform overflow checks.
 
-## 11.6. Checked casts, type checking, and property existence
+## 9.6. Checked casts, type checking, and property existence
 
-`value as Type` performs the explicit checked cast defined in [Section 8.8](08-assignability-and-conversions.md#88-explicit-checked-casts). It returns the original runtime value unchanged when the value conforms to the target type and otherwise produces a failed-cast runtime error.
+`value as Type` performs the explicit checked cast defined in [Section 5.8](05-assignability-and-conversions.md#58-explicit-checked-casts). It returns the original value unchanged when the value conforms to the target type and otherwise produces a failed-cast runtime error.
 
-`value is Type` evaluates to `true` when the runtime value conforms to the specified non-void type.
+`value is Type` evaluates to `true` when the value conforms to the specified non-void type.
 
-Runtime numeric conformance follows concrete representation: `int` values conform to `int` and `number`, while `float` values conform to `float` and `number`. Type tests do not apply the implicit `int`-to-`float` conversion.
+Numeric conformance follows concrete representation: `int` values conform to `int` and `number`, while `float` values conform to `float` and `number`. Type tests do not apply the implicit `int`-to-`float` conversion.
 
 When the operand's static type and the tested type cannot describe the same runtime value, the test remains valid, evaluates to `false`, and produces a warning diagnostic.
 
-For `T[]`, conformance requires mutable runtime capability and recursive conformance of every current element to `T`. For `T[]$`, read capability is sufficient. Array tests are shape-based and do not require a reified nominal element type.
+For `T[]`, conformance requires write capability and recursive conformance of every current element to `T`. For `T[]$`, read capability is sufficient. Array tests are shape-based and do not require a stored nominal element type.
 
 For `null`, `is` evaluates to `true` only when the tested type is nullable. The `is` operator does not narrow the operand in any subsequent expression or statement.
 
-For every statically permitted `as` expression, the corresponding `is` expression predicts its semantic success when both observe the same unchanged runtime value. Cancellation, exhausted execution limits, incompatible environments, and provider failures are operational failures outside this guarantee.
+For every statically permitted `as` expression, the corresponding `is` expression predicts its semantic success when both observe the same unchanged value. Cancellation, exhausted execution limits, incompatible environments, and host-function failures are operational failures outside this guarantee.
 
 `target has key` checks whether an object currently contains a property. The key expression MUST have type `string`.
 
-A test with a string literal naming a known property of a closed structured type is available in every open-objects mode. Dynamic property-existence tests require `OpenObjects.PropertyExistenceOnly` or `OpenObjects.Enabled`, as defined in [Section 18.5](18-language-profiles.md#185-open-objects).
+A test with a string literal naming a known property of a closed structured type is available in every open-objects mode. Dynamic property-existence tests require the property-existence or enabled setting defined in [Section 14.4](14-language-profiles.md#144-open-objects).
 
 The target of `has` MUST have `object`, structured object, or a nullable form of either as its static type. A `null` target produces a runtime error.
 
@@ -117,17 +117,17 @@ The target of `has` MUST have `object`, structured object, or a nullable form of
 
 The key expression is evaluated exactly once. The `has` operator does not read the property value and does not narrow the target or property type.
 
-## 11.7. Boolean operators
+## 9.7. Boolean operators
 
 Under strict Boolean condition semantics, `!`, `&&`, and `||` require Boolean operands.
 
-Under truthiness condition semantics, each non-void operand is normalized to `bool` according to [Section 18.9](18-language-profiles.md#189-conditions) before the operator is applied.
+Under truthiness condition semantics, each non-void operand is normalized to `bool` according to [Section 14.8](14-language-profiles.md#148-conditions) before the operator is applied.
 
 `&&` and `||` short-circuit and evaluate operands from left to right.
 
 `&&` and `||` always produce `bool`; they never return an operand value.
 
-## 11.8. Null-coalescing operator
+## 9.8. Null-coalescing operator
 
 The null-coalescing expression `left ?? right` evaluates `left` exactly once.
 
@@ -143,7 +143,7 @@ For a left operand of type `T?`, the result type is the common type of non-null 
 
 An expression whose non-null left value and right operand have no common result type is invalid.
 
-## 11.9. Structural equality
+## 9.9. Structural equality
 
 `==` performs recursive structural equality.
 
@@ -161,7 +161,7 @@ Structural equality MUST safely handle cyclic object and array graphs by trackin
 
 `null` is structurally equal only to `null`.
 
-## 11.10. Identity equality
+## 9.10. Identity equality
 
 `===` performs identity equality.
 
@@ -171,7 +171,7 @@ For primitive values with the same concrete type, identity equality coincides wi
 
 Numeric primitive values with different concrete types are never identical. In particular, an `int` and a `float` compare unequal with `===` and equal with `!==`, even when `==` considers their values equal.
 
-For arrays and objects, identity is supplied by the runtime adapter and represents the same logical runtime instance.
+For arrays and objects, identity represents the same logical value supplied through the host boundary.
 
 A mutable array and every read-only view that forwards its logical identity are identical.
 

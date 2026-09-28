@@ -1,4 +1,4 @@
-# 22. MuIR serialization format
+# MuIR serialization format
 
 MuIR is the canonical textual persistence and interchange format for portable MuLang IR. MuIR files use the `.muir` extension and UTF-8 encoding. The format version is independent from the MuLang language version and language-profile fingerprint.
 
@@ -10,7 +10,7 @@ MuIR reconstructs an `IrProgram`; it does not prove that the program is semantic
 4. validate the reconstructed program through `IrValidator`;
 5. export or execute the program only when validation succeeds.
 
-## 22.1. Lexical structure
+## 1. Lexical structure
 
 A MuIR document consists of Unicode scalar values decoded from UTF-8. Invalid UTF-8 MUST be rejected.
 
@@ -37,7 +37,7 @@ Raw line endings, unpaired surrogates, invalid scalar values, and other escapes 
 
 Non-negative integers use invariant decimal notation without a sign. Signed integer constants may use one leading `-`.
 
-## 22.2. Document grammar
+## 2. Document grammar
 
 The following grammar describes MuIR version 1. Repetition counts are declared immediately before the repeated production and MUST match the number of following declarations.
 
@@ -91,7 +91,7 @@ The document MUST contain exactly one entry function. User-function, slot, block
 
 Parameter slots MUST be `readonly`, are implicitly defined at function entry, and cannot be instruction destinations. Temporary slots MUST be `mutable`. A read-only local has exactly one syntactic defining instruction; `IrValidator` enforces that constraint together with ordinary definite assignment.
 
-## 22.3. Type table
+## 3. Type table
 
 Type identifiers are contiguous and zero-based. A definition MUST use the next identifier in sequence. Composite definitions may refer to any declared type identifier, including a later definition, so finite object-type graphs can be self-recursive or mutually recursive.
 
@@ -131,7 +131,7 @@ Openness, property name, optionality, property type, and array capability remain
 
 Provider type IDs, language-facing object type names, and named-versus-anonymous origin are not represented. The environment fingerprint identifies the required provider schema, while IR validation compares the reconstructed object type structurally.
 
-## 22.4. Constants
+## 4. Constants
 
 Constant operands encode runtime representation explicitly:
 
@@ -155,7 +155,7 @@ Finite binary64 values use invariant round-trip notation. `negative-zero` preser
 
 Arbitrary host objects are not portable constants and MUST be rejected by the writer.
 
-## 22.5. Instructions
+## 5. Instructions
 
 Every instruction starts with its opcode and source span. Operand order is fixed:
 
@@ -212,7 +212,7 @@ Conversion-kind tokens are `value` and `checked`.
 
 Unknown opcodes and operator tokens MUST be rejected. A reader MUST NOT ignore an executable operation it does not understand.
 
-## 22.6. Terminators
+## 6. Terminators
 
 Terminator operands after the source span are:
 
@@ -224,7 +224,7 @@ Terminator operands after the source span are:
 
 Every block contains exactly one terminator after its declared instructions.
 
-## 22.7. Canonical form
+## 7. Canonical form
 
 The canonical writer MUST:
 
@@ -243,7 +243,7 @@ Serializing wire-equivalent IR graphs MUST produce byte-identical output regardl
 
 Readers MAY accept non-canonical whitespace and comments, but writers MUST emit only canonical form.
 
-## 22.8. Reading, diagnostics, and limits
+## 8. Reading, diagnostics, and limits
 
 MuIR reading distinguishes structural reconstruction from semantic IR validation. A successful read guarantees that the document is lexically and structurally representable by the public IR model. It does not guarantee valid control flow, definite assignment, provider identifiers, type compatibility, or environment/profile fingerprints.
 
@@ -259,7 +259,7 @@ The reader MUST reject unsupported format versions, invalid references, invalid 
 
 Hosts MAY configure positive limits for document, string, token, type-nesting, type, function, slot, block, instruction, list-element, and diagnostic counts. A limit violation MUST fail reading without returning a partial program.
 
-## 22.9. Compatibility
+## 9. Compatibility
 
 MuIR version 1 compatibility is defined by this wire contract, not by .NET enum names, record names, or numeric enum values.
 

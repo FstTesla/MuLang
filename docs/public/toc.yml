@@ -6,5 +6,9 @@
   href: packages.md
 - name: Language
   href: language/
+- name: Portable intermediate representation
+  href: portable-intermediate-representation.md
+- name: MuIR serialization format
+  href: muir-format.md
 - name: API reference
   href: /MuLang/api/MuLang.Compiler.html

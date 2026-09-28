@@ -1,6 +1,6 @@
-# 10. Expressions
+# 8. Expressions
 
-## 10.1. Expression categories
+## 8.1. Expression categories
 
 The language supports:
 
@@ -22,7 +22,7 @@ The language supports:
 
 Assignment and property removal are not expressions.
 
-## 10.2. Evaluation order
+## 8.2. Evaluation order
 
 Expressions are evaluated from left to right.
 
@@ -37,7 +37,7 @@ Property and element assignment evaluate:
 
 Each operand MUST be evaluated exactly once.
 
-## 10.3. Array literals
+## 8.3. Array literals
 
 An array literal contains zero or more comma-separated expressions enclosed in square brackets.
 
@@ -45,7 +45,7 @@ Language version 1.1 also provides read-only array literals opened by the single
 
 A non-empty array literal MAY contain one trailing comma after its final expression.
 
-The availability of trailing commas depends on the language profile as defined in [Section 18.7](18-language-profiles.md#187-trailing-commas).
+The availability of trailing commas depends on the language profile as defined in [Section 14.6](14-language-profiles.md#146-trailing-commas).
 
 All elements MUST have a common type under the implicit conversion rules. Each element is converted to that common type.
 
@@ -59,23 +59,23 @@ Normal array literals create mutable arrays. Read-only array literals create val
 
 A read-only literal cannot be contextually converted to a mutable array. A normal literal may be contextually converted to a compatible read-only view without copying.
 
-## 10.4. Object literals
+## 8.4. Object literals
 
 A closed object literal contains zero or more comma-separated property initializers enclosed in `{` and `}`.
 
 An open object literal contains the same contents enclosed in `@{` and `}`.
 
-The availability of open object literals depends on the language profile as defined in [Section 18.5](18-language-profiles.md#185-open-objects).
+The availability of open object literals depends on the language profile as defined in [Section 14.4](14-language-profiles.md#144-open-objects).
 
 A non-empty object literal MAY contain one trailing comma after its final property initializer.
 
-The availability of trailing commas depends on the language profile as defined in [Section 18.7](18-language-profiles.md#187-trailing-commas).
+The availability of trailing commas depends on the language profile as defined in [Section 14.6](14-language-profiles.md#146-trailing-commas).
 
 Each property initializer consists of an identifier or string literal property name, either the `:` token or the optional-property `?:` token, and a required expression.
 
 The `?:` token declares the property optional in the anonymous structured type inferred for an object literal. It is a single lexical token: whitespace is not permitted between `?` and `:`. It does not make the initializer expression optional: the property is always present in the newly created object.
 
-When an object literal is contextually typed by a provider-declared structured type, the expected type determines property optionality and the literal marker does not alter it.
+When an object literal is contextually typed by a host-declared structured type, the expected type determines property optionality and the literal marker does not alter it.
 
 Computed property names and property spread are not supported.
 
@@ -89,7 +89,7 @@ An open object literal has an open inferred type and permits additional properti
 
 Object literals create mutable objects.
 
-## 10.5. Property access
+## 8.5. Property access
 
 Dot access requires a statically known property name.
 
@@ -101,7 +101,7 @@ Access to a known property has the type declared by the structured object schema
 
 Access to a dynamic property of an open object has type `unknown?`.
 
-The availability of dynamic property access depends on the language profile as defined in [Section 18.5](18-language-profiles.md#185-open-objects).
+The availability of dynamic property access depends on the language profile as defined in [Section 14.4](14-language-profiles.md#144-open-objects).
 
 A dynamic property may be present with the value `null`. Property absence remains distinct from a present null value and can be tested with `has`.
 
@@ -109,7 +109,7 @@ Access to an absent optional or dynamic property produces a runtime error unless
 
 Access to a member through a nullable value is statically permitted but produces a runtime error when the target is `null`, unless optional access is used.
 
-## 10.6. Optional access
+## 8.6. Optional access
 
 Optional property access uses `target?.property`.
 
@@ -127,7 +127,7 @@ When a dynamically named property is absent, optional access produces `null`.
 
 Optional access to a known required property only affects a nullable target; it does not change the property schema.
 
-## 10.7. Array access
+## 8.7. Array access
 
 Array indexes have type `int`.
 
@@ -143,13 +143,13 @@ Array element syntax cannot be used to access `length`; array indexes always req
 
 The intrinsic `length` property is not considered an object property and is not visible to the `has` operator.
 
-Every array element read validates the retrieved runtime value against the statically expected element type. A mutation through another alias that invalidates the current shape therefore causes a runtime type error on the later read.
+Every array element read validates the retrieved value against the statically expected element type. A mutation through another alias that invalidates the current shape therefore causes a runtime type error on the later read.
 
-## 10.8. Function calls
+## 8.8. Function calls
 
-Functions may be declared by the provider or by leading top-level `func` declarations in program mode.
+Functions may be declared by the host environment or by leading top-level `func` declarations in program mode.
 
-User-defined function declaration, invocation, parameters, scope, returns, and recursion are specified in [Section 23](23-user-defined-functions.md). Their availability is controlled as defined in [Section 18.2](18-language-profiles.md#182-user-defined-functions-and-recursion). Calls to provider functions are independently controlled as defined in [Section 18.4](18-language-profiles.md#184-provider-calls).
+User-defined function declaration, invocation, parameters, scope, returns, and recursion are specified in [Section 7](07-user-defined-functions.md). Their availability is controlled as defined in [Section 14.1](14-language-profiles.md#141-user-defined-functions-and-recursion). Calls to host-provided functions are independently controlled as defined in [Section 14.3](14-language-profiles.md#143-host-provided-function-calls).
 
 Function names are resolved only in call position.
 
@@ -157,9 +157,9 @@ Functions are synchronous, cannot be overloaded, and require exactly the declare
 
 User-defined functions require explicit parameter and return types. They may return `void`, support forward calls and recursion, and are not first-class values.
 
-The availability of recursion depends on the language profile as defined in [Section 18.2](18-language-profiles.md#182-user-defined-functions-and-recursion).
+The availability of recursion depends on the language profile as defined in [Section 14.1](14-language-profiles.md#141-user-defined-functions-and-recursion).
 
-User-defined function names MUST NOT conflict with provider function names. User-defined functions cannot be nested.
+User-defined function names MUST NOT conflict with host-provided function names. User-defined functions cannot be nested.
 
 Arguments MUST be assignable to their corresponding parameter types.
 
@@ -167,11 +167,11 @@ A void-returning call can only be used as a call statement.
 
 A non-void call MAY be used as an expression or discarded as a call statement.
 
-The compiler MUST assume that every function call can have observable side effects.
+Every function call is potentially effectful. Its evaluation MUST NOT be omitted, duplicated, or reordered relative to other observable operations.
 
-## 10.9. Nullable operands
+## 8.9. Nullable operands
 
-The compiler does not perform flow-sensitive narrowing.
+MuLang does not perform flow-sensitive narrowing. A type test or null check does not change the static type of a variable in a later expression or statement.
 
 Operations whose operand type is nullable are statically permitted when the corresponding non-null type supports the operation.
 
@@ -179,21 +179,21 @@ The operation MUST validate the operand at runtime and produce a MuLang runtime 
 
 Comparisons explicitly defined for `null` do not require non-null operands.
 
-Null coalescing is explicitly defined for nullable operands in [Section 11.8](11-operators.md#118-null-coalescing-operator).
+Null coalescing is explicitly defined for nullable operands in [Section 9.8](09-operators.md#98-null-coalescing-operator).
 
-## 10.10. Conditional expression
+## 8.10. Conditional expression
 
-The conditional expression follows C# precedence and right associativity.
+The conditional expression is right-associative and has lower precedence than every other expression operator.
 
-Its condition MUST satisfy the selected condition semantics in [Section 18.9](18-language-profiles.md#189-conditions).
+Its condition MUST satisfy the selected condition semantics in [Section 14.8](14-language-profiles.md#148-conditions).
 
 Its branches MUST have a common type according to the language conversion rules.
 
 Only the selected branch is evaluated.
 
-## 10.11. Compile-time constant evaluation
+## 8.11. Compile-time constant evaluation
 
-When compile-time constant folding is enabled by the selected language profile, the compiler MUST simplify constant primitive expressions after successful binding and before lowering, using the same primitive semantics as runtime evaluation.
+When compile-time constant evaluation is enabled by the selected language profile, a constant primitive expression MUST be evaluated during compilation and replaced by its result. Compile-time evaluation MUST use the same value, conversion, operator, and failure semantics as ordinary execution.
 
 A constant primitive expression is a primitive literal or an expression whose required operands have been reduced to primitive literals. Compile-time evaluation applies to:
 
@@ -204,12 +204,10 @@ A constant primitive expression is a primitive literal or an expression whose re
 - conditional expressions;
 - conditional Boolean operators.
 
-Compile-time evaluation MUST preserve source evaluation order and short-circuit behavior. An operand or conditional branch that is known not to be evaluated MUST NOT be evaluated for constant folding and MUST NOT produce a constant-evaluation diagnostic.
+Compile-time evaluation MUST preserve source evaluation order and short-circuit behavior. An operand or conditional branch that is known not to be evaluated MUST NOT be evaluated and MUST NOT produce a constant-evaluation diagnostic.
 
-Provider calls, user-defined calls, global or local reads, array and object creation, member access, and element access are not constant expressions. Constant subexpressions within them MAY still be simplified.
+Host-provided calls, user-defined calls, global or local reads, array and object creation, member access, and element access are not constant expressions. Constant subexpressions within them MAY still be evaluated during compilation.
 
-If evaluating a required constant subexpression produces integer overflow, integer division or remainder by zero, an invalid shift count, or a failed checked cast, compilation MUST report an error and MUST NOT produce an executable artifact.
+If evaluating a required constant subexpression produces integer overflow, integer division or remainder by zero, an invalid shift count, or a failed checked cast, compilation MUST report an error and MUST NOT produce an executable result.
 
-The compiler MUST NOT materialize mutable arrays or objects as shared compile-time constants.
-
-When compile-time constant folding is disabled, the compiler MUST preserve these expressions for runtime evaluation and MUST NOT produce constant-evaluation diagnostics.
+When compile-time constant evaluation is disabled, these expressions are evaluated only during execution, and failures that occur while evaluating them are runtime errors.

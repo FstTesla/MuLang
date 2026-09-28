@@ -1,6 +1,6 @@
-# 20. Grammar summary
+# 15. Grammar summary
 
-This grammar describes the complete syntax for language version 1.1. Language version 1 rejects the read-only array additions. A selected language profile may reject otherwise recognized function, loop, mutation, open-object, or trailing-comma constructs as defined in [Sections 18.2 through 18.7](18-language-profiles.md#182-user-defined-functions-and-recursion).
+This grammar describes the complete syntax for language version 1.1. Language version 1 rejects the read-only array additions. A selected language profile may reject otherwise recognized function, loop, mutation, open-object, or trailing-comma constructs as defined in [Sections 14.1 through 14.6](14-language-profiles.md#141-user-defined-functions-and-recursion).
 
 ```ebnf
 expression-root
@@ -99,7 +99,7 @@ primary-type
     | "string"
     | "unknown"
     | "object"
-    | provider-type-name ;
+    | host-type-name ;
 
 array-suffix
     = "[]" ;

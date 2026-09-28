@@ -1,16 +1,16 @@
-# 5. Lexical structure
+# 3. Lexical structure
 
-## 5.1. Whitespace
+## 3.1. Whitespace
 
 Whitespace separates tokens and otherwise has no semantic meaning.
 
 Whitespace consists of spaces, horizontal tabs, carriage returns, and line feeds.
 
-## 5.2. Comments
+## 3.2. Comments
 
 Comments are not supported. Character sequences commonly used to introduce comments MUST be tokenized according to the normal operator and punctuation rules or reported as invalid tokens.
 
-## 5.3. Identifiers
+## 3.3. Identifiers
 
 An identifier starts with a Unicode letter or underscore and continues with Unicode letters, decimal digits, or underscores.
 
@@ -18,7 +18,7 @@ Identifiers are case-sensitive.
 
 An identifier that exactly matches a reserved keyword cannot be used as an identifier.
 
-## 5.4. Reserved keywords
+## 3.4. Reserved keywords
 
 Language version 1 reserves:
 
@@ -53,43 +53,39 @@ Language version 1.1 additionally reserves:
 
 When compiling an earlier language version, each identifier occurrence whose spelling becomes reserved in a later supported version produces a warning while remaining an identifier.
 
-Provider-defined function, global, and type names MUST NOT use reserved keywords.
+Host-defined function, global, and type names MUST NOT use reserved keywords.
 
-## 5.5. Boolean literals
+## 3.5. Boolean literals
 
 The boolean literals are `true` and `false`.
 
-## 5.6. Null literal
+## 3.6. Null literal
 
 The null literal is `null`.
 
 `null` is a value but is not a denotable type.
 
-## 5.7. Integer literals
+## 3.7. Integer literals
 
-An integer literal consists of an optional leading `+` or `-` sign followed by a non-empty sequence of decimal digits without a decimal separator or exponent.
-
-The lexer emits the sign and unsigned numeric portion as separate tokens. The parser combines them into one signed literal syntax node when a sign is followed by a numeric token in a position where a literal can occur.
+An integer literal consists of a non-empty sequence of decimal digits without a decimal separator or exponent. In a position where a literal is permitted, an immediately preceding `+` or `-` token is part of the signed literal.
 
 Whitespace between the sign and numeric token has no semantic meaning.
 
 The complete signed value MUST be representable as a signed 64-bit integer. A value outside that range is a compile-time error.
 
-## 5.8. Float literals
+## 3.8. Float literals
 
-A finite float literal consists of an optional leading `+` or `-` sign and a numeric portion containing a decimal separator, an exponent, or both.
+A finite float literal consists of a numeric portion containing a decimal separator, an exponent, or both. In a position where a literal is permitted, an immediately preceding `+` or `-` token is part of the signed literal.
 
 Float literals use `.` as the decimal separator and are independent of host culture.
 
 The complete finite value MUST be representable as a finite IEEE 754 binary64 value. A numeric portion that overflows to infinity is a compile-time error.
 
-The lexer emits the sign and unsigned numeric portion as separate tokens. The parser combines them into one signed literal syntax node under the same rules as integer literals.
-
-Language version 1.1 additionally provides the `infty` and `nan` keyword literals for positive infinity and NaN. An optional separate `+` or `-` token is combined with either keyword under the same rules as finite numeric literals. `-infty` denotes negative infinity. Both signed forms of `nan` denote NaN without preserving a distinct sign.
+Language version 1.1 additionally provides the `infty` and `nan` keyword literals for positive infinity and NaN. An immediately preceding `+` or `-` token is part of the literal under the same conditions as for finite numeric literals. `-infty` denotes negative infinity. Both signed forms of `nan` denote NaN without preserving a distinct sign.
 
 Float values and operations use IEEE 754 binary64 semantics.
 
-## 5.9. String literals
+## 3.9. String literals
 
 String literals are delimited by double quotes.
 
@@ -110,8 +106,10 @@ An invalid escape sequence or unterminated string is a lexical error.
 
 String values are sequences of Unicode scalar values and are compared ordinally.
 
-## 5.10. Read-only array tokens
+## 3.10. Read-only array tokens
 
 Language version 1.1 recognizes `$` as a postfix type-capability token and `$[` as the single opening token of a read-only array literal.
 
-The lexer MUST recognize `$[` before standalone `$`. Language version 1 recognizes both token shapes for recovery but reports that they require language version 1.1.
+`$[` is one token and MUST NOT be split into `$` followed by `[`.
+
+Language version 1 rejects both token forms as unavailable in that version.

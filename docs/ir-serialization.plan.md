@@ -543,7 +543,7 @@ assertions.
 
 ## Documentation updates
 
-Update `docs/public/language/22-muir-format.md` to specify:
+Update `docs/public/muir-format.md` to specify:
 
 - complete wire-definition identity;
 - canonical deduplication independent of `TypeSymbol` sharing;

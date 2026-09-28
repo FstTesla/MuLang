@@ -23,7 +23,7 @@ Each release heading identifies the incremental version range covered by the sec
 
 - Added the language version 1.1 `infty` and `nan` float literals for IEEE 754 positive infinity and NaN. The parser accepts separate leading signs, including `-infty`, `+nan`, and `-nan`, while finite decimal literals that overflow remain compile-time errors.
 - Added lexical warning `MUL1005` for every use in an earlier language version of an identifier spelling that becomes reserved in a later supported version. Version 1 code may still use `infty` and `nan`, but now receives migration warnings because version 1.1 reserves them.
-- Added the versioned, canonical, textual MuIR (`.muir`) format for serializing and deserializing portable `IrProgram` graphs. `MuLang.IR` now provides UTF-8 and text APIs, explicit polymorphic wire tokens, source-span preservation, strict parsing diagnostics, configurable resource limits, and byte-stable round trips.
+- Added the versioned, canonical, textual [MuIR (`.muir`) format](https://fsttesla.github.io/MuLang/muir-format.html) for serializing and deserializing portable `IrProgram` graphs. `MuLang.IR` now provides UTF-8 and text APIs, explicit polymorphic wire tokens, source-span preservation, strict parsing diagnostics, configurable resource limits, and byte-stable round trips.
 - Added atomic construction of immutable self-recursive and mutually recursive structured-object type graphs for provider environments and portable IR. Type equivalence and MuIR canonicalization now terminate coinductively, normalize object properties ordinally, merge bisimilar wire graphs, and support forward type references. Lowering projects provider object types to structural IR-only graphs, and MuIR omits provider IDs, type names, and named-versus-anonymous origin.
 - Added mutable/read-only capability to IR slots while preserving existing construction. Local and temporary slots default to mutable; parameter slots default to read-only, matching their established source immutability. MuIR persists the capability, and `IrValidator` forbids parameter definition sites and requires a read-only local to have exactly one syntactic definition site.
 
@@ -33,19 +33,19 @@ Each release heading identifies the incremental version range covered by the sec
 
 - Renamed language version 2 to language version 1.1 without changing its semantics or numeric value. `LanguageVersion.Version2` and `LanguageProfiles.Version2` are now `LanguageVersion.Version1_1` and `LanguageProfiles.Version1_1`.
 - Removed the public `LanguageProfile` constructor. Hosts must now create or customize profiles through [`LanguageProfileBuilder`](https://fsttesla.github.io/MuLang/api/MuLang.Core.LanguageProfileBuilder.html).
-- Enabled [compile-time constant folding](https://fsttesla.github.io/MuLang/language/10-expressions.html#1011-compile-time-constant-evaluation) in both standard language profiles. Integer overflow, integer division or remainder by zero, invalid shift counts, and failed checked casts in required constant expressions now produce compilation error `MUL3031` and no executable artifact instead of failing at runtime. Hosts that require the previous behavior must disable constant folding in their profile.
+- Enabled [compile-time constant folding](https://fsttesla.github.io/MuLang/language/08-expressions.html#811-compile-time-constant-evaluation) in both standard language profiles. Integer overflow, integer division or remainder by zero, invalid shift counts, and failed checked casts in required constant expressions now produce compilation error `MUL3031` and no executable artifact instead of failing at runtime. Hosts that require the previous behavior must disable constant folding in their profile.
 - Changed every standard language-profile fingerprint by adding constant folding to the profile identity. Cached or persisted IR compiled with earlier fingerprints must be recompiled.
 
 ### New features
 
 - Added primitive constant folding before lowering for intrinsic operators, value conversions, checked casts, type tests, truthiness, null coalescing, conditional expressions, and conditional Boolean operators while preserving evaluation order and short-circuit behavior.
-- Added the [`ConstantFoldingFeature`](https://fsttesla.github.io/MuLang/language/18-language-profiles.html#1810-compile-time-constant-folding) profile option, the `LanguageProfile.ConstantFolding` property, and `LanguageProfileBuilder.WithConstantFolding`. Disabling the feature preserves runtime evaluation and runtime failures for constant expressions.
+- Added the [`ConstantFoldingFeature`](https://fsttesla.github.io/MuLang/language/14-language-profiles.html#149-compile-time-constant-evaluation) profile option, the `LanguageProfile.ConstantFolding` property, and `LanguageProfileBuilder.WithConstantFolding`. Disabling the feature preserves runtime evaluation and runtime failures for constant expressions.
 
 ## `0.2.0-alpha.1` → `0.2.0-alpha.2` - 2026-09-24
 
 ### Breaking changes
 
-- Changed [`is` and `as` checked-cast semantics](https://fsttesla.github.io/MuLang/language/08-assignability-and-conversions.html#88-explicit-checked-casts) to use the same runtime-conformance relation. A statically permitted `value as T` now succeeds exactly when `value is T` is `true` for the same unchanged value, and a successful cast preserves the runtime representation and identity. Consequently, `as` no longer converts primitive values or `null` to `string`, promotes `int` to `float`, or converts between the concrete runtime kinds represented by `number`. Use string concatenation for primitive formatting, `integer + 0.0` to promote a statically typed `int`, and standard-library numeric functions for intentional numeric transformations.
+- Changed [`is` and `as` checked-cast semantics](https://fsttesla.github.io/MuLang/language/05-assignability-and-conversions.html#58-explicit-checked-casts) to use the same runtime-conformance relation. A statically permitted `value as T` now succeeds exactly when `value is T` is `true` for the same unchanged value, and a successful cast preserves the runtime representation and identity. Consequently, `as` no longer converts primitive values or `null` to `string`, promotes `int` to `float`, or converts between the concrete runtime kinds represented by `number`. Use string concatenation for primitive formatting, `integer + 0.0` to promote a statically typed `int`, and standard-library numeric functions for intentional numeric transformations.
 - Replaced `IrInstruction.Convert.IsChecked` with the `IrInstruction.Convert.Kind` property and `IrConversionKind` enum. Custom IR producers and exporters must distinguish value conversions from checked casts through the new constructor parameter.
 - Restricted `TypeRelations.ClassifyConversion` and `IrConversionKind.ValueConversion` to conversions generated by the compiler. Cast-only numeric, object, and array type pairs now classify as `None`; custom IR producers must use `TypeRelations.IsCastable` and `CheckedCast` for identity-preserving runtime conformance.
 
@@ -104,7 +104,7 @@ No consumer-visible changes.
 
 ### New features
 
-- Added the public [`MuLang.IR`](https://fsttesla.github.io/MuLang/api/MuLang.IR.IrProgram.html) model and validation APIs, enabling runtime-independent compilation and custom exporters.
+- Added the public [`MuLang.IR`](https://fsttesla.github.io/MuLang/api/MuLang.IR.IrProgram.html) model and validation APIs, enabling runtime-independent compilation and custom exporters as defined by the [portable intermediate representation specification](https://fsttesla.github.io/MuLang/portable-intermediate-representation.html).
 - Exposed compiler, IR, and .NET runtime diagnostic codes as public constants.
 - Exposed `ObjectTypeSymbol.CreateAnonymous`, `TypeSymbols.Null`, and `TypeSymbols.Error` for compiler and IR integrations.
 
@@ -116,4 +116,4 @@ No consumer-visible changes.
 
 ### New features
 
-- Added [`OpenObjectsFeature.PropertyExistenceOnly`](https://fsttesla.github.io/MuLang/api/MuLang.Core.OpenObjectsFeature.html#MuLang_Core_OpenObjectsFeature_PropertyExistenceOnly), which enables dynamic `has` tests without enabling open-object creation, access, mutation, or provider-declared open types. See the [open-object profile semantics](https://fsttesla.github.io/MuLang/language/18-language-profiles.html#185-open-objects) for details.
+- Added [`OpenObjectsFeature.PropertyExistenceOnly`](https://fsttesla.github.io/MuLang/api/MuLang.Core.OpenObjectsFeature.html#MuLang_Core_OpenObjectsFeature_PropertyExistenceOnly), which enables dynamic `has` tests without enabling open-object creation, access, mutation, or provider-declared open types. See the [open-object profile semantics](https://fsttesla.github.io/MuLang/language/14-language-profiles.html#144-open-objects) for details.

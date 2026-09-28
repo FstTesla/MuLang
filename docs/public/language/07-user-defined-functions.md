@@ -1,8 +1,8 @@
-# 23. User-defined functions
+# 7. User-defined functions
 
 User-defined functions are synchronous top-level program declarations. They are not first-class values.
 
-## 23.1. Availability and placement
+## 7.1. Availability and placement
 
 User-defined functions are available only in program mode and only when enabled by the selected language profile.
 
@@ -10,9 +10,9 @@ A program MAY begin with zero or more function declarations. Every function decl
 
 Functions cannot be declared in expression mode, inside another function, or inside a statement block.
 
-When the feature is disabled, declarations and calls remain recognizable for recovery and produce the diagnostics defined by the selected profile.
+When the feature is disabled, a function declaration or a call to a user-defined function is a compile-time error.
 
-## 23.2. Declarations and signatures
+## 7.2. Declarations and signatures
 
 A function declaration contains:
 
@@ -31,11 +31,11 @@ Function overloading, optional parameters, variadic parameters, default argument
 A user-defined function name MUST NOT conflict with:
 
 - another user-defined function name;
-- a provider function name.
+- a host-provided function name.
 
 Function names and variable names occupy distinct namespaces. Function names are resolved only in call position.
 
-## 23.3. Visibility and parameter scope
+## 7.3. Visibility and parameter scope
 
 Every valid top-level function declaration is visible throughout the complete program, independently from textual declaration order. Forward calls are therefore valid.
 
@@ -45,14 +45,15 @@ Parameters:
 
 - are definitely assigned when the function is entered;
 - are immutable;
-- cannot be assignment targets;
-- cannot be shadowed by local or global variables.
+- cannot be assignment targets.
 
-Function bodies cannot capture locals declared by top-level executable statements or by another function. All data entering a function is supplied through parameters or provider globals.
+Whether a parameter may shadow a global or be shadowed in a nested scope depends on the selected language profile.
+
+Function bodies cannot capture locals declared by top-level executable statements or by another function. All data entering a function is supplied through parameters or host-provided globals.
 
 Local declarations inside the body follow the ordinary block and shadowing rules.
 
-## 23.4. Calls
+## 7.4. Calls
 
 A call supplies exactly one argument for every declared parameter, in declaration order.
 
@@ -62,11 +63,11 @@ A non-void call is an expression and MAY also be used as a call statement, in wh
 
 A void call is valid only as a call statement or in another context that explicitly accepts a void operation.
 
-The compiler MUST assume that every call can have observable side effects.
+Every call is potentially effectful. Its evaluation MUST NOT be omitted, duplicated, or reordered relative to other observable operations.
 
 User-defined functions are not values: they cannot be stored in variables, passed as arguments, returned, placed in objects or arrays, or accessed without invocation syntax.
 
-## 23.5. Returns and control flow
+## 7.5. Returns and control flow
 
 `return` exits the current function.
 
@@ -78,35 +79,14 @@ A void function permits only `return` without an expression and MAY reach the en
 
 Definite-assignment analysis is performed independently for each function.
 
-## 23.6. Recursion
+## 7.6. Recursion
 
 Direct and mutual recursion are supported when enabled by the selected language profile.
 
-When recursion is disabled, the compiler constructs the user-function call graph and rejects every strongly connected component that:
+When recursion is disabled, a function MUST NOT call itself directly or participate in a cycle of calls among user-defined functions.
 
-- contains more than one function; or
-- contains a self-edge.
-
-Provider calls do not add recursion edges to the user-function call graph.
+Calls to host-provided functions do not constitute recursion.
 
 The recursion setting is dormant when user-defined functions are disabled.
 
-Runtime execution enforces the configured maximum user-function call depth.
-
-## 23.7. Portable IR
-
-Every user-defined function lowers to one `IrFunction` with:
-
-- a compiler-assigned stable function ID;
-- an explicit return type;
-- contiguous leading parameter slots;
-- function-local local and temporary slots;
-- one entry block and zero or more additional basic blocks.
-
-Parameter slots are read-only, are implicitly defined at function entry, and have no instruction definition site.
-
-Calls use `IrInstruction.UserCall` and reference the target function ID. The IR validator requires argument count and types, return type, and destination shape to match the target function.
-
-Each function has independent slot and control-flow namespaces. No IR instruction may reference a slot or block owned by another function.
-
-Object types in function signatures and slots are lowered to structural IR types. Source or provider declaration names are not retained in the function IR.
+Execution enforces the configured maximum active user-function call depth.

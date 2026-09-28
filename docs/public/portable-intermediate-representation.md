@@ -1,8 +1,8 @@
-# 19. Portable intermediate representation
+# Portable intermediate representation
 
 The compiler MUST lower validated source into a runtime-independent typed intermediate representation before export.
 
-When enabled by the selected language profile, the compiler MUST perform compile-time constant evaluation as defined in [Section 10.11](10-expressions.md#1011-compile-time-constant-evaluation) after binding and before lowering. Folded expressions are represented by ordinary typed IR constants; the IR does not require a distinct constant-expression form.
+When enabled by the selected language profile, the compiler MUST perform compile-time constant evaluation as defined in the [language specification](language/08-expressions.md#811-compile-time-constant-evaluation) after binding and before lowering. Folded expressions are represented by ordinary typed IR constants; the IR does not require a distinct constant-expression form.
 
 The portable IR compilation unit SHOULD contain:
 
@@ -51,4 +51,4 @@ Runtime exporters MUST NOT perform name resolution, type inference, overload res
 
 Portable IR MAY be persisted and exchanged as a MuIR document with the `.muir` extension. MuIR is versioned independently from the MuLang language and profile versions. A host that reads MuIR MUST validate the reconstructed program against its selected environment through the ordinary IR validator before export or execution.
 
-The normative MuIR version 1 format is defined in [Section 22](22-muir-format.md).
+The normative MuIR version 1 format is defined in the [MuIR serialization format](muir-format.md).

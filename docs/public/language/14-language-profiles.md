@@ -1,0 +1,136 @@
+# 14. Language profiles
+
+Every compilation MUST select a language profile independently from its static environment and compilation mode. The selected settings remain fixed for that compilation and its execution.
+
+A language profile selects:
+
+- a language version;
+- whether user-defined functions are enabled;
+- whether recursion is enabled;
+- which loop forms are enabled;
+- whether calls to host-provided functions are enabled;
+- the available open-object operations;
+- the available mutation operations;
+- whether explicit multi-level loop control is enabled;
+- whether trailing commas are enabled;
+- whether compile-time constant evaluation is enabled;
+- the condition semantics;
+- the permitted forms of variable shadowing.
+
+Unknown settings and unsupported language versions MUST be rejected. A setting whose prerequisite is disabled remains dormant rather than making the profile invalid.
+
+The standard profile for language version 1 enables user-defined functions, recursion, both loop kinds, calls to host-provided functions, open objects, every mutation kind, explicit loop-control levels, trailing commas, and compile-time constant evaluation. It uses strict Boolean conditions and prohibits variable shadowing.
+
+The standard profile for language version 1.1 has the same settings and adds read-only array types and literals together with the `infty` and `nan` float literals. These additions are determined by the language version and are not independently configurable.
+
+Language version 1 rejects `$` and `$[` and treats `infty` and `nan` as identifiers.
+
+## 14.1. User-defined functions and recursion
+
+The language semantics of user-defined functions are defined in [Section 7](07-user-defined-functions.md).
+
+When user-defined functions are disabled, a function declaration and a call resolved to a user-defined function are compile-time errors. Calls to host-provided functions remain independently configurable.
+
+When recursion is disabled, no user-defined function may call itself directly or participate in a cycle of calls among user-defined functions.
+
+Calls to host-provided functions do not create recursion among user-defined functions. The recursion setting is dormant when user-defined functions are disabled.
+
+## 14.2. Loops and loop control
+
+The profile independently permits `while` statements and `for` statements.
+
+When a loop form is disabled, use of that loop form is a compile-time error.
+
+When explicit multi-level loop control is disabled, a numeric level written on `break` or `continue` is a compile-time error, including level `1`. Plain `break;` and `continue;` remain available within enabled loops.
+
+The multi-level loop-control setting is dormant when both loop forms are disabled.
+
+## 14.3. Host-provided function calls
+
+When calls to host-provided functions are disabled, a call resolved to such a function is a compile-time error.
+
+Host-provided function declarations remain valid in the static environment and need not be used by the source program.
+
+## 14.4. Open objects
+
+The open-objects setting has three ordered capability levels:
+
+| Capability | Disabled | Property existence | Enabled |
+|---|---|---|---|
+| `has` with a literal key naming a known property of a closed structured type | Yes | Yes | Yes |
+| Dynamic `has` tests | No | Yes | Yes |
+| `@{ ... }` literals | No | No | Yes |
+| Host-declared open structured types | No | No | Yes |
+| Dynamic member and element access | No | No | Yes |
+| Dynamic property assignment and removal | No | No | Yes |
+
+The property-existence setting permits `has` with a computed key on a closed structured type and permits `has` on the generic `object` type. It does not permit reading the selected property value.
+
+The disabled and property-existence settings reject a static environment containing an open structured type, including an unused type.
+
+The generic `object` type remains a valid abstract supertype under every setting. When open objects are disabled, it exposes no dynamic operations. Under the property-existence setting, it exposes only `has`.
+
+In every setting, `object` remains valid for assignment, argument passing, return values, arrays and properties, equality, identity equality, `is`, and `as`.
+
+Closed structured types and their statically known properties remain available under every setting.
+
+## 14.5. Mutations
+
+The profile independently controls:
+
+- assignment to object properties;
+- assignment to array elements;
+- property removal.
+
+Property removal does not depend on object-property assignment.
+
+Mutation restrictions apply regardless of whether a value originated from a literal, global, parameter, property, array element, or function result.
+
+## 14.6. Trailing commas
+
+When trailing commas are disabled, a trailing comma is a compile-time error in array, closed-object, and open-object literals.
+
+Trailing commas in argument and parameter lists are always invalid.
+
+## 14.7. Shadowing
+
+A duplicate declaration in the same scope is invalid under every shadowing policy.
+
+Nested-scope shadowing permits a declaration in a nested lexical scope to shadow an enclosing local variable or function parameter. It does not permit shadowing a global.
+
+Global shadowing permits locals and function parameters to shadow globals. It does not permit shadowing enclosing locals or parameters.
+
+The two permissions MAY be combined. When neither is selected, both forms of shadowing are prohibited.
+
+## 14.8. Conditions
+
+Under strict Boolean semantics, `if`, `while`, `for`, and conditional-expression conditions MUST have type `bool`. The operands of `!`, `&&`, and `||` MUST also have type `bool`.
+
+Under truthiness semantics, every non-void type is accepted in those contexts and its value is normalized to `bool` as follows:
+
+| Value | Boolean result |
+|---|---|
+| `null` | `false` |
+| `false` | `false` |
+| `int` zero | `false` |
+| `float` positive zero, negative zero, or NaN | `false` |
+| empty `string` | `false` |
+| every other supported value | `true` |
+
+A value with static type `number` is interpreted according to its concrete `int` or `float` representation. A value with static type `unknown` or `unknown?` is interpreted according to its concrete value. Every non-null object and array is truthy, including an empty value.
+
+Truthiness is contextual. It does not add an implicit conversion to `bool`, a source-level Boolean cast, flow-sensitive narrowing, or changes to equality and identity. `void` remains invalid. A value that cannot be represented by any supported MuLang type produces a runtime error.
+
+Both standard language profiles use strict Boolean semantics.
+
+## 14.9. Compile-time constant evaluation
+
+When enabled, compile-time constant evaluation follows [Section 8.11](08-expressions.md#811-compile-time-constant-evaluation).
+
+When disabled, the same expressions retain their ordinary execution-time behavior, and failures that occur while evaluating them are runtime errors.
+
+Both standard language profiles enable compile-time constant evaluation.
+
+## 14.10. Feature diagnostics
+
+Use of syntax or behavior disabled by the selected profile is a compile-time error.

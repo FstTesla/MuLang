@@ -1,48 +1,32 @@
 - name: Language specification
   href: index.md
-- name: 1. Design goals
-  href: 01-design-goals.md
-- name: 2. Non-goals
-  href: 02-non-goals.md
-- name: 3. Compilation modes
-  href: 03-compilation-modes.md
-- name: 4. Source text
-  href: 04-source-text.md
-- name: 5. Lexical structure
-  href: 05-lexical-structure.md
-- name: 6. Grammar conventions
-  href: 06-grammar-conventions.md
-- name: 7. Types
-  href: 07-types.md
-- name: 8. Assignability and conversions
-  href: 08-assignability-and-conversions.md
-- name: 9. Variables and scope
-  href: 09-variables-and-scope.md
-- name: 10. Expressions
-  href: 10-expressions.md
-- name: 11. Operators
-  href: 11-operators.md
-- name: 12. Statements
-  href: 12-statements.md
-- name: 13. Provider environment
-  href: 13-provider-environment.md
-- name: 14. Runtime value adapters
-  href: 14-runtime-value-adapters.md
-- name: 15. Runtime errors
-  href: 15-runtime-errors.md
-- name: 16. Execution controls
-  href: 16-execution-controls.md
-- name: 17. Diagnostics
-  href: 17-diagnostics.md
-- name: 18. Language profiles
-  href: 18-language-profiles.md
-- name: 19. Portable intermediate representation
-  href: 19-portable-intermediate-representation.md
-- name: 20. Grammar summary
-  href: 20-grammar-summary.md
-- name: 21. Draft review decisions
-  href: 21-draft-review-decisions.md
-- name: 22. MuIR serialization format
-  href: 22-muir-format.md
-- name: 23. User-defined functions
-  href: 23-user-defined-functions.md
+- name: 1. Overview
+  href: 01-overview.md
+- name: 2. Source text and grammar notation
+  href: 02-source-text-and-grammar.md
+- name: 3. Lexical structure
+  href: 03-lexical-structure.md
+- name: 4. Types
+  href: 04-types.md
+- name: 5. Assignability and conversions
+  href: 05-assignability-and-conversions.md
+- name: 6. Variables and scope
+  href: 06-variables-and-scope.md
+- name: 7. User-defined functions
+  href: 07-user-defined-functions.md
+- name: 8. Expressions
+  href: 08-expressions.md
+- name: 9. Operators
+  href: 09-operators.md
+- name: 10. Statements
+  href: 10-statements.md
+- name: 11. Host environment and runtime values
+  href: 11-host-environment-and-runtime-values.md
+- name: 12. Errors and diagnostics
+  href: 12-errors-and-diagnostics.md
+- name: 13. Execution controls
+  href: 13-execution-controls.md
+- name: 14. Language profiles
+  href: 14-language-profiles.md
+- name: 15. Grammar summary
+  href: 15-grammar-summary.md

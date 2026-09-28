@@ -1,4 +1,4 @@
-# 21. Draft review decisions
+# Draft review decisions
 
 The following choices are made by this draft and require explicit review before the specification is considered stable:
 
@@ -16,4 +16,4 @@ The following choices are made by this draft and require explicit review before 
 12. Open object literals use `@{`, while closed object literals use `{`.
 13. Arrays expose a read-only intrinsic `length` property that is not an object property.
 14. Checked-cast success can be queried with `is`, while runtime mutation capabilities cannot always be queried before performing the corresponding operation.
-15. Null coalescing uses C# precedence and associativity, requires a nullable left operand, and derives its result from the non-null left type and the right operand.
+15. Null coalescing is right-associative at the precedence defined by the operator table, requires a nullable left operand, and derives its result from the non-null left type and the right operand.
