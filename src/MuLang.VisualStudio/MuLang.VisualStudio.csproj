@@ -59,4 +59,14 @@
     </ItemGroup>
   </Target>
 
+  <Target
+    Name="ApplyVsixVersion"
+    AfterTargets="DetokenizeVsixManifestFile"
+    Condition="'$(VsixVersion)' != ''">
+    <XmlPoke
+      XmlInputPath="$(IntermediateVsixManifest)"
+      Query="/*[local-name()='PackageManifest']/*[local-name()='Metadata']/*[local-name()='Identity']/@Version"
+      Value="$(VsixVersion)" />
+  </Target>
+
 </Project>

@@ -1,4 +1,4 @@
-name: Publish NuGet package
+name: Publish release
 
 on:
   push:
@@ -6,24 +6,24 @@ on:
       - 'v*'
 
 concurrency:
-  group: nuget-publish-${{ github.ref }}
+  group: release-publish-${{ github.ref }}
   cancel-in-progress: false
 
 permissions:
   contents: read
 
 jobs:
-  pack:
-    name: Build, test, and pack
+  prepare:
+    name: Prepare release metadata
     runs-on: ubuntu-latest
 
     permissions:
       contents: read
-      packages: read
 
     outputs:
       version: ${{ steps.version.outputs.version }}
       create_github_release: ${{ steps.release.outputs.create_github_release }}
+      package_release_notes: ${{ steps.release.outputs.package_release_notes }}
       release_notes_file: ${{ steps.release.outputs.release_notes_file }}
 
     steps:
@@ -31,17 +31,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Set up .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          global-json-file: global.json
-          source-url: https://nuget.pkg.github.com/FstTesla/index.json
-        env:
-          NUGET_AUTH_TOKEN: ${{ github.token }}
-
-      - name: Restore tools
-        run: dotnet tool restore
 
       - name: Derive package version
         id: version
@@ -57,7 +46,7 @@ jobs:
           }
 
           "version=$version" >> $env:GITHUB_OUTPUT
-          "## NuGet release" >> $env:GITHUB_STEP_SUMMARY
+          "## MuLang release" >> $env:GITHUB_STEP_SUMMARY
           "- Tag: ``$env:RELEASE_TAG``" >> $env:GITHUB_STEP_SUMMARY
           "- Version: ``$version``" >> $env:GITHUB_STEP_SUMMARY
           "- Commit: ``${{ github.sha }}``" >> $env:GITHUB_STEP_SUMMARY
@@ -122,22 +111,46 @@ jobs:
           "package_release_notes=$packageReleaseNotes" >> $env:GITHUB_OUTPUT
           "release_notes_file=$releaseNotesFile" >> $env:GITHUB_OUTPUT
 
+  pack:
+    name: Build, test, and pack
+    needs: prepare
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      - name: Check out tagged commit
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+          source-url: https://nuget.pkg.github.com/FstTesla/index.json
+        env:
+          NUGET_AUTH_TOKEN: ${{ github.token }}
+
+      - name: Restore tools
+        run: dotnet tool restore
+
       - name: Restore
-        run: dotnet restore MuLang.slnx --locked-mode
+        run: dotnet restore MuLang.CrossPlatform.slnx --locked-mode
 
       - name: Build
-        run: dotnet build MuLang.slnx --configuration Release --no-restore --nologo --verbosity minimal -p:Version=${{ steps.version.outputs.version }}
+        run: dotnet build MuLang.CrossPlatform.slnx --configuration Release --no-restore --nologo --verbosity minimal -p:Version=${{ needs.prepare.outputs.version }}
 
       - name: Test
-        run: dotnet test MuLang.slnx --configuration Release --no-build --no-restore --nologo --verbosity minimal
+        run: dotnet test MuLang.CrossPlatform.slnx --configuration Release --no-build --no-restore --nologo --verbosity minimal
 
       - name: Pack
-        run: dotnet pack MuLang.slnx --configuration Release --no-build --no-restore --nologo --verbosity minimal --output artifacts/packages -p:Version=${{ steps.version.outputs.version }} -p:PackageReleaseNotes="${{ steps.release.outputs.package_release_notes }}"
+        run: dotnet pack MuLang.CrossPlatform.slnx --configuration Release --no-build --no-restore --nologo --verbosity minimal --output artifacts/packages -p:Version=${{ needs.prepare.outputs.version }} -p:PackageReleaseNotes="${{ needs.prepare.outputs.package_release_notes }}"
 
       - name: Verify package artifacts
         shell: pwsh
         env:
-          VERSION: ${{ steps.version.outputs.version }}
+          VERSION: ${{ needs.prepare.outputs.version }}
         run: |
           ./eng/Verify-Packages.ps1 `
             -PackageDirectory "artifacts/packages" `
@@ -156,13 +169,83 @@ jobs:
       - name: Upload package artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: NuGet-${{ steps.version.outputs.version }}
+          name: NuGet-${{ needs.prepare.outputs.version }}
           path: artifacts/packages/*
           if-no-files-found: error
 
+  vsix:
+    name: Build and verify VSIX
+    needs: prepare
+    runs-on: windows-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check out tagged commit
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Derive VSIX version
+        shell: pwsh
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          $vsixVersion = ./eng/Get-VsixVersion.ps1 -Version $env:VERSION
+          "VSIX_VERSION=$vsixVersion" >> $env:GITHUB_ENV
+          "### VSIX" >> $env:GITHUB_STEP_SUMMARY
+          "- Version: ``$vsixVersion``" >> $env:GITHUB_STEP_SUMMARY
+
+      - name: Restore
+        run: dotnet restore src\MuLang.VisualStudio\MuLang.VisualStudio.csproj --locked-mode
+
+      - name: Build VSIX
+        shell: pwsh
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          dotnet build src\MuLang.VisualStudio\MuLang.VisualStudio.csproj `
+            --configuration Release `
+            --no-restore `
+            --nologo `
+            --verbosity minimal `
+            -p:Version=$env:VERSION `
+            -p:VsixVersion=$env:VSIX_VERSION
+
+      - name: Prepare and verify VSIX artifact
+        shell: pwsh
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          New-Item artifacts\vsix -ItemType Directory -Force | Out-Null
+          $artifact = "artifacts\vsix\MuLang.VisualStudio.$env:VERSION.vsix"
+          Copy-Item `
+            src\MuLang.VisualStudio\bin\Release\net472\MuLang.VisualStudio.vsix `
+            $artifact
+          ./eng/Verify-Vsix.ps1 `
+            -Path $artifact `
+            -Version $env:VSIX_VERSION
+          $hash = (Get-FileHash $artifact -Algorithm SHA256).Hash.ToLowerInvariant()
+          "- Artifact: ``$artifact``" >> $env:GITHUB_STEP_SUMMARY
+          "- SHA-256: ``$hash``" >> $env:GITHUB_STEP_SUMMARY
+
+      - name: Upload VSIX artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: VSIX-${{ needs.prepare.outputs.version }}
+          path: artifacts/vsix/*
+          if-no-files-found: error
+
   publish:
-    name: Publish to GitHub Packages
-    needs: pack
+    name: Publish packages and release
+    needs:
+      - prepare
+      - pack
+      - vsix
     runs-on: ubuntu-latest
 
     permissions:
@@ -176,15 +259,21 @@ jobs:
       - name: Download package artifacts
         uses: actions/download-artifact@v4
         with:
-          name: NuGet-${{ needs.pack.outputs.version }}
+          name: NuGet-${{ needs.prepare.outputs.version }}
           path: artifacts/packages
 
+      - name: Download VSIX artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: VSIX-${{ needs.prepare.outputs.version }}
+          path: artifacts/vsix
+
       - name: Prepare GitHub release notes
-        if: needs.pack.outputs.create_github_release == 'true' && needs.pack.outputs.release_notes_file != ''
+        if: needs.prepare.outputs.create_github_release == 'true' && needs.prepare.outputs.release_notes_file != ''
         shell: pwsh
         env:
-          RELEASE_NOTES_FILE: ${{ needs.pack.outputs.release_notes_file }}
-          VERSION: ${{ needs.pack.outputs.version }}
+          RELEASE_NOTES_FILE: ${{ needs.prepare.outputs.release_notes_file }}
+          VERSION: ${{ needs.prepare.outputs.version }}
         run: |
           [string] $notes = ./eng/Get-ChangelogReleaseNotes.ps1 `
             -Path $env:RELEASE_NOTES_FILE `
@@ -232,7 +321,7 @@ jobs:
         shell: pwsh
         env:
           GITHUB_PACKAGE_TOKEN: ${{ github.token }}
-          VERSION: ${{ needs.pack.outputs.version }}
+          VERSION: ${{ needs.prepare.outputs.version }}
         run: |
           ./eng/Verify-Packages.ps1 `
             -PackageDirectory "artifacts/packages" `
@@ -248,13 +337,21 @@ jobs:
             -ExpectedGitHubVisibility 'public'
 
       - name: Create GitHub release
-        if: needs.pack.outputs.create_github_release == 'true'
+        if: needs.prepare.outputs.create_github_release == 'true'
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.ref_name }}
-          VERSION: ${{ needs.pack.outputs.version }}
+          VERSION: ${{ needs.prepare.outputs.version }}
         run: |
+          $vsixArtifacts = @(
+            Get-ChildItem artifacts/vsix -Filter *.vsix -File
+          )
+
+          if ($vsixArtifacts.Count -ne 1) {
+            throw "Expected one VSIX artifact, found '$($vsixArtifacts.Count)'."
+          }
+
           $arguments = @(
             'release',
             'create',
@@ -277,6 +374,7 @@ jobs:
             $arguments += '--prerelease'
           }
 
+          $arguments += $vsixArtifacts[0].FullName
           & gh @arguments
 
           if ($LASTEXITCODE -ne 0) {

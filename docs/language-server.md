@@ -30,6 +30,8 @@ src\MuLang.VisualStudio\bin\Debug\net472\MuLang.VisualStudio.vsix
 
 The build publishes the language server and embeds its executable, runtime configuration, compiler assemblies, grammar, language configuration, and registration file in the VSIX.
 
+Release builds convert the MuLang semantic version to the numeric version required by the VSIX manifest. Tagged workflows retain every VSIX as a GitHub Actions artifact; beta, release-candidate, and stable workflows also attach it to the GitHub Release.
+
 ## Installation
 
 Close running Visual Studio instances, open the generated VSIX, and complete the installer. Files with the `.mu` or `.mulang` extension then activate the MuLang content type and language client.

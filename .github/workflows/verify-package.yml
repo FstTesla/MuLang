@@ -1,4 +1,4 @@
-name: Verify published packages
+name: Verify published release
 
 on:
   workflow_dispatch:
@@ -41,19 +41,19 @@ jobs:
         run: dotnet tool restore --tool-manifest tooling/.config/dotnet-tools.json
 
       - name: Restore
-        run: dotnet restore MuLang.slnx --locked-mode
+        run: dotnet restore MuLang.CrossPlatform.slnx --locked-mode
         working-directory: source
 
       - name: Build
-        run: dotnet build MuLang.slnx --configuration Release --no-restore --nologo --verbosity minimal -p:Version=${{ inputs.version }}
+        run: dotnet build MuLang.CrossPlatform.slnx --configuration Release --no-restore --nologo --verbosity minimal -p:Version=${{ inputs.version }}
         working-directory: source
 
       - name: Test
-        run: dotnet test MuLang.slnx --configuration Release --no-build --no-restore --nologo --verbosity minimal
+        run: dotnet test MuLang.CrossPlatform.slnx --configuration Release --no-build --no-restore --nologo --verbosity minimal
         working-directory: source
 
       - name: Pack
-        run: dotnet pack MuLang.slnx --configuration Release --no-build --no-restore --nologo --verbosity minimal --output ../artifacts/packages -p:Version=${{ inputs.version }}
+        run: dotnet pack MuLang.CrossPlatform.slnx --configuration Release --no-build --no-restore --nologo --verbosity minimal --output ../artifacts/packages -p:Version=${{ inputs.version }}
         working-directory: source
 
       - name: Verify local and published packages
@@ -77,3 +77,84 @@ jobs:
             -GitHubRepository 'MuLang' `
             -GitHubToken $env:GITHUB_PACKAGE_TOKEN `
             -ExpectedGitHubVisibility 'public'
+
+  verify-vsix:
+    name: Verify MuLang VSIX ${{ inputs.version }}
+    runs-on: windows-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check out verification tooling
+        uses: actions/checkout@v4
+        with:
+            path: tooling
+
+      - name: Check out release tag
+        uses: actions/checkout@v4
+        with:
+            ref: v${{ inputs.version }}
+            path: source
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+            global-json-file: source/global.json
+
+      - name: Derive VSIX version
+        shell: pwsh
+        working-directory: tooling
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          $vsixVersion = ./eng/Get-VsixVersion.ps1 -Version $env:VERSION
+          "VSIX_VERSION=$vsixVersion" >> $env:GITHUB_ENV
+
+      - name: Restore
+        run: dotnet restore src\MuLang.VisualStudio\MuLang.VisualStudio.csproj --locked-mode
+        working-directory: source
+
+      - name: Build VSIX
+        shell: pwsh
+        working-directory: source
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          dotnet build src\MuLang.VisualStudio\MuLang.VisualStudio.csproj `
+            --configuration Release `
+            --no-restore `
+            --nologo `
+            --verbosity minimal `
+            -p:Version=$env:VERSION `
+            -p:VsixVersion=$env:VSIX_VERSION
+
+      - name: Verify built VSIX
+        shell: pwsh
+        working-directory: tooling
+        run: |
+          ./eng/Verify-Vsix.ps1 `
+            -Path ..\source\src\MuLang.VisualStudio\bin\Release\net472\MuLang.VisualStudio.vsix `
+            -Version $env:VSIX_VERSION
+
+      - name: Verify published VSIX
+        if: ${{ !startsWith(inputs.version, '0.0.0-alpha.') && !contains(inputs.version, '-alpha.') }}
+        shell: pwsh
+        working-directory: tooling
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          $artifact = "MuLang.VisualStudio.$env:VERSION.vsix"
+          New-Item ..\artifacts\vsix -ItemType Directory -Force | Out-Null
+          gh release download "v$env:VERSION" `
+            --pattern $artifact `
+            --dir ..\artifacts\vsix
+
+          if ($LASTEXITCODE -ne 0) {
+            exit $LASTEXITCODE
+          }
+
+          ./eng/Verify-Vsix.ps1 `
+            -Path "..\artifacts\vsix\$artifact" `
+            -Version $env:VSIX_VERSION
