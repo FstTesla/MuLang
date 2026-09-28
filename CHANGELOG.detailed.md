@@ -23,7 +23,7 @@ Each release heading identifies the incremental version range covered by the sec
 
 - Added the language version 1.1 `infty` and `nan` float literals for IEEE 754 positive infinity and NaN. The parser accepts separate leading signs, including `-infty`, `+nan`, and `-nan`, while finite decimal literals that overflow remain compile-time errors.
 - Added lexical warning `MUL1005` for every use in an earlier language version of an identifier spelling that becomes reserved in a later supported version. Version 1 code may still use `infty` and `nan`, but now receives migration warnings because version 1.1 reserves them.
-- Added the versioned, canonical, textual [MuIR (`.muir`) format](https://fsttesla.github.io/MuLang/muir-format.html) for serializing and deserializing portable `IrProgram` graphs. `MuLang.IR` now provides UTF-8 and text APIs, explicit polymorphic wire tokens, source-span preservation, strict parsing diagnostics, configurable resource limits, and byte-stable round trips.
+- Added the versioned, canonical, textual [MuIR (`.muir`) format](https://fsttesla.github.io/MuLang/ir/muir-format.html) for serializing and deserializing portable `IrProgram` graphs. `MuLang.IR` now provides UTF-8 and text APIs, explicit polymorphic wire tokens, source-span preservation, strict parsing diagnostics, configurable resource limits, and byte-stable round trips.
 - Added atomic construction of immutable self-recursive and mutually recursive structured-object type graphs for provider environments and portable IR. Type equivalence and MuIR canonicalization now terminate coinductively, normalize object properties ordinally, merge bisimilar wire graphs, and support forward type references. Lowering projects provider object types to structural IR-only graphs, and MuIR omits provider IDs, type names, and named-versus-anonymous origin.
 - Added mutable/read-only capability to IR slots while preserving existing construction. Local and temporary slots default to mutable; parameter slots default to read-only, matching their established source immutability. MuIR persists the capability, and `IrValidator` forbids parameter definition sites and requires a read-only local to have exactly one syntactic definition site.
 
@@ -104,7 +104,7 @@ No consumer-visible changes.
 
 ### New features
 
-- Added the public [`MuLang.IR`](https://fsttesla.github.io/MuLang/api/MuLang.IR.IrProgram.html) model and validation APIs, enabling runtime-independent compilation and custom exporters as defined by the [portable intermediate representation specification](https://fsttesla.github.io/MuLang/portable-intermediate-representation.html).
+- Added the public [`MuLang.IR`](https://fsttesla.github.io/MuLang/api/MuLang.IR.IrProgram.html) model and validation APIs, enabling runtime-independent compilation and custom exporters as defined by the [portable intermediate representation specification](https://fsttesla.github.io/MuLang/ir/portable-intermediate-representation.html).
 - Exposed compiler, IR, and .NET runtime diagnostic codes as public constants.
 - Exposed `ObjectTypeSymbol.CreateAnonymous`, `TypeSymbols.Null`, and `TypeSymbols.Error` for compiler and IR integrations.
 

@@ -7,7 +7,7 @@ MuLang is a small, embeddable, statically checked language for expressions and i
 - [Get started with MuLang](examples.md).
 - Review the [package architecture](packages.md).
 - Read the [language specification](language/index.md).
-- Read the [portable intermediate representation](portable-intermediate-representation.md) and [MuIR serialization format](muir-format.md) specifications.
+- Read the [intermediate representation specifications](ir/index.md).
 - Browse the [compiler API reference](xref:MuLang.Compiler).
 - Read the [changelog for stable versions](https://github.com/FstTesla/MuLang/blob/main/CHANGELOG.md).
 - If you dare to use an unstable version, consult the [detailed changelog](https://github.com/FstTesla/MuLang/blob/main/CHANGELOG.detailed.md).

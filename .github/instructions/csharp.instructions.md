@@ -49,6 +49,10 @@ All rules above can be relaxed if other APIs make it necessary or more convenien
 
 Choosing the correct collection type is difficult and sometimes is just a matter of taste. In practice, try to mimic existing patterns in the codebase and choose the minimal necessary collection type.
 
+---
+
+In project files, avoid project and package references that are already transitively referenced by other project or package references.
+
 # C# XML Documentation
 
 Do not touch functional code. Only add or modify XML documentation comments.

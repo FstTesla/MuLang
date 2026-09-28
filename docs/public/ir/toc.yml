@@ -1,0 +1,6 @@
+- name: Intermediate representation
+  href: index.md
+- name: Portable intermediate representation
+  href: portable-intermediate-representation.md
+- name: MuIR serialization format
+  href: muir-format.md

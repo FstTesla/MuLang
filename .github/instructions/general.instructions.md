@@ -23,6 +23,10 @@ When a task can be performed in multiple ways, ask me which way I prefer before 
 
 When a task is open for further steps, ask me whether I want you to proceed with them.
 
+---
+
+In autopilot mode, document any decision you make in a dedicated Markdown file, so that I can review them later.
+
 # Coding practices and style
 
 Do not generate examples, unless explicitly told to do so.

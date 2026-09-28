@@ -50,8 +50,8 @@ See the [examples](https://github.com/FstTesla/MuLang/blob/main/docs/public/exam
 
 - [Documentation site](https://fsttesla.github.io/MuLang/)
 - [Language specification](https://github.com/FstTesla/MuLang/blob/main/docs/public/language/index.md)
-- [Portable intermediate representation](https://github.com/FstTesla/MuLang/blob/main/docs/public/portable-intermediate-representation.md)
-- [MuIR serialization format](https://github.com/FstTesla/MuLang/blob/main/docs/public/muir-format.md)
+- [Portable intermediate representation](https://github.com/FstTesla/MuLang/blob/main/docs/public/ir/portable-intermediate-representation.md)
+- [MuIR serialization format](https://github.com/FstTesla/MuLang/blob/main/docs/public/ir/muir-format.md)
 - [Examples](https://github.com/FstTesla/MuLang/blob/main/docs/public/examples.md)
 - [Packages and architecture](https://fsttesla.github.io/MuLang/packages.html)
 - [Stable changelog](https://github.com/FstTesla/MuLang/blob/main/CHANGELOG.md)
