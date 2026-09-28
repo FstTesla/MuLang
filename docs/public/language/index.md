@@ -4,6 +4,12 @@ This document is a draft specification for the first version of MuLang. It defin
 
 The key words **MUST**, **MUST NOT**, **REQUIRED**, **SHOULD**, **SHOULD NOT**, and **MAY** are to be interpreted as normative requirements.
 
+## Examples
+
+Unless stated otherwise, examples use program mode and the standard language-version-1.1 profile. An example consisting of a single expression uses expression mode.
+
+Text outside each code block identifies any required host declarations, expected result, compile-time diagnostic, or runtime error. Examples are informative; the surrounding rules remain normative.
+
 ## Contents
 
 1. [Overview](01-overview.md)

@@ -16,6 +16,24 @@ An uninitialized local variable has no default value. Every read MUST be proven 
 
 Local variables are mutable.
 
+> The first variable has an explicit type, while the second infers `int`:
+>
+> ```text
+> var total: number = 1;
+> var count = 2;
+> count = count + 1;
+> ```
+>
+> Given a host global `condition: bool`, this program is invalid because `result` is not definitely assigned on every path:
+>
+> ```text
+> var result: int;
+> if (condition) {
+>     result = 1;
+> }
+> return result;
+> ```
+
 ## 6.2. Scope
 
 A program body, block, and `for` statement initializer establish lexical scopes as defined by the statement grammar.
@@ -32,6 +50,17 @@ Function parameters establish the root variable scope of their function body. Pa
 
 Function bodies cannot access locals declared by top-level executable statements or by other functions.
 
+> For example, `inside` is not visible after its block:
+>
+> ```text
+> {
+>     var inside = 1;
+> }
+> return inside;
+> ```
+>
+> This produces a compile-time name-resolution error independently of the selected shadowing policy.
+
 ## 6.3. Global variables
 
 Global variables are declared by the host environment.
@@ -39,3 +68,12 @@ Global variables are declared by the host environment.
 Global bindings are read-only from MuLang source. If a global value is an object or array, its contents MAY still be mutated through the supported property and element operations.
 
 The availability of those mutation operations depends on the language profile as defined in [Section 14.5](14-language-profiles.md#145-mutations).
+
+> Given a host global `values` of type `int[]`, this program may mutate an element but cannot assign a new array to the global binding:
+>
+> ```text
+> values[0] = 1;
+> values = [2];
+> ```
+>
+> The second statement produces a compile-time error.

@@ -11,3 +11,19 @@ The exact accounting units are implementation-defined. For a given implementatio
 Cancellation MUST be observed at deterministic safe points frequently enough to interrupt loops, calls, and deep value traversal. Observing cancellation produces a runtime error.
 
 The call-depth limit counts active user-defined function invocations. The top-level program and host-provided function calls do not count toward the limit. Exceeding the limit produces a runtime error.
+
+> For example, this program is valid source but eventually produces a call-depth runtime error unless execution is cancelled or its resource budget is exhausted first:
+>
+> ```text
+> func recurse(): int {
+>     return recurse();
+> }
+> return recurse();
+> ```
+>
+> Similarly, this loop can be interrupted by cancellation or budget exhaustion:
+>
+> ```text
+> while (true) {
+> }
+> ```

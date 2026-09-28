@@ -49,6 +49,12 @@ The expression value is the result of execution. A void-returning function call 
 
 Statements, including `return`, are not valid in expression mode.
 
+> For example, this expression produces the `int` value `7`:
+>
+> ```text
+> 1 + 2 * 3
+> ```
+
 ### 1.3.2. Program mode
 
 Program mode accepts zero or more top-level function declarations followed by zero or more executable statements and the end of the source text. A function declaration MUST NOT follow an executable top-level statement.
@@ -58,3 +64,17 @@ User-defined functions are specified in [Section 7](07-user-defined-functions.md
 A pure expression is not a statement. A function call is the only expression permitted as an expression statement.
 
 A non-void program MUST return a value on every reachable path. A void program MAY complete without an explicit `return`.
+
+> For example, this non-void program produces the `int` value `7`:
+>
+> ```text
+> var value = 1 + 2 * 3;
+> return value;
+> ```
+>
+> The following is invalid because the pure expression is not a statement:
+>
+> ```text
+> 1 + 2;
+> return 3;
+> ```

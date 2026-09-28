@@ -25,6 +25,12 @@ The standard profile for language version 1.1 has the same settings and adds rea
 
 Language version 1 rejects `$` and `$[` and treats `infty` and `nan` as identifiers.
 
+> For example, this expression is valid in the standard language-version-1.1 profile and rejected as an unavailable feature in language version 1:
+>
+> ```text
+> $[1, 2]
+> ```
+
 ## 14.1. User-defined functions and recursion
 
 The language semantics of user-defined functions are defined in [Section 7](07-user-defined-functions.md).
@@ -34,6 +40,14 @@ When user-defined functions are disabled, a function declaration and a call reso
 When recursion is disabled, no user-defined function may call itself directly or participate in a cycle of calls among user-defined functions.
 
 Calls to host-provided functions do not create recursion among user-defined functions. The recursion setting is dormant when user-defined functions are disabled.
+
+> When recursion is disabled, this declaration produces a compile-time error:
+>
+> ```text
+> func recurse(): int {
+>     return recurse();
+> }
+> ```
 
 ## 14.2. Loops and loop control
 
@@ -45,11 +59,25 @@ When explicit multi-level loop control is disabled, a numeric level written on `
 
 The multi-level loop-control setting is dormant when both loop forms are disabled.
 
+> When explicit multi-level loop control is disabled, `break;` remains valid but the explicit level in this loop produces a compile-time error:
+>
+> ```text
+> while (true) {
+>     break 1;
+> }
+> ```
+
 ## 14.3. Host-provided function calls
 
 When calls to host-provided functions are disabled, a call resolved to such a function is a compile-time error.
 
 Host-provided function declarations remain valid in the static environment and need not be used by the source program.
+
+> Given a host function `log(int): void`, this statement is rejected when host-provided calls are disabled:
+>
+> ```text
+> log(1);
+> ```
 
 ## 14.4. Open objects
 
@@ -74,6 +102,18 @@ In every setting, `object` remains valid for assignment, argument passing, retur
 
 Closed structured types and their statically known properties remain available under every setting.
 
+> Under the property-existence setting, this expression may be valid for `item: object`:
+>
+> ```text
+> item has "name"
+> ```
+>
+> The corresponding value read remains unavailable:
+>
+> ```text
+> item["name"]
+> ```
+
 ## 14.5. Mutations
 
 The profile independently controls:
@@ -86,11 +126,26 @@ Property removal does not depend on object-property assignment.
 
 Mutation restrictions apply regardless of whether a value originated from a literal, global, parameter, property, array element, or function result.
 
+> When array-element assignment is disabled, this statement produces a compile-time error even though the array originated from a mutable literal:
+>
+> ```text
+> var values = [1];
+> values[0] = 2;
+> ```
+
 ## 14.6. Trailing commas
 
 When trailing commas are disabled, a trailing comma is a compile-time error in array, closed-object, and open-object literals.
 
 Trailing commas in argument and parameter lists are always invalid.
+
+> When trailing commas are enabled, this literal is valid:
+>
+> ```text
+> [1, 2,]
+> ```
+>
+> The call `log(1, 2,)` remains invalid in every profile.
 
 ## 14.7. Shadowing
 
@@ -101,6 +156,16 @@ Nested-scope shadowing permits a declaration in a nested lexical scope to shadow
 Global shadowing permits locals and function parameters to shadow globals. It does not permit shadowing enclosing locals or parameters.
 
 The two permissions MAY be combined. When neither is selected, both forms of shadowing are prohibited.
+
+> When nested-scope shadowing is enabled, this program is valid:
+>
+> ```text
+> var value = 1;
+> {
+>     var value = 2;
+> }
+> return value;
+> ```
 
 ## 14.8. Conditions
 
@@ -123,6 +188,25 @@ Truthiness is contextual. It does not add an implicit conversion to `bool`, a so
 
 Both standard language profiles use strict Boolean semantics.
 
+> Under strict Boolean semantics, this condition is invalid:
+>
+> ```text
+> if (1) {
+>     return 1;
+> }
+> return 0;
+> ```
+>
+> Under truthiness semantics, it is valid and returns `1`. Empty arrays are also truthy when their element type is established by context:
+>
+> ```text
+> var values: int[] = [];
+> if (values) {
+>     return 1;
+> }
+> return 0;
+> ```
+
 ## 14.9. Compile-time constant evaluation
 
 When enabled, compile-time constant evaluation follows [Section 8.11](08-expressions.md#811-compile-time-constant-evaluation).
@@ -130,6 +214,8 @@ When enabled, compile-time constant evaluation follows [Section 8.11](08-express
 When disabled, the same expressions retain their ordinary execution-time behavior, and failures that occur while evaluating them are runtime errors.
 
 Both standard language profiles enable compile-time constant evaluation.
+
+> With constant evaluation enabled, `1 / 0` is a compile-time error. With it disabled, the same expression compiles and produces a runtime error when executed.
 
 ## 14.10. Feature diagnostics
 

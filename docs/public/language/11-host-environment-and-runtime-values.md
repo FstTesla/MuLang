@@ -16,6 +16,12 @@ Profile compatibility requirements for open structured types are defined in [Sec
 
 Source names are resolved exclusively against declarations in the source program and the static environment.
 
+> For example, this expression is valid only if the static environment declares globals named `price` and `taxRate` with compatible numeric types:
+>
+> ```text
+> price * taxRate
+> ```
+
 ## 11.2. Execution environment
 
 Execution receives an environment compatible with the static environment used during compilation.
@@ -32,6 +38,14 @@ The execution environment MUST expose no source-level operation that was not dec
 
 The host is trusted. A MuLang type restricts operations available to MuLang source but does not restrict operations that the host itself may perform on a value.
 
+> If the static environment declares `next(int): int`, source may call only that declared operation:
+>
+> ```text
+> next(41)
+> ```
+>
+> Other methods or members of the host implementation are not implicitly visible.
+
 ## 11.3. Environment compatibility
 
 An executable result MUST be associated with the static environment against which it was compiled.
@@ -39,6 +53,8 @@ An executable result MUST be associated with the static environment against whic
 Execution MUST be rejected when declarations that can affect compilation are incompatible. Relevant declarations include names, types, function signatures, object schemas, and mutability capabilities.
 
 Mutable and read-only array types are distinct for compatibility purposes.
+
+> For example, an executable compiled against a global `values: int[]` cannot be executed with an environment that redeclares the global as `values: int[]$`.
 
 ## 11.4. Boundary values
 
@@ -72,3 +88,11 @@ The condition-semantics profile option and truthiness rules are defined in [Sect
 A host-provided object or array MAY reject a mutation or removal at runtime. Previous completed side effects are not rolled back.
 
 MuLang provides no source-level operation for testing whether a specific property or array element is writable or whether a property is removable. `has` reports only property presence and does not imply either capability.
+
+> Given a host global `item: object`, this expression tests only whether the property is present:
+>
+> ```text
+> item has "value"
+> ```
+>
+> It does not guarantee that `item.value = 1;` or `item.value~;` will succeed.

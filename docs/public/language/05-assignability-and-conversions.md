@@ -12,6 +12,13 @@ The `null` literal is assignable to every nullable type and to no non-null type.
 
 A value of type `T?` is not implicitly assignable to `T`.
 
+> For example, removing nullability requires a checked cast:
+>
+> ```text
+> var possible: int? = 1;
+> var definite: int = possible as int;
+> ```
+
 ## 5.3. Unknown conversion
 
 Every non-null type is implicitly assignable to `unknown`.
@@ -19,6 +26,11 @@ Every non-null type is implicitly assignable to `unknown`.
 Every type, including nullable types, is implicitly assignable to `unknown?`.
 
 Conversion from `unknown` or `unknown?` to a more specific type requires an explicit checked conversion.
+
+> ```text
+> var source: unknown? = "value";
+> var text: string = source as string;
+> ```
 
 ## 5.4. Numeric conversion
 
@@ -33,6 +45,20 @@ A value of static type `number` may be checked-cast to `int` or `float`. The cas
 There is no checked cast from a statically known `int` to `float` or from a statically known `float` to `int`.
 
 Integer arithmetic is checked. Overflow produces a runtime error.
+
+> The first declaration applies an implicit representation-changing conversion. The second only widens the static type:
+>
+> ```text
+> var floating: float = 1;
+> var numeric: number = floating;
+> ```
+>
+> The following checked cast succeeds only when `numeric` currently contains an `int` representation:
+>
+> ```text
+> var numeric: number = 1;
+> var integer: int = numeric as int;
+> ```
 
 ## 5.5. String conversion
 
@@ -52,6 +78,18 @@ The result uses the culture-independent source representation of the value:
 The non-finite representations are valid language version 1.1 source literals.
 
 Objects and arrays have no intrinsic string conversion.
+
+> For example, this expression produces `"value=42, missing=null"`:
+>
+> ```text
+> "value=" + 42 + ", missing=" + null
+> ```
+>
+> This expression is invalid because arrays have no intrinsic string conversion:
+>
+> ```text
+> "values=" + [1, 2]
+> ```
 
 ## 5.6. Object conversion
 
@@ -77,6 +115,20 @@ Both `S[]` and `S[]$` may convert implicitly to a compatible `T[]$`. A read-only
 
 Common array types preserve a mutable type only for equivalent mutable arrays. Compatible mutable and read-only operands otherwise use the least compatible read-only array view.
 
+> For example, both assignments are valid:
+>
+> ```text
+> var mutable: int[] = [1, 2];
+> var view: number[]$ = mutable;
+> ```
+>
+> This widening is invalid because mutable arrays are invariant:
+>
+> ```text
+> var mutable: int[] = [1, 2];
+> var widened: number[] = mutable;
+> ```
+
 ## 5.8. Explicit checked casts
 
 An explicit checked cast uses the infix `as` operator followed by a non-void type.
@@ -98,3 +150,19 @@ An `as` expression has the target type. It does not change the static type of th
 The `as` operator is left-associative.
 
 Array checked casts are shape-based. A cast to `T[]` requires write capability and current recursive conformance of every element to `T`. A cast to `T[]$` requires read capability and the same element conformance. A successful cast preserves identity and does not establish a permanent invariant against later mutation through another alias.
+
+> For example, both expressions evaluate to `true`:
+>
+> ```text
+> (1 as unknown) is int
+> ```
+>
+> ```text
+> $[1, 2] is int[]$
+> ```
+>
+> This expression produces a failed-cast runtime error because the read-only literal does not provide write capability:
+>
+> ```text
+> $[1, 2] as int[]
+> ```

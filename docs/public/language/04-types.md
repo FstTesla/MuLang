@@ -10,6 +10,13 @@ Nullable annotation is explicit. A type without `?` does not accept `null`.
 
 Repeated nullable annotation is invalid.
 
+> This program distinguishes a nullable element type from a nullable array type:
+>
+> ```text
+> var nullableElements: int?[] = [1, null];
+> var nullableArray: int[]? = null;
+> ```
+
 ## 4.2. Primitive types
 
 The primitive types are:
@@ -28,6 +35,13 @@ Primitive values are immutable.
 
 Type conformance observes that concrete representation and does not apply numeric promotion. An `int` value therefore conforms to `int` and `number`, but not to `float`.
 
+> For example, the initializer of `total` converts the `int` operand to `float`, while the value stored in `count` retains its concrete `int` representation:
+>
+> ```text
+> var total: float = 1 + 2.5;
+> var count: number = 3;
+> ```
+
 ## 4.3. The `unknown` type
 
 `unknown` is the top type for non-null values.
@@ -40,6 +54,21 @@ A value whose static type is `unknown` cannot be used by an operation requiring 
 
 Equality, identity comparison, assignment to another compatible location, argument passing to an `unknown` parameter, and return as `unknown` remain valid.
 
+> For example, refinement from `unknown` requires a checked cast:
+>
+> ```text
+> var value: unknown = 42;
+> var result: int = value as int;
+> return result;
+> ```
+>
+> This declaration is invalid because `unknown` is not implicitly assignable to `int`:
+>
+> ```text
+> var value: unknown = 42;
+> var result: int = value;
+> ```
+
 ## 4.4. The `object` type
 
 `object` is the generic open object type.
@@ -51,6 +80,13 @@ The dynamic operations exposed by `object` depend on the open-objects profile op
 Arrays and primitive values are not objects.
 
 `object?` additionally accepts `null`.
+
+> For example, an open object literal is assignable to `object`:
+>
+> ```text
+> var item: object = @{ name: "MuLang" };
+> return item has "name";
+> ```
 
 ## 4.5. Structured object types
 
@@ -107,6 +143,22 @@ Every array type implicitly defines a read-only intrinsic property named `length
 
 Mutable arrays and their read-only views preserve the same logical identity and storage. A read-only view observes mutations performed through another mutable alias.
 
+> For example, mutation through the mutable alias is visible through the read-only view:
+>
+> ```text
+> var mutable = [1, 2];
+> var view: number[]$ = mutable;
+> mutable[0] = 3;
+> return view[0];
+> ```
+>
+> This assignment is invalid because a read-only array is not an assignment target:
+>
+> ```text
+> var values: int[]$ = $[1];
+> values[0] = 2;
+> ```
+
 ## 4.7. The `void` type
 
 `void` is permitted only as:
@@ -116,3 +168,12 @@ Mutable arrays and their read-only views preserve the same logical identity and 
 - the declared result of a program compilation.
 
 `void` is not a value type, cannot be nullable, and cannot be used for variables, properties, array elements, or function parameters.
+
+> For example, `void` is valid as the return type of this function:
+>
+> ```text
+> func doNothing(): void {
+>     return;
+> }
+> doNothing();
+> ```

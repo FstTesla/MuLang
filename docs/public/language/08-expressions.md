@@ -37,6 +37,12 @@ Property and element assignment evaluate:
 
 Each operand MUST be evaluated exactly once.
 
+> Given numeric host functions `first()` and `second()`, this expression calls `first` before `second`:
+>
+> ```text
+> first() + second()
+> ```
+
 ## 8.3. Array literals
 
 An array literal contains zero or more comma-separated expressions enclosed in square brackets.
@@ -58,6 +64,24 @@ An empty array literal requires an expected array type from its context.
 Normal array literals create mutable arrays. Read-only array literals create values exposing only read capability.
 
 A read-only literal cannot be contextually converted to a mutable array. A normal literal may be contextually converted to a compatible read-only view without copying.
+
+> This mutable literal has element type `float` because `1` is converted to `float`:
+>
+> ```text
+> [1, 2.5]
+> ```
+>
+> An empty literal obtains its element type from the declaration:
+>
+> ```text
+> var values: int[] = [];
+> ```
+>
+> This declaration is invalid because a read-only literal cannot initialize a mutable array:
+>
+> ```text
+> var values: int[] = $[1, 2];
+> ```
 
 ## 8.4. Object literals
 
@@ -89,6 +113,19 @@ An open object literal has an open inferred type and permits additional properti
 
 Object literals create mutable objects.
 
+> This closed literal has required property `name` and optional property `score`:
+>
+> ```text
+> var item = { name: "MuLang", score?: 1 };
+> ```
+>
+> This open literal permits an additional property to be introduced:
+>
+> ```text
+> var item = @{ name: "MuLang" };
+> item.version = 1;
+> ```
+
 ## 8.5. Property access
 
 Dot access requires a statically known property name.
@@ -109,6 +146,12 @@ Access to an absent optional or dynamic property produces a runtime error unless
 
 Access to a member through a nullable value is statically permitted but produces a runtime error when the target is `null`, unless optional access is used.
 
+> Given a host global `item` with a known `name: string` property, dot and element access select the same property:
+>
+> ```text
+> item.name == item["name"]
+> ```
+
 ## 8.6. Optional access
 
 Optional property access uses `target?.property`.
@@ -127,6 +170,19 @@ When a dynamically named property is absent, optional access produces `null`.
 
 Optional access to a known required property only affects a nullable target; it does not change the property schema.
 
+> Given `item` of a nullable structured type with a `name: string` property, this expression has type `string?` and produces `null` when `item` is `null`:
+>
+> ```text
+> item?.name
+> ```
+>
+> For an open object, optional access also handles an absent dynamic property:
+>
+> ```text
+> var item = @{ };
+> return item?.["missing"] ?? "fallback";
+> ```
+
 ## 8.7. Array access
 
 Array indexes have type `int`.
@@ -144,6 +200,19 @@ Array element syntax cannot be used to access `length`; array indexes always req
 The intrinsic `length` property is not considered an object property and is not visible to the `has` operator.
 
 Every array element read validates the retrieved value against the statically expected element type. A mutation through another alias that invalidates the current shape therefore causes a runtime type error on the later read.
+
+> For example, this program produces `3`:
+>
+> ```text
+> var values = [1, 2];
+> return values[0] + values.length;
+> ```
+>
+> This expression produces an invalid-index runtime error:
+>
+> ```text
+> [1, 2][2]
+> ```
 
 ## 8.8. Function calls
 
@@ -169,6 +238,12 @@ A non-void call MAY be used as an expression or discarded as a call statement.
 
 Every function call is potentially effectful. Its evaluation MUST NOT be omitted, duplicated, or reordered relative to other observable operations.
 
+> Given a host function `parse(string): int`, this is a non-void call expression:
+>
+> ```text
+> parse("42") + 1
+> ```
+
 ## 8.9. Nullable operands
 
 MuLang does not perform flow-sensitive narrowing. A type test or null check does not change the static type of a variable in a later expression or statement.
@@ -181,6 +256,16 @@ Comparisons explicitly defined for `null` do not require non-null operands.
 
 Null coalescing is explicitly defined for nullable operands in [Section 9.8](09-operators.md#98-null-coalescing-operator).
 
+> For example, the type test does not narrow `value`; the checked cast remains required:
+>
+> ```text
+> var value: unknown = 1;
+> if (value is int) {
+>     return value as int;
+> }
+> return 0;
+> ```
+
 ## 8.10. Conditional expression
 
 The conditional expression is right-associative and has lower precedence than every other expression operator.
@@ -190,6 +275,12 @@ Its condition MUST satisfy the selected condition semantics in [Section 14.8](14
 Its branches MUST have a common type according to the language conversion rules.
 
 Only the selected branch is evaluated.
+
+> This expression produces `1` without evaluating the division by zero:
+>
+> ```text
+> true ? 1 : 1 / 0
+> ```
 
 ## 8.11. Compile-time constant evaluation
 
@@ -211,3 +302,15 @@ Host-provided calls, user-defined calls, global or local reads, array and object
 If evaluating a required constant subexpression produces integer overflow, integer division or remainder by zero, an invalid shift count, or a failed checked cast, compilation MUST report an error and MUST NOT produce an executable result.
 
 When compile-time constant evaluation is disabled, these expressions are evaluated only during execution, and failures that occur while evaluating them are runtime errors.
+
+> With constant evaluation enabled, this expression produces a compile-time division-by-zero error:
+>
+> ```text
+> 1 / 0
+> ```
+>
+> The short-circuited expression remains valid because its right operand is not required:
+>
+> ```text
+> false && 1 / 0 == 0
+> ```

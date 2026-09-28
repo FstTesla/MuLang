@@ -16,6 +16,18 @@ No executable result may be produced when an error diagnostic is present.
 
 When compile-time constant evaluation is enabled, failure while evaluating a required constant expression is a compile-time error as defined in [Section 8.11](08-expressions.md#811-compile-time-constant-evaluation).
 
+> For example, each of these sources produces a compile-time error:
+>
+> ```text
+> var value: int = "text";
+> ```
+>
+> ```text
+> 1 / 0
+> ```
+>
+> The first is a type mismatch. Under the standard profile, the second fails during constant evaluation.
+
 ## 12.2. Runtime errors
 
 A runtime failure MUST be represented as a MuLang runtime error containing:
@@ -48,6 +60,18 @@ A failure from a host-provided function MUST be represented as a MuLang runtime 
 
 The language provides no source-level mechanism for catching runtime errors.
 
+> Given `value: unknown`, this expression compiles but produces a failed-cast runtime error when the runtime value is not an `int`:
+>
+> ```text
+> value as int
+> ```
+>
+> Given `values: int[]`, this expression produces an invalid-index runtime error when the array is empty:
+>
+> ```text
+> values[0]
+> ```
+
 ## 12.3. Intentionally non-preventable runtime errors
 
 Property assignment, array element assignment, or property removal can be rejected by a host-provided value even though no source-level capability predicate is available.
@@ -55,3 +79,11 @@ Property assignment, array element assignment, or property removal can be reject
 A semantic checked-cast failure is preventable by testing the same unchanged value with the corresponding `is` expression. Operational failures encountered while evaluating either operation remain possible.
 
 Host failures, environment incompatibility, cancellation, budget exhaustion, and call-depth exhaustion are controlled outside the source program and are not semantic check gaps.
+
+> For example, this source may compile successfully even if the host later rejects the mutation:
+>
+> ```text
+> item.value = 1;
+> ```
+>
+> The static type establishes that assignment is meaningful; the host representation retains the right to reject it at runtime.

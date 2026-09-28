@@ -12,6 +12,15 @@ Functions cannot be declared in expression mode, inside another function, or ins
 
 When the feature is disabled, a function declaration or a call to a user-defined function is a compile-time error.
 
+> For example, declarations precede the executable top-level statement:
+>
+> ```text
+> func double(value: int): int {
+>     return value * 2;
+> }
+> return double(21);
+> ```
+
 ## 7.2. Declarations and signatures
 
 A function declaration contains:
@@ -35,6 +44,16 @@ A user-defined function name MUST NOT conflict with:
 
 Function names and variable names occupy distinct namespaces. Function names are resolved only in call position.
 
+> Consequently, a local variable may have the same name as a function:
+>
+> ```text
+> func value(): int {
+>     return 1;
+> }
+> var value = value();
+> return value;
+> ```
+
 ## 7.3. Visibility and parameter scope
 
 Every valid top-level function declaration is visible throughout the complete program, independently from textual declaration order. Forward calls are therefore valid.
@@ -53,6 +72,18 @@ Function bodies cannot capture locals declared by top-level executable statement
 
 Local declarations inside the body follow the ordinary block and shadowing rules.
 
+> Forward calls are valid:
+>
+> ```text
+> func first(): int {
+>     return second();
+> }
+> func second(): int {
+>     return 2;
+> }
+> return first();
+> ```
+
 ## 7.4. Calls
 
 A call supplies exactly one argument for every declared parameter, in declaration order.
@@ -67,6 +98,15 @@ Every call is potentially effectful. Its evaluation MUST NOT be omitted, duplica
 
 User-defined functions are not values: they cannot be stored in variables, passed as arguments, returned, placed in objects or arrays, or accessed without invocation syntax.
 
+> This is therefore invalid:
+>
+> ```text
+> func value(): int {
+>     return 1;
+> }
+> var functionValue = value;
+> ```
+
 ## 7.5. Returns and control flow
 
 `return` exits the current function.
@@ -79,6 +119,17 @@ A void function permits only `return` without an expression and MAY reach the en
 
 Definite-assignment analysis is performed independently for each function.
 
+> This function is invalid because the `false` path reaches the end without returning an `int`:
+>
+> ```text
+> func choose(flag: bool): int {
+>     if (flag) {
+>         return 1;
+>     }
+> }
+> return choose(true);
+> ```
+
 ## 7.6. Recursion
 
 Direct and mutual recursion are supported when enabled by the selected language profile.
@@ -90,3 +141,14 @@ Calls to host-provided functions do not constitute recursion.
 The recursion setting is dormant when user-defined functions are disabled.
 
 Execution enforces the configured maximum active user-function call depth.
+
+> For example, direct recursion can compute a factorial:
+>
+> ```text
+> func factorial(value: int): int {
+>     if (value <= 1)
+>         return 1;
+>     return value * factorial(value - 1);
+> }
+> return factorial(5);
+> ```
