@@ -51,7 +51,7 @@
         },
         {
           "name": "constant.numeric.integer.mulang",
-          "match": "\\b(?:0[xX][0-9A-Fa-f]+|0[bB][01]+|[0-9]+)\\b"
+          "match": "\\b[0-9]+\\b"
         }
       ]
     },

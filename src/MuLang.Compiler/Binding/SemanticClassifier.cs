@@ -193,7 +193,12 @@ internal static class SemanticClassifier
                 case BoundExpression.Conversion conversion:
                 {
                     VisitExpression(conversion.Expression);
-                    VisitType(((ConversionExpressionSyntax)conversion.Syntax).Type);
+
+                    if (conversion.Syntax is ConversionExpressionSyntax syntax)
+                    {
+                        VisitType(syntax.Type);
+                    }
+
                     break;
                 }
                 case BoundExpression.Truthiness truthiness:

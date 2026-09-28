@@ -227,6 +227,74 @@ public sealed class LanguageServerTests
         );
     }
 
+    [Test]
+    public async Task HighlightsSampleWithoutDiagnostics()
+    {
+        string source = await File.ReadAllTextAsync(
+            Path.Combine(
+                AppContext.BaseDirectory,
+                "Samples",
+                "highlighting.mu"
+            )
+        );
+        string openDocument = JsonSerializer.Serialize(
+            new
+            {
+                jsonrpc = "2.0",
+                method = "textDocument/didOpen",
+                @params = new
+                {
+                    textDocument = new
+                    {
+                        uri = "file:///highlighting.mu",
+                        languageId = "mulang",
+                        version = 1,
+                        text = source,
+                    },
+                },
+            }
+        );
+        IReadOnlyList<JsonElement> output = await RunServerAsync(
+            """
+            {"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}
+            """,
+            openDocument,
+            """
+            {"jsonrpc":"2.0","id":3,"method":"textDocument/semanticTokens/full","params":{"textDocument":{"uri":"file:///highlighting.mu"}}}
+            """,
+            """
+            {"jsonrpc":"2.0","method":"shutdown","id":2}
+            """,
+            """
+            {"jsonrpc":"2.0","method":"exit"}
+            """
+        );
+        JsonElement diagnostics = output
+            .Single(
+                static message =>
+                    message.TryGetProperty("method", out JsonElement method) &&
+                    method.GetString() == "textDocument/publishDiagnostics"
+            )
+            .GetProperty("params")
+            .GetProperty("diagnostics");
+        JsonElement semanticTokens = output
+            .Single(
+                static message =>
+                    message.TryGetProperty("id", out JsonElement id) &&
+                    id.ValueKind == JsonValueKind.Number &&
+                    id.GetInt32() == 3
+            )
+            .GetProperty("result")
+            .GetProperty("data");
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(diagnostics.GetArrayLength(), Is.Zero);
+            Assert.That(semanticTokens.GetArrayLength(), Is.GreaterThan(0));
+            Assert.That(semanticTokens.GetArrayLength() % 5, Is.Zero);
+        }
+    }
+
     private static async Task<IReadOnlyList<JsonElement>> RunServerAsync(
         params string[] messages
     )

@@ -200,4 +200,34 @@ public sealed class MuLangCompilerEditorTests
             Is.EqualTo(3)
         );
     }
+
+    [Test]
+    public void ClassifiesImplicitConversions()
+    {
+        const string Source = "var value: number = 1;";
+        SourceText source = SourceText.From(Source);
+        SemanticClassificationResult result = MuLangCompiler.ClassifySemantically(
+            Source,
+            new EnvironmentBuilder().Build(),
+            CompilationMode.Program
+        );
+        SemanticClassification classification = result.Classifications.Single();
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.Diagnostics, Is.Empty);
+            Assert.That(
+                classification.Kind,
+                Is.EqualTo(SemanticClassificationKind.Variable)
+            );
+            Assert.That(
+                classification.Modifiers,
+                Is.EqualTo(SemanticClassificationModifiers.Declaration)
+            );
+            Assert.That(
+                source.GetText(classification.Span),
+                Is.EqualTo("value")
+            );
+        }
+    }
 }

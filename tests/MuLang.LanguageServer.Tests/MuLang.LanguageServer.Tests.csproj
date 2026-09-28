@@ -9,4 +9,10 @@
     <ProjectReference Include="..\MuLang.TestSupport\MuLang.TestSupport.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="..\..\docs\samples\highlighting.mu" Link="Samples\highlighting.mu">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

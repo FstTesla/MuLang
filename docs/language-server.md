@@ -42,6 +42,10 @@ The extension requires:
 - the Visual Studio core editor;
 - a .NET 10 runtime for the framework-dependent language-server executable.
 
+## Highlighting smoke test
+
+Open [`samples/highlighting.mu`](samples/highlighting.mu) in Visual Studio to exercise the TextMate and compiler-backed semantic classifications without requiring a host environment.
+
 ## Initial document model
 
 Every standalone `.mu` or `.mulang` file is analyzed as:

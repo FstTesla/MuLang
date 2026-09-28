@@ -201,7 +201,9 @@ jobs:
           "- Version: ``$vsixVersion``" >> $env:GITHUB_STEP_SUMMARY
 
       - name: Restore
-        run: dotnet restore src\MuLang.VisualStudio\MuLang.VisualStudio.csproj --locked-mode
+        run: |
+          dotnet restore src\MuLang.LanguageServer\MuLang.LanguageServer.csproj --locked-mode
+          dotnet restore src\MuLang.VisualStudio\MuLang.VisualStudio.csproj --locked-mode
 
       - name: Build VSIX
         shell: pwsh
