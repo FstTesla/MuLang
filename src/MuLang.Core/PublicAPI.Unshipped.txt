@@ -1,1 +1,3 @@
 #nullable enable
+static MuLang.Core.LanguageProfiles.Latest.get -> MuLang.Core.LanguageProfile!
+MuLang.Core.Text.SourceText.GetUtf16Offset(int offset) -> int

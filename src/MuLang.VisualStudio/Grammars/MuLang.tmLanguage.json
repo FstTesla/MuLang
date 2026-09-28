@@ -1,0 +1,95 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "MuLang",
+  "scopeName": "source.mulang",
+  "fileTypes": [
+    "mu",
+    "mulang"
+  ],
+  "patterns": [
+    {
+      "include": "#strings"
+    },
+    {
+      "include": "#numbers"
+    },
+    {
+      "include": "#operatorKeywords"
+    },
+    {
+      "include": "#keywords"
+    },
+    {
+      "include": "#operators"
+    }
+  ],
+  "repository": {
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.mulang",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [
+            {
+              "name": "constant.character.escape.mulang",
+              "match": "\\\\(?:[\"\\\\0abfnrtv]|u[0-9A-Fa-f]{4}|U[0-9A-Fa-f]{8})"
+            },
+            {
+              "name": "invalid.illegal.escape.mulang",
+              "match": "\\\\."
+            }
+          ]
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.float.mulang",
+          "match": "\\b(?:infty|nan|(?:[0-9]+(?:\\.[0-9]*)?|\\.[0-9]+)(?:[eE][+-]?[0-9]+)?)[fF]?\\b"
+        },
+        {
+          "name": "constant.numeric.integer.mulang",
+          "match": "\\b(?:0[xX][0-9A-Fa-f]+|0[bB][01]+|[0-9]+)\\b"
+        }
+      ]
+    },
+    "operatorKeywords": {
+      "patterns": [
+        {
+          "name": "keyword.operator.word.mulang",
+          "match": "\\b(?:as|has|is)\\b"
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.mulang",
+          "match": "\\b(?:break|continue|else|for|if|return|while)\\b"
+        },
+        {
+          "name": "keyword.declaration.mulang",
+          "match": "\\b(?:func|var)\\b"
+        },
+        {
+          "name": "storage.type.mulang",
+          "match": "\\b(?:bool|float|int|number|object|string|unknown|void)\\b"
+        },
+        {
+          "name": "constant.language.mulang",
+          "match": "\\b(?:false|null|true)\\b"
+        }
+      ]
+    },
+    "operators": {
+      "patterns": [
+        {
+          "name": "keyword.operator.mulang",
+          "match": "\\?\\.\\[|\\?\\.|\\?:|\\?\\?|===|!==|==|!=|<=|>=|<<|>>|&&|\\|\\||[+\\-*/%<>=!&^|~?$]"
+        }
+      ]
+    }
+  }
+}

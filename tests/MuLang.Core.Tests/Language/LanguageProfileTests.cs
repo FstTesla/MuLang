@@ -5,6 +5,15 @@ namespace MuLang.Core.Tests.Language;
 public sealed class LanguageProfileTests
 {
     [Test]
+    public void LatestProfileUsesLatestLanguageVersion()
+    {
+        Assert.That(
+            LanguageProfiles.Latest.LanguageVersion,
+            Is.EqualTo(Enum.GetValues<LanguageVersion>().Max())
+        );
+    }
+
+    [Test]
     public void StandardProfilePreservesVersionOneBehavior()
     {
         LanguageProfile profile = LanguageProfiles.Version1;

@@ -259,10 +259,7 @@ public static class IrValidator
                     );
                 }
             }
-            else if (
-                slot.Kind == IrSlotKind.Temporary &&
-                slot.Mutability == IrSlotMutability.ReadOnly
-            )
+            else if (slot is { Kind: IrSlotKind.Temporary, Mutability: IrSlotMutability.ReadOnly })
             {
                 Report(
                     diagnostics,

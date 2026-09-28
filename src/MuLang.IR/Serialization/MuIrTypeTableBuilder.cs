@@ -225,7 +225,7 @@ internal static class MuIrTypeTableBuilder
                 .GroupBy(static node => node.Color)
                 .ToDictionary(
                     static group => group.Key,
-                    static group => group.OrderBy(node => node.Encounter).First()
+                    static group => group.OrderBy(static node => node.Encounter).First()
                 );
             Dictionary<int, VisitState> states = [ ];
             List<int> ordered = [ ];

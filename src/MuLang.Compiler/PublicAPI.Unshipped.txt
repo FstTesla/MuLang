@@ -1,1 +1,39 @@
 #nullable enable
+MuLang.Compiler.AnalysisResult
+MuLang.Compiler.AnalysisResult.Diagnostics.get -> MuLang.Core.Diagnostics.DiagnosticCollection!
+MuLang.Compiler.AnalysisResult.IsSuccessful.get -> bool
+MuLang.Compiler.ClassificationResult
+MuLang.Compiler.ClassificationResult.Classifications.get -> System.Collections.Generic.IReadOnlyList<MuLang.Compiler.SourceClassification!>!
+MuLang.Compiler.ClassificationResult.Diagnostics.get -> MuLang.Core.Diagnostics.DiagnosticCollection!
+MuLang.Compiler.SemanticClassification
+MuLang.Compiler.SemanticClassification.Kind.get -> MuLang.Compiler.SemanticClassificationKind
+MuLang.Compiler.SemanticClassification.Modifiers.get -> MuLang.Compiler.SemanticClassificationModifiers
+MuLang.Compiler.SemanticClassification.Span.get -> MuLang.Core.Text.TextSpan
+MuLang.Compiler.SemanticClassificationKind
+MuLang.Compiler.SemanticClassificationKind.Function = 1 -> MuLang.Compiler.SemanticClassificationKind
+MuLang.Compiler.SemanticClassificationKind.Parameter = 2 -> MuLang.Compiler.SemanticClassificationKind
+MuLang.Compiler.SemanticClassificationKind.Property = 4 -> MuLang.Compiler.SemanticClassificationKind
+MuLang.Compiler.SemanticClassificationKind.Type = 0 -> MuLang.Compiler.SemanticClassificationKind
+MuLang.Compiler.SemanticClassificationKind.Variable = 3 -> MuLang.Compiler.SemanticClassificationKind
+MuLang.Compiler.SemanticClassificationModifiers
+MuLang.Compiler.SemanticClassificationModifiers.Declaration = 1 -> MuLang.Compiler.SemanticClassificationModifiers
+MuLang.Compiler.SemanticClassificationModifiers.DefaultLibrary = 4 -> MuLang.Compiler.SemanticClassificationModifiers
+MuLang.Compiler.SemanticClassificationModifiers.None = 0 -> MuLang.Compiler.SemanticClassificationModifiers
+MuLang.Compiler.SemanticClassificationModifiers.ReadOnly = 2 -> MuLang.Compiler.SemanticClassificationModifiers
+MuLang.Compiler.SemanticClassificationResult
+MuLang.Compiler.SemanticClassificationResult.Classifications.get -> System.Collections.Generic.IReadOnlyList<MuLang.Compiler.SemanticClassification!>!
+MuLang.Compiler.SemanticClassificationResult.Diagnostics.get -> MuLang.Core.Diagnostics.DiagnosticCollection!
+MuLang.Compiler.SourceClassification
+MuLang.Compiler.SourceClassification.Kind.get -> MuLang.Compiler.SourceClassificationKind
+MuLang.Compiler.SourceClassification.Span.get -> MuLang.Core.Text.TextSpan
+MuLang.Compiler.SourceClassificationKind
+MuLang.Compiler.SourceClassificationKind.Identifier = 2 -> MuLang.Compiler.SourceClassificationKind
+MuLang.Compiler.SourceClassificationKind.Invalid = 0 -> MuLang.Compiler.SourceClassificationKind
+MuLang.Compiler.SourceClassificationKind.Keyword = 1 -> MuLang.Compiler.SourceClassificationKind
+MuLang.Compiler.SourceClassificationKind.Number = 3 -> MuLang.Compiler.SourceClassificationKind
+MuLang.Compiler.SourceClassificationKind.Operator = 5 -> MuLang.Compiler.SourceClassificationKind
+MuLang.Compiler.SourceClassificationKind.Punctuation = 6 -> MuLang.Compiler.SourceClassificationKind
+MuLang.Compiler.SourceClassificationKind.String = 4 -> MuLang.Compiler.SourceClassificationKind
+static MuLang.Compiler.MuLangCompiler.Analyze(string! source, MuLang.Core.Environment.EnvironmentSchema! environment, MuLang.Core.CompilationMode compilationMode, MuLang.Core.Types.TypeSymbol? expectedResultType = null, MuLang.Core.LanguageProfile? profile = null) -> MuLang.Compiler.AnalysisResult!
+static MuLang.Compiler.MuLangCompiler.Classify(string! source, MuLang.Core.LanguageProfile? profile = null) -> MuLang.Compiler.ClassificationResult!
+static MuLang.Compiler.MuLangCompiler.ClassifySemantically(string! source, MuLang.Core.Environment.EnvironmentSchema! environment, MuLang.Core.CompilationMode compilationMode, MuLang.Core.Types.TypeSymbol? expectedResultType = null, MuLang.Core.LanguageProfile? profile = null) -> MuLang.Compiler.SemanticClassificationResult!

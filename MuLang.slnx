@@ -5,8 +5,10 @@
     <Project Path="src/MuLang.Core/MuLang.Core.csproj" />
     <Project Path="src/MuLang.Exporters.DotNet/MuLang.Exporters.DotNet.csproj" />
     <Project Path="src/MuLang.IR/MuLang.IR.csproj" />
+    <Project Path="src/MuLang.LanguageServer/MuLang.LanguageServer.csproj" />
     <Project Path="src/MuLang.StandardLibrary.DotNet/MuLang.StandardLibrary.DotNet.csproj" />
     <Project Path="src/MuLang.StandardLibrary/MuLang.StandardLibrary.csproj" />
+    <Project Path="src/MuLang.VisualStudio/MuLang.VisualStudio.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/MuLang.TestSupport/MuLang.TestSupport.csproj" />
@@ -14,6 +16,7 @@
     <Project Path="tests/MuLang.Core.Tests/MuLang.Core.Tests.csproj" />
     <Project Path="tests/MuLang.Exporters.DotNet.Tests/MuLang.Exporters.DotNet.Tests.csproj" />
     <Project Path="tests/MuLang.IR.Tests/MuLang.IR.Tests.csproj" />
+    <Project Path="tests/MuLang.LanguageServer.Tests/MuLang.LanguageServer.Tests.csproj" />
     <Project Path="tests/MuLang.StandardLibrary.DotNet.Tests/MuLang.StandardLibrary.DotNet.Tests.csproj" />
     <Project Path="tests/MuLang.StandardLibrary.Tests/MuLang.StandardLibrary.Tests.csproj" />
   </Folder>

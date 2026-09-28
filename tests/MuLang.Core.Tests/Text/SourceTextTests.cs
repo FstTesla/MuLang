@@ -14,7 +14,20 @@ public sealed class SourceTextTests
             Assert.That(source.Length, Is.EqualTo(3));
             Assert.That(source.GetText(new TextSpan(1, 1)), Is.EqualTo("😀"));
             Assert.That(source.GetPosition(2), Is.EqualTo(new TextPosition(2, 1, 3)));
+            Assert.That(source.GetUtf16Offset(2), Is.EqualTo(3));
         }
+    }
+
+    [TestCase(-1)]
+    [TestCase(4)]
+    public void RejectsInvalidUtf16OffsetConversions(int offset)
+    {
+        SourceText source = SourceText.From("a😀b");
+
+        Assert.That(
+            () => source.GetUtf16Offset(offset),
+            Throws.TypeOf<ArgumentOutOfRangeException>()
+        );
     }
 
     [Test]

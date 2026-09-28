@@ -438,9 +438,9 @@ public static class MuIrReader
                 IReadOnlyDictionary<ObjectTypeGraphReference, TypeSymbol> result =
                     builder.Build();
 
-                for (int index = 0; index < references.Length; index++)
+                foreach (ObjectTypeGraphReference? reference in references)
                 {
-                    types.Add(result[references[index]!]);
+                    types.Add(result[reference!]);
                 }
             }
             catch (ArgumentException exception)

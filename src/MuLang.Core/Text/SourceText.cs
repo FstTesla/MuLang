@@ -102,6 +102,17 @@ public sealed class SourceText
         );
     }
 
+    /// <summary>Gets the UTF-16 code-unit offset for a Unicode scalar offset.</summary>
+    /// <param name="offset">The Unicode scalar offset.</param>
+    /// <returns>The corresponding zero-based UTF-16 code-unit offset.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="offset" /> is outside the source-text bounds.</exception>
+    public int GetUtf16Offset(int offset)
+    {
+        ValidateOffset(offset);
+
+        return scalarOffsets[offset];
+    }
+
     /// <summary>Gets the text within a source span.</summary>
     /// <param name="span">The source span.</param>
     /// <returns>The text contained in the span.</returns>

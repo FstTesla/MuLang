@@ -7,9 +7,9 @@ internal static class IrTypeProjector
 {
     public static IrProgram Project(IrProgram program)
     {
-        ObjectTypeGraphBuilder builder = new();
+        ObjectTypeGraphBuilder builder = new ();
         Dictionary<TypeSymbol, ObjectTypeGraphReference> references =
-            new(ReferenceEqualityComparer.Instance);
+            new (ReferenceEqualityComparer.Instance);
         int objectIndex = 0;
 
         ObjectTypeGraphReference Add(TypeSymbol type)
@@ -29,28 +29,28 @@ internal static class IrTypeProjector
             switch (type)
             {
                 case ObjectTypeSymbol structured:
+                {
+                    reference = builder.DeclareAnonymous(
+                        $"object{objectIndex++}",
+                        structured.IsOpen
+                    );
+                    references.Add(type, reference);
+
+                    foreach (ObjectPropertySymbol property in structured.Properties.OrderBy(
+                            static property => property.Name,
+                            StringComparer.Ordinal
+                        ))
                     {
-                        reference = builder.DeclareAnonymous(
-                            $"object{objectIndex++}",
-                            structured.IsOpen
+                        builder.AddProperty(
+                            reference,
+                            property.Name,
+                            Add(property.Type),
+                            property.IsOptional
                         );
-                        references.Add(type, reference);
-
-                        foreach (ObjectPropertySymbol property in structured.Properties.OrderBy(
-                                static property => property.Name,
-                                StringComparer.Ordinal
-                            ))
-                        {
-                            builder.AddProperty(
-                                reference,
-                                property.Name,
-                                Add(property.Type),
-                                property.IsOptional
-                            );
-                        }
-
-                        return reference;
                     }
+
+                    return reference;
+                }
 
                 case NullableTypeSymbol nullable:
                     reference = builder.Nullable(Add(nullable.UnderlyingType));
@@ -144,15 +144,15 @@ internal static class IrTypeProjector
                 ],
                 [
                     .. function.Blocks.Select(
-                        block => new IrBasicBlock(
-                            block.Id,
+                        block => block with
+                        {
+                            Instructions =
                             [
                                 .. block.Instructions.Select(
                                     ProjectInstruction
                                 ),
                             ],
-                            block.Terminator
-                        )
+                        }
                     ),
                 ]
             );
@@ -185,7 +185,7 @@ internal static class IrTypeProjector
             program.CompilationMode,
             program.LanguageProfileFingerprint,
             ProjectFunction(program.EntryFunction),
-            [.. program.UserFunctions.Select(ProjectFunction)]
+            [ .. program.UserFunctions.Select(ProjectFunction) ]
         );
     }
 }

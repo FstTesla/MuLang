@@ -3,6 +3,9 @@ namespace MuLang.Core;
 /// <summary>Provides predefined MuLang language profiles.</summary>
 public static class LanguageProfiles
 {
+    /// <summary>Gets the standard profile for the latest supported MuLang language version.</summary>
+    public static LanguageProfile Latest => Version1_1;
+
     /// <summary>Gets the standard profile for MuLang language version 1.</summary>
     public static LanguageProfile Version1 { get; } = new (
         LanguageVersion.Version1,

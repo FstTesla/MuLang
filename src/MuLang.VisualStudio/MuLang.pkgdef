@@ -1,0 +1,8 @@
+[$RootKey$\TextMate\Repositories]
+"MuLangGrammars"="$PackageFolder$\Grammars"
+
+[$RootKey$\TextMate\LanguageConfiguration\GrammarMapping]
+"source.mulang"="$PackageFolder$\MuLang-language-configuration.json"
+
+[$RootKey$\TextMate\LanguageConfiguration\ContentTypeMapping]
+"MuLang"="$PackageFolder$\MuLang-language-configuration.json"

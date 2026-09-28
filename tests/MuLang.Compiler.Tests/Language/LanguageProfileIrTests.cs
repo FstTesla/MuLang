@@ -137,7 +137,7 @@ public sealed class LanguageProfileIrTests
     [Test]
     public void LoweringProjectsProviderObjectTypesToStructuralIrTypes()
     {
-        ObjectTypeGraphBuilder graphBuilder = new();
+        ObjectTypeGraphBuilder graphBuilder = new ();
         ObjectTypeGraphReference node = graphBuilder.DeclareNamed(
             "node",
             "type.node",

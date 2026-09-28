@@ -75,7 +75,7 @@ public sealed class ObjectTypeGraphBuilderTests
         builder.AddProperty(value, "invalid", invalid);
 
         Assert.That(
-            () => builder.Build(),
+            builder.Build,
             Throws.TypeOf<ArgumentException>()
         );
     }
