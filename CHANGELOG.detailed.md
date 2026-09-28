@@ -12,12 +12,13 @@ Stable entries describe the incremental change since the preceding prerelease. T
 
 Each release heading identifies the incremental version range covered by the section, from the comparison version to the released version.
 
-## `0.2.0-alpha.3` → `0.2.0-alpha.4` - 2026-09-25
+## `0.2.0-alpha.3` → `0.2.0-alpha.4` - 2026-09-28
 
 ### Breaking changes
 
 - Reserved `infty` and `nan` as keywords in language version 1.1. Environment schemas targeting version 1.1 can no longer expose provider types, globals, functions, or parameters with those language names; version 1 continues to treat them as identifiers.
 - Changed the culture-independent string conversion of positive infinity, negative infinity, and NaN from `Infinity`, `-Infinity`, and `NaN` to the source-compatible spellings `infty`, `-infty`, and `nan`.
+- Changed the [portable IR slot contract](https://fsttesla.github.io/MuLang/ir/portable-intermediate-representation.html) so parameter slots are explicitly read-only. The existing `IrSlot` constructor now gives parameter slots read-only capability, and `IrValidator` rejects instructions that define them. Custom IR producers must use a mutable local for values that require reassignment.
 
 ### New features
 
@@ -25,7 +26,7 @@ Each release heading identifies the incremental version range covered by the sec
 - Added lexical warning `MUL1005` for every use in an earlier language version of an identifier spelling that becomes reserved in a later supported version. Version 1 code may still use `infty` and `nan`, but now receives migration warnings because version 1.1 reserves them.
 - Added the versioned, canonical, textual [MuIR (`.muir`) format](https://fsttesla.github.io/MuLang/ir/muir-format.html) for serializing and deserializing portable `IrProgram` graphs. `MuLang.IR` now provides UTF-8 and text APIs, explicit polymorphic wire tokens, source-span preservation, strict parsing diagnostics, configurable resource limits, and byte-stable round trips.
 - Added atomic construction of immutable self-recursive and mutually recursive structured-object type graphs for provider environments and portable IR. Type equivalence and MuIR canonicalization now terminate coinductively, normalize object properties ordinally, merge bisimilar wire graphs, and support forward type references. Lowering projects provider object types to structural IR-only graphs, and MuIR omits provider IDs, type names, and named-versus-anonymous origin.
-- Added mutable/read-only capability to IR slots while preserving existing construction. Local and temporary slots default to mutable; parameter slots default to read-only, matching their established source immutability. MuIR persists the capability, and `IrValidator` forbids parameter definition sites and requires a read-only local to have exactly one syntactic definition site.
+- Added mutable/read-only capability to IR slots while preserving existing construction. Local and temporary slots default to mutable, MuIR persists the capability, and `IrValidator` requires a read-only local to have exactly one syntactic definition site.
 
 ## `0.2.0-alpha.2` → `0.2.0-alpha.3` - 2026-09-24
 

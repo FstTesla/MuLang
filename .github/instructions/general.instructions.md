@@ -27,6 +27,10 @@ When a task is open for further steps, ask me whether I want you to proceed with
 
 In autopilot mode, document any decision you make in a dedicated Markdown file, so that I can review them later.
 
+---
+
+Do not stage or commit changes to the repository, unless explicitly told to do so.
+
 # Coding practices and style
 
 Do not generate examples, unless explicitly told to do so.
