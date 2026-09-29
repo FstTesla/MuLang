@@ -99,7 +99,7 @@ public sealed class SemanticWarningTests
             .AddGlobal("global.condition", "condition", TypeSymbols.Bool)
             .Build();
         AnalysisResult alwaysTrue = AnalyzeExpression(
-            "condition || true",
+            "true || condition",
             environment
         );
         AnalysisResult constantOperand = AnalyzeExpression(
@@ -119,6 +119,21 @@ public sealed class SemanticWarningTests
             );
             Assert.That(operandWarning.Span, Is.EqualTo(new TextSpan(0, 17)));
         }
+    }
+
+    [TestCase("condition && false")]
+    [TestCase("condition || true")]
+    public void DoesNotWarnForRightAbsorbingLogicalOperands(string source)
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddGlobal("global.condition", "condition", TypeSymbols.Bool)
+            .Build();
+        AnalysisResult result = AnalyzeExpression(source, environment);
+
+        Assert.That(
+            result.Diagnostics.Select(static diagnostic => diagnostic.Code),
+            Does.Not.Contain(DiagnosticCodes.ConstantCondition)
+        );
     }
 
     [Test]

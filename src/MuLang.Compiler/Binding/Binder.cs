@@ -3092,42 +3092,64 @@ internal sealed class Binder
             return;
         }
 
-        if (
-            BoundExpressionFacts.TryGetTruthiness(
-                expression,
-                out bool value
-            )
-        )
+        bool hasLeftValue = BoundExpressionFacts.TryGetTruthiness(
+            expression.Left,
+            out bool leftValue
+        );
+        bool hasRightValue = BoundExpressionFacts.TryGetTruthiness(
+            expression.Right,
+            out bool rightValue
+        );
+        bool isAnd = operatorToken.Kind == TokenKind.AmpersandAmpersand;
+
+        if (hasLeftValue && (isAnd ? !leftValue : leftValue))
         {
             ReportWarning(
                 DiagnosticCodes.ConstantCondition,
                 expression.Span,
-                $"Expression is always {(value ? "true" : "false")}.",
+                $"Expression is always {(leftValue ? "true" : "false")}.",
                 DiagnosticCategory.ControlFlow
             );
             return;
         }
 
-        ReportConstantLogicalOperand(expression, expression.Left, "Left");
-        ReportConstantLogicalOperand(expression, expression.Right, "Right");
+        if (hasLeftValue && hasRightValue)
+        {
+            ReportWarning(
+                DiagnosticCodes.ConstantCondition,
+                expression.Span,
+                $"Expression is always {(rightValue ? "true" : "false")}.",
+                DiagnosticCategory.ControlFlow
+            );
+            return;
+        }
+
+        if (hasLeftValue)
+        {
+            ReportConstantLogicalOperand(
+                expression,
+                leftValue,
+                "Left"
+            );
+            return;
+        }
+
+        if (hasRightValue && (isAnd ? rightValue : !rightValue))
+        {
+            ReportConstantLogicalOperand(
+                expression,
+                rightValue,
+                "Right"
+            );
+        }
     }
 
     private void ReportConstantLogicalOperand(
         BoundExpression.Binary expression,
-        BoundExpression operand,
+        bool value,
         string operandName
     )
     {
-        if (
-            !BoundExpressionFacts.TryGetTruthiness(
-                operand,
-                out bool value
-            )
-        )
-        {
-            return;
-        }
-
         ReportWarning(
             DiagnosticCodes.ConstantCondition,
             expression.Span,

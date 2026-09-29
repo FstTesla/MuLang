@@ -41,7 +41,7 @@ func exerciseHighlighting(name: string, requested: int): void {
     var alwaysFallbackCoalescing = null ?? 0;
     var redundantOptionalAccess = values?.length;
     var alwaysNullOptionalAccess = (null as int[]?)?.length;
-    var constantLogicalResult = active || true;
+    var constantLogicalResult = true || active;
 
     if (true) {
     }

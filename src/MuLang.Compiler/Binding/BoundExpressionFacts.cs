@@ -264,25 +264,6 @@ internal static class BoundExpressionFacts
         }
 
         if (
-            expression.Operator is
-                TokenKind.AmpersandAmpersand or TokenKind.PipePipe &&
-            TryGetTruthiness(expression.Right, out bool determiningRightTruthiness)
-        )
-        {
-            bool isAnd = expression.Operator == TokenKind.AmpersandAmpersand;
-
-            if (
-                isAnd
-                    ? !determiningRightTruthiness
-                    : determiningRightTruthiness
-            )
-            {
-                value = !isAnd;
-                return true;
-            }
-        }
-
-        if (
             !TryEvaluateConstantCore(expression.Left, out object? left) ||
             !TryEvaluateConstantCore(expression.Right, out object? right)
         )

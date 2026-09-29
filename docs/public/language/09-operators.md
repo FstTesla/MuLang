@@ -192,7 +192,7 @@ Under truthiness condition semantics, each non-void operand is normalized to `bo
 
 `&&` and `||` always produce `bool`; they never return an operand value.
 
-The compiler produces a warning when the result of `!`, `&&`, or `||`, or the truthiness of a relevant operand, is statically known.
+The compiler produces a warning when the result of `!`, `&&`, or `||`, or the truthiness of an identity operand, is statically known. A right absorbing operand alone does not produce the warning: `left` is still evaluated in `left && false` and `left || true`, so replacing the complete expression with its known result could remove observable effects.
 
 > Given a host function `effect(): bool`, neither of these expressions calls it:
 >
