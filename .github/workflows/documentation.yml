@@ -41,7 +41,7 @@ jobs:
         run: dotnet tool restore
 
       - name: Restore
-        run: dotnet restore MuLang.CrossPlatform.slnx --locked-mode
+        run: dotnet restore MuLang.CrossPlatform.slnx
 
       - name: Build
         run: dotnet build MuLang.CrossPlatform.slnx --configuration Release --no-restore --nologo --verbosity minimal

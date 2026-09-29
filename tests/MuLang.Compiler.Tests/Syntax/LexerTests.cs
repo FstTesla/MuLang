@@ -180,6 +180,111 @@ public sealed class LexerTests
         Assert.That(result.Diagnostics, Is.Empty);
     }
 
+    [TestCase("0b101", 2, 5)]
+    [TestCase("0B101", 2, 5)]
+    [TestCase("0o17", 2, 4)]
+    [TestCase("0O17", 2, 4)]
+    [TestCase("0x2a", 2, 4)]
+    [TestCase("0X2A", 2, 4)]
+    public void RecognizesPrefixedIntegerLiterals(
+        string source,
+        int start,
+        int length
+    )
+    {
+        LexResult result = Lexer.Lex(
+            SourceText.From($"- {source}"),
+            LanguageProfiles.Version1_1
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(
+                result.Tokens.Select(static token => token.Kind),
+                Is.EqualTo(
+                    [
+                        TokenKind.Minus,
+                        TokenKind.IntegerLiteral,
+                        TokenKind.EndOfFile,
+                    ]
+                )
+            );
+            Assert.That(result.Tokens[1].Span, Is.EqualTo(new TextSpan(start, length)));
+            Assert.That(result.Diagnostics, Is.Empty);
+        }
+    }
+
+    [TestCase("0b")]
+    [TestCase("0o")]
+    [TestCase("0x")]
+    public void ReportsPrefixedIntegerWithoutDigits(string source)
+    {
+        LexResult result = Lexer.Lex(
+            SourceText.From(source),
+            LanguageProfiles.Version1_1
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.Tokens[0].Kind, Is.EqualTo(TokenKind.IntegerLiteral));
+            Assert.That(result.Tokens[0].Span, Is.EqualTo(new TextSpan(0, 2)));
+            Assert.That(result.Diagnostics.Single().Code, Is.EqualTo(DiagnosticCodes.InvalidNumber));
+            Assert.That(result.Diagnostics.Single().Span, Is.EqualTo(new TextSpan(0, 2)));
+        }
+    }
+
+    [TestCase("0b102", 4, 1)]
+    [TestCase("0o89", 2, 2)]
+    [TestCase("0x1g", 3, 1)]
+    public void ReportsInvalidPrefixedIntegerDigits(
+        string source,
+        int diagnosticStart,
+        int diagnosticCount
+    )
+    {
+        LexResult result = Lexer.Lex(
+            SourceText.From(source),
+            LanguageProfiles.Version1_1
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.Tokens[0].Span, Is.EqualTo(new TextSpan(0, source.Length)));
+            Assert.That(result.Diagnostics, Has.Count.EqualTo(diagnosticCount));
+            Assert.That(result.Diagnostics[0].Code, Is.EqualTo(DiagnosticCodes.InvalidNumber));
+            Assert.That(
+                result.Diagnostics[0].Span,
+                Is.EqualTo(new TextSpan(diagnosticStart, 1))
+            );
+        }
+    }
+
+    [TestCase("0b101")]
+    [TestCase("0O17")]
+    [TestCase("0x1g")]
+    public void RejectsCompletePrefixedIntegerInVersionOne(string source)
+    {
+        LexResult result = Lexer.Lex(
+            SourceText.From(source),
+            LanguageProfiles.Version1
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.Tokens[0].Kind, Is.EqualTo(TokenKind.IntegerLiteral));
+            Assert.That(result.Tokens[0].Span, Is.EqualTo(new TextSpan(0, source.Length)));
+            Assert.That(result.Diagnostics, Has.Count.EqualTo(1));
+            Assert.That(
+                result.Diagnostics[0].Code,
+                Is.EqualTo(DiagnosticCodes.UnsupportedLanguageVersionFeature)
+            );
+            Assert.That(
+                result.Diagnostics[0].Span,
+                Is.EqualTo(new TextSpan(0, source.Length))
+            );
+        }
+    }
+
     [Test]
     public void DecodesStringEscapes()
     {

@@ -11,10 +11,7 @@ public sealed class ObjectPropertySymbol
     /// <exception cref="ArgumentException">Thrown when <paramref name="type" /> cannot be used for an object property.</exception>
     public ObjectPropertySymbol(string name, TypeSymbol type, bool isOptional = false)
     {
-        if (name is null)
-        {
-            throw new ArgumentNullException(nameof(name));
-        }
+        Name = name ?? throw new ArgumentNullException(nameof(name));
 
         if (type is null)
         {
@@ -29,7 +26,6 @@ public sealed class ObjectPropertySymbol
             );
         }
 
-        Name = name;
         Type = type;
         IsOptional = isOptional;
     }

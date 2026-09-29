@@ -14,24 +14,6 @@ Implement an optional, modular MuLang standard library with:
 
 The standard library is a collection of provider modules, not a privileged language namespace. The compiler resolves its symbols through the ordinary environment schema.
 
-## Dependencies
-
-The initial library depends on the read-only array support implemented for `LanguageVersion.Version1_1`.
-
-In particular:
-
-- `arrayContains` accepts `unknown?[]$`;
-- `objectKeys` returns `string[]$`;
-- `objectValues` returns `unknown?[]$`;
-- provider implementations need the read-only array runtime contract;
-- standard-library declarations require `LanguageVersion.Version1_1`.
-
-The standard-library projects remain outside the compiler and exporter dependency graph:
-
-- `MuLang.StandardLibrary` depends only on `MuLang.Core`;
-- `MuLang.StandardLibrary.DotNet` depends on `MuLang.StandardLibrary` and `MuLang.Exporters.DotNet`;
-- no existing production project takes a dependency on either standard-library package.
-
 ## Design principles
 
 ### Explicit composition
@@ -590,17 +572,7 @@ Exit criteria:
 - no module collision exists in the complete catalog;
 - runtime services required by implementations are explicit.
 
-### Phase 2: Validate read-only array prerequisite
-
-1. Verify `unknown?[]$`, `string[]$`, and read-only runtime adapters.
-2. Verify context-aware provider calls and structural equality access.
-
-Exit criteria:
-
-- declaration signatures can represent all initial array functions;
-- provider implementations can consume arrays declared read-only through the runtime adapter contracts.
-
-### Phase 3: Build declarative module infrastructure
+### Phase 2: Build declarative module infrastructure
 
 1. Add immutable module and capability models.
 2. Add module composition and collision validation.
@@ -614,7 +586,7 @@ Exit criteria:
 - declarations contain no runtime-specific dependency;
 - catalog-wide uniqueness and fingerprints are tested.
 
-### Phase 4: Extend .NET provider invocation
+### Phase 3: Extend .NET provider invocation
 
 1. Add the context-aware provider delegate path.
 2. Expose structural equality and adapter reads through a narrow context.
@@ -627,7 +599,7 @@ Exit criteria:
 - standard-library implementations do not duplicate exporter runtime semantics;
 - host provider functions can use the same supported invocation model.
 
-### Phase 5: Build .NET composition infrastructure
+### Phase 4: Build .NET composition infrastructure
 
 1. Add immutable module bindings.
 2. Add declaration/implementation parity validation.
@@ -640,7 +612,7 @@ Exit criteria:
 - selected declaration modules and runtime bindings compose independently but validate as one set;
 - missing, duplicate, and extra implementations fail explicitly.
 
-### Phase 6: Implement deterministic modules
+### Phase 5: Implement deterministic modules
 
 Implement and test:
 
@@ -657,7 +629,7 @@ Exit criteria:
 - deterministic modules pass semantic, adapter, Unicode, and integration tests;
 - no implementation uses process culture.
 
-### Phase 7: Implement nondeterministic modules
+### Phase 6: Implement nondeterministic modules
 
 Implement and test:
 
@@ -671,12 +643,12 @@ Exit criteria:
 - tests do not depend on ambient time or uncontrolled randomness;
 - module capability metadata is correct.
 
-### Phase 8: Documentation, packaging, and release integration
+### Phase 7: Documentation, packaging, and release integration
 
 1. Update package READMEs and conceptual documentation.
 2. Add DocFX API coverage.
 3. Populate shipped public API baselines.
-4. Update changelogs and package descriptions.
+4. Update changelogs.
 5. Run package dependency and content verification.
 6. Run full Debug and Release validation.
 

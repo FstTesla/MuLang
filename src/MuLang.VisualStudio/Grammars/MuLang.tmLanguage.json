@@ -47,18 +47,18 @@
       "patterns": [
         {
           "name": "constant.numeric.float.mulang",
-          "match": "\\b(?:infty|nan|(?:[0-9]+(?:\\.[0-9]*)?|\\.[0-9]+)(?:[eE][+-]?[0-9]+)?)[fF]?\\b"
+          "match": "\\b(?:[0-9]+(?:\\.[0-9]*)?|\\.[0-9]+)(?:[eE][+-]?[0-9]+)?[fF]?\\b"
         },
         {
           "name": "constant.numeric.integer.mulang",
-          "match": "\\b[0-9]+\\b"
+          "match": "\\b(?:0[bB][01]+|0[oO][0-7]+|0[xX][0-9A-Fa-f]+|[0-9]+)\\b"
         }
       ]
     },
     "operatorKeywords": {
       "patterns": [
         {
-          "name": "keyword.operator.word.mulang",
+          "name": "keyword.other.mulang",
           "match": "\\b(?:as|has|is)\\b"
         }
       ]
@@ -79,7 +79,7 @@
         },
         {
           "name": "constant.language.mulang",
-          "match": "\\b(?:false|null|true)\\b"
+          "match": "\\b(?:false|infty|nan|null|true)\\b"
         }
       ]
     },

@@ -41,7 +41,7 @@ jobs:
         run: dotnet tool restore --tool-manifest tooling/.config/dotnet-tools.json
 
       - name: Restore
-        run: dotnet restore MuLang.CrossPlatform.slnx --locked-mode
+        run: dotnet restore MuLang.CrossPlatform.slnx
         working-directory: source
 
       - name: Build
@@ -113,8 +113,8 @@ jobs:
 
       - name: Restore
         run: |
-          dotnet restore src\MuLang.LanguageServer\MuLang.LanguageServer.csproj --locked-mode
-          dotnet restore src\MuLang.VisualStudio\MuLang.VisualStudio.csproj --locked-mode
+          dotnet restore src\MuLang.LanguageServer\MuLang.LanguageServer.csproj
+          dotnet restore src\MuLang.VisualStudio\MuLang.VisualStudio.csproj
         working-directory: source
 
       - name: Build VSIX

@@ -243,12 +243,11 @@ public static class MuLangCompiler
             compilationMode,
             profile
         );
-        BindingResult binding = Binder.Bind(
+        return Binder.Bind(
             syntaxTree,
             environment,
             expectedResultType
         );
-        return binding;
     }
 
     private static SourceClassificationKind ClassifyToken(TokenKind kind)

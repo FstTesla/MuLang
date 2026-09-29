@@ -85,14 +85,14 @@ public sealed class MuLangCompilerEditorTests
             )
             .Build();
         const string Source = """
-            func calculate(input: Customer): Customer {
-                var current: Customer = input;
-                return current;
-            }
-            var result: Customer = calculate(load(customer));
-            var property = customer.name;
-            var literal = { label: 1 };
-            """;
+                              func calculate(input: Customer): Customer {
+                                  var current: Customer = input;
+                                  return current;
+                              }
+                              var result: Customer = calculate(load(customer));
+                              var property = customer.name;
+                              var literal = { label: 1 };
+                              """;
         SourceText source = SourceText.From(Source);
         SemanticClassificationResult result = MuLangCompiler.ClassifySemantically(
             Source,
@@ -103,7 +103,7 @@ public sealed class MuLangCompilerEditorTests
             string Text,
             SemanticClassificationKind Kind,
             SemanticClassificationModifiers Modifiers
-        )> classifications =
+            )> classifications =
         [
             .. result.Classifications.Select(
                 classification => (
@@ -119,60 +119,71 @@ public sealed class MuLangCompilerEditorTests
             Assert.That(result.Diagnostics, Is.Empty);
             Assert.That(
                 classifications,
-                Does.Contain((
-                    "calculate",
-                    SemanticClassificationKind.Function,
-                    SemanticClassificationModifiers.Declaration
-                ))
+                Does.Contain(
+                    (
+                        "calculate",
+                        SemanticClassificationKind.Function,
+                        SemanticClassificationModifiers.Declaration
+                    )
+                )
             );
             Assert.That(
                 classifications,
-                Does.Contain((
-                    "load",
-                    SemanticClassificationKind.Function,
-                    SemanticClassificationModifiers.DefaultLibrary
-                ))
+                Does.Contain(
+                    (
+                        "load",
+                        SemanticClassificationKind.Function,
+                        SemanticClassificationModifiers.DefaultLibrary
+                    )
+                )
             );
             Assert.That(
                 classifications,
-                Does.Contain((
-                    "input",
-                    SemanticClassificationKind.Parameter,
-                    SemanticClassificationModifiers.Declaration
-                ))
+                Does.Contain(
+                    (
+                        "input",
+                        SemanticClassificationKind.Parameter,
+                        SemanticClassificationModifiers.Declaration
+                    )
+                )
             );
             Assert.That(
                 classifications,
-                Does.Contain((
-                    "customer",
-                    SemanticClassificationKind.Variable,
-                    SemanticClassificationModifiers.ReadOnly |
-                    SemanticClassificationModifiers.DefaultLibrary
-                ))
+                Does.Contain(
+                    (
+                        "customer",
+                        SemanticClassificationKind.Variable,
+                        SemanticClassificationModifiers.ReadOnly |
+                        SemanticClassificationModifiers.DefaultLibrary
+                    )
+                )
             );
             Assert.That(
                 classifications.Count(
                     static classification =>
-                        classification.Text == "Customer" &&
-                        classification.Kind == SemanticClassificationKind.Type
+                        classification is { Text: "Customer", Kind: SemanticClassificationKind.Type }
                 ),
                 Is.EqualTo(4)
             );
             Assert.That(
                 classifications,
-                Does.Contain((
-                    "name",
-                    SemanticClassificationKind.Property,
-                    SemanticClassificationModifiers.None
-                ))
+                Does.Contain(
+                    (
+                        "name",
+                        SemanticClassificationKind.Property,
+                        SemanticClassificationModifiers.None
+                    )
+                )
             );
             Assert.That(
                 classifications,
-                Does.Contain((
-                    "label",
-                    SemanticClassificationKind.Property,
-                    SemanticClassificationModifiers.Declaration
-                ))
+                Does.Contain(
+                    (
+                        "label",
+                        SemanticClassificationKind.Property,
+                        SemanticClassificationModifiers.Declaration
+                    )
+                )
             );
         }
     }
@@ -181,9 +192,9 @@ public sealed class MuLangCompilerEditorTests
     public void ClassifiesReferencesRemovedByConstantFolding()
     {
         const string Source = """
-            var first = 1;
-            var second = true ? first : first;
-            """;
+                              var first = 1;
+                              var second = true ? first : first;
+                              """;
         SourceText source = SourceText.From(Source);
         SemanticClassificationResult result = MuLangCompiler.ClassifySemantically(
             Source,

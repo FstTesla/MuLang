@@ -52,6 +52,7 @@ internal sealed class MuLangLanguageClient : ILanguageClient
         ProcessStartInfo startInfo = new ()
         {
             FileName = serverPath,
+            Arguments = "--visual-studio",
             RedirectStandardInput = true,
             RedirectStandardOutput = true,
             RedirectStandardError = false,

@@ -21,9 +21,9 @@ Unknown settings and unsupported language versions MUST be rejected. A setting w
 
 The standard profile for language version 1 enables user-defined functions, recursion, both loop kinds, calls to host-provided functions, open objects, every mutation kind, explicit loop-control levels, trailing commas, and compile-time constant evaluation. It uses strict Boolean conditions and prohibits variable shadowing.
 
-The standard profile for language version 1.1 has the same settings and adds read-only array types and literals together with the `infty` and `nan` float literals. These additions are determined by the language version and are not independently configurable.
+The standard profile for language version 1.1 has the same settings and adds read-only array types and literals, binary, octal, and hexadecimal integer literals, and the `infty` and `nan` float literals. These additions are determined by the language version and are not independently configurable.
 
-Language version 1 rejects `$` and `$[` and treats `infty` and `nan` as identifiers.
+Language version 1 rejects `$`, `$[`, and prefixed integer literals and treats `infty` and `nan` as identifiers.
 
 > For example, this expression is valid in the standard language-version-1.1 profile and rejected as an unavailable feature in language version 1:
 >

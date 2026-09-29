@@ -75,7 +75,19 @@ The null literal is `null`.
 
 ## 3.7. Integer literals
 
-An integer literal consists of a non-empty sequence of decimal digits without a decimal separator or exponent. In a position where a literal is permitted, an immediately preceding `+` or `-` token is part of the signed literal.
+Language version 1 recognizes integer literals as non-empty sequences of decimal digits without a decimal separator or exponent.
+
+Language version 1.1 additionally recognizes integer literals with the following case-insensitive prefixes:
+
+- `0b` for base 2, followed by one or more digits from `0` through `1`;
+- `0o` for base 8, followed by one or more digits from `0` through `7`;
+- `0x` for base 16, followed by one or more digits from `0` through `9`, `a` through `f`, or `A` through `F`.
+
+A prefix and its following alphanumeric sequence form one integer-literal token. A missing digit or a character outside the selected base is a lexical error. Language version 1 reports the complete prefixed token as unavailable syntax.
+
+Digit separators and non-decimal float literals are not supported.
+
+In a position where a literal is permitted, an immediately preceding `+` or `-` token is part of the signed literal.
 
 Whitespace between the sign and numeric token has no semantic meaning.
 
@@ -85,14 +97,18 @@ The complete signed value MUST be representable as a signed 64-bit integer. A va
 >
 > ```text
 > 0
+> 0b101010
+> 0o52
+> 0x2A
 > -9223372036854775808
+> -0x8000000000000000
 > +42
 > ```
 >
 > This literal produces a compile-time error because it is outside the `int` range:
 >
 > ```text
-> 9223372036854775808
+> 0x8000000000000000
 > ```
 
 ## 3.8. Float literals

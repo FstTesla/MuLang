@@ -197,7 +197,7 @@ internal sealed class Binder
         {
             Report(
                 DiagnosticCodes.NotAllPathsReturn,
-                syntax.Span,
+                syntax.EndOfFileToken.Span,
                 $"Not all program paths return '{expectedResultType.DisplayName}'.",
                 DiagnosticCategory.ControlFlow
             );
@@ -353,7 +353,7 @@ internal sealed class Binder
         {
             Report(
                 DiagnosticCodes.NotAllPathsReturn,
-                function.Declaration.Body.Span,
+                function.Declaration.Body.CloseBraceToken.Span,
                 $"Not all paths in function '{function.Name}' return '{function.ReturnType.DisplayName}'.",
                 DiagnosticCategory.ControlFlow
             );
@@ -883,13 +883,37 @@ internal sealed class Binder
             return 1;
         }
 
+        string tokenText = GetText(levelToken);
         string sign = signToken?.Kind switch
         {
             TokenKind.Plus => "+",
             TokenKind.Minus => "-",
             _ => "",
         };
-        string text = $"{sign}{GetText(levelToken)}";
+        string text = $"{sign}{tokenText}";
+
+        if (IsPrefixedInteger(tokenText))
+        {
+            bool parsed = TryParsePrefixedInteger(
+                tokenText,
+                signToken?.Kind == TokenKind.Minus,
+                out long prefixedLevel,
+                out bool overflow
+            );
+
+            if (parsed && prefixedLevel is > 0 and <= int.MaxValue)
+            {
+                return (int)prefixedLevel;
+            }
+
+            if (!parsed && !overflow)
+            {
+                return 1;
+            }
+
+            ReportInvalidLoopLevel(levelToken);
+            return 1;
+        }
 
         if (
             !int.TryParse(
@@ -901,17 +925,21 @@ internal sealed class Binder
             level <= 0
         )
         {
-            Report(
-                DiagnosticCodes.InvalidLoopLevel,
-                levelToken.Span,
-                "The loop level must be a positive integer literal.",
-                DiagnosticCategory.ControlFlow
-            );
-
+            ReportInvalidLoopLevel(levelToken);
             return 1;
         }
 
         return level;
+    }
+
+    private void ReportInvalidLoopLevel(SyntaxToken levelToken)
+    {
+        Report(
+            DiagnosticCodes.InvalidLoopLevel,
+            levelToken.Span,
+            "The loop level must be a positive integer literal.",
+            DiagnosticCategory.ControlFlow
+        );
     }
 
     private LoopFlowContext GetLoopContext(int level)
@@ -1025,6 +1053,40 @@ internal sealed class Binder
         {
             case TokenKind.IntegerLiteral:
             {
+                string tokenText = GetText(syntax.LiteralToken);
+                bool isNegative = syntax.SignToken?.Kind == TokenKind.Minus;
+
+                if (IsPrefixedInteger(tokenText))
+                {
+                    if (
+                        TryParsePrefixedInteger(
+                            tokenText,
+                            isNegative,
+                            out long prefixedValue,
+                            out bool overflow
+                        )
+                    )
+                    {
+                        return new BoundExpression.Literal(
+                            syntax,
+                            TypeSymbols.Int,
+                            prefixedValue
+                        );
+                    }
+
+                    if (overflow)
+                    {
+                        string overflowText = GetSignedLiteralText(syntax);
+                        Report(
+                            DiagnosticCodes.InvalidIntegerLiteral,
+                            syntax.Span,
+                            $"Integer literal '{overflowText}' is outside the supported range."
+                        );
+                    }
+
+                    return new BoundExpression.Error(syntax);
+                }
+
                 string text = GetSignedLiteralText(syntax);
 
                 if (
@@ -2780,6 +2842,73 @@ internal sealed class Binder
         };
 
         return $"{sign}{GetText(syntax.LiteralToken)}";
+    }
+
+    private static bool IsPrefixedInteger(string text)
+    {
+        return text is [ '0', 'b' or 'B' or 'o' or 'O' or 'x' or 'X', .. ];
+    }
+
+    private static bool TryParsePrefixedInteger(
+        string text,
+        bool isNegative,
+        out long value,
+        out bool overflow
+    )
+    {
+        int numberBase = text[1] switch
+        {
+            'b' or 'B' => 2,
+            'o' or 'O' => 8,
+            'x' or 'X' => 16,
+            _ => throw new InvalidOperationException(),
+        };
+        ulong limit = isNegative
+            ? 1UL << 63
+            : long.MaxValue;
+        ulong magnitude = 0;
+
+        for (int index = 2; index < text.Length; index++)
+        {
+            int digit = text[index] switch
+            {
+                >= '0' and <= '9' => text[index] - '0',
+                >= 'a' and <= 'f' => text[index] - 'a' + 10,
+                >= 'A' and <= 'F' => text[index] - 'A' + 10,
+                _ => -1,
+            };
+
+            if (digit < 0 || digit >= numberBase)
+            {
+                value = 0;
+                overflow = false;
+                return false;
+            }
+
+            if (magnitude > (limit - (uint)digit) / (uint)numberBase)
+            {
+                value = 0;
+                overflow = true;
+                return false;
+            }
+
+            magnitude = magnitude * (uint)numberBase + (uint)digit;
+        }
+
+        if (text.Length == 2)
+        {
+            value = 0;
+            overflow = false;
+            return false;
+        }
+
+        value = isNegative
+            ? magnitude == 1UL << 63
+                ? long.MinValue
+                : -(long)magnitude
+            : (long)magnitude;
+        overflow = false;
+        return true;
     }
 
     private string GetText(SyntaxToken token)

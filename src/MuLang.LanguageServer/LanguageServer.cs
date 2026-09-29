@@ -21,13 +21,19 @@ internal sealed class LanguageServer
     private readonly LspMessageWriter writer;
     private bool exitRequested;
     private bool shutdownRequested;
+    private bool useVisualStudioClassifications;
 
-    public LanguageServer(Stream input, Stream output)
+    public LanguageServer(
+        Stream input,
+        Stream output,
+        bool useVisualStudioClassifications = false
+    )
     {
         this.input = input ?? throw new ArgumentNullException(nameof(input));
         writer = new LspMessageWriter(
             output ?? throw new ArgumentNullException(nameof(output))
         );
+        this.useVisualStudioClassifications = useVisualStudioClassifications;
     }
 
     public async Task<int> RunAsync(CancellationToken cancellationToken)
@@ -78,9 +84,16 @@ internal sealed class LanguageServer
             {
                 case "initialize":
                 {
+                    useVisualStudioClassifications =
+                        useVisualStudioClassifications ||
+                        UsesVisualStudioClassifications(parameters);
+
                     if (hasId)
                     {
-                        await WriteInitializeResponseAsync(id, cancellationToken);
+                        await WriteInitializeResponseAsync(
+                            id,
+                            cancellationToken
+                        );
                     }
 
                     break;
@@ -108,6 +121,7 @@ internal sealed class LanguageServer
                     await CloseDocumentAsync(parameters, cancellationToken);
                     break;
                 }
+
                 case "textDocument/semanticTokens/full":
                 {
                     if (hasId)
@@ -121,6 +135,7 @@ internal sealed class LanguageServer
 
                     break;
                 }
+
                 case "shutdown":
                 {
                     shutdownRequested = true;
@@ -280,7 +295,7 @@ internal sealed class LanguageServer
     {
         return writer.WriteResponseAsync(
             id,
-            static result =>
+            result =>
             {
                 result.WriteStartObject();
                 result.WriteStartObject("capabilities");
@@ -293,16 +308,29 @@ internal sealed class LanguageServer
                 result.WriteStartObject("semanticTokensProvider");
                 result.WriteStartObject("legend");
                 result.WriteStartArray("tokenTypes");
-                result.WriteStringValue("type");
-                result.WriteStringValue("function");
+                result.WriteStringValue(
+                    useVisualStudioClassifications
+                        ? "class name"
+                        : "type"
+                );
+                result.WriteStringValue(
+                    useVisualStudioClassifications
+                        ? "method name"
+                        : "method"
+                );
                 result.WriteStringValue("parameter");
                 result.WriteStringValue("variable");
                 result.WriteStringValue("property");
                 result.WriteEndArray();
                 result.WriteStartArray("tokenModifiers");
-                result.WriteStringValue("declaration");
-                result.WriteStringValue("readonly");
-                result.WriteStringValue("defaultLibrary");
+
+                if (!useVisualStudioClassifications)
+                {
+                    result.WriteStringValue("declaration");
+                    result.WriteStringValue("readonly");
+                    result.WriteStringValue("defaultLibrary");
+                }
+
                 result.WriteEndArray();
                 result.WriteEndObject();
                 result.WriteBoolean("full", true);
@@ -339,7 +367,11 @@ internal sealed class LanguageServer
 
                 if (documents.TryGetValue(uri, out DocumentSnapshot? document))
                 {
-                    WriteSemanticTokenData(result, document);
+                    WriteSemanticTokenData(
+                        result,
+                        document,
+                        useVisualStudioClassifications
+                    );
                 }
 
                 result.WriteEndArray();
@@ -351,7 +383,8 @@ internal sealed class LanguageServer
 
     private static void WriteSemanticTokenData(
         Utf8JsonWriter writer,
-        DocumentSnapshot document
+        DocumentSnapshot document,
+        bool useVisualStudioClassifications
     )
     {
         SourceText source = SourceText.From(document.Text);
@@ -387,10 +420,31 @@ internal sealed class LanguageServer
             writer.WriteNumberValue(deltaStart);
             writer.WriteNumberValue(endCharacter - startCharacter);
             writer.WriteNumberValue((int)classification.Kind);
-            writer.WriteNumberValue((int)classification.Modifiers);
+            writer.WriteNumberValue(
+                useVisualStudioClassifications
+                    ? 0
+                    : (int)classification.Modifiers
+            );
             previousLine = line;
             previousCharacter = startCharacter;
         }
+    }
+
+    private static bool UsesVisualStudioClassifications(JsonElement parameters)
+    {
+        return
+            parameters.ValueKind == JsonValueKind.Object &&
+            parameters.TryGetProperty(
+                "initializationOptions",
+                out JsonElement initializationOptions
+            ) &&
+            initializationOptions.ValueKind == JsonValueKind.Object &&
+            initializationOptions.TryGetProperty(
+                "useVisualStudioClassifications",
+                out JsonElement value
+            ) &&
+            value.ValueKind is JsonValueKind.True or JsonValueKind.False &&
+            value.GetBoolean();
     }
 
     private static void WriteDiagnostic(

@@ -258,6 +258,15 @@ internal sealed class Lexer
     private SyntaxToken ReadNumber()
     {
         int start = position;
+
+        if (
+            Current.Value == '0' &&
+            Peek(1).Value is 'b' or 'B' or 'o' or 'O' or 'x' or 'X'
+        )
+        {
+            return ReadPrefixedInteger(start);
+        }
+
         ReadDecimalDigits();
 
         bool isNumber = false;
@@ -299,6 +308,72 @@ internal sealed class Lexer
             isNumber ? TokenKind.NumberLiteral : TokenKind.IntegerLiteral,
             TextSpan.FromBounds(start, position)
         );
+    }
+
+    private SyntaxToken ReadPrefixedInteger(int start)
+    {
+        int numberBase = Peek(1).Value switch
+        {
+            'b' or 'B' => 2,
+            'o' or 'O' => 8,
+            'x' or 'X' => 16,
+            _ => throw new InvalidOperationException(),
+        };
+        position += 2;
+        int digitsStart = position;
+
+        while (!IsAtEnd && Rune.IsLetterOrDigit(Current))
+        {
+            if (
+                Profile.LanguageVersion >= LanguageVersion.Version1_1 &&
+                (
+                    !TryGetHexValue(Current, out int digitValue) ||
+                    digitValue >= numberBase
+                )
+            )
+            {
+                diagnostics.Add(
+                    new Diagnostic(
+                        DiagnosticCodes.InvalidNumber,
+                        DiagnosticSeverity.Error,
+                        DiagnosticCategory.Lexical,
+                        new TextSpan(position, 1),
+                        $"Digit '{Current}' is not valid in a base-{numberBase} integer literal."
+                    )
+                );
+            }
+
+            position++;
+        }
+
+        TextSpan span = TextSpan.FromBounds(start, position);
+
+        if (Profile.LanguageVersion < LanguageVersion.Version1_1)
+        {
+            diagnostics.Add(
+                new Diagnostic(
+                    DiagnosticCodes.UnsupportedLanguageVersionFeature,
+                    DiagnosticSeverity.Error,
+                    DiagnosticCategory.Lexical,
+                    span,
+                    $"Syntax '{source.GetText(span)}' requires language version 1.1."
+                )
+            );
+        }
+        else if (position == digitsStart)
+        {
+            diagnostics.Add(
+                new Diagnostic(
+                    DiagnosticCodes.InvalidNumber,
+                    DiagnosticSeverity.Error,
+                    DiagnosticCategory.Lexical,
+                    span,
+                    $"A base-{numberBase} integer literal requires at least one digit."
+                )
+            );
+        }
+
+        return new SyntaxToken(TokenKind.IntegerLiteral, span);
     }
 
     private SyntaxToken ReadString()

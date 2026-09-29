@@ -43,6 +43,7 @@ internal static class SemanticClassifier
 
                     break;
                 }
+
                 case BoundStatement.VariableDeclaration declaration:
                 {
                     VariableDeclarationStatementSyntax syntax =
@@ -61,22 +62,26 @@ internal static class SemanticClassifier
 
                     break;
                 }
+
                 case BoundStatement.Assignment assignment:
                 {
                     VisitExpression(assignment.Target);
                     VisitExpression(assignment.Value);
                     break;
                 }
+
                 case BoundStatement.Removal removal:
                 {
                     VisitExpression(removal.Target);
                     break;
                 }
+
                 case BoundStatement.ExpressionStatement expression:
                 {
                     VisitExpression(expression.Value);
                     break;
                 }
+
                 case BoundStatement.If conditional:
                 {
                     VisitExpression(conditional.Condition);
@@ -89,12 +94,14 @@ internal static class SemanticClassifier
 
                     break;
                 }
+
                 case BoundStatement.While loop:
                 {
                     VisitExpression(loop.Condition);
                     VisitStatement(loop.Body);
                     break;
                 }
+
                 case BoundStatement.For loop:
                 {
                     if (loop.Initializer is not null)
@@ -115,7 +122,8 @@ internal static class SemanticClassifier
                     VisitStatement(loop.Body);
                     break;
                 }
-                case BoundStatement.Return result when result.Value is not null:
+
+                case BoundStatement.Return { Value: not null } result:
                 {
                     VisitExpression(result.Value);
                     break;
@@ -132,11 +140,13 @@ internal static class SemanticClassifier
                     Add(SemanticClassificationKind.Variable, local.Span);
                     break;
                 }
+
                 case BoundExpression.Parameter parameter:
                 {
                     Add(SemanticClassificationKind.Parameter, parameter.Span);
                     break;
                 }
+
                 case BoundExpression.Global global:
                 {
                     Add(
@@ -147,6 +157,7 @@ internal static class SemanticClassifier
                     );
                     break;
                 }
+
                 case BoundExpression.Array array:
                 {
                     foreach (BoundExpression element in array.Elements)
@@ -156,6 +167,7 @@ internal static class SemanticClassifier
 
                     break;
                 }
+
                 case BoundExpression.Object value:
                 {
                     ObjectLiteralExpressionSyntax syntax =
@@ -173,23 +185,27 @@ internal static class SemanticClassifier
 
                     break;
                 }
+
                 case BoundExpression.Unary unary:
                 {
                     VisitExpression(unary.Operand);
                     break;
                 }
+
                 case BoundExpression.Binary binary:
                 {
                     VisitExpression(binary.Left);
                     VisitExpression(binary.Right);
                     break;
                 }
+
                 case BoundExpression.Coalescing coalescing:
                 {
                     VisitExpression(coalescing.Left);
                     VisitExpression(coalescing.Right);
                     break;
                 }
+
                 case BoundExpression.Conversion conversion:
                 {
                     VisitExpression(conversion.Expression);
@@ -201,23 +217,27 @@ internal static class SemanticClassifier
 
                     break;
                 }
+
                 case BoundExpression.Truthiness truthiness:
                 {
                     VisitExpression(truthiness.Expression);
                     break;
                 }
+
                 case BoundExpression.TypeTest typeTest:
                 {
                     VisitExpression(typeTest.Expression);
                     VisitType(((TypeTestExpressionSyntax)typeTest.Syntax).Type);
                     break;
                 }
+
                 case BoundExpression.PropertyTest propertyTest:
                 {
                     VisitExpression(propertyTest.Target);
                     VisitExpression(propertyTest.Key);
                     break;
                 }
+
                 case BoundExpression.Conditional conditional:
                 {
                     VisitExpression(conditional.Condition);
@@ -225,6 +245,7 @@ internal static class SemanticClassifier
                     VisitExpression(conditional.WhenFalse);
                     break;
                 }
+
                 case BoundExpression.ProviderCall call:
                 {
                     CallExpressionSyntax syntax = (CallExpressionSyntax)call.Syntax;
@@ -241,6 +262,7 @@ internal static class SemanticClassifier
 
                     break;
                 }
+
                 case BoundExpression.UserCall call:
                 {
                     CallExpressionSyntax syntax = (CallExpressionSyntax)call.Syntax;
@@ -253,6 +275,7 @@ internal static class SemanticClassifier
 
                     break;
                 }
+
                 case BoundExpression.MemberAccess member:
                 {
                     VisitExpression(member.Target);
@@ -262,6 +285,7 @@ internal static class SemanticClassifier
                     );
                     break;
                 }
+
                 case BoundExpression.ElementAccess element:
                 {
                     VisitExpression(element.Target);
@@ -278,6 +302,7 @@ internal static class SemanticClassifier
                 VisitExpression(expression.Value);
                 break;
             }
+
             case BoundRoot.Program program:
             {
                 foreach (BoundFunction function in program.Functions)

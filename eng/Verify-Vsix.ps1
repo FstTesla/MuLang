@@ -80,6 +80,7 @@ try
     {
         throw "VSIX '$resolvedPath' has version '$($identity.Version)' instead of '$Version'."
     }
+
 }
 finally
 {

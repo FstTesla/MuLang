@@ -265,13 +265,20 @@ public sealed class UserFunctionTests
     [Test]
     public void ValidatesFunctionReturnPaths()
     {
+        const string source = "func value(flag: bool): int { if (flag) return 1; }";
         BindingResult result = BindProgram(
-            "func value(flag: bool): int { if (flag) return 1; }",
+            source,
             CreateEmptyEnvironment(),
             TypeSymbols.Void
         );
+        Diagnostic diagnostic = result.Diagnostics.Single(
+            static diagnostic => diagnostic.Code == DiagnosticCodes.NotAllPathsReturn
+        );
 
-        AssertDiagnostic(result.Diagnostics, DiagnosticCodes.NotAllPathsReturn);
+        Assert.That(
+            diagnostic.Span,
+            Is.EqualTo(new TextSpan(source.LastIndexOf('}'), 1))
+        );
     }
 
     [Test]

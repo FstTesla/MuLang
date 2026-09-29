@@ -83,6 +83,47 @@ public sealed class BinderTests
         AssertDiagnostic(result, DiagnosticCodes.InvalidFloatLiteral);
     }
 
+    [TestCase("0b101010", 42L)]
+    [TestCase("+0B101010", 42L)]
+    [TestCase("-0o52", -42L)]
+    [TestCase("0O52", 42L)]
+    [TestCase("0x2a", 42L)]
+    [TestCase("0X2A", 42L)]
+    [TestCase("0x7fffffffffffffff", long.MaxValue)]
+    [TestCase("-0x8000000000000000", long.MinValue)]
+    public void BindsPrefixedIntegerLiterals(string source, long expected)
+    {
+        BindingResult result = BindExpression(
+            source,
+            CreateEmptyEnvironment(LanguageVersion.Version1_1),
+            profile: LanguageProfiles.Version1_1
+        );
+        BoundRoot.Expression root = (BoundRoot.Expression)result.Root;
+        BoundExpression.Literal literal = (BoundExpression.Literal)root.Value;
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(literal.Type, Is.SameAs(TypeSymbols.Int));
+            Assert.That(literal.Value, Is.EqualTo(expected));
+            Assert.That(result.Diagnostics, Is.Empty);
+        }
+    }
+
+    [TestCase("0x8000000000000000")]
+    [TestCase("+0x8000000000000000")]
+    [TestCase("-0x8000000000000001")]
+    [TestCase("0b1000000000000000000000000000000000000000000000000000000000000000")]
+    public void RejectsPrefixedIntegerOverflow(string source)
+    {
+        BindingResult result = BindExpression(
+            source,
+            CreateEmptyEnvironment(LanguageVersion.Version1_1),
+            profile: LanguageProfiles.Version1_1
+        );
+
+        AssertDiagnostic(result, DiagnosticCodes.InvalidIntegerLiteral);
+    }
+
     [Test]
     public void ResolvesNonFiniteLiteralNamesAsVersionOneIdentifiers()
     {
@@ -641,6 +682,7 @@ public sealed class BinderTests
     [Test]
     public void ValidatesProgramReturnPaths()
     {
+        const string incompleteSource = "if (condition) return 1;";
         EnvironmentSchema environment = new EnvironmentBuilder()
             .AddGlobal("global.condition", "condition", TypeSymbols.Bool)
             .Build();
@@ -650,15 +692,21 @@ public sealed class BinderTests
             TypeSymbols.Int
         );
         BindingResult incomplete = BindProgram(
-            "if (condition) return 1;",
+            incompleteSource,
             environment,
             TypeSymbols.Int
+        );
+        Diagnostic diagnostic = incomplete.Diagnostics.Single(
+            static diagnostic => diagnostic.Code == DiagnosticCodes.NotAllPathsReturn
         );
 
         using (Assert.EnterMultipleScope())
         {
             Assert.That(complete.Diagnostics, Is.Empty);
-            AssertDiagnostic(incomplete, DiagnosticCodes.NotAllPathsReturn);
+            Assert.That(
+                diagnostic.Span,
+                Is.EqualTo(new TextSpan(incompleteSource.Length, 0))
+            );
         }
     }
 
@@ -776,13 +824,17 @@ public sealed class BinderTests
         AssertDiagnostic(result, DiagnosticCodes.InvalidLoopLevel);
     }
 
-    [Test]
-    public void AllowsLoopControlLevelWithinNestingDepth()
+    [TestCase("2")]
+    [TestCase("0b10")]
+    [TestCase("0o2")]
+    [TestCase("0x2")]
+    public void AllowsLoopControlLevelWithinNestingDepth(string level)
     {
         BindingResult result = BindProgram(
-            "while (true) while (true) break 2;",
-            CreateEmptyEnvironment(),
-            TypeSymbols.Void
+            $"while (true) while (true) break {level};",
+            CreateEmptyEnvironment(LanguageVersion.Version1_1),
+            TypeSymbols.Void,
+            LanguageProfiles.Version1_1
         );
 
         Assert.That(result.Diagnostics, Is.Empty);

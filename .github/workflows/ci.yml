@@ -35,7 +35,7 @@ jobs:
         run: dotnet tool restore
 
       - name: Restore
-        run: dotnet restore MuLang.CrossPlatform.slnx --locked-mode
+        run: dotnet restore MuLang.CrossPlatform.slnx
 
       - name: Test Debug
         run: dotnet test MuLang.CrossPlatform.slnx --configuration Debug --no-restore --nologo --verbosity minimal -p:Version=${{ env.VERSION }}
@@ -88,8 +88,8 @@ jobs:
 
       - name: Restore
         run: |
-          dotnet restore src\MuLang.LanguageServer\MuLang.LanguageServer.csproj --locked-mode
-          dotnet restore src\MuLang.VisualStudio\MuLang.VisualStudio.csproj --locked-mode
+          dotnet restore src\MuLang.LanguageServer\MuLang.LanguageServer.csproj
+          dotnet restore src\MuLang.VisualStudio\MuLang.VisualStudio.csproj
 
       - name: Build VSIX
         shell: pwsh

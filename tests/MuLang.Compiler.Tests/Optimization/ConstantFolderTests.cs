@@ -35,6 +35,33 @@ public sealed class ConstantFolderTests
         }
     }
 
+    [TestCase("42", "0b101010")]
+    [TestCase("42", "0o52")]
+    [TestCase("42", "0x2A")]
+    [TestCase("-42", "-0x2a")]
+    public void LowersEquivalentDecimalAndPrefixedIntegerLiterals(
+        string decimalSource,
+        string prefixedSource
+    )
+    {
+        CompilationResult decimalResult = CompileExpression(decimalSource);
+        CompilationResult prefixedResult = CompileExpression(prefixedSource);
+        IrInstruction.Constant decimalConstant = GetInstructions(
+            RequireProgram(decimalResult)
+        ).OfType<IrInstruction.Constant>().Single();
+        IrInstruction.Constant prefixedConstant = GetInstructions(
+            RequireProgram(prefixedResult)
+        ).OfType<IrInstruction.Constant>().Single();
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(decimalResult.Diagnostics, Is.Empty);
+            Assert.That(prefixedResult.Diagnostics, Is.Empty);
+            Assert.That(prefixedConstant.Type, Is.SameAs(decimalConstant.Type));
+            Assert.That(prefixedConstant.Value, Is.EqualTo(decimalConstant.Value));
+        }
+    }
+
     [TestCase("\"value: \" + 1", "value: 1")]
     [TestCase("(1 as unknown) is int", true)]
     [TestCase("1 < 2 && 3 == 3.0", true)]

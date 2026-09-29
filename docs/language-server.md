@@ -1,13 +1,13 @@
 # MuLang Visual Studio support
 
-`MuLang.VisualStudio` provides syntax highlighting and live compiler diagnostics for `.mu` and `.mulang` files in Visual Studio 2022.
+`MuLang.VisualStudio` provides syntax highlighting and live compiler diagnostics for `.mu` and `.mulang` files in Visual Studio 2022 and Visual Studio 2026.
 
 ## Components
 
 The integration consists of:
 
 - `MuLang.LanguageServer`, a reusable .NET 10 language server communicating through standard input and output;
-- `MuLang.VisualStudio`, a Visual Studio 2022 VSIX that starts the server;
+- `MuLang.VisualStudio`, a Visual Studio 2022 and 2026 VSIX that starts the server;
 - a TextMate grammar for immediate lexical highlighting;
 - a language configuration for brackets, automatic closing, surrounding, word boundaries, and indentation;
 - editor-oriented APIs in `MuLang.Core` and `MuLang.Compiler`.
@@ -38,7 +38,7 @@ Close running Visual Studio instances, open the generated VSIX, and complete the
 
 The extension requires:
 
-- Visual Studio 2022 version 17.0 or later;
+- Visual Studio version 17.x or 18.x;
 - the Visual Studio core editor;
 - a .NET 10 runtime for the framework-dependent language-server executable.
 
@@ -77,7 +77,7 @@ TextMate provides immediate lexical highlighting for keywords, literals, strings
 The compiler supplements TextMate with binding-based semantic classifications for:
 
 - named types;
-- functions;
+- functions, exposed as the standard LSP `method` token so Visual Studio uses its method classification;
 - parameters;
 - local and global variables;
 - object properties;
@@ -85,7 +85,11 @@ The compiler supplements TextMate with binding-based semantic classifications fo
 - read-only host symbols;
 - host-provided symbols.
 
-The language server publishes these classifications through `textDocument/semanticTokens/full` using standard LSP token types and modifiers. Semantic token positions and lengths are encoded in UTF-16 as required by the protocol.
+Named non-intrinsic types use the standard LSP `type` token and therefore Visual Studio's type classification. Intrinsic type keywords remain lexical TextMate classifications.
+
+The language server publishes these classifications through `textDocument/semanticTokens/full`. Semantic token positions and lengths are encoded in UTF-16 as required by the protocol.
+
+By default, the server uses standard LSP token types and modifiers. The Visual Studio client starts it in a dedicated presentation mode: functions and named structured types then use Visual Studio's native `method name` and `class name` classifications, while unsupported token modifiers are omitted so they cannot override semantic colors with the plain-text classification.
 
 ## Current scope
 

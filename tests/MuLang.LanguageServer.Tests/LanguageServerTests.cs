@@ -44,8 +44,53 @@ public sealed class LanguageServerTests
                     .EnumerateArray()
                     .Select(static token => token.GetString()),
                 Is.EqualTo(
-                    [ "type", "function", "parameter", "variable", "property" ]
+                    [ "type", "method", "parameter", "variable", "property" ]
                 )
+            );
+        }
+    }
+
+    [Test]
+    public async Task AdvertisesVisualStudioSemanticClassifications()
+    {
+        IReadOnlyList<JsonElement> output = await RunServerAsync(
+            true,
+            """
+            {"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}
+            """,
+            """
+            {"jsonrpc":"2.0","method":"shutdown","id":2}
+            """,
+            """
+            {"jsonrpc":"2.0","method":"exit"}
+            """
+        );
+        JsonElement legend = output[0]
+            .GetProperty("result")
+            .GetProperty("capabilities")
+            .GetProperty("semanticTokensProvider")
+            .GetProperty("legend");
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(
+                legend
+                    .GetProperty("tokenTypes")
+                    .EnumerateArray()
+                    .Select(static token => token.GetString()),
+                Is.EqualTo(
+                    [
+                        "class name",
+                        "method name",
+                        "parameter",
+                        "variable",
+                        "property",
+                    ]
+                )
+            );
+            Assert.That(
+                legend.GetProperty("tokenModifiers").GetArrayLength(),
+                Is.Zero
             );
         }
     }
@@ -195,6 +240,99 @@ public sealed class LanguageServerTests
     }
 
     [Test]
+    public async Task ReturnsMethodAndNamedTypeSemanticTokens()
+    {
+        IReadOnlyList<JsonElement> output = await RunServerAsync(
+            """
+            {"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}
+            """,
+            """
+            {"jsonrpc":"2.0","method":"textDocument/didOpen","params":{"textDocument":{"uri":"file:///test.mu","languageId":"mulang","version":1,"text":"func identity(value: Customer): Customer { return value; } identity(1);"}}}
+            """,
+            """
+            {"jsonrpc":"2.0","id":3,"method":"textDocument/semanticTokens/full","params":{"textDocument":{"uri":"file:///test.mu"}}}
+            """,
+            """
+            {"jsonrpc":"2.0","method":"shutdown","id":2}
+            """,
+            """
+            {"jsonrpc":"2.0","method":"exit"}
+            """
+        );
+        JsonElement response = output.Single(
+            static message =>
+                message.TryGetProperty("id", out JsonElement id) &&
+                id.ValueKind == JsonValueKind.Number &&
+                id.GetInt32() == 3
+        );
+
+        Assert.That(
+            response
+                .GetProperty("result")
+                .GetProperty("data")
+                .EnumerateArray()
+                .Select(static value => value.GetInt32()),
+            Is.EqualTo(
+                [
+                    0, 5, 8, 1, 1,
+                    0, 9, 5, 2, 1,
+                    0, 7, 8, 0, 0,
+                    0, 11, 8, 0, 0,
+                    0, 18, 5, 2, 0,
+                    0, 9, 8, 1, 0,
+                ]
+            )
+        );
+    }
+
+    [Test]
+    public async Task ReturnsVisualStudioMethodAndTypeClassifications()
+    {
+        IReadOnlyList<JsonElement> output = await RunServerAsync(
+            true,
+            """
+            {"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}
+            """,
+            """
+            {"jsonrpc":"2.0","method":"textDocument/didOpen","params":{"textDocument":{"uri":"file:///test.mu","languageId":"mulang","version":1,"text":"func identity(value: Customer): Customer { return value; } identity(1);"}}}
+            """,
+            """
+            {"jsonrpc":"2.0","id":3,"method":"textDocument/semanticTokens/full","params":{"textDocument":{"uri":"file:///test.mu"}}}
+            """,
+            """
+            {"jsonrpc":"2.0","method":"shutdown","id":2}
+            """,
+            """
+            {"jsonrpc":"2.0","method":"exit"}
+            """
+        );
+        JsonElement response = output.Single(
+            static message =>
+                message.TryGetProperty("id", out JsonElement id) &&
+                id.ValueKind == JsonValueKind.Number &&
+                id.GetInt32() == 3
+        );
+
+        Assert.That(
+            response
+                .GetProperty("result")
+                .GetProperty("data")
+                .EnumerateArray()
+                .Select(static value => value.GetInt32()),
+            Is.EqualTo(
+                [
+                    0, 5, 8, 1, 0,
+                    0, 9, 5, 2, 0,
+                    0, 7, 8, 0, 0,
+                    0, 11, 8, 0, 0,
+                    0, 18, 5, 2, 0,
+                    0, 9, 8, 1, 0,
+                ]
+            )
+        );
+    }
+
+    [Test]
     public async Task ReturnsEmptySemanticTokensForUnknownDocument()
     {
         IReadOnlyList<JsonElement> output = await RunServerAsync(
@@ -295,7 +433,15 @@ public sealed class LanguageServerTests
         }
     }
 
+    private static Task<IReadOnlyList<JsonElement>> RunServerAsync(
+        params string[] messages
+    )
+    {
+        return RunServerAsync(false, messages);
+    }
+
     private static async Task<IReadOnlyList<JsonElement>> RunServerAsync(
+        bool useVisualStudioClassifications,
         params string[] messages
     )
     {
@@ -308,7 +454,11 @@ public sealed class LanguageServerTests
 
         input.Position = 0;
         using MemoryStream output = new ();
-        LanguageServer server = new (input, output);
+        LanguageServer server = new (
+            input,
+            output,
+            useVisualStudioClassifications
+        );
         int exitCode = await server.RunAsync(CancellationToken.None);
         Assert.That(exitCode, Is.Zero);
         output.Position = 0;

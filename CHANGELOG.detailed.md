@@ -12,12 +12,13 @@ Stable entries describe the incremental change since the preceding prerelease. T
 
 Each release heading identifies the incremental version range covered by the section, from the comparison version to the released version.
 
-## `0.2.0-alpha.4` → `0.2.0-alpha.5` - 2026-09-28
+## `0.2.0-alpha.4` → `0.2.0-alpha.5` - 2026-09-29
 
 ### New features
 
-- Added a Visual Studio 2022 VSIX for `.mu` and `.mulang` files with TextMate lexical highlighting, compiler-bound semantic highlighting, live diagnostics, and an embedded out-of-process .NET 10 language server.
+- Added a Visual Studio 2022 and 2026 VSIX for `.mu` and `.mulang` files with TextMate lexical highlighting, compiler-bound semantic highlighting, live diagnostics, and an embedded out-of-process .NET 10 language server.
 - Added tagged VSIX artifacts with release-derived numeric extension versions. Beta, release-candidate, and stable GitHub Releases include the VSIX as a downloadable asset.
+- Added language version 1.1 binary (`0b`), octal (`0o`), and hexadecimal (`0x`) integer literals with case-insensitive prefixes, signed 64-bit boundary handling, version-1 diagnostics, specification coverage, and Visual Studio lexical highlighting.
 
 ## `0.2.0-alpha.3` → `0.2.0-alpha.4` - 2026-09-28
 

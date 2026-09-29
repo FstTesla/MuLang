@@ -21,7 +21,10 @@ func exerciseHighlighting(name: string, requested: int): void {
     var positiveInfinity: float = +infty;
     var negativeInfinity: float = -infty;
     var notANumber: float = nan;
-    var flags = (10 | 4) & 15;
+    var binaryMask = 0b1010;
+    var octalMask = 0o17;
+    var hexadecimalMask = 0x2A;
+    var flags = (binaryMask | 4) & octalMask;
     var shiftedFlags = flags << 1;
 
     var values: int[] = [1, 2, 3,];
@@ -46,7 +49,7 @@ func exerciseHighlighting(name: string, requested: int): void {
     details.accent~;
 
     values[0] = exactValue;
-    var total = readOnlyValues.length + shiftedFlags;
+    var total = readOnlyValues.length + shiftedFlags + hexadecimalMask;
 
     for (var index = 0; index < values.length; index = index + 1) {
         if (index == 1) {
