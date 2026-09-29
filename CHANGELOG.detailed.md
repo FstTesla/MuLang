@@ -18,7 +18,12 @@ Each release heading identifies the incremental version range covered by the sec
 
 - Added a Visual Studio 2022 and 2026 VSIX for `.mu` and `.mulang` files with TextMate lexical highlighting, compiler-bound semantic highlighting, live diagnostics, and an embedded out-of-process .NET 10 language server.
 - Added tagged VSIX artifacts with release-derived numeric extension versions. Beta, release-candidate, and stable GitHub Releases include the VSIX as a downloadable asset.
+- Added editor-oriented compiler APIs for analysis without IR generation, lexical classification, and binding-based semantic classification. `LanguageProfiles.Latest` selects the latest standard profile, and `SourceText.GetUtf16Offset` maps MuLang scalar offsets to UTF-16 offsets for editor protocols.
 - Added language version 1.1 binary (`0b`), octal (`0o`), and hexadecimal (`0x`) integer literals with case-insensitive prefixes, signed 64-bit boundary handling, version-1 diagnostics, specification coverage, and Visual Studio lexical highlighting.
+
+### Fixes
+
+- Changed missing-return diagnostic `MUL4004` to identify the end of a top-level program or the closing brace of a function instead of highlighting the complete program or function body.
 
 ## `0.2.0-alpha.3` → `0.2.0-alpha.4` - 2026-09-28
 

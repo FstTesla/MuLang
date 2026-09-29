@@ -2,7 +2,7 @@
 name: release-preflight
 description: Performs a read-only MuLang release readiness audit before a version tag is created
 tools: ["read", "search", "execute"]
-disable-model-invocation: true
+disable-model-invocation: false
 user-invocable: true
 ---
 

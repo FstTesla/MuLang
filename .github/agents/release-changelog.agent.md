@@ -2,7 +2,7 @@
 name: release-changelog
 description: Prepares reviewed MuLang detailed and stable changelog sections from explicitly based release diffs
 tools: ["read", "search", "execute", "edit"]
-disable-model-invocation: true
+disable-model-invocation: false
 user-invocable: true
 ---
 
