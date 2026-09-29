@@ -1049,7 +1049,8 @@ internal sealed class Binder
                 }
                 binary => BindCoalescingExpression(binary, expectedType),
             BinaryExpressionSyntax binary => BindBinaryExpression(binary),
-            ConversionExpressionSyntax conversion => BindConversionExpression(conversion),
+            ConversionExpressionSyntax conversion =>
+                BindConversionExpression(conversion, expectedType),
             TypeTestExpressionSyntax typeTest => BindTypeTestExpression(typeTest),
             PropertyTestExpressionSyntax propertyTest =>
                 BindPropertyTestExpression(propertyTest),
@@ -1857,7 +1858,8 @@ internal sealed class Binder
     }
 
     private BoundExpression BindConversionExpression(
-        ConversionExpressionSyntax syntax
+        ConversionExpressionSyntax syntax,
+        TypeSymbol? expectedType
     )
     {
         BoundExpression expression = BindExpression(syntax.Expression);
@@ -1883,10 +1885,26 @@ internal sealed class Binder
             return expression;
         }
 
-        ConversionKind conversion = TypeRelations.IsAssignable(
+        bool isStaticallyGuaranteed = TypeRelations.IsAssignable(
             expression.Type,
             targetType
+        );
+
+        if (
+            isStaticallyGuaranteed &&
+            expectedType is not null &&
+            TypeRelations.IsAssignable(expression.Type, expectedType) &&
+            TypeRelations.IsAssignable(targetType, expectedType)
         )
+        {
+            ReportWarning(
+                DiagnosticCodes.RedundantCast,
+                syntax.Span,
+                $"Cast to '{targetType.DisplayName}' is redundant in the expected '{expectedType.DisplayName}' context."
+            );
+        }
+
+        ConversionKind conversion = isStaticallyGuaranteed
             ? ConversionKind.Implicit
             : ConversionKind.Checked;
 
@@ -1920,7 +1938,14 @@ internal sealed class Binder
                 $"Type test from '{expression.Type.DisplayName}' to '{testedType.DisplayName}' is statically known to be false."
             );
         }
-        else if (TypeRelations.IsAssignable(expression.Type, testedType))
+        else if (
+            BoundExpressionFacts.TryGetTypeTestResult(
+                expression,
+                testedType,
+                out bool value
+            ) &&
+            value
+        )
         {
             ReportWarning(
                 DiagnosticCodes.AlwaysTrueTypeTest,

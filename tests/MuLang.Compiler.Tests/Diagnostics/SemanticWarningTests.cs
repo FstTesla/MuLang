@@ -328,6 +328,94 @@ public sealed class SemanticWarningTests
     }
 
     [Test]
+    public void WarnsForAdditionalAlwaysTrueTypeTests()
+    {
+        ObjectTypeSymbol sourceType = new (
+            "type.source",
+            "Source",
+            false,
+            [
+                new ObjectPropertySymbol("value", TypeSymbols.Int),
+                new ObjectPropertySymbol("label", TypeSymbols.String),
+            ]
+        );
+        ObjectTypeSymbol targetType = new (
+            "type.target",
+            "Target",
+            true,
+            [ new ObjectPropertySymbol("value", TypeSymbols.Number) ]
+        );
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddType(sourceType)
+            .AddType(targetType)
+            .AddGlobal("global.values", "values", TypeSymbols.Array(TypeSymbols.Int))
+            .AddGlobal("global.item", "item", sourceType)
+            .Build();
+        AnalysisResult array = AnalyzeExpression(
+            "values is number[]",
+            environment
+        );
+        AnalysisResult structuredObject = AnalyzeExpression(
+            "item is Target",
+            environment
+        );
+        AnalysisResult constant = AnalyzeExpression(
+            "(1 as number) is int",
+            environment
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            RequireWarning(
+                array.Diagnostics,
+                DiagnosticCodes.AlwaysTrueTypeTest
+            );
+            RequireWarning(
+                structuredObject.Diagnostics,
+                DiagnosticCodes.AlwaysTrueTypeTest
+            );
+            RequireWarning(
+                constant.Diagnostics,
+                DiagnosticCodes.AlwaysTrueTypeTest
+            );
+        }
+    }
+
+    [Test]
+    public void PreservesCastsThatContributeToTypeInference()
+    {
+        AnalysisResult local = AnalyzeProgram("var value = 4 as number;");
+        AnalysisResult array = AnalyzeProgram(
+            "var values = [1, 2.5 as number];"
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(
+                local.Diagnostics.Select(static diagnostic => diagnostic.Code),
+                Does.Not.Contain(DiagnosticCodes.RedundantCast)
+            );
+            Assert.That(
+                array.Diagnostics.Select(static diagnostic => diagnostic.Code),
+                Does.Not.Contain(DiagnosticCodes.RedundantCast)
+            );
+        }
+    }
+
+    [TestCase("var value: number = 4 as number;")]
+    [TestCase("var values: number[] = [1, 2.5 as number];")]
+    [TestCase("var value: object = {} as object;")]
+    public void WarnsForGuaranteedCastsInTypedContexts(string source)
+    {
+        AnalysisResult result = AnalyzeProgram(source);
+
+        RequireWarning(
+            result.Diagnostics,
+            DiagnosticCodes.RedundantCast
+        );
+    }
+
+    [Test]
     public void ReportsWarningsWhenConstantFoldingIsDisabled()
     {
         LanguageProfile profile = new LanguageProfileBuilder()
@@ -348,7 +436,7 @@ public sealed class SemanticWarningTests
     }
 
     [Test]
-    public void DoesNotEvaluateFailingConstantsForWarnings()
+    public void WarnsForFailingConstantsWhenConstantFoldingIsDisabled()
     {
         LanguageProfile profile = new LanguageProfileBuilder()
             .WithConstantFolding(ConstantFoldingFeature.Disabled)
@@ -364,10 +452,11 @@ public sealed class SemanticWarningTests
         using (Assert.EnterMultipleScope())
         {
             Assert.That(result.Diagnostics.HasErrors, Is.False);
-            Assert.That(
-                result.Diagnostics.Select(static diagnostic => diagnostic.Code),
-                Does.Not.Contain(DiagnosticCodes.ConstantCondition)
+            Diagnostic diagnostic = RequireWarning(
+                result.Diagnostics,
+                DiagnosticCodes.ConstantEvaluationFailed
             );
+            Assert.That(diagnostic.Span, Is.EqualTo(new TextSpan(4, 5)));
         }
     }
 

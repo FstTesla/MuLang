@@ -175,10 +175,10 @@ public static class MuLangCompiler
         LanguageProfile effectiveProfile = profile ?? LanguageProfiles.Version1_1;
         BindingResult optimizedBinding = binding;
         DiagnosticCollection optimizationDiagnostics = binding.Diagnostics;
+        ConstantFoldingResult folding = ConstantFolder.Fold(binding);
 
         if (effectiveProfile.ConstantFolding == ConstantFoldingFeature.Enabled)
         {
-            ConstantFoldingResult folding = ConstantFolder.Fold(binding);
             optimizationDiagnostics = DiagnosticCollection.Create(
                 binding.Diagnostics.Concat(folding.Diagnostics)
             );
@@ -189,6 +189,22 @@ public static class MuLangCompiler
             }
 
             optimizedBinding = folding.Binding;
+        }
+        else
+        {
+            optimizationDiagnostics = DiagnosticCollection.Create(
+                binding.Diagnostics.Concat(
+                    folding.Diagnostics.Select(
+                        static diagnostic => new Diagnostic(
+                            diagnostic.Code,
+                            DiagnosticSeverity.Warning,
+                            diagnostic.Category,
+                            diagnostic.Span,
+                            diagnostic.Message
+                        )
+                    )
+                )
+            );
         }
 
         return (optimizedBinding, optimizationDiagnostics);

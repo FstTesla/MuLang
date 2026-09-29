@@ -282,8 +282,12 @@ public sealed class ConstantFolderTests
                 Has.Length.EqualTo(1)
             );
             Assert.That(
-                division.Diagnostics.Select(static diagnostic => diagnostic.Code),
-                Does.Not.Contain(DiagnosticCodes.ConstantEvaluationFailed)
+                division.Diagnostics.Single(
+                    static diagnostic =>
+                        diagnostic.Code ==
+                            DiagnosticCodes.ConstantEvaluationFailed
+                ).Severity,
+                Is.EqualTo(DiagnosticSeverity.Warning)
             );
         }
     }

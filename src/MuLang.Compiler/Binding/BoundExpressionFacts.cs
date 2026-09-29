@@ -70,6 +70,39 @@ internal static class BoundExpressionFacts
         return true;
     }
 
+    public static bool TryGetTypeTestResult(
+        BoundExpression expression,
+        TypeSymbol testedType,
+        out bool value
+    )
+    {
+        if (
+            TypeRelations.IsConformanceGuaranteed(
+                expression.Type,
+                testedType
+            )
+        )
+        {
+            value = true;
+            return true;
+        }
+
+        if (
+            TryEvaluateConstant(expression, out object? constant) &&
+            PrimitiveValueOperations.IsPrimitiveType(testedType)
+        )
+        {
+            value = PrimitiveValueOperations.IsValueOfType(
+                constant,
+                testedType
+            );
+            return true;
+        }
+
+        value = false;
+        return false;
+    }
+
     private static bool TryEvaluateConstant(
         BoundExpression expression,
         out object? value

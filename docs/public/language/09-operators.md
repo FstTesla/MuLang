@@ -147,9 +147,9 @@ Numeric conformance follows concrete representation: `int` values conform to `in
 
 When the operand's static type and the tested type cannot describe the same runtime value, the test remains valid, evaluates to `false`, and produces a warning diagnostic.
 
-When every value described by the operand's static type conforms to the tested type, the test remains valid, evaluates normally, and produces a warning that its result is statically known to be `true`.
+When static type shape or a safely evaluable constant operand guarantees conformance to the tested type, the test remains valid, evaluates normally, and produces a warning that its result is statically known to be `true`. Static guarantees include compatible mutable and read-only array shapes and structured object shapes even when mutation invariance prevents assignment between those types.
 
-An `as` expression whose operand and target types are equivalent produces a redundant-cast warning. A statically guaranteed cast that changes the expression's static type is not considered redundant.
+An `as` expression whose operand and target types are equivalent produces a redundant-cast warning. Another statically guaranteed cast produces the warning when the surrounding context already establishes an expected type that accepts both the uncast operand and the cast result. It does not produce the warning when the cast contributes to local, array-element, object-property, conditional, or other expression-type inference.
 
 For `T[]`, conformance requires write capability and recursive conformance of every current element to `T`. For `T[]$`, read capability is sufficient. Array tests are shape-based and do not require a stored nominal element type.
 

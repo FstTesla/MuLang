@@ -303,7 +303,7 @@ Host-provided calls, user-defined calls, global or local reads, array and object
 
 If evaluating a required constant subexpression produces integer overflow, integer division or remainder by zero, an invalid shift count, or a failed checked cast, compilation MUST report an error and MUST NOT produce an executable result.
 
-When compile-time constant evaluation is disabled, these expressions are evaluated only during execution, and failures that occur while evaluating them are runtime errors.
+When compile-time constant evaluation is disabled, these expressions are evaluated only during execution. A statically determined evaluation failure produces a compile-time warning and remains a runtime error if execution reaches the expression.
 
 > With constant evaluation enabled, this expression produces a compile-time division-by-zero error:
 >

@@ -231,6 +231,116 @@ public static class TypeRelations
         return source is ArrayTypeSymbol && target is ArrayTypeSymbol;
     }
 
+    internal static bool IsConformanceGuaranteed(
+        TypeSymbol source,
+        TypeSymbol target
+    )
+    {
+        ValidateTypes(source, target);
+        return IsConformanceGuaranteed(source, target, new HashSet<TypePair>());
+    }
+
+    private static bool IsConformanceGuaranteed(
+        TypeSymbol source,
+        TypeSymbol target,
+        ISet<TypePair> active
+    )
+    {
+        if (
+            source.Kind is TypeKind.Error or TypeKind.Void ||
+            target.Kind is TypeKind.Error or TypeKind.Void
+        )
+        {
+            return false;
+        }
+
+        if (AreEquivalent(source, target))
+        {
+            return true;
+        }
+
+        TypePair pair = new (source, target);
+
+        if (!active.Add(pair))
+        {
+            return true;
+        }
+
+        bool guaranteed;
+
+        if (target is NullableTypeSymbol targetNullable)
+        {
+            if (source.Kind == TypeKind.Null)
+            {
+                guaranteed = true;
+            }
+            else
+            {
+                TypeSymbol innerSource = source is NullableTypeSymbol sourceNullable
+                    ? sourceNullable.UnderlyingType
+                    : source;
+                guaranteed = IsConformanceGuaranteed(
+                    innerSource,
+                    targetNullable.UnderlyingType,
+                    active
+                );
+            }
+        }
+        else if (source is NullableTypeSymbol)
+        {
+            guaranteed = false;
+        }
+        else if (target.Kind == TypeKind.Unknown)
+        {
+            guaranteed = source.Kind is not TypeKind.Null and not TypeKind.Void;
+        }
+        else if (
+            source.Kind is TypeKind.Int or TypeKind.Float &&
+            target.Kind == TypeKind.Number
+        )
+        {
+            guaranteed = true;
+        }
+        else if (
+            target.Kind == TypeKind.Object &&
+            source.Kind is TypeKind.Object or TypeKind.StructuredObject
+        )
+        {
+            guaranteed = true;
+        }
+        else if (
+            source is ArrayTypeSymbol sourceArray &&
+            target is ArrayTypeSymbol targetArray
+        )
+        {
+            guaranteed =
+                (!sourceArray.IsReadOnly || targetArray.IsReadOnly) &&
+                IsConformanceGuaranteed(
+                    sourceArray.ElementType,
+                    targetArray.ElementType,
+                    active
+                );
+        }
+        else if (
+            source is ObjectTypeSymbol sourceObject &&
+            target is ObjectTypeSymbol targetObject
+        )
+        {
+            guaranteed = IsObjectConformanceGuaranteed(
+                sourceObject,
+                targetObject,
+                active
+            );
+        }
+        else
+        {
+            guaranteed = false;
+        }
+
+        active.Remove(pair);
+        return guaranteed;
+    }
+
     /// <summary>Gets the most specific type that can represent values of both types.</summary>
     /// <param name="left">The first type.</param>
     /// <param name="right">The second type.</param>
@@ -430,6 +540,76 @@ public static class TypeRelations
     )
     {
         return AreEquivalent(source, target);
+    }
+
+    private static bool IsObjectConformanceGuaranteed(
+        ObjectTypeSymbol source,
+        ObjectTypeSymbol target,
+        ISet<TypePair> active
+    )
+    {
+        foreach (ObjectPropertySymbol targetProperty in target.Properties)
+        {
+            if (
+                source.TryGetProperty(
+                    targetProperty.Name,
+                    out ObjectPropertySymbol? sourceProperty
+                )
+            )
+            {
+                if (
+                    !targetProperty.IsOptional &&
+                    sourceProperty.IsOptional
+                )
+                {
+                    return false;
+                }
+
+                if (
+                    !IsConformanceGuaranteed(
+                        sourceProperty.Type,
+                        targetProperty.Type,
+                        active
+                    )
+                )
+                {
+                    return false;
+                }
+
+                continue;
+            }
+
+            if (!targetProperty.IsOptional)
+            {
+                return false;
+            }
+
+            if (
+                source.IsOpen &&
+                !IsConformanceGuaranteed(
+                    TypeSymbols.Nullable(TypeSymbols.Unknown),
+                    targetProperty.Type,
+                    active
+                )
+            )
+            {
+                return false;
+            }
+        }
+
+        if (target.IsOpen)
+        {
+            return true;
+        }
+
+        if (source.IsOpen)
+        {
+            return false;
+        }
+
+        return source.Properties.All(
+            property => target.TryGetProperty(property.Name, out _)
+        );
     }
 
     private static TypeSymbol MakeNullable(TypeSymbol type)

@@ -221,6 +221,91 @@ public sealed class TypeRelationsTests
     }
 
     [Test]
+    public void RecognizesGuaranteedShapeBasedArrayConformance()
+    {
+        TypeSymbol mutableInts = TypeSymbols.Array(TypeSymbols.Int);
+        TypeSymbol mutableNumbers = TypeSymbols.Array(TypeSymbols.Number);
+        TypeSymbol mutableFloats = TypeSymbols.Array(TypeSymbols.Float);
+        TypeSymbol readOnlyInts = TypeSymbols.ReadOnlyArray(TypeSymbols.Int);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(
+                TypeRelations.IsConformanceGuaranteed(
+                    mutableInts,
+                    mutableNumbers
+                ),
+                Is.True
+            );
+            Assert.That(
+                TypeRelations.IsConformanceGuaranteed(
+                    mutableInts,
+                    mutableFloats
+                ),
+                Is.False
+            );
+            Assert.That(
+                TypeRelations.IsConformanceGuaranteed(
+                    readOnlyInts,
+                    mutableNumbers
+                ),
+                Is.False
+            );
+        }
+    }
+
+    [Test]
+    public void RecognizesGuaranteedStructuralObjectConformance()
+    {
+        ObjectTypeSymbol source = CreateObject(
+            "source",
+            "Source",
+            false,
+            new ObjectPropertySymbol("value", TypeSymbols.Int),
+            new ObjectPropertySymbol("label", TypeSymbols.String)
+        );
+        ObjectTypeSymbol openTarget = CreateObject(
+            "open-target",
+            "OpenTarget",
+            true,
+            new ObjectPropertySymbol("value", TypeSymbols.Number)
+        );
+        ObjectTypeSymbol closedTarget = CreateObject(
+            "closed-target",
+            "ClosedTarget",
+            false,
+            new ObjectPropertySymbol("value", TypeSymbols.Number)
+        );
+        ObjectTypeSymbol optionalTarget = CreateObject(
+            "optional-target",
+            "OptionalTarget",
+            false,
+            new ObjectPropertySymbol("value", TypeSymbols.Int),
+            new ObjectPropertySymbol(
+                "label",
+                TypeSymbols.String,
+                true
+            )
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(
+                TypeRelations.IsConformanceGuaranteed(source, openTarget),
+                Is.True
+            );
+            Assert.That(
+                TypeRelations.IsConformanceGuaranteed(source, closedTarget),
+                Is.False
+            );
+            Assert.That(
+                TypeRelations.IsConformanceGuaranteed(source, optionalTarget),
+                Is.True
+            );
+        }
+    }
+
+    [Test]
     public void FindsCommonTypesForNumbersAndNullability()
     {
         TypeSymbol nullableInt = TypeSymbols.Nullable(TypeSymbols.Int);
