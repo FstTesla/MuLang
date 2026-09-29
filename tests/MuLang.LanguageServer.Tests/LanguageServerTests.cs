@@ -366,7 +366,7 @@ public sealed class LanguageServerTests
     }
 
     [Test]
-    public async Task HighlightsSampleWithoutDiagnostics()
+    public async Task HighlightsSampleWithWarningDiagnostics()
     {
         string source = await File.ReadAllTextAsync(
             Path.Combine(
@@ -427,7 +427,39 @@ public sealed class LanguageServerTests
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(diagnostics.GetArrayLength(), Is.Zero);
+            Assert.That(
+                diagnostics
+                    .EnumerateArray()
+                    .Select(
+                        static diagnostic =>
+                            diagnostic.GetProperty("code").GetString()
+                    )
+                    .Order(),
+                Is.EqualTo(
+                    [
+                        "MUL3032",
+                        "MUL3033",
+                        "MUL3033",
+                        "MUL3033",
+                        "MUL3034",
+                        "MUL3035",
+                        "MUL3036",
+                        "MUL3037",
+                        "MUL3038",
+                        "MUL3039",
+                        "MUL3040",
+                    ]
+                )
+            );
+            Assert.That(
+                diagnostics
+                    .EnumerateArray()
+                    .Select(
+                        static diagnostic =>
+                            diagnostic.GetProperty("severity").GetInt32()
+                    ),
+                Has.All.EqualTo(2)
+            );
             Assert.That(semanticTokens.GetArrayLength(), Is.GreaterThan(0));
             Assert.That(semanticTokens.GetArrayLength() % 5, Is.Zero);
         }

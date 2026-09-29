@@ -19,7 +19,7 @@ Program mode supports:
 - `return`;
 - empty statements.
 
-Every explicit empty statement produces a redundant-empty-statement warning. Empty statements synthesized during syntax-error recovery do not produce this warning.
+An explicit empty statement produces a redundant-empty-statement warning unless it is used directly as the body of an `if`, `else`, `while`, or `for` statement. Empty statements synthesized during syntax-error recovery do not produce this warning.
 
 ## 10.2. Semicolons
 

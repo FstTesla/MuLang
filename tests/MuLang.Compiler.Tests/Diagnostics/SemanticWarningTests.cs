@@ -45,6 +45,23 @@ public sealed class SemanticWarningTests
         );
     }
 
+    [TestCase("if (condition) ;")]
+    [TestCase("if (condition) ; else ;")]
+    [TestCase("while (condition) ;")]
+    [TestCase("for (; condition; ) ;")]
+    public void DoesNotWarnForControlStatementBodyEmptyStatements(string source)
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddGlobal("global.condition", "condition", TypeSymbols.Bool)
+            .Build();
+        AnalysisResult result = AnalyzeProgram(source, environment);
+
+        Assert.That(
+            result.Diagnostics.Select(static diagnostic => diagnostic.Code),
+            Does.Not.Contain(DiagnosticCodes.RedundantEmptyStatement)
+        );
+    }
+
     [TestCase("if (1 < 2) { }", "true")]
     [TestCase("if (1 > 2) { }", "false")]
     [TestCase("if (!false) { }", "true")]
@@ -100,7 +117,7 @@ public sealed class SemanticWarningTests
                 constantOperand.Diagnostics,
                 DiagnosticCodes.ConstantCondition
             );
-            Assert.That(operandWarning.Span, Is.EqualTo(new TextSpan(13, 4)));
+            Assert.That(operandWarning.Span, Is.EqualTo(new TextSpan(0, 17)));
         }
     }
 
@@ -128,18 +145,28 @@ public sealed class SemanticWarningTests
     [Test]
     public void WarnsForDeterministicNullCoalescing()
     {
-        AnalysisResult left = AnalyzeExpression("(1 as int?) ?? 2");
-        AnalysisResult fallback = AnalyzeExpression("null ?? 2");
+        const string leftSource = "(1 as int?) ?? 2";
+        const string fallbackSource = "null ?? 2";
+        AnalysisResult left = AnalyzeExpression(leftSource);
+        AnalysisResult fallback = AnalyzeExpression(fallbackSource);
 
         using (Assert.EnterMultipleScope())
         {
-            RequireWarning(
+            Diagnostic leftDiagnostic = RequireWarning(
                 left.Diagnostics,
                 DiagnosticCodes.RedundantNullCoalescing
             );
-            RequireWarning(
+            Diagnostic fallbackDiagnostic = RequireWarning(
                 fallback.Diagnostics,
                 DiagnosticCodes.NullCoalescingAlwaysUsesFallback
+            );
+            Assert.That(
+                leftDiagnostic.Span,
+                Is.EqualTo(new TextSpan(0, leftSource.Length))
+            );
+            Assert.That(
+                fallbackDiagnostic.Span,
+                Is.EqualTo(new TextSpan(0, fallbackSource.Length))
             );
         }
     }
@@ -160,8 +187,9 @@ public sealed class SemanticWarningTests
             "(null as Item?)?.value",
             environment
         );
+        const string nullComparisonSource = "item == null";
         AnalysisResult nullComparison = AnalyzeExpression(
-            "item == null",
+            nullComparisonSource,
             environment
         );
 
@@ -179,9 +207,13 @@ public sealed class SemanticWarningTests
                 alwaysNull.Diagnostics,
                 DiagnosticCodes.OptionalAccessAlwaysNull
             );
-            RequireWarning(
+            Diagnostic comparisonDiagnostic = RequireWarning(
                 nullComparison.Diagnostics,
                 DiagnosticCodes.ConstantNullComparison
+            );
+            Assert.That(
+                comparisonDiagnostic.Span,
+                Is.EqualTo(new TextSpan(0, nullComparisonSource.Length))
             );
         }
     }
@@ -262,8 +294,9 @@ public sealed class SemanticWarningTests
             "item is object",
             environment
         );
+        const string redundantCastSource = "item as Item";
         AnalysisResult redundantCast = AnalyzeExpression(
-            "item as Item",
+            redundantCastSource,
             environment
         );
         AnalysisResult wideningCast = AnalyzeExpression(
@@ -277,9 +310,13 @@ public sealed class SemanticWarningTests
                 typeTest.Diagnostics,
                 DiagnosticCodes.AlwaysTrueTypeTest
             );
-            RequireWarning(
+            Diagnostic castDiagnostic = RequireWarning(
                 redundantCast.Diagnostics,
                 DiagnosticCodes.RedundantCast
+            );
+            Assert.That(
+                castDiagnostic.Span,
+                Is.EqualTo(new TextSpan(0, redundantCastSource.Length))
             );
             Assert.That(
                 wideningCast.Diagnostics.Select(

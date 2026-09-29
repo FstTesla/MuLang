@@ -636,9 +636,15 @@ internal sealed class Binder
         return new BoundStatement.ExpressionStatement(syntax, expression);
     }
 
-    private BoundStatement BindEmptyStatement(EmptyStatementSyntax syntax)
+    private BoundStatement BindEmptyStatement(
+        EmptyStatementSyntax syntax,
+        bool reportWarning = true
+    )
     {
-        if (syntax.SemicolonToken.Kind == TokenKind.Semicolon)
+        if (
+            reportWarning &&
+            syntax.SemicolonToken.Kind == TokenKind.Semicolon
+        )
         {
             ReportWarning(
                 DiagnosticCodes.RedundantEmptyStatement,
@@ -814,7 +820,9 @@ internal sealed class Binder
         BindingScope parentScope = scope;
         BindingScope embeddedScope = new (parentScope);
         scope = embeddedScope;
-        BoundStatement statement = BindStatement(syntax, state);
+        BoundStatement statement = syntax is EmptyStatementSyntax empty
+            ? BindEmptyStatement(empty, false)
+            : BindStatement(syntax, state);
 
         foreach (BoundVariableSymbol variable in embeddedScope.Variables)
         {
@@ -1747,7 +1755,7 @@ internal sealed class Binder
         }
 
         right = ConvertImplicit(right, resultType);
-        ReportNullCoalescing(left, syntax.OperatorToken);
+        ReportNullCoalescing(left, syntax.Span);
 
         return new BoundExpression.Coalescing(
             syntax,
@@ -1869,7 +1877,7 @@ internal sealed class Binder
         {
             ReportWarning(
                 DiagnosticCodes.RedundantCast,
-                syntax.AsKeyword.Span,
+                syntax.Span,
                 $"Cast to equivalent type '{targetType.DisplayName}' is redundant."
             );
             return expression;
@@ -3075,8 +3083,32 @@ internal sealed class Binder
             return;
         }
 
-        ReportConstantCondition(expression.Left, expression.Left.Span);
-        ReportConstantCondition(expression.Right, expression.Right.Span);
+        ReportConstantLogicalOperand(expression, expression.Left, "Left");
+        ReportConstantLogicalOperand(expression, expression.Right, "Right");
+    }
+
+    private void ReportConstantLogicalOperand(
+        BoundExpression.Binary expression,
+        BoundExpression operand,
+        string operandName
+    )
+    {
+        if (
+            !BoundExpressionFacts.TryGetTruthiness(
+                operand,
+                out bool value
+            )
+        )
+        {
+            return;
+        }
+
+        ReportWarning(
+            DiagnosticCodes.ConstantCondition,
+            expression.Span,
+            $"{operandName} operand is always {(value ? "true" : "false")}.",
+            DiagnosticCategory.ControlFlow
+        );
     }
 
     private void ReportConstantNullComparison(
@@ -3113,14 +3145,14 @@ internal sealed class Binder
 
         ReportWarning(
             DiagnosticCodes.ConstantNullComparison,
-            operatorToken.Span,
+            expression.Span,
             $"Comparison with null is always {(value ? "true" : "false")}."
         );
     }
 
     private void ReportNullCoalescing(
         BoundExpression left,
-        SyntaxToken operatorToken
+        TextSpan span
     )
     {
         if (!BoundExpressionFacts.TryGetNullness(left, out bool isNull))
@@ -3132,7 +3164,7 @@ internal sealed class Binder
             isNull
                 ? DiagnosticCodes.NullCoalescingAlwaysUsesFallback
                 : DiagnosticCodes.RedundantNullCoalescing,
-            operatorToken.Span,
+            span,
             isNull
                 ? "Null coalescing always uses the fallback operand."
                 : "Null coalescing never uses the fallback operand."

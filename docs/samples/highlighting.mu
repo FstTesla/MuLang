@@ -34,6 +34,22 @@ func exerciseHighlighting(name: string, requested: int): void {
     var numericValue: number = count;
     var isInteger = numericValue is int;
     var exactValue = numericValue as int;
+    var alwaysTrueTypeTest = count is int;
+    var redundantCast = count as int;
+    var constantNullComparison = count == null;
+    var redundantCoalescing = (1 as int?) ?? 0;
+    var alwaysFallbackCoalescing = null ?? 0;
+    var redundantOptionalAccess = values?.length;
+    var alwaysNullOptionalAccess = (null as int[]?)?.length;
+    var constantLogicalResult = active || true;
+
+    if (true) {
+    }
+
+    if (nan === nan) {
+    }
+
+    ;
 
     var details = @{
         title: displayText,
