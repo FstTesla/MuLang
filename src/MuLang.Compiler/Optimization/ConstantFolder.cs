@@ -225,8 +225,8 @@ internal sealed class ConstantFolder
 
         return Evaluate(
             expression,
-            () => PrimitiveValueOperations.EvaluateUnary(
-                MapUnaryOperator(expression.Operator),
+            () => BoundPrimitiveOperations.EvaluateUnary(
+                expression.Operator,
                 literal.Value
             )
         );
@@ -274,8 +274,8 @@ internal sealed class ConstantFolder
 
         return Evaluate(
             expression,
-            () => PrimitiveValueOperations.EvaluateBinary(
-                MapBinaryOperator(expression.Operator),
+            () => BoundPrimitiveOperations.EvaluateBinary(
+                expression.Operator,
                 leftLiteral.Value,
                 rightLiteral.Value
             )
@@ -489,43 +489,5 @@ internal sealed class ConstantFolder
         return expression is BoundExpression.Literal { Value: bool value }
             ? value
             : null;
-    }
-
-    private static PrimitiveUnaryOperation MapUnaryOperator(TokenKind kind)
-    {
-        return kind switch
-        {
-            TokenKind.Plus => PrimitiveUnaryOperation.Identity,
-            TokenKind.Minus => PrimitiveUnaryOperation.Negate,
-            TokenKind.Bang => PrimitiveUnaryOperation.LogicalNot,
-            TokenKind.Tilde => PrimitiveUnaryOperation.BitwiseNot,
-            _ => throw new InvalidOperationException("Unknown unary operator."),
-        };
-    }
-
-    private static PrimitiveBinaryOperation MapBinaryOperator(TokenKind kind)
-    {
-        return kind switch
-        {
-            TokenKind.Plus => PrimitiveBinaryOperation.Add,
-            TokenKind.Minus => PrimitiveBinaryOperation.Subtract,
-            TokenKind.Asterisk => PrimitiveBinaryOperation.Multiply,
-            TokenKind.Slash => PrimitiveBinaryOperation.Divide,
-            TokenKind.Percent => PrimitiveBinaryOperation.Remainder,
-            TokenKind.LeftShift => PrimitiveBinaryOperation.LeftShift,
-            TokenKind.RightShift => PrimitiveBinaryOperation.RightShift,
-            TokenKind.LessThan => PrimitiveBinaryOperation.LessThan,
-            TokenKind.LessThanOrEqual => PrimitiveBinaryOperation.LessThanOrEqual,
-            TokenKind.GreaterThan => PrimitiveBinaryOperation.GreaterThan,
-            TokenKind.GreaterThanOrEqual => PrimitiveBinaryOperation.GreaterThanOrEqual,
-            TokenKind.EqualEqual => PrimitiveBinaryOperation.StructuralEqual,
-            TokenKind.BangEqual => PrimitiveBinaryOperation.StructuralNotEqual,
-            TokenKind.EqualEqualEqual => PrimitiveBinaryOperation.IdentityEqual,
-            TokenKind.BangEqualEqual => PrimitiveBinaryOperation.IdentityNotEqual,
-            TokenKind.Ampersand => PrimitiveBinaryOperation.BitwiseAnd,
-            TokenKind.Caret => PrimitiveBinaryOperation.BitwiseXor,
-            TokenKind.Pipe => PrimitiveBinaryOperation.BitwiseOr,
-            _ => throw new InvalidOperationException("Unknown binary operator."),
-        };
     }
 }

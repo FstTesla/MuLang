@@ -1895,7 +1895,7 @@ public sealed class DotNetExporterTests
             expectedType,
             GetProfile(environment)
         );
-        Assert.That(result.Diagnostics, Is.Empty);
+        Assert.That(result.Diagnostics.HasErrors, Is.False);
 
         return result.Program ??
             throw new AssertionException("Expected compilation to produce an IR program.");
@@ -1914,7 +1914,7 @@ public sealed class DotNetExporterTests
             resultType,
             GetProfile(environment)
         );
-        Assert.That(result.Diagnostics, Is.Empty);
+        Assert.That(result.Diagnostics.HasErrors, Is.False);
 
         return result.Program ??
             throw new AssertionException("Expected compilation to produce an IR program.");

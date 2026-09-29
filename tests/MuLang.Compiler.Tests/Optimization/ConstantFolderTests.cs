@@ -75,7 +75,7 @@ public sealed class ConstantFolderTests
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(result.Diagnostics, Is.Empty);
+            Assert.That(result.Diagnostics.HasErrors, Is.False);
             Assert.That(constant.Value, Is.EqualTo(expected));
         }
     }
@@ -151,7 +151,7 @@ public sealed class ConstantFolderTests
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(result.Diagnostics, Is.Empty);
+            Assert.That(result.Diagnostics.HasErrors, Is.False);
             Assert.That(constant.Value, Is.EqualTo(expected));
         }
     }

@@ -19,6 +19,8 @@ Program mode supports:
 - `return`;
 - empty statements.
 
+Every explicit empty statement produces a redundant-empty-statement warning. Empty statements synthesized during syntax-error recovery do not produce this warning.
+
 ## 10.2. Semicolons
 
 Semicolons are mandatory for simple statements.

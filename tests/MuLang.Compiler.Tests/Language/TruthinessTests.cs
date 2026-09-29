@@ -43,7 +43,7 @@ public sealed class TruthinessTests
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(result.Diagnostics, Is.Empty);
+            Assert.That(result.Diagnostics.HasErrors, Is.False);
             Assert.That(export.Diagnostics, Is.Empty);
             Assert.That(compiled(CreateContext(environment)), Is.True);
         }
@@ -102,7 +102,7 @@ public sealed class TruthinessTests
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(binding.Diagnostics, Is.Empty);
+            Assert.That(binding.Diagnostics.HasErrors, Is.False);
             Assert.That(root.Value.Type, Is.SameAs(TypeSymbols.Bool));
             Assert.That(result, Is.TypeOf<bool>());
             Assert.That(result, Is.EqualTo(expected));
@@ -834,7 +834,7 @@ public sealed class TruthinessTests
         EnvironmentSchema environment
     )
     {
-        Assert.That(binding.Diagnostics, Is.Empty);
+        Assert.That(binding.Diagnostics.HasErrors, Is.False);
         LoweringResult lowering = Lowerer.Lower(binding, environment);
         Assert.That(lowering.Diagnostics, Is.Empty);
 

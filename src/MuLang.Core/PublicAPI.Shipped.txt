@@ -151,6 +151,7 @@ MuLang.Core.Text.SourceText
 MuLang.Core.Text.SourceText.GetPosition(int offset) -> MuLang.Core.Text.TextPosition
 MuLang.Core.Text.SourceText.GetRune(int offset) -> System.Text.Rune
 MuLang.Core.Text.SourceText.GetText(MuLang.Core.Text.TextSpan span) -> string!
+MuLang.Core.Text.SourceText.GetUtf16Offset(int offset) -> int
 MuLang.Core.Text.SourceText.Length.get -> int
 MuLang.Core.Text.SourceText.LineCount.get -> int
 MuLang.Core.Text.SourceText.Text.get -> string!
@@ -255,6 +256,7 @@ static MuLang.Core.LanguageProfile.operator !=(MuLang.Core.LanguageProfile? left
 static MuLang.Core.LanguageProfile.operator ==(MuLang.Core.LanguageProfile? left, MuLang.Core.LanguageProfile? right) -> bool
 static MuLang.Core.LanguageProfileFingerprint.operator !=(MuLang.Core.LanguageProfileFingerprint? left, MuLang.Core.LanguageProfileFingerprint? right) -> bool
 static MuLang.Core.LanguageProfileFingerprint.operator ==(MuLang.Core.LanguageProfileFingerprint? left, MuLang.Core.LanguageProfileFingerprint? right) -> bool
+static MuLang.Core.LanguageProfiles.Latest.get -> MuLang.Core.LanguageProfile!
 static MuLang.Core.LanguageProfiles.Version1.get -> MuLang.Core.LanguageProfile!
 static MuLang.Core.LanguageProfiles.Version1_1.get -> MuLang.Core.LanguageProfile!
 static MuLang.Core.Text.SourceText.From(string! text) -> MuLang.Core.Text.SourceText!

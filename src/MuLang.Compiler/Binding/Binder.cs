@@ -20,6 +20,7 @@ internal sealed class Binder
     private readonly IDictionary<string, ISet<string>> userFunctionCalls;
     private readonly ICollection<Diagnostic> diagnostics;
     private readonly ISet<(string Code, int Start, int Length)> featureDiagnostics;
+    private readonly ISet<(string Code, int Start, int Length)> warningDiagnostics;
     private readonly string returnContext;
     private readonly string? currentFunctionId;
     private BindingScope scope = new (null);
@@ -36,6 +37,7 @@ internal sealed class Binder
         IDictionary<string, ISet<string>>? userFunctionCalls = null,
         ICollection<Diagnostic>? diagnostics = null,
         ISet<(string Code, int Start, int Length)>? featureDiagnostics = null,
+        ISet<(string Code, int Start, int Length)>? warningDiagnostics = null,
         string? currentFunctionId = null,
         string returnContext = "program"
     )
@@ -50,6 +52,8 @@ internal sealed class Binder
             new Dictionary<string, ISet<string>>(StringComparer.Ordinal);
         this.diagnostics = diagnostics ?? [ ];
         this.featureDiagnostics = featureDiagnostics ??
+            new HashSet<(string Code, int Start, int Length)>();
+        this.warningDiagnostics = warningDiagnostics ??
             new HashSet<(string Code, int Start, int Length)>();
         this.currentFunctionId = currentFunctionId;
         this.returnContext = returnContext;
@@ -330,6 +334,7 @@ internal sealed class Binder
             userFunctionCalls,
             diagnostics,
             featureDiagnostics,
+            warningDiagnostics,
             function.Id,
             $"function '{function.Name}'"
         );
@@ -403,7 +408,7 @@ internal sealed class Binder
             BreakStatementSyntax loopExit => BindBreakStatement(loopExit, state),
             ContinueStatementSyntax iteration => BindContinueStatement(iteration, state),
             ReturnStatementSyntax result => BindReturnStatement(result, state),
-            EmptyStatementSyntax empty => new BoundStatement.Empty(empty),
+            EmptyStatementSyntax empty => BindEmptyStatement(empty),
             _ => throw new InvalidOperationException("Unknown statement syntax."),
         };
     }
@@ -629,6 +634,21 @@ internal sealed class Binder
         BoundExpression expression = BindExpression(syntax.Expression);
 
         return new BoundStatement.ExpressionStatement(syntax, expression);
+    }
+
+    private BoundStatement BindEmptyStatement(EmptyStatementSyntax syntax)
+    {
+        if (syntax.SemicolonToken.Kind == TokenKind.Semicolon)
+        {
+            ReportWarning(
+                DiagnosticCodes.RedundantEmptyStatement,
+                syntax.SemicolonToken.Span,
+                "Empty statement is redundant.",
+                DiagnosticCategory.ControlFlow
+            );
+        }
+
+        return new BoundStatement.Empty(syntax);
     }
 
     private BoundStatement BindIfStatement(IfStatementSyntax syntax, FlowState state)
@@ -1511,12 +1531,14 @@ internal sealed class Binder
 
             operand = NormalizeTruthiness(operand);
 
-            return new BoundExpression.Unary(
+            BoundExpression.Unary truthinessResult = new (
                 syntax,
                 TypeSymbols.Bool,
                 syntax.OperatorToken.Kind,
                 operand
             );
+            ReportConstantCondition(truthinessResult, syntax.Span);
+            return truthinessResult;
         }
 
         TypeSymbol operandType = GetNonNullable(operand.Type);
@@ -1547,12 +1569,19 @@ internal sealed class Binder
 
         operand = ConvertRequiredOperand(operand, resultType);
 
-        return new BoundExpression.Unary(
+        BoundExpression.Unary result = new (
             syntax,
             resultType,
             syntax.OperatorToken.Kind,
             operand
         );
+
+        if (syntax.OperatorToken.Kind == TokenKind.Bang)
+        {
+            ReportConstantCondition(result, syntax.Span);
+        }
+
+        return result;
     }
 
     private BoundExpression BindBinaryExpression(BinaryExpressionSyntax syntax)
@@ -1585,13 +1614,15 @@ internal sealed class Binder
                 return new BoundExpression.Error(syntax);
             }
 
-            return new BoundExpression.Binary(
+            BoundExpression.Binary truthinessResult = new (
                 syntax,
                 TypeSymbols.Bool,
                 NormalizeTruthiness(left),
                 syntax.OperatorToken.Kind,
                 NormalizeTruthiness(right)
             );
+            ReportLogicalExpression(truthinessResult, syntax.OperatorToken);
+            return truthinessResult;
         }
 
         TypeSymbol leftType = GetNonNullable(left.Type);
@@ -1619,13 +1650,16 @@ internal sealed class Binder
             ref right
         );
 
-        return new BoundExpression.Binary(
+        BoundExpression.Binary result = new (
             syntax,
             resultType,
             left,
             syntax.OperatorToken.Kind,
             right
         );
+        ReportLogicalExpression(result, syntax.OperatorToken);
+        ReportConstantNullComparison(result, syntax.OperatorToken);
+        return result;
     }
 
     private BoundExpression BindCoalescingExpression(
@@ -1713,6 +1747,7 @@ internal sealed class Binder
         }
 
         right = ConvertImplicit(right, resultType);
+        ReportNullCoalescing(left, syntax.OperatorToken);
 
         return new BoundExpression.Coalescing(
             syntax,
@@ -1832,6 +1867,11 @@ internal sealed class Binder
 
         if (TypeRelations.AreEquivalent(expression.Type, targetType))
         {
+            ReportWarning(
+                DiagnosticCodes.RedundantCast,
+                syntax.AsKeyword.Span,
+                $"Cast to equivalent type '{targetType.DisplayName}' is redundant."
+            );
             return expression;
         }
 
@@ -1870,6 +1910,14 @@ internal sealed class Binder
                 DiagnosticCodes.ImpossibleTypeTest,
                 syntax.Span,
                 $"Type test from '{expression.Type.DisplayName}' to '{testedType.DisplayName}' is statically known to be false."
+            );
+        }
+        else if (TypeRelations.IsAssignable(expression.Type, testedType))
+        {
+            ReportWarning(
+                DiagnosticCodes.AlwaysTrueTypeTest,
+                syntax.Span,
+                $"Type test from '{expression.Type.DisplayName}' to '{testedType.DisplayName}' is statically known to be true."
             );
         }
 
@@ -1957,7 +2005,12 @@ internal sealed class Binder
     {
         if (profile.ConditionSemantics == ConditionSemantics.StrictBoolean)
         {
-            return BindExpression(syntax, TypeSymbols.Bool);
+            BoundExpression strictCondition = BindExpression(
+                syntax,
+                TypeSymbols.Bool
+            );
+            ReportConstantCondition(strictCondition, syntax.Span);
+            return strictCondition;
         }
 
         BoundExpression expression = BindExpression(syntax);
@@ -1973,7 +2026,9 @@ internal sealed class Binder
             return expression;
         }
 
-        return NormalizeTruthiness(expression);
+        BoundExpression condition = NormalizeTruthiness(expression);
+        ReportConstantCondition(condition, syntax.Span);
+        return condition;
     }
 
     private static BoundExpression NormalizeTruthiness(BoundExpression expression)
@@ -2104,6 +2159,12 @@ internal sealed class Binder
 
         if (targetType is ArrayTypeSymbol && name == "length")
         {
+            ReportOptionalAccess(
+                target,
+                syntax.IsOptional,
+                false,
+                syntax.OperatorToken.Span
+            );
             TypeSymbol resultType = ShouldOptionalAccessReturnNullable(
                 syntax.IsOptional,
                 target.Type,
@@ -2128,6 +2189,12 @@ internal sealed class Binder
         {
             if (objectType.TryGetProperty(name, out ObjectPropertySymbol? property))
             {
+                ReportOptionalAccess(
+                    target,
+                    syntax.IsOptional,
+                    property.IsOptional,
+                    syntax.OperatorToken.Span
+                );
                 TypeSymbol resultType = ShouldOptionalAccessReturnNullable(
                     syntax.IsOptional,
                     target.Type,
@@ -2150,6 +2217,12 @@ internal sealed class Binder
 
             if (objectType.IsOpen)
             {
+                ReportOptionalAccess(
+                    target,
+                    syntax.IsOptional,
+                    true,
+                    syntax.OperatorToken.Span
+                );
                 if (profile.OpenObjects != OpenObjectsFeature.Enabled)
                 {
                     ReportFeature(
@@ -2173,6 +2246,12 @@ internal sealed class Binder
         }
         else if (targetType.Kind == TypeKind.Object)
         {
+            ReportOptionalAccess(
+                target,
+                syntax.IsOptional,
+                true,
+                syntax.OperatorToken.Span
+            );
             if (profile.OpenObjects != OpenObjectsFeature.Enabled)
             {
                 ReportFeature(
@@ -2213,6 +2292,12 @@ internal sealed class Binder
 
         if (targetType is ArrayTypeSymbol arrayType)
         {
+            ReportOptionalAccess(
+                target,
+                syntax.IsOptional,
+                false,
+                syntax.OpenBracketToken.Span
+            );
             BoundExpression index = BindExpression(syntax.Index, TypeSymbols.Int);
             TypeSymbol resultType =
                 syntax.IsOptional && target.Type is NullableTypeSymbol
@@ -2236,6 +2321,12 @@ internal sealed class Binder
             BoundExpression index = BindExpression(syntax.Index, TypeSymbols.String);
             ObjectPropertySymbol? property = TryResolveLiteralProperty(index, objectType);
             bool isDynamic = property is null && objectType.IsOpen;
+            ReportOptionalAccess(
+                target,
+                syntax.IsOptional,
+                property?.IsOptional == true || isDynamic,
+                syntax.OpenBracketToken.Span
+            );
 
             if (
                 isDynamic &&
@@ -2283,6 +2374,12 @@ internal sealed class Binder
 
         if (targetType.Kind == TypeKind.Object)
         {
+            ReportOptionalAccess(
+                target,
+                syntax.IsOptional,
+                true,
+                syntax.OpenBracketToken.Span
+            );
             BoundExpression index = BindExpression(syntax.Index, TypeSymbols.String);
 
             if (profile.OpenObjects != OpenObjectsFeature.Enabled)
@@ -2534,7 +2631,7 @@ internal sealed class Binder
 
     private static bool IsConstantTrue(BoundExpression expression)
     {
-        return BoundTruthinessFacts.TryEvaluate(expression, out bool value) && value;
+        return BoundExpressionFacts.TryGetTruthiness(expression, out bool value) && value;
     }
 
     private void ValidateEnvironmentCompatibility()
@@ -2916,6 +3013,163 @@ internal sealed class Binder
         return token.Value ?? source.GetText(token.Span);
     }
 
+    private void ReportConstantCondition(
+        BoundExpression expression,
+        TextSpan span
+    )
+    {
+        if (
+            expression.Type.Kind == TypeKind.Error ||
+            !BoundExpressionFacts.TryGetTruthiness(expression, out bool value)
+        )
+        {
+            return;
+        }
+
+        bool isTruthiness =
+            expression is BoundExpression.Truthiness truthiness &&
+            truthiness.Expression.Type.Kind != TypeKind.Bool;
+        string description = isTruthiness
+            ? value
+                ? "truthy"
+                : "falsy"
+            : value
+                ? "true"
+                : "false";
+
+        ReportWarning(
+            DiagnosticCodes.ConstantCondition,
+            span,
+            $"Expression is always {description}.",
+            DiagnosticCategory.ControlFlow
+        );
+    }
+
+    private void ReportLogicalExpression(
+        BoundExpression.Binary expression,
+        SyntaxToken operatorToken
+    )
+    {
+        if (
+            operatorToken.Kind is not
+            TokenKind.AmpersandAmpersand and not
+            TokenKind.PipePipe
+        )
+        {
+            return;
+        }
+
+        if (
+            BoundExpressionFacts.TryGetTruthiness(
+                expression,
+                out bool value
+            )
+        )
+        {
+            ReportWarning(
+                DiagnosticCodes.ConstantCondition,
+                expression.Span,
+                $"Expression is always {(value ? "true" : "false")}.",
+                DiagnosticCategory.ControlFlow
+            );
+            return;
+        }
+
+        ReportConstantCondition(expression.Left, expression.Left.Span);
+        ReportConstantCondition(expression.Right, expression.Right.Span);
+    }
+
+    private void ReportConstantNullComparison(
+        BoundExpression.Binary expression,
+        SyntaxToken operatorToken
+    )
+    {
+        if (
+            operatorToken.Kind is not
+                TokenKind.EqualEqual and not
+                TokenKind.BangEqual and not
+                TokenKind.EqualEqualEqual and not
+                TokenKind.BangEqualEqual ||
+            expression.Left.Type.Kind != TypeKind.Null &&
+            expression.Right.Type.Kind != TypeKind.Null ||
+            !BoundExpressionFacts.TryGetNullness(
+                expression.Left,
+                out bool leftIsNull
+            ) ||
+            !BoundExpressionFacts.TryGetNullness(
+                expression.Right,
+                out bool rightIsNull
+            )
+        )
+        {
+            return;
+        }
+
+        bool equal = leftIsNull == rightIsNull;
+        bool value = operatorToken.Kind is
+            TokenKind.EqualEqual or TokenKind.EqualEqualEqual
+            ? equal
+            : !equal;
+
+        ReportWarning(
+            DiagnosticCodes.ConstantNullComparison,
+            operatorToken.Span,
+            $"Comparison with null is always {(value ? "true" : "false")}."
+        );
+    }
+
+    private void ReportNullCoalescing(
+        BoundExpression left,
+        SyntaxToken operatorToken
+    )
+    {
+        if (!BoundExpressionFacts.TryGetNullness(left, out bool isNull))
+        {
+            return;
+        }
+
+        ReportWarning(
+            isNull
+                ? DiagnosticCodes.NullCoalescingAlwaysUsesFallback
+                : DiagnosticCodes.RedundantNullCoalescing,
+            operatorToken.Span,
+            isNull
+                ? "Null coalescing always uses the fallback operand."
+                : "Null coalescing never uses the fallback operand."
+        );
+    }
+
+    private void ReportOptionalAccess(
+        BoundExpression target,
+        bool isOptional,
+        bool canBeAbsent,
+        TextSpan operatorSpan
+    )
+    {
+        if (
+            !isOptional ||
+            !BoundExpressionFacts.TryGetNullness(target, out bool isNull)
+        )
+        {
+            return;
+        }
+
+        if (!isNull && canBeAbsent)
+        {
+            return;
+        }
+
+        ReportWarning(
+            isNull
+                ? DiagnosticCodes.OptionalAccessAlwaysNull
+                : DiagnosticCodes.RedundantOptionalAccess,
+            operatorSpan,
+            isNull
+                ? "Optional access target is always null."
+                : "Optional access target is never null."
+        );
+    }
+
     private void ReportTypeMismatch(
         TextSpan span,
         TypeSymbol actual,
@@ -2980,6 +3234,11 @@ internal sealed class Binder
         DiagnosticCategory category = DiagnosticCategory.Type
     )
     {
+        if (!warningDiagnostics.Add((code, span.Start, span.Length)))
+        {
+            return;
+        }
+
         diagnostics.Add(
             new Diagnostic(
                 code,

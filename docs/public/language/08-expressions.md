@@ -170,6 +170,8 @@ When a dynamically named property is absent, optional access produces `null`.
 
 Optional access to a known required property only affects a nullable target; it does not change the property schema.
 
+Optional access to a required property or array operation produces a warning when the target is statically known never to be `null`. It is not considered redundant when it can still handle an absent optional or dynamic property. Optional access produces a warning when its target is statically known always to be `null`.
+
 > Given `item` of a nullable structured type with a `name: string` property, this expression has type `string?` and produces `null` when `item` is `null`:
 >
 > ```text

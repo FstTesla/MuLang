@@ -84,18 +84,18 @@ public sealed class MuLangCompilerEditorTests
                 customerType
             )
             .Build();
-        const string Source = """
-                              func calculate(input: Customer): Customer {
-                                  var current: Customer = input;
-                                  return current;
-                              }
-                              var result: Customer = calculate(load(customer));
-                              var property = customer.name;
-                              var literal = { label: 1 };
-                              """;
-        SourceText source = SourceText.From(Source);
+        const string sourceStr = """
+                                 func calculate(input: Customer): Customer {
+                                     var current: Customer = input;
+                                     return current;
+                                 }
+                                 var result: Customer = calculate(load(customer));
+                                 var property = customer.name;
+                                 var literal = { label: 1 };
+                                 """;
+        SourceText source = SourceText.From(sourceStr);
         SemanticClassificationResult result = MuLangCompiler.ClassifySemantically(
-            Source,
+            sourceStr,
             environment,
             CompilationMode.Program
         );
@@ -191,13 +191,13 @@ public sealed class MuLangCompilerEditorTests
     [Test]
     public void ClassifiesReferencesRemovedByConstantFolding()
     {
-        const string Source = """
-                              var first = 1;
-                              var second = true ? first : first;
-                              """;
-        SourceText source = SourceText.From(Source);
+        const string sourceStr = """
+                                 var first = 1;
+                                 var second = true ? first : first;
+                                 """;
+        SourceText source = SourceText.From(sourceStr);
         SemanticClassificationResult result = MuLangCompiler.ClassifySemantically(
-            Source,
+            sourceStr,
             new EnvironmentBuilder().Build(),
             CompilationMode.Program
         );
@@ -215,10 +215,10 @@ public sealed class MuLangCompilerEditorTests
     [Test]
     public void ClassifiesImplicitConversions()
     {
-        const string Source = "var value: number = 1;";
-        SourceText source = SourceText.From(Source);
+        const string sourceStr = "var value: number = 1;";
+        SourceText source = SourceText.From(sourceStr);
         SemanticClassificationResult result = MuLangCompiler.ClassifySemantically(
-            Source,
+            sourceStr,
             new EnvironmentBuilder().Build(),
             CompilationMode.Program
         );

@@ -168,6 +168,33 @@ public static class DiagnosticCodes
     /// <summary>Gets the code for a constant expression that fails during compile-time evaluation.</summary>
     public const string ConstantEvaluationFailed = "MUL3031";
 
+    /// <summary>Gets the code for a redundant empty statement.</summary>
+    public const string RedundantEmptyStatement = "MUL3032";
+
+    /// <summary>Gets the code for a condition whose truthiness is statically known.</summary>
+    public const string ConstantCondition = "MUL3033";
+
+    /// <summary>Gets the code for null coalescing that always uses its left operand.</summary>
+    public const string RedundantNullCoalescing = "MUL3034";
+
+    /// <summary>Gets the code for null coalescing that always uses its fallback operand.</summary>
+    public const string NullCoalescingAlwaysUsesFallback = "MUL3035";
+
+    /// <summary>Gets the code for optional access on a target that is never null.</summary>
+    public const string RedundantOptionalAccess = "MUL3036";
+
+    /// <summary>Gets the code for optional access on a target that is always null.</summary>
+    public const string OptionalAccessAlwaysNull = "MUL3037";
+
+    /// <summary>Gets the code for a null comparison whose result is statically known.</summary>
+    public const string ConstantNullComparison = "MUL3038";
+
+    /// <summary>Gets the code for a type test that is statically known to be true.</summary>
+    public const string AlwaysTrueTypeTest = "MUL3039";
+
+    /// <summary>Gets the code for a checked cast to an equivalent type.</summary>
+    public const string RedundantCast = "MUL3040";
+
     /// <summary>Gets the code for disabled user-defined functions.</summary>
     public const string DisabledUserDefinedFunctions = "MUL7001";
 

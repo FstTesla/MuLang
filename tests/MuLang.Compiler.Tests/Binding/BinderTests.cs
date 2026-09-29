@@ -804,7 +804,7 @@ public sealed class BinderTests
         using (Assert.EnterMultipleScope())
         {
             AssertDiagnostic(invalidBreak, DiagnosticCodes.BreakOutsideLoop);
-            Assert.That(validBreak.Diagnostics, Is.Empty);
+            Assert.That(validBreak.Diagnostics.HasErrors, Is.False);
         }
     }
 
@@ -837,7 +837,7 @@ public sealed class BinderTests
             LanguageProfiles.Version1_1
         );
 
-        Assert.That(result.Diagnostics, Is.Empty);
+        Assert.That(result.Diagnostics.HasErrors, Is.False);
     }
 
     [Test]

@@ -12,6 +12,12 @@ Stable entries describe the incremental change since the preceding prerelease. T
 
 Each release heading identifies the incremental version range covered by the section, from the comparison version to the released version.
 
+## `0.2.0-alpha.5` → `0.2.0-alpha.6` - 2026-09-29
+
+### New features
+
+- Added semantic warnings for redundant empty statements, statically constant Boolean and truthiness conditions, deterministic null coalescing and null comparisons, redundant or always-null optional access, always-true type tests, and checked casts to equivalent types. Warning analysis is independent of the constant-folding profile setting.
+
 ## `0.2.0-alpha.4` → `0.2.0-alpha.5` - 2026-09-29
 
 ### New features

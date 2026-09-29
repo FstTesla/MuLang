@@ -816,7 +816,7 @@ internal sealed class Lowerer
     {
         if (
             expression.Expression is BoundExpression.Literal &&
-            BoundTruthinessFacts.TryEvaluate(expression, out bool value)
+            BoundExpressionFacts.TryGetTruthiness(expression, out bool value)
         )
         {
             int constantDestination = CreateTemporary(TypeSymbols.Bool);
@@ -1145,7 +1145,7 @@ internal sealed class Lowerer
 
     private static bool IsConstantTrue(BoundExpression expression)
     {
-        return BoundTruthinessFacts.TryEvaluate(expression, out bool value) && value;
+        return BoundExpressionFacts.TryGetTruthiness(expression, out bool value) && value;
     }
 
     private static IrUnaryOperator MapUnaryOperator(TokenKind kind)

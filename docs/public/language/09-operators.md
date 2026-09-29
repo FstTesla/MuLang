@@ -147,6 +147,10 @@ Numeric conformance follows concrete representation: `int` values conform to `in
 
 When the operand's static type and the tested type cannot describe the same runtime value, the test remains valid, evaluates to `false`, and produces a warning diagnostic.
 
+When every value described by the operand's static type conforms to the tested type, the test remains valid, evaluates normally, and produces a warning that its result is statically known to be `true`.
+
+An `as` expression whose operand and target types are equivalent produces a redundant-cast warning. A statically guaranteed cast that changes the expression's static type is not considered redundant.
+
 For `T[]`, conformance requires write capability and recursive conformance of every current element to `T`. For `T[]$`, read capability is sufficient. Array tests are shape-based and do not require a stored nominal element type.
 
 For `null`, `is` evaluates to `true` only when the tested type is nullable. The `is` operator does not narrow the operand in any subsequent expression or statement.
@@ -188,6 +192,8 @@ Under truthiness condition semantics, each non-void operand is normalized to `bo
 
 `&&` and `||` always produce `bool`; they never return an operand value.
 
+The compiler produces a warning when the result of `!`, `&&`, or `||`, or the truthiness of a relevant operand, is statically known.
+
 > Given a host function `effect(): bool`, neither of these expressions calls it:
 >
 > ```text
@@ -213,6 +219,8 @@ For the `null` literal on the left, the result type is the type of the right ope
 For a left operand of type `T?`, the result type is the common type of non-null `T` and the right operand. The left operand does not by itself make the result nullable: the result is nullable only when the right operand and the common-type rules require it.
 
 An expression whose non-null left value and right operand have no common result type is invalid.
+
+For an otherwise valid null-coalescing expression, the compiler produces a warning when the left operand is statically known always to be `null` or never to be `null`. The requirement that the left operand have nullable type or be the `null` literal is unchanged.
 
 > This expression produces `"fallback"`:
 >
@@ -244,6 +252,8 @@ Structural equality MUST safely handle cyclic object and array graphs by trackin
 
 `null` is structurally equal only to `null`.
 
+A structural comparison with the `null` literal produces a warning when the other operand is statically known always or never to be null.
+
 > The first expression is `true` because arrays are compared structurally. The second is `false` because the literals create distinct array identities:
 >
 > ```text
@@ -269,6 +279,8 @@ For arrays and objects, identity represents the same logical value supplied thro
 A mutable array and every read-only view that forwards its logical identity are identical.
 
 `null` is identical only to `null`.
+
+An identity comparison with the `null` literal produces a warning when the other operand is statically known always or never to be null.
 
 > For example, this program returns `true`:
 >
