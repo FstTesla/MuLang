@@ -170,9 +170,9 @@ public sealed class UserFunctionTests
             environment,
             functions:
             [
-                new KeyValuePair<string, DotNetFunction>(
+                new KeyValuePair<string, DotNetProviderFunction>(
                     "function.log",
-                    arguments =>
+                    (_, arguments) =>
                     {
                         observed = (long)(arguments[0] ??
                             throw new AssertionException("Expected an argument."));
@@ -331,17 +331,17 @@ public sealed class UserFunctionTests
             environment,
             functions:
             [
-                new KeyValuePair<string, DotNetFunction>(
+                new KeyValuePair<string, DotNetProviderFunction>(
                     "function.first",
-                    _ =>
+                    (_, _) =>
                     {
                         calls.Add("first");
                         return 1L;
                     }
                 ),
-                new KeyValuePair<string, DotNetFunction>(
+                new KeyValuePair<string, DotNetProviderFunction>(
                     "function.second",
-                    _ =>
+                    (_, _) =>
                     {
                         calls.Add("second");
                         return 2L;
@@ -464,9 +464,9 @@ public sealed class UserFunctionTests
             environment,
             functions:
             [
-                new KeyValuePair<string, DotNetFunction>(
+                new KeyValuePair<string, DotNetProviderFunction>(
                     "function.reenter",
-                    _ =>
+                    (_, _) =>
                     {
                         invocationCount++;
 
@@ -570,13 +570,13 @@ public sealed class UserFunctionTests
     private static DotNetRuntimeContext CreateContext(
         EnvironmentSchema environment,
         IEnumerable<KeyValuePair<string, object?>>? globals = null,
-        IEnumerable<KeyValuePair<string, DotNetFunction>>? functions = null,
+        IEnumerable<KeyValuePair<string, DotNetProviderFunction>>? functions = null,
         long? executionBudget = null,
         int maximumTraversalDepth = 256,
         int maximumUserFunctionCallDepth = 256
     )
     {
-        return new DotNetRuntimeContext(
+        return DotNetRuntimeContext.Create(
             environment,
             globals ?? [ ],
             functions ?? [ ],

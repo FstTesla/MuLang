@@ -173,7 +173,8 @@ The context should provide narrowly scoped services for:
 
 Standard-library implementations use the canonical context-aware
 `DotNetProviderFunction` delegate. The legacy `DotNetFunction` path remains
-available to existing hosts but does not define separate runtime semantics.
+available temporarily as an obsolete compatibility API and does not define
+separate runtime semantics.
 
 ### Configurable nondeterminism
 

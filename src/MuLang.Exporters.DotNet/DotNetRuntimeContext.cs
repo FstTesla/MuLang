@@ -27,6 +27,7 @@ public sealed class DotNetRuntimeContext
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="environment" />, <paramref name="globals" />, or <paramref name="functions" /> is <c>null</c>.</exception>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when an execution limit is negative.</exception>
     /// <exception cref="ArgumentException">Thrown when a runtime value or function identifier is duplicated.</exception>
+    [Obsolete("Use DotNetRuntimeContext.Create with DotNetProviderFunction implementations instead.")]
     public DotNetRuntimeContext(
         EnvironmentSchema environment,
         IEnumerable<KeyValuePair<string, object?>> globals,
@@ -240,7 +241,7 @@ public sealed class DotNetRuntimeContext
             return result;
         }
         catch (MuLangRuntimeException exception)
-            when (exception.IsRuntimeGenerated)
+            when (exception.CanPropagateThroughProvider)
         {
             throw;
         }
@@ -369,6 +370,7 @@ public sealed class DotNetRuntimeContext
         }
     }
 
+    [Obsolete("Used only by the obsolete DotNetFunction compatibility constructor.")]
     private static IReadOnlyDictionary<string, DotNetProviderFunction> AdaptFunctions(
         IEnumerable<KeyValuePair<string, DotNetFunction>> functions
     )

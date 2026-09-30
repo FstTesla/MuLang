@@ -44,14 +44,36 @@ public sealed class DotNetExporterTests
             environment,
             [ new KeyValuePair<string, object?>("global.value", 41L) ],
             [
-                new KeyValuePair<string, DotNetFunction>(
+                new KeyValuePair<string, DotNetProviderFunction>(
                     "function.increment",
-                    static arguments =>
+                    static (_, arguments) =>
                         (long)(arguments[0] ??
                             throw new AssertionException("Expected an argument.")) + 1
                 ),
             ]
         );
+
+        Assert.That(compiled(context), Is.EqualTo(42L));
+    }
+
+    [Test]
+    public void ObsoleteRuntimeContextConstructorAdaptsDotNetFunctions()
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddFunction("function.value", "value", [ ], TypeSymbols.Int)
+            .Build();
+        Func<DotNetRuntimeContext, object?> compiled = CompileExpression(
+            "value()",
+            environment
+        );
+#pragma warning disable CS0618
+        DotNetFunction function = static _ => 42L;
+        DotNetRuntimeContext context = new (
+            environment,
+            [ ],
+            [ new KeyValuePair<string, DotNetFunction>("function.value", function) ]
+        );
+#pragma warning restore CS0618
 
         Assert.That(compiled(context), Is.EqualTo(42L));
     }
@@ -71,9 +93,9 @@ public sealed class DotNetExporterTests
             environment,
             functions:
             [
-                new KeyValuePair<string, DotNetFunction>(
+                new KeyValuePair<string, DotNetProviderFunction>(
                     "function.touch",
-                    _ =>
+                    (_, _) =>
                     {
                         invocationCount++;
                         return true;
@@ -105,11 +127,11 @@ public sealed class DotNetExporterTests
             "value ?? fallback()",
             environment
         );
-        IEnumerable<KeyValuePair<string, DotNetFunction>> functions =
+        IEnumerable<KeyValuePair<string, DotNetProviderFunction>> functions =
         [
             new (
                 "function.fallback",
-                _ =>
+                (_, _) =>
                 {
                     invocationCount++;
                     return 42L;
@@ -196,9 +218,9 @@ public sealed class DotNetExporterTests
             environment,
             functions:
             [
-                new KeyValuePair<string, DotNetFunction>(
+                new KeyValuePair<string, DotNetProviderFunction>(
                     "function.touch",
-                    _ =>
+                    (_, _) =>
                     {
                         invocationCount++;
                         return true;
@@ -502,9 +524,9 @@ public sealed class DotNetExporterTests
             environment,
             [ new KeyValuePair<string, object?>("global.values", values) ],
             [
-                new KeyValuePair<string, DotNetFunction>(
+                new KeyValuePair<string, DotNetProviderFunction>(
                     "function.inspect",
-                    arguments =>
+                    (_, arguments) =>
                         arguments[0] is IDotNetArrayValue first &&
                         ReferenceEquals(arguments[0], values) &&
                         ReferenceEquals(arguments[0], arguments[1]) &&
@@ -652,7 +674,7 @@ public sealed class DotNetExporterTests
             environment,
             TypeSymbols.Int
         );
-        DotNetRuntimeContext context = CreateProviderContext(
+        DotNetRuntimeContext context = CreateContext(
             environment,
             functions:
             [
@@ -723,7 +745,7 @@ public sealed class DotNetExporterTests
             TypeSymbols.Bool
         );
         DotNetProviderInvocationContext? capturedContext = null;
-        DotNetRuntimeContext context = CreateProviderContext(
+        DotNetRuntimeContext context = CreateContext(
             environment,
             [
                 new KeyValuePair<string, object?>("global.item", item),
@@ -785,7 +807,7 @@ public sealed class DotNetExporterTests
             environment,
             TypeSymbols.Int
         );
-        DotNetRuntimeContext context = CreateProviderContext(
+        DotNetRuntimeContext context = CreateContext(
             environment,
             [ new KeyValuePair<string, object?>("global.item", item) ],
             [
@@ -821,7 +843,7 @@ public sealed class DotNetExporterTests
         );
         using CancellationTokenSource cancellation = new ();
         cancellation.Cancel();
-        DotNetRuntimeContext context = CreateProviderContext(
+        DotNetRuntimeContext context = CreateContext(
             environment,
             functions:
             [
@@ -857,7 +879,7 @@ public sealed class DotNetExporterTests
         EnvironmentSchema environment = new EnvironmentBuilder()
             .AddFunction("function.fail", "fail", [ ], TypeSymbols.Int)
             .Build();
-        DotNetRuntimeContext context = CreateProviderContext(
+        DotNetRuntimeContext context = CreateContext(
             environment,
             functions:
             [
@@ -898,16 +920,21 @@ public sealed class DotNetExporterTests
             environment,
             TypeSymbols.Int
         );
-        DotNetRuntimeContext context = CreateProviderContext(
+        DotNetRuntimeContext context = CreateContext(
             environment,
             functions:
             [
                 new KeyValuePair<string, DotNetProviderFunction>(
                     "function.fail",
                     static (_, _) => throw new MuLangRuntimeException(
-                        "custom",
-                        "Failure.",
-                        default
+                        new RuntimeError(
+                            "custom",
+                            "Failure.",
+                            RuntimeErrorCategory.Application,
+                            true,
+                            default,
+                            [ ]
+                        )
                     )
                 ),
             ]
@@ -954,9 +981,9 @@ public sealed class DotNetExporterTests
             environment,
             [ new KeyValuePair<string, object?>("global.values", values) ],
             [
-                new KeyValuePair<string, DotNetFunction>(
+                new KeyValuePair<string, DotNetProviderFunction>(
                     "function.mutate",
-                    _ =>
+                    (_, _) =>
                     {
                         values.TrySetElement(0, "invalid");
                         return null;
@@ -1146,9 +1173,9 @@ public sealed class DotNetExporterTests
             environment,
             [ new KeyValuePair<string, object?>("global.values", null) ],
             [
-                new KeyValuePair<string, DotNetFunction>(
+                new KeyValuePair<string, DotNetProviderFunction>(
                     "function.index",
-                    _ =>
+                    (_, _) =>
                     {
                         invocationCount++;
                         return 0L;
@@ -1760,9 +1787,9 @@ public sealed class DotNetExporterTests
             environment,
             functions:
             [
-                new KeyValuePair<string, DotNetFunction>(
+                new KeyValuePair<string, DotNetProviderFunction>(
                     "function.value",
-                    static _ => "invalid"
+                    static (_, _) => "invalid"
                 ),
             ]
         );
@@ -1931,9 +1958,9 @@ public sealed class DotNetExporterTests
             environment,
             functions:
             [
-                new KeyValuePair<string, DotNetFunction>(
+                new KeyValuePair<string, DotNetProviderFunction>(
                     "function.cancel",
-                    _ =>
+                    (_, _) =>
                     {
                         // ReSharper disable once AccessToDisposedClosure
                         cts.Cancel();
@@ -2364,27 +2391,6 @@ public sealed class DotNetExporterTests
     }
 
     private static DotNetRuntimeContext CreateContext(
-        EnvironmentSchema environment,
-        IEnumerable<KeyValuePair<string, object?>>? globals = null,
-        IEnumerable<KeyValuePair<string, DotNetFunction>>? functions = null,
-        long? executionBudget = null,
-        int maximumTraversalDepth = 256,
-        int maximumUserFunctionCallDepth = 256,
-        CancellationToken cancellationToken = default
-    )
-    {
-        return new DotNetRuntimeContext(
-            environment,
-            globals ?? [ ],
-            functions ?? [ ],
-            executionBudget,
-            maximumTraversalDepth,
-            cancellationToken,
-            maximumUserFunctionCallDepth
-        );
-    }
-
-    private static DotNetRuntimeContext CreateProviderContext(
         EnvironmentSchema environment,
         IEnumerable<KeyValuePair<string, object?>>? globals = null,
         IEnumerable<KeyValuePair<string, DotNetProviderFunction>>? functions = null,

@@ -14,11 +14,16 @@ Each release heading identifies the incremental version range covered by the sec
 
 ## `0.2.0-alpha.6` → `0.2.0-alpha.7` - 2026-09-30
 
+### Breaking changes
+
+- Marked `MuLangRuntimeException(string, string, TextSpan, Exception?)` obsolete. Custom runtimes and exporters should construct a structured `RuntimeError` and use `MuLangRuntimeException(RuntimeError, Exception?)`; MuLang no longer uses the compatibility overload internally.
+- Marked the legacy `DotNetFunction` delegate and matching `DotNetRuntimeContext` constructor obsolete. Providers should implement `DotNetProviderFunction` and register functions through `DotNetRuntimeContext.Create`.
+
 ### New features
 
 - Added structured runtime errors with stable categories, explicit catchability, source spans, MuLang stack frames, public causes, and application payloads while preserving the existing `MuLangRuntimeException.Code` and `Span` API.
 - Added `ExecutionResult` and `DotNetExportResult.ExecutionDelegate` as a result-returning execution surface alongside the existing exception-based delegate, including preserved underlying host failures for diagnostics.
-- Added the context-aware `DotNetProviderFunction` and `DotNetProviderInvocationContext` contracts for cancellation, metered read-only array and object inspection, MuLang structural equality, and application-error reporting. The existing `DotNetFunction` runtime-context constructor remains available.
+- Added the context-aware `DotNetProviderFunction` and `DotNetProviderInvocationContext` contracts for cancellation, metered read-only array and object inspection, MuLang structural equality, and application-error reporting.
 - Added `MuLangProviderException` as the explicit contract for expected provider application failures. Expected failures become catchable `Application` errors; unexpected provider exceptions become uncatchable `Provider` errors.
 
 ## `0.2.0-alpha.5` → `0.2.0-alpha.6` - 2026-09-30

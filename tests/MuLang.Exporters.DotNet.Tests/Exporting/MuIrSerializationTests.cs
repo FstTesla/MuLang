@@ -38,7 +38,11 @@ public sealed class MuIrSerializationTests
             CompilationMode.Expression,
             LanguageProfiles.Version1_1.Fingerprint
         );
-        DotNetRuntimeContext context = new (environment, [ ], [ ]);
+        DotNetRuntimeContext context = DotNetRuntimeContext.Create(
+            environment,
+            [ ],
+            [ ]
+        );
 
         using (Assert.EnterMultipleScope())
         {
@@ -91,7 +95,7 @@ public sealed class MuIrSerializationTests
             Assert.That(read.Success, Is.True);
             Assert.That(export.Diagnostics.HasErrors, Is.False);
             Assert.That(
-                export.Delegate!(new DotNetRuntimeContext(environment, [ ], [ ])),
+                export.Delegate!(DotNetRuntimeContext.Create(environment, [ ], [ ])),
                 Is.Null
             );
         }

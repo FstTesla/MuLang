@@ -60,6 +60,9 @@ Runtime-error categories are:
 
 Catchability MUST be represented independently from the category and code.
 
+Each MuLang stack frame contains a portable function identifier and the call
+span that entered the function.
+
 Runtime errors include:
 
 - null operand where a non-null value is required;

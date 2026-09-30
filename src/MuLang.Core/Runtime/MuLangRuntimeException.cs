@@ -11,6 +11,7 @@ public sealed class MuLangRuntimeException : Exception
     /// <param name="span">The source span.</param>
     /// <param name="innerException">The exception that caused the runtime error, or <c>null</c>.</param>
     /// <exception cref="ArgumentException">Thrown when <paramref name="code" /> is null, empty, or whitespace.</exception>
+    [Obsolete("Create a RuntimeError and use MuLangRuntimeException(RuntimeError, Exception?) instead.")]
     public MuLangRuntimeException(
         string code,
         string message,
@@ -45,7 +46,7 @@ public sealed class MuLangRuntimeException : Exception
     internal MuLangRuntimeException(
         RuntimeError error,
         Exception? innerException,
-        bool isRuntimeGenerated
+        bool canPropagateThroughProvider
     )
         : base(
             (error ?? throw new ArgumentNullException(nameof(error))).Message,
@@ -53,7 +54,7 @@ public sealed class MuLangRuntimeException : Exception
         )
     {
         Error = error;
-        IsRuntimeGenerated = isRuntimeGenerated;
+        CanPropagateThroughProvider = canPropagateThroughProvider;
     }
 
     /// <summary>Gets the structured runtime error.</summary>
@@ -65,7 +66,7 @@ public sealed class MuLangRuntimeException : Exception
     /// <summary>Gets the source span associated with the error.</summary>
     public TextSpan Span => Error.Span;
 
-    internal bool IsRuntimeGenerated { get; }
+    internal bool CanPropagateThroughProvider { get; }
 
     internal void AddFrame(RuntimeStackFrame frame)
     {

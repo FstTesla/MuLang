@@ -26,7 +26,7 @@ Hosts construct a context using these functions through
 `DotNetRuntimeContext.Create`. Its invocation context provides adapter-based
 array and object reads, MuLang structural equality, cancellation observation,
 and application-error reporting. The original `DotNetFunction` constructor
-path remains available for providers that do not require invocation services.
+path remains temporarily available as an obsolete compatibility API.
 
 Exported programs retain the exception-based `Delegate` and additionally expose
 an `ExecutionDelegate` returning `ExecutionResult`. Both surfaces report the

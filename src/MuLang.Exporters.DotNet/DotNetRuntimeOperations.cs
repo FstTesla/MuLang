@@ -144,9 +144,11 @@ internal static class DotNetRuntimeOperations
                 return value;
             }
 
-            throw new MuLangRuntimeException(
+            throw DotNetRuntimeErrorFactory.Create(
                 DotNetRuntimeErrorCodes.InvalidConversion,
                 $"Runtime value cannot be cast to '{targetType.DisplayName}'.",
+                RuntimeErrorCategory.Operation,
+                true,
                 span
             );
         }
@@ -174,9 +176,11 @@ internal static class DotNetRuntimeOperations
 
         if (value is null)
         {
-            throw new MuLangRuntimeException(
+            throw DotNetRuntimeErrorFactory.Create(
                 DotNetRuntimeErrorCodes.NullValue,
                 $"Null cannot be converted to '{targetType.DisplayName}'.",
+                RuntimeErrorCategory.Operation,
+                true,
                 span
             );
         }
@@ -188,9 +192,11 @@ internal static class DotNetRuntimeOperations
                 when IsValueOfTypeDeep(context, value, targetType, span) => value,
             TypeKind.Array
                 when IsValueOfTypeDeep(context, value, targetType, span) => value,
-            _ => throw new MuLangRuntimeException(
+            _ => throw DotNetRuntimeErrorFactory.Create(
                 DotNetRuntimeErrorCodes.InvalidConversion,
                 $"Runtime value cannot be converted to '{targetType.DisplayName}'.",
+                RuntimeErrorCategory.Operation,
+                true,
                 span
             ),
         };
@@ -298,9 +304,11 @@ internal static class DotNetRuntimeOperations
 
         if (!isOptional)
         {
-            throw new MuLangRuntimeException(
+            throw DotNetRuntimeErrorFactory.Create(
                 DotNetRuntimeErrorCodes.MissingProperty,
                 $"Property '{name}' does not exist.",
+                RuntimeErrorCategory.Operation,
+                true,
                 span
             );
         }
@@ -391,9 +399,11 @@ internal static class DotNetRuntimeOperations
 
         if (!TryGetArrayElement(target, arrayIndex, out object? value))
         {
-            throw new MuLangRuntimeException(
+            throw DotNetRuntimeErrorFactory.Create(
                 DotNetRuntimeErrorCodes.InvalidIndex,
                 $"Array index {arrayIndex} is outside the valid range.",
+                RuntimeErrorCategory.Operation,
+                true,
                 span
             );
         }
@@ -886,9 +896,11 @@ internal static class DotNetRuntimeOperations
 
         if (index is < int.MinValue or > int.MaxValue)
         {
-            throw new MuLangRuntimeException(
+            throw DotNetRuntimeErrorFactory.Create(
                 DotNetRuntimeErrorCodes.InvalidIndex,
                 $"Array index {index} is outside the supported range.",
+                RuntimeErrorCategory.Operation,
+                true,
                 span
             );
         }
@@ -1078,9 +1090,11 @@ internal static class DotNetRuntimeOperations
 
     private static MuLangRuntimeException NullTarget(TextSpan span)
     {
-        return new MuLangRuntimeException(
+        return DotNetRuntimeErrorFactory.Create(
             DotNetRuntimeErrorCodes.NullValue,
             "Operation target is null.",
+            RuntimeErrorCategory.Operation,
+            true,
             span
         );
     }

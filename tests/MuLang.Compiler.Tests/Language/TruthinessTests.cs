@@ -234,9 +234,9 @@ public sealed class TruthinessTests
             environment,
             functions:
             [
-                new KeyValuePair<string, DotNetFunction>(
+                new KeyValuePair<string, DotNetProviderFunction>(
                     "function.touch",
-                    _ =>
+                    (_, _) =>
                     {
                         invocationCount++;
                         return 1L;
@@ -367,9 +367,9 @@ public sealed class TruthinessTests
             environment,
             functions:
             [
-                new KeyValuePair<string, DotNetFunction>(
+                new KeyValuePair<string, DotNetProviderFunction>(
                     "function.touch",
-                    _ =>
+                    (_, _) =>
                     {
                         invocationCount++;
                         return 1L;
@@ -401,9 +401,9 @@ public sealed class TruthinessTests
             environment,
             functions:
             [
-                new KeyValuePair<string, DotNetFunction>(
+                new KeyValuePair<string, DotNetProviderFunction>(
                     "function.touch",
-                    _ =>
+                    (_, _) =>
                     {
                         invocationCount++;
                         return 1L;
@@ -885,10 +885,10 @@ public sealed class TruthinessTests
     private static DotNetRuntimeContext CreateContext(
         EnvironmentSchema environment,
         IEnumerable<KeyValuePair<string, object?>>? globals = null,
-        IEnumerable<KeyValuePair<string, DotNetFunction>>? functions = null
+        IEnumerable<KeyValuePair<string, DotNetProviderFunction>>? functions = null
     )
     {
-        return new DotNetRuntimeContext(
+        return DotNetRuntimeContext.Create(
             environment,
             globals ?? [ ],
             functions ?? [ ]

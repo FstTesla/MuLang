@@ -126,7 +126,9 @@ internal sealed class DotNetUserFunctionDispatcher
         }
         catch (MuLangRuntimeException exception)
         {
-            exception.AddFrame(new RuntimeStackFrame(functionId, span));
+            exception.AddFrame(
+                new RuntimeStackFrame(functionId, span)
+            );
             throw;
         }
         finally
@@ -134,4 +136,5 @@ internal sealed class DotNetUserFunctionDispatcher
             execution.CallDepth = nextDepth - 1;
         }
     }
+
 }

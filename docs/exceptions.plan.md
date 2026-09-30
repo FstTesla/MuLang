@@ -110,9 +110,10 @@ The category does not encode the precise origin of an error. The source span,
 MuLang stack, and host diagnostic metadata can identify whether an
 `Application` error originated in MuLang code or a provider function.
 
-This model can be introduced without changing the source language. The .NET API
-can also retain a reasonable compatibility level by preserving the existing
-`MuLangRuntimeException` constructor and properties.
+This model can be introduced without changing the source language. The existing
+`MuLangRuntimeException` code/message/span constructor remains temporarily
+available as an obsolete compatibility API; new code constructs a
+`RuntimeError` explicitly.
 
 ## Host Execution Result
 
@@ -375,6 +376,11 @@ A possible representation includes:
 
 The representation must remain independent from exception-handling facilities
 provided by a target platform so that MuIR remains portable.
+
+A future MuIR model may register the source-declared name of each user function
+as optional diagnostic metadata. MuIR version 1 continues to expose only the
+portable function ID, and runtime stack frames do not infer source names by
+encoding them into that ID.
 
 ## Considered Approaches
 
