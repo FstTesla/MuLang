@@ -42,9 +42,11 @@ internal sealed class DotNetUserFunctionDispatcher
             !delegates.TryGetValue(functionId, out DotNetUserFunction? functionDelegate)
         )
         {
-            throw new MuLangRuntimeException(
+            throw DotNetRuntimeErrorFactory.Create(
                 DotNetRuntimeErrorCodes.MissingUserFunction,
                 $"User function '{functionId}' is not available.",
+                RuntimeErrorCategory.Environment,
+                false,
                 span
             );
         }
@@ -54,9 +56,11 @@ internal sealed class DotNetUserFunctionDispatcher
 
         if (arguments.Length != parameters.Count)
         {
-            throw new MuLangRuntimeException(
+            throw DotNetRuntimeErrorFactory.Create(
                 DotNetRuntimeErrorCodes.InvalidRuntimeValue,
                 $"User function '{functionId}' received an invalid argument count.",
+                RuntimeErrorCategory.RuntimeContract,
+                false,
                 span
             );
         }
@@ -70,9 +74,11 @@ internal sealed class DotNetUserFunctionDispatcher
                     span
                 ))
             {
-                throw new MuLangRuntimeException(
+                throw DotNetRuntimeErrorFactory.Create(
                     DotNetRuntimeErrorCodes.InvalidRuntimeValue,
                     $"Argument {index + 1} of user function '{functionId}' is incompatible with '{parameters[index].Type.DisplayName}'.",
+                    RuntimeErrorCategory.RuntimeContract,
+                    false,
                     span
                 );
             }
@@ -82,9 +88,11 @@ internal sealed class DotNetUserFunctionDispatcher
 
         if (nextDepth > context.MaximumUserFunctionCallDepth)
         {
-            throw new MuLangRuntimeException(
+            throw DotNetRuntimeErrorFactory.Create(
                 DotNetRuntimeErrorCodes.CallDepthExceeded,
                 "The maximum user-function call depth was exceeded.",
+                RuntimeErrorCategory.Resource,
+                false,
                 span
             );
         }
@@ -105,14 +113,21 @@ internal sealed class DotNetUserFunctionDispatcher
                 )
             )
             {
-                throw new MuLangRuntimeException(
+                throw DotNetRuntimeErrorFactory.Create(
                     DotNetRuntimeErrorCodes.InvalidRuntimeValue,
                     $"User function '{functionId}' returned a value incompatible with '{function.ReturnType.DisplayName}'.",
+                    RuntimeErrorCategory.RuntimeContract,
+                    false,
                     span
                 );
             }
 
             return result;
+        }
+        catch (MuLangRuntimeException exception)
+        {
+            exception.AddFrame(new RuntimeStackFrame(functionId, span));
+            throw;
         }
         finally
         {

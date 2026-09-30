@@ -11,7 +11,7 @@ namespace MuLang.Exporters.DotNet;
 public sealed class DotNetRuntimeContext
 {
     private readonly IReadOnlyDictionary<string, object?> globals;
-    private readonly IReadOnlyDictionary<string, DotNetFunction> functions;
+    private readonly IReadOnlyDictionary<string, DotNetProviderFunction> functions;
     private readonly IReadOnlyDictionary<string, FunctionSymbol> functionSymbols;
     private readonly bool hasExecutionBudget;
     private long remainingBudget;
@@ -36,6 +36,25 @@ public sealed class DotNetRuntimeContext
         CancellationToken cancellationToken = default,
         int maximumUserFunctionCallDepth = 256
     )
+        : this(
+            environment,
+            globals,
+            AdaptFunctions(functions),
+            executionBudget,
+            maximumTraversalDepth,
+            cancellationToken,
+            maximumUserFunctionCallDepth
+        ) { }
+
+    private DotNetRuntimeContext(
+        EnvironmentSchema environment,
+        IEnumerable<KeyValuePair<string, object?>> globals,
+        IReadOnlyDictionary<string, DotNetProviderFunction> functions,
+        long? executionBudget,
+        int maximumTraversalDepth,
+        CancellationToken cancellationToken,
+        int maximumUserFunctionCallDepth
+    )
     {
         if (environment is null)
         {
@@ -45,11 +64,6 @@ public sealed class DotNetRuntimeContext
         if (globals is null)
         {
             throw new ArgumentNullException(nameof(globals));
-        }
-
-        if (functions is null)
-        {
-            throw new ArgumentNullException(nameof(functions));
         }
 
         if (executionBudget < 0)
@@ -73,11 +87,7 @@ public sealed class DotNetRuntimeContext
             static pair => pair.Value,
             StringComparer.Ordinal
         );
-        this.functions = functions.ToFrozenDictionary(
-            static pair => pair.Key,
-            static pair => pair.Value,
-            StringComparer.Ordinal
-        );
+        this.functions = functions;
         functionSymbols = environment.Functions.ToFrozenDictionary(
             static function => function.Id,
             StringComparer.Ordinal
@@ -87,6 +97,39 @@ public sealed class DotNetRuntimeContext
         MaximumTraversalDepth = maximumTraversalDepth;
         MaximumUserFunctionCallDepth = maximumUserFunctionCallDepth;
         CancellationToken = cancellationToken;
+    }
+
+    /// <summary>Creates a runtime context using context-aware provider functions.</summary>
+    /// <param name="environment">The environment schema available to the compiled code.</param>
+    /// <param name="globals">The runtime global values, keyed by provider identifier.</param>
+    /// <param name="functions">The context-aware runtime provider functions, keyed by provider identifier.</param>
+    /// <param name="executionBudget">The maximum number of budgeted runtime operations, or <c>null</c> for no limit.</param>
+    /// <param name="maximumTraversalDepth">The maximum depth used when traversing runtime values.</param>
+    /// <param name="cancellationToken">The token used to cancel execution.</param>
+    /// <param name="maximumUserFunctionCallDepth">The maximum user-defined function call depth.</param>
+    /// <returns>A runtime context using the supplied context-aware provider functions.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="environment" />, <paramref name="globals" />, or <paramref name="functions" /> is <c>null</c>.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when an execution limit is negative.</exception>
+    /// <exception cref="ArgumentException">Thrown when a runtime value or function identifier is duplicated.</exception>
+    public static DotNetRuntimeContext Create(
+        EnvironmentSchema environment,
+        IEnumerable<KeyValuePair<string, object?>> globals,
+        IEnumerable<KeyValuePair<string, DotNetProviderFunction>> functions,
+        long? executionBudget = null,
+        int maximumTraversalDepth = 256,
+        CancellationToken cancellationToken = default,
+        int maximumUserFunctionCallDepth = 256
+    )
+    {
+        return new DotNetRuntimeContext(
+            environment,
+            globals,
+            FreezeFunctions(functions),
+            executionBudget,
+            maximumTraversalDepth,
+            cancellationToken,
+            maximumUserFunctionCallDepth
+        );
     }
 
     /// <summary>Gets the environment fingerprint.</summary>
@@ -105,9 +148,11 @@ public sealed class DotNetRuntimeContext
     {
         if (!globals.TryGetValue(id, out object? value))
         {
-            throw new MuLangRuntimeException(
+            throw DotNetRuntimeErrorFactory.Create(
                 DotNetRuntimeErrorCodes.MissingGlobal,
                 $"Global '{id}' has no runtime value.",
+                RuntimeErrorCategory.Environment,
+                false,
                 span
             );
         }
@@ -119,9 +164,11 @@ public sealed class DotNetRuntimeContext
                 span
             ))
         {
-            throw new MuLangRuntimeException(
+            throw DotNetRuntimeErrorFactory.Create(
                 DotNetRuntimeErrorCodes.InvalidRuntimeValue,
                 $"Global '{id}' does not contain a value of type '{expectedType.DisplayName}'.",
+                RuntimeErrorCategory.RuntimeContract,
+                false,
                 span
             );
         }
@@ -138,22 +185,28 @@ public sealed class DotNetRuntimeContext
     {
         Consume(span);
 
-        if (!functions.TryGetValue(id, out DotNetFunction? function))
+        if (!functions.TryGetValue(id, out DotNetProviderFunction? function))
         {
-            throw new MuLangRuntimeException(
+            throw DotNetRuntimeErrorFactory.Create(
                 DotNetRuntimeErrorCodes.MissingFunction,
                 $"Function '{id}' has no runtime implementation.",
+                RuntimeErrorCategory.Environment,
+                false,
                 span
             );
         }
+
+        DotNetProviderInvocationContext invocationContext = new (this, span);
 
         try
         {
             if (!functionSymbols.TryGetValue(id, out FunctionSymbol? functionSymbol))
             {
-                throw new MuLangRuntimeException(
+                throw DotNetRuntimeErrorFactory.Create(
                     DotNetRuntimeErrorCodes.MissingFunction,
                     $"Function '{id}' is not declared by the runtime environment.",
+                    RuntimeErrorCategory.Environment,
+                    false,
                     span
                 );
             }
@@ -163,7 +216,7 @@ public sealed class DotNetRuntimeContext
                 functionSymbol,
                 span
             );
-            object? result = function(arguments);
+            object? result = function(invocationContext, arguments);
 
             if (
                 returnType.Kind != TypeKind.Void &&
@@ -175,37 +228,72 @@ public sealed class DotNetRuntimeContext
                 )
             )
             {
-                throw new MuLangRuntimeException(
+                throw DotNetRuntimeErrorFactory.Create(
                     DotNetRuntimeErrorCodes.InvalidRuntimeValue,
                     $"Provider function '{id}' returned a value incompatible with '{returnType.DisplayName}'.",
+                    RuntimeErrorCategory.RuntimeContract,
+                    false,
                     span
                 );
             }
 
             return result;
         }
-        catch (MuLangRuntimeException)
+        catch (MuLangRuntimeException exception)
+            when (exception.IsRuntimeGenerated)
         {
             throw;
+        }
+        catch (MuLangProviderException exception)
+        {
+            throw DotNetRuntimeErrorFactory.Create(
+                exception.Code,
+                exception.Message,
+                RuntimeErrorCategory.Application,
+                true,
+                span,
+                exception,
+                exception.Cause,
+                exception.Payload
+            );
         }
         catch (OperationCanceledException exception)
             when (CancellationToken.IsCancellationRequested)
         {
-            throw new MuLangRuntimeException(
+            throw DotNetRuntimeErrorFactory.Create(
                 DotNetRuntimeErrorCodes.Cancelled,
                 "MuLang execution was cancelled.",
+                RuntimeErrorCategory.Cancellation,
+                false,
                 span,
                 exception
             );
         }
-        catch (Exception exception)
+        catch (MuLangRuntimeException exception)
         {
-            throw new MuLangRuntimeException(
+            throw DotNetRuntimeErrorFactory.Create(
                 DotNetRuntimeErrorCodes.ProviderFailure,
                 $"Provider function '{id}' failed.",
+                RuntimeErrorCategory.Provider,
+                false,
                 span,
                 exception
             );
+        }
+        catch (Exception exception) when (!IsFatal(exception))
+        {
+            throw DotNetRuntimeErrorFactory.Create(
+                DotNetRuntimeErrorCodes.ProviderFailure,
+                $"Provider function '{id}' failed.",
+                RuntimeErrorCategory.Provider,
+                false,
+                span,
+                exception
+            );
+        }
+        finally
+        {
+            invocationContext.Complete();
         }
     }
 
@@ -217,9 +305,11 @@ public sealed class DotNetRuntimeContext
     {
         if (arguments.Count != function.Parameters.Count)
         {
-            throw new MuLangRuntimeException(
+            throw DotNetRuntimeErrorFactory.Create(
                 DotNetRuntimeErrorCodes.InvalidRuntimeValue,
                 $"Provider function '{function.Id}' received an invalid argument count.",
+                RuntimeErrorCategory.RuntimeContract,
+                false,
                 span
             );
         }
@@ -236,9 +326,11 @@ public sealed class DotNetRuntimeContext
                     span
                 ))
             {
-                throw new MuLangRuntimeException(
+                throw DotNetRuntimeErrorFactory.Create(
                     DotNetRuntimeErrorCodes.InvalidRuntimeValue,
                     $"Provider function '{function.Id}' received an argument incompatible with '{parameterType.DisplayName}'.",
+                    RuntimeErrorCategory.RuntimeContract,
+                    false,
                     span
                 );
             }
@@ -249,9 +341,11 @@ public sealed class DotNetRuntimeContext
     {
         if (CancellationToken.IsCancellationRequested)
         {
-            throw new MuLangRuntimeException(
+            throw DotNetRuntimeErrorFactory.Create(
                 DotNetRuntimeErrorCodes.Cancelled,
                 "MuLang execution was cancelled.",
+                RuntimeErrorCategory.Cancellation,
+                false,
                 span
             );
         }
@@ -265,11 +359,57 @@ public sealed class DotNetRuntimeContext
 
         if (remaining < 0)
         {
-            throw new MuLangRuntimeException(
+            throw DotNetRuntimeErrorFactory.Create(
                 DotNetRuntimeErrorCodes.BudgetExceeded,
                 "The MuLang execution budget was exhausted.",
+                RuntimeErrorCategory.Resource,
+                false,
                 span
             );
         }
+    }
+
+    private static IReadOnlyDictionary<string, DotNetProviderFunction> AdaptFunctions(
+        IEnumerable<KeyValuePair<string, DotNetFunction>> functions
+    )
+    {
+        if (functions is null)
+        {
+            throw new ArgumentNullException(nameof(functions));
+        }
+
+        return functions.ToFrozenDictionary(
+            static pair => pair.Key,
+            static pair =>
+            {
+                DotNetFunction function = pair.Value;
+                return new DotNetProviderFunction((_, arguments) => function(arguments));
+            },
+            StringComparer.Ordinal
+        );
+    }
+
+    private static IReadOnlyDictionary<string, DotNetProviderFunction> FreezeFunctions(
+        IEnumerable<KeyValuePair<string, DotNetProviderFunction>> functions
+    )
+    {
+        if (functions is null)
+        {
+            throw new ArgumentNullException(nameof(functions));
+        }
+
+        return functions.ToFrozenDictionary(
+            static pair => pair.Key,
+            static pair => pair.Value,
+            StringComparer.Ordinal
+        );
+    }
+
+    private static bool IsFatal(Exception exception)
+    {
+        return exception is
+            OutOfMemoryException or
+            StackOverflowException or
+            AccessViolationException;
     }
 }

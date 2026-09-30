@@ -522,6 +522,413 @@ public sealed class DotNetExporterTests
     }
 
     [Test]
+    public void ExecutionDelegateReturnsStructuredSuccessAndFailure()
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddGlobal("global.denominator", "denominator", TypeSymbols.Int)
+            .Build();
+        DotNetExportResult export = ExportResult(
+            LowerExpression(
+                "1 / denominator",
+                environment,
+                TypeSymbols.Int
+            ),
+            environment
+        );
+        Func<DotNetRuntimeContext, ExecutionResult> execute =
+            export.ExecutionDelegate ??
+            throw new AssertionException("Expected a result-returning delegate.");
+
+        ExecutionResult success = execute(
+            CreateContext(
+                environment,
+                [ new KeyValuePair<string, object?>("global.denominator", 1L) ]
+            )
+        );
+        ExecutionResult failure = execute(
+            CreateContext(
+                environment,
+                [ new KeyValuePair<string, object?>("global.denominator", 0L) ]
+            )
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(success.IsSuccess, Is.True);
+            Assert.That(success.Value, Is.EqualTo(1L));
+            Assert.That(success.Error, Is.Null);
+            Assert.That(success.HostException, Is.Null);
+            Assert.That(failure.IsSuccess, Is.False);
+            Assert.That(failure.Value, Is.Null);
+            Assert.That(failure.Error, Is.Not.Null);
+            Assert.That(failure.HostException, Is.Null);
+            Assert.That(
+                failure.Error!.Category,
+                Is.EqualTo(RuntimeErrorCategory.Operation)
+            );
+            Assert.That(failure.Error.IsCatchable, Is.True);
+            Assert.That(
+                failure.Error.Frames.Select(static frame => frame.FunctionId),
+                Is.EqualTo([ "$entry" ])
+            );
+        }
+    }
+
+    [Test]
+    public void ExecutionDelegateTracksRecordDelegateChanges()
+    {
+        DotNetExportResult original = new (
+            null,
+            DiagnosticCollection.Empty
+        );
+        DotNetExportResult clone = original with
+        {
+            Delegate = static _ => 42L,
+        };
+
+        ExecutionResult result =
+            clone.ExecutionDelegate?.Invoke(CreateContext(CreateEmptyEnvironment())) ??
+            throw new AssertionException("Expected a result-returning delegate.");
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.IsSuccess, Is.True);
+            Assert.That(result.Value, Is.EqualTo(42L));
+        }
+    }
+
+    [Test]
+    public void RuntimeErrorContainsUserFunctionStack()
+    {
+        const string source = """
+                              func inner(value: int): int {
+                                  return 1 / value;
+                              }
+                              func outer(value: int): int {
+                                  return inner(value);
+                              }
+                              return outer(denominator);
+                              """;
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddGlobal("global.denominator", "denominator", TypeSymbols.Int)
+            .Build();
+        Func<DotNetRuntimeContext, object?> compiled = CompileProgram(
+            source,
+            environment,
+            TypeSymbols.Int
+        );
+        DotNetRuntimeContext context = CreateContext(
+            environment,
+            [ new KeyValuePair<string, object?>("global.denominator", 0L) ]
+        );
+
+        MuLangRuntimeException exception = RequireRuntimeException(
+            () => compiled(context)
+        );
+
+        Assert.That(
+            exception.Error.Frames.Select(static frame => frame.FunctionId),
+            Is.EqualTo([ "user:0", "user:1", "$entry" ])
+        );
+    }
+
+    [Test]
+    public void ProviderContextReportsApplicationFailure()
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddFunction("function.fail", "fail", [ ], TypeSymbols.Int)
+            .Build();
+        object data = new ();
+        RuntimeError cause = new (
+            "dependency-failure",
+            "A dependency failed.",
+            RuntimeErrorCategory.Application,
+            true,
+            default,
+            [ ]
+        );
+        Func<DotNetRuntimeContext, object?> compiled = CompileExpression(
+            "fail()",
+            environment,
+            TypeSymbols.Int
+        );
+        DotNetRuntimeContext context = CreateProviderContext(
+            environment,
+            functions:
+            [
+                new KeyValuePair<string, DotNetProviderFunction>(
+                    "function.fail",
+                    (invocation, _) =>
+                    {
+                        invocation.ThrowApplicationError(
+                            "invalid-request",
+                            "The request is invalid.",
+                            cause,
+                            data
+                        );
+                        return null;
+                    }
+                ),
+            ]
+        );
+
+        MuLangRuntimeException exception = RequireRuntimeException(
+            () => compiled(context)
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(exception.Error.Code, Is.EqualTo("invalid-request"));
+            Assert.That(
+                exception.Error.Category,
+                Is.EqualTo(RuntimeErrorCategory.Application)
+            );
+            Assert.That(exception.Error.IsCatchable, Is.True);
+            Assert.That(exception.Error.Cause, Is.SameAs(cause));
+            Assert.That(exception.Error.Data, Is.SameAs(data));
+            Assert.That(exception.InnerException, Is.TypeOf<MuLangProviderException>());
+        }
+    }
+
+    [Test]
+    public void ProviderContextExposesCanonicalRuntimeServices()
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddGlobal("global.item", "item", TypeSymbols.Object)
+            .AddGlobal(
+                "global.values",
+                "values",
+                TypeSymbols.ReadOnlyArray(TypeSymbols.Int)
+            )
+            .AddFunction(
+                "function.inspect",
+                "inspect",
+                [
+                    new ParameterSymbol("item", TypeSymbols.Object),
+                    new ParameterSymbol(
+                        "values",
+                        TypeSymbols.ReadOnlyArray(TypeSymbols.Int)
+                    ),
+                ],
+                TypeSymbols.Bool
+            )
+            .Build(LanguageVersion.Version1_1);
+        MutableObjectValue item = new (
+            [ new KeyValuePair<string, object?>("value", 7L) ]
+        );
+        ReadOnlyArrayValue values = new ([ 7L ]);
+        Func<DotNetRuntimeContext, object?> compiled = CompileExpression(
+            "inspect(item, values)",
+            environment,
+            TypeSymbols.Bool
+        );
+        DotNetProviderInvocationContext? capturedContext = null;
+        DotNetRuntimeContext context = CreateProviderContext(
+            environment,
+            [
+                new KeyValuePair<string, object?>("global.item", item),
+                new KeyValuePair<string, object?>("global.values", values),
+            ],
+            [
+                new KeyValuePair<string, DotNetProviderFunction>(
+                    "function.inspect",
+                    (invocation, arguments) =>
+                    {
+                        capturedContext = invocation;
+                        IReadOnlyCollection<string> names =
+                            invocation.GetObjectPropertyNames(arguments[0]!);
+                        bool hasProperty = invocation.TryGetObjectProperty(
+                            arguments[0]!,
+                            "value",
+                            out object? propertyValue
+                        );
+                        int count = invocation.GetReadOnlyArrayCount(arguments[1]!);
+                        bool hasElement = invocation.TryGetReadOnlyArrayElement(
+                            arguments[1]!,
+                            0,
+                            out object? element
+                        );
+
+                        return
+                            names.SequenceEqual([ "value" ]) &&
+                            hasProperty &&
+                            count == 1 &&
+                            hasElement &&
+                            invocation.StructuralEquals(propertyValue, element);
+                    }
+                ),
+            ]
+        );
+
+        Assert.That(compiled(context), Is.True);
+        Assert.That(capturedContext, Is.Not.Null);
+        Assert.Throws<InvalidOperationException>(
+            () => capturedContext!.StructuralEquals(1L, 1L)
+        );
+    }
+
+    [Test]
+    public void EmptyProviderObjectEnumerationObservesExecutionControls()
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddGlobal("global.item", "item", TypeSymbols.Object)
+            .AddFunction(
+                "function.inspect",
+                "inspect",
+                [ new ParameterSymbol("item", TypeSymbols.Object) ],
+                TypeSymbols.Int
+            )
+            .Build();
+        MutableObjectValue item = new ([ ]);
+        Func<DotNetRuntimeContext, object?> compiled = CompileExpression(
+            "inspect(item)",
+            environment,
+            TypeSymbols.Int
+        );
+        DotNetRuntimeContext context = CreateProviderContext(
+            environment,
+            [ new KeyValuePair<string, object?>("global.item", item) ],
+            [
+                new KeyValuePair<string, DotNetProviderFunction>(
+                    "function.inspect",
+                    static (invocation, arguments) =>
+                        invocation.GetObjectPropertyNames(arguments[0]!).Count
+                ),
+            ],
+            executionBudget: 1
+        );
+
+        MuLangRuntimeException exception = RequireRuntimeException(
+            () => compiled(context)
+        );
+
+        Assert.That(
+            exception.Error.Category,
+            Is.EqualTo(RuntimeErrorCategory.Resource)
+        );
+    }
+
+    [Test]
+    public void ProviderContextObservesExecutionCancellation()
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddFunction("function.wait", "wait", [ ], TypeSymbols.Int)
+            .Build();
+        Func<DotNetRuntimeContext, object?> compiled = CompileExpression(
+            "wait()",
+            environment,
+            TypeSymbols.Int
+        );
+        using CancellationTokenSource cancellation = new ();
+        cancellation.Cancel();
+        DotNetRuntimeContext context = CreateProviderContext(
+            environment,
+            functions:
+            [
+                new KeyValuePair<string, DotNetProviderFunction>(
+                    "function.wait",
+                    static (invocation, _) =>
+                    {
+                        invocation.ThrowIfCancellationRequested();
+                        return 1L;
+                    }
+                ),
+            ],
+            cancellationToken: cancellation.Token
+        );
+
+        MuLangRuntimeException exception = RequireRuntimeException(
+            () => compiled(context)
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(
+                exception.Error.Category,
+                Is.EqualTo(RuntimeErrorCategory.Cancellation)
+            );
+            Assert.That(exception.Error.IsCatchable, Is.False);
+        }
+    }
+
+    [Test]
+    public void UnexpectedProviderFailureIsNotCatchable()
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddFunction("function.fail", "fail", [ ], TypeSymbols.Int)
+            .Build();
+        DotNetRuntimeContext context = CreateProviderContext(
+            environment,
+            functions:
+            [
+                new KeyValuePair<string, DotNetProviderFunction>(
+                    "function.fail",
+                    static (_, _) => throw new InvalidOperationException("Failure.")
+                ),
+            ]
+        );
+
+        DotNetExportResult export = ExportResult(
+            LowerExpression("fail()", environment, TypeSymbols.Int),
+            environment
+        );
+        ExecutionResult result =
+            export.ExecutionDelegate?.Invoke(context) ??
+            throw new AssertionException("Expected a result-returning delegate.");
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(
+                result.Error!.Category,
+                Is.EqualTo(RuntimeErrorCategory.Provider)
+            );
+            Assert.That(result.Error.IsCatchable, Is.False);
+            Assert.That(result.HostException, Is.TypeOf<InvalidOperationException>());
+        }
+    }
+
+    [Test]
+    public void ProviderCannotBypassProviderFailureClassification()
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddFunction("function.fail", "fail", [ ], TypeSymbols.Int)
+            .Build();
+        Func<DotNetRuntimeContext, object?> compiled = CompileExpression(
+            "fail()",
+            environment,
+            TypeSymbols.Int
+        );
+        DotNetRuntimeContext context = CreateProviderContext(
+            environment,
+            functions:
+            [
+                new KeyValuePair<string, DotNetProviderFunction>(
+                    "function.fail",
+                    static (_, _) => throw new MuLangRuntimeException(
+                        "custom",
+                        "Failure.",
+                        default
+                    )
+                ),
+            ]
+        );
+
+        MuLangRuntimeException exception = RequireRuntimeException(
+            () => compiled(context)
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(
+                exception.Error.Category,
+                Is.EqualTo(RuntimeErrorCategory.Provider)
+            );
+            Assert.That(exception.Error.IsCatchable, Is.False);
+            Assert.That(exception.InnerException, Is.TypeOf<MuLangRuntimeException>());
+        }
+    }
+
+    [Test]
     public void ElementReadsDetectShapeChangesThroughMutableAliases()
     {
         const string source = """
@@ -1925,11 +2332,21 @@ public sealed class DotNetExporterTests
         EnvironmentSchema environment
     )
     {
-        DotNetExportResult result = DotNetExporter.Export(program, environment);
-        Assert.That(result.Diagnostics, Is.Empty);
+        DotNetExportResult result = ExportResult(program, environment);
 
         return result.Delegate ??
             throw new AssertionException("Expected the .NET exporter to produce a delegate.");
+    }
+
+    private static DotNetExportResult ExportResult(
+        IrProgram program,
+        EnvironmentSchema environment
+    )
+    {
+        DotNetExportResult result = DotNetExporter.Export(program, environment);
+        Assert.That(result.Diagnostics, Is.Empty);
+
+        return result;
     }
 
     private static EnvironmentSchema CreateEmptyEnvironment(
@@ -1957,6 +2374,27 @@ public sealed class DotNetExporterTests
     )
     {
         return new DotNetRuntimeContext(
+            environment,
+            globals ?? [ ],
+            functions ?? [ ],
+            executionBudget,
+            maximumTraversalDepth,
+            cancellationToken,
+            maximumUserFunctionCallDepth
+        );
+    }
+
+    private static DotNetRuntimeContext CreateProviderContext(
+        EnvironmentSchema environment,
+        IEnumerable<KeyValuePair<string, object?>>? globals = null,
+        IEnumerable<KeyValuePair<string, DotNetProviderFunction>>? functions = null,
+        long? executionBudget = null,
+        int maximumTraversalDepth = 256,
+        int maximumUserFunctionCallDepth = 256,
+        CancellationToken cancellationToken = default
+    )
+    {
+        return DotNetRuntimeContext.Create(
             environment,
             globals ?? [ ],
             functions ?? [ ],

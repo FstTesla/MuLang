@@ -17,23 +17,58 @@ public sealed class MuLangRuntimeException : Exception
         TextSpan span,
         Exception? innerException = null
     )
-        : base(message, innerException)
-    {
-        if (string.IsNullOrWhiteSpace(code))
-        {
-            throw new ArgumentException(
-                "Runtime error code cannot be null or whitespace.",
-                nameof(code)
-            );
-        }
+        : this(
+            new RuntimeError(
+                code,
+                message,
+                RuntimeErrorCategory.Operation,
+                true,
+                span,
+                [ ]
+            ),
+            innerException
+        ) { }
 
-        Code = code;
-        Span = span;
+    /// <summary>Initializes a new instance of the <see cref="MuLangRuntimeException" /> class.</summary>
+    /// <param name="error">The structured runtime error.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="error" /> is <c>null</c>.</exception>
+    public MuLangRuntimeException(RuntimeError error)
+        : this(error, null) { }
+
+    /// <summary>Initializes a new instance of the <see cref="MuLangRuntimeException" /> class.</summary>
+    /// <param name="error">The structured runtime error.</param>
+    /// <param name="innerException">The host exception that caused the runtime error, or <c>null</c>.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="error" /> is <c>null</c>.</exception>
+    public MuLangRuntimeException(RuntimeError error, Exception? innerException)
+        : this(error, innerException, false) { }
+
+    internal MuLangRuntimeException(
+        RuntimeError error,
+        Exception? innerException,
+        bool isRuntimeGenerated
+    )
+        : base(
+            (error ?? throw new ArgumentNullException(nameof(error))).Message,
+            innerException
+        )
+    {
+        Error = error;
+        IsRuntimeGenerated = isRuntimeGenerated;
     }
 
+    /// <summary>Gets the structured runtime error.</summary>
+    public RuntimeError Error { get; }
+
     /// <summary>Gets the runtime error code.</summary>
-    public string Code { get; }
+    public string Code => Error.Code;
 
     /// <summary>Gets the source span associated with the error.</summary>
-    public TextSpan Span { get; }
+    public TextSpan Span => Error.Span;
+
+    internal bool IsRuntimeGenerated { get; }
+
+    internal void AddFrame(RuntimeStackFrame frame)
+    {
+        Error.AddFrame(frame);
+    }
 }

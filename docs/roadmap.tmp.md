@@ -6,7 +6,11 @@
    - structured runtime errors, categories, recoverability, and MuLang stack;
    - `ExecutionResult` alongside the exception-based API;
    - an explicit provider-error contract.
+
+   **Completed for `0.2.0-alpha.7`.**
 2. Introduce the canonical provider invocation context for structural operations, cancellation, and runtime error reporting.
+
+   **Completed for `0.2.0-alpha.7`.**
 3. Implement an initial optional standard library on top of these contracts.
 4. Add language-server workspace configuration for the language profile, host environment, and expected result type.
 

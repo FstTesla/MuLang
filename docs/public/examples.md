@@ -8,6 +8,7 @@ The environment schema defines the names and types visible to MuLang source code
 using MuLang.Compiler;
 using MuLang.Core;
 using MuLang.Core.Environment;
+using MuLang.Core.Runtime;
 using MuLang.Core.Types;
 using MuLang.Exporters.DotNet;
 
@@ -32,7 +33,7 @@ DotNetExportResult export = DotNetExporter.Export(
         throw new InvalidOperationException("The compiled IR is unavailable."),
     environment
 );
-Func<DotNetRuntimeContext, object?> compiled = export.Delegate ??
+Func<DotNetRuntimeContext, ExecutionResult> execute = export.ExecutionDelegate ??
     throw new InvalidOperationException("The exported delegate is unavailable.");
 
 DotNetRuntimeContext context = new (
@@ -41,7 +42,10 @@ DotNetRuntimeContext context = new (
     [ ]
 );
 
-object? result = compiled(context);
+ExecutionResult result = execute(context);
 ```
 
-The result is a boxed `long` with value `42`, matching the .NET runtime representation of the MuLang `int` type.
+`result.IsSuccess` is `true`, and `result.Value` is a boxed `long` with value
+`42`, matching the .NET runtime representation of the MuLang `int` type. The
+exception-based `export.Delegate` remains available when the host prefers
+exception propagation.

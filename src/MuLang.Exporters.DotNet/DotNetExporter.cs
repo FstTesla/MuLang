@@ -1,6 +1,7 @@
 using MuLang.Core;
 using MuLang.Core.Diagnostics;
 using MuLang.Core.Environment;
+using MuLang.Core.Runtime;
 using MuLang.Core.Text;
 using MuLang.Core.Types;
 using MuLang.IR;
@@ -216,7 +217,10 @@ public static class DotNetExporter
 
         Func<DotNetRuntimeContext, object?> compiledDelegate = Compile(program);
 
-        return new DotNetExportResult(compiledDelegate, DiagnosticCollection.Empty);
+        return new DotNetExportResult(
+            compiledDelegate,
+            DiagnosticCollection.Empty
+        );
     }
 
     private static Func<DotNetRuntimeContext, object?> Compile(IrProgram program)
@@ -241,12 +245,29 @@ public static class DotNetExporter
             program.EnvironmentFingerprint,
             true
         );
+        TextSpan entrySpan = program.EntryFunction
+            .Blocks[program.EntryFunction.EntryBlock]
+            .Terminator
+            .Span;
 
-        return context => entryFunction(
-            context,
-            dispatcher.CreateExecution(),
-            [ ]
-        );
+        return context =>
+        {
+            try
+            {
+                return entryFunction(
+                    context,
+                    dispatcher.CreateExecution(),
+                    [ ]
+                );
+            }
+            catch (MuLangRuntimeException exception)
+            {
+                exception.AddFrame(
+                    new RuntimeStackFrame(program.EntryFunction.Id, entrySpan)
+                );
+                throw;
+            }
+        };
     }
 
     private static DotNetUserFunction CompileFunction(

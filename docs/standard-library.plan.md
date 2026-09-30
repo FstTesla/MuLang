@@ -159,7 +159,9 @@ Some functions require runtime semantics already implemented by the exporter:
 - standard-library runtime errors require consistent MuLang error handling;
 - long-running operations should observe cancellation and execution policy.
 
-Introduce a public provider-invocation context in `MuLang.Exporters.DotNet` rather than duplicating runtime operations in the standard library.
+Use the public `DotNetProviderInvocationContext` in
+`MuLang.Exporters.DotNet` rather than duplicating runtime operations in the
+standard library.
 
 The context should provide narrowly scoped services for:
 
@@ -169,9 +171,9 @@ The context should provide narrowly scoped services for:
 - cancellation observation;
 - reporting a runtime failure at the provider call span.
 
-Update the provider-function delegate contract, or introduce a context-aware delegate alongside the existing one, so standard-library implementations can receive this context.
-
-Prefer one canonical context-aware path after the alpha API transition. Avoid separate semantics for standard-library and host provider functions.
+Standard-library implementations use the canonical context-aware
+`DotNetProviderFunction` delegate. The legacy `DotNetFunction` path remains
+available to existing hosts but does not define separate runtime semantics.
 
 ### Configurable nondeterminism
 

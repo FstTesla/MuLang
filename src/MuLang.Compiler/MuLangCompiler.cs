@@ -174,7 +174,7 @@ public static class MuLangCompiler
 
         LanguageProfile effectiveProfile = profile ?? LanguageProfiles.Version1_1;
         BindingResult optimizedBinding = binding;
-        DiagnosticCollection optimizationDiagnostics = binding.Diagnostics;
+        DiagnosticCollection optimizationDiagnostics;
         ConstantFoldingResult folding = ConstantFolder.Fold(binding);
 
         if (effectiveProfile.ConstantFolding == ConstantFoldingFeature.Enabled)

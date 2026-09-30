@@ -18,9 +18,11 @@ internal static class DotNetRuntimeOperations
     {
         if (context.EnvironmentFingerprint != expected)
         {
-            throw new MuLangRuntimeException(
+            throw DotNetRuntimeErrorFactory.Create(
                 DotNetRuntimeErrorCodes.EnvironmentMismatch,
                 "The runtime environment is incompatible with the compiled program.",
+                RuntimeErrorCategory.Environment,
+                false,
                 span
             );
         }
@@ -322,9 +324,11 @@ internal static class DotNetRuntimeOperations
 
         if (!updated)
         {
-            throw new MuLangRuntimeException(
+            throw DotNetRuntimeErrorFactory.Create(
                 DotNetRuntimeErrorCodes.MutationRejected,
                 $"Property '{name}' cannot be assigned.",
+                RuntimeErrorCategory.Mutation,
+                true,
                 span
             );
         }
@@ -345,9 +349,11 @@ internal static class DotNetRuntimeOperations
 
         if (!removed)
         {
-            throw new MuLangRuntimeException(
+            throw DotNetRuntimeErrorFactory.Create(
                 DotNetRuntimeErrorCodes.RemovalRejected,
                 $"Property '{name}' cannot be removed or does not exist.",
+                RuntimeErrorCategory.Mutation,
+                true,
                 span
             );
         }
@@ -419,9 +425,11 @@ internal static class DotNetRuntimeOperations
 
         if (!updated)
         {
-            throw new MuLangRuntimeException(
+            throw DotNetRuntimeErrorFactory.Create(
                 DotNetRuntimeErrorCodes.MutationRejected,
                 $"Array element {arrayIndex} cannot be assigned.",
+                RuntimeErrorCategory.Mutation,
+                true,
                 span
             );
         }
@@ -443,7 +451,7 @@ internal static class DotNetRuntimeOperations
             : TryGetProperty(target, RequireString(key, span), out _);
     }
 
-    private static bool StructuralEquals(
+    internal static bool StructuralEquals(
         DotNetRuntimeContext context,
         object? left,
         object? right,
@@ -914,9 +922,17 @@ internal static class DotNetRuntimeOperations
                 ),
             };
 
-            throw new MuLangRuntimeException(
+            RuntimeErrorCategory category =
+                exception.Error == PrimitiveOperationError.InvalidValue
+                    ? RuntimeErrorCategory.RuntimeContract
+                    : RuntimeErrorCategory.Operation;
+            bool isCatchable = category == RuntimeErrorCategory.Operation;
+
+            throw DotNetRuntimeErrorFactory.Create(
                 code,
                 exception.Message,
+                category,
+                isCatchable,
                 span,
                 exception.InnerException
             );
@@ -981,7 +997,7 @@ internal static class DotNetRuntimeOperations
         };
     }
 
-    private static bool TryGetProperty(
+    internal static bool TryGetProperty(
         object target,
         string name,
         out object? value
@@ -998,7 +1014,7 @@ internal static class DotNetRuntimeOperations
         }
     }
 
-    private static bool TryGetPropertyNames(
+    internal static bool TryGetPropertyNames(
         object target,
         [NotNullWhen(true)] out IReadOnlyCollection<string>? names
     )
@@ -1022,7 +1038,7 @@ internal static class DotNetRuntimeOperations
             : throw InvalidValue("Expected an array value.", span);
     }
 
-    private static bool TryGetArrayCount(object target, out int count)
+    internal static bool TryGetArrayCount(object target, out int count)
     {
         switch (target)
         {
@@ -1040,7 +1056,7 @@ internal static class DotNetRuntimeOperations
         }
     }
 
-    private static bool TryGetArrayElement(
+    internal static bool TryGetArrayElement(
         object target,
         int index,
         out object? value
@@ -1071,9 +1087,11 @@ internal static class DotNetRuntimeOperations
 
     private static MuLangRuntimeException InvalidValue(string message, TextSpan span)
     {
-        return new MuLangRuntimeException(
+        return DotNetRuntimeErrorFactory.Create(
             DotNetRuntimeErrorCodes.InvalidRuntimeValue,
             message,
+            RuntimeErrorCategory.RuntimeContract,
+            false,
             span
         );
     }
@@ -1086,9 +1104,11 @@ internal static class DotNetRuntimeOperations
     {
         if (!IsValueOfTypeShallow(value, expectedType))
         {
-            throw new MuLangRuntimeException(
+            throw DotNetRuntimeErrorFactory.Create(
                 DotNetRuntimeErrorCodes.InvalidRuntimeValue,
                 $"Runtime value is incompatible with '{expectedType.DisplayName}'.",
+                RuntimeErrorCategory.RuntimeContract,
+                false,
                 span
             );
         }
@@ -1105,9 +1125,11 @@ internal static class DotNetRuntimeOperations
     {
         if (!IsValueOfTypeDeep(context, value, expectedType, span))
         {
-            throw new MuLangRuntimeException(
+            throw DotNetRuntimeErrorFactory.Create(
                 DotNetRuntimeErrorCodes.InvalidRuntimeValue,
                 $"Runtime value is incompatible with '{expectedType.DisplayName}'.",
+                RuntimeErrorCategory.RuntimeContract,
+                false,
                 span
             );
         }
@@ -1123,9 +1145,11 @@ internal static class DotNetRuntimeOperations
     {
         if (depth > context.MaximumTraversalDepth)
         {
-            throw new MuLangRuntimeException(
+            throw DotNetRuntimeErrorFactory.Create(
                 DotNetRuntimeErrorCodes.InvalidRuntimeValue,
                 "Runtime value nesting exceeds the supported depth.",
+                RuntimeErrorCategory.RuntimeContract,
+                false,
                 span
             );
         }

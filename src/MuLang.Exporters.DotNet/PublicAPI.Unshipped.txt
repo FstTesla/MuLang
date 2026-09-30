@@ -1,1 +1,19 @@
 #nullable enable
+MuLang.Exporters.DotNet.DotNetExportResult.ExecutionDelegate.get -> System.Func<MuLang.Exporters.DotNet.DotNetRuntimeContext!, MuLang.Core.Runtime.ExecutionResult!>?
+MuLang.Exporters.DotNet.DotNetProviderFunction
+MuLang.Exporters.DotNet.DotNetProviderInvocationContext
+MuLang.Exporters.DotNet.DotNetProviderInvocationContext.CancellationToken.get -> System.Threading.CancellationToken
+MuLang.Exporters.DotNet.DotNetProviderInvocationContext.GetObjectPropertyNames(object! value) -> System.Collections.Generic.IReadOnlyCollection<string!>!
+MuLang.Exporters.DotNet.DotNetProviderInvocationContext.GetReadOnlyArrayCount(object! value) -> int
+MuLang.Exporters.DotNet.DotNetProviderInvocationContext.StructuralEquals(object? left, object? right) -> bool
+MuLang.Exporters.DotNet.DotNetProviderInvocationContext.ThrowApplicationError(string! code, string! message, MuLang.Core.Runtime.RuntimeError? cause = null, object? data = null) -> void
+MuLang.Exporters.DotNet.DotNetProviderInvocationContext.ThrowIfCancellationRequested() -> void
+MuLang.Exporters.DotNet.DotNetProviderInvocationContext.TryGetObjectProperty(object! value, string! name, out object? propertyValue) -> bool
+MuLang.Exporters.DotNet.DotNetProviderInvocationContext.TryGetReadOnlyArrayElement(object! value, int index, out object? element) -> bool
+MuLang.Exporters.DotNet.MuLangProviderException
+MuLang.Exporters.DotNet.MuLangProviderException.Cause.get -> MuLang.Core.Runtime.RuntimeError?
+MuLang.Exporters.DotNet.MuLangProviderException.Code.get -> string!
+MuLang.Exporters.DotNet.MuLangProviderException.MuLangProviderException(string! code, string! message, MuLang.Core.Runtime.RuntimeError? cause = null, object? data = null, System.Exception? innerException = null) -> void
+MuLang.Exporters.DotNet.MuLangProviderException.Payload.get -> object?
+static MuLang.Exporters.DotNet.DotNetRuntimeContext.Create(MuLang.Core.Environment.EnvironmentSchema! environment, System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string!, object?>>! globals, System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string!, MuLang.Exporters.DotNet.DotNetProviderFunction!>>! functions, long? executionBudget = null, int maximumTraversalDepth = 256, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken), int maximumUserFunctionCallDepth = 256) -> MuLang.Exporters.DotNet.DotNetRuntimeContext!
+virtual MuLang.Exporters.DotNet.DotNetProviderFunction.Invoke(MuLang.Exporters.DotNet.DotNetProviderInvocationContext! context, System.Collections.Generic.IReadOnlyList<object?>! arguments) -> object?

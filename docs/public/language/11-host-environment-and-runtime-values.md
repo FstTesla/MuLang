@@ -46,6 +46,24 @@ The host is trusted. A MuLang type restricts operations available to MuLang sour
 >
 > Other methods or members of the host implementation are not implicitly visible.
 
+Provider functions are synchronous. A provider invocation MAY receive an
+invocation-scoped runtime context exposing:
+
+- cancellation observation;
+- read-only array inspection;
+- object property enumeration and reads;
+- MuLang structural equality;
+- reporting of expected application failures at the provider call span.
+
+These services MUST use the same value adapters, structural semantics,
+execution controls, and runtime-error model as ordinary MuLang execution. An
+invocation context MUST NOT remain usable after its provider invocation
+completes.
+
+A provider-reported application failure is distinct from an unexpected
+exception thrown by the provider implementation. The former is a catchable
+`Application` error; the latter is an uncatchable `Provider` error.
+
 ## 11.3. Environment compatibility
 
 An executable result MUST be associated with the static environment against which it was compiled.

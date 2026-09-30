@@ -284,8 +284,7 @@ public sealed class ConstantFolderTests
             Assert.That(
                 division.Diagnostics.Single(
                     static diagnostic =>
-                        diagnostic.Code ==
-                            DiagnosticCodes.ConstantEvaluationFailed
+                        diagnostic.Code == DiagnosticCodes.ConstantEvaluationFailed
                 ).Severity,
                 Is.EqualTo(DiagnosticSeverity.Warning)
             );

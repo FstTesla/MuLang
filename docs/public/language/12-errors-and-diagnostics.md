@@ -32,10 +32,33 @@ When compile-time constant evaluation is enabled, failure while evaluating a req
 
 A runtime failure MUST be represented as a MuLang runtime error containing:
 
+- a stable code;
 - a category;
+- explicit catchability;
 - a message;
 - the source range of the operation;
+- MuLang stack frames ordered from innermost to outermost;
+- an optional public MuLang error cause;
+- optional application data;
 - an optional underlying host failure.
+
+The public cause is selected explicitly by the error creator. It is not an
+automatic projection of an underlying host exception.
+
+Runtime-error categories are:
+
+| Category | Meaning |
+|---|---|
+| `Operation` | An intrinsic operation failed |
+| `Mutation` | An object or array mutation or removal was rejected |
+| `Application` | MuLang code or a provider intentionally reported an application failure |
+| `Provider` | A provider implementation failed unexpectedly |
+| `Resource` | An execution resource limit was exhausted |
+| `Cancellation` | Execution was cancelled |
+| `Environment` | The runtime environment was incompatible or incomplete |
+| `RuntimeContract` | A runtime value violated a declared contract |
+
+Catchability MUST be represented independently from the category and code.
 
 Runtime errors include:
 
@@ -56,7 +79,11 @@ Runtime errors include:
 
 When compile-time constant evaluation is enabled and an applicable operation is evaluated as a required constant expression, the corresponding failure is reported during compilation instead.
 
-A failure from a host-provided function MUST be represented as a MuLang runtime error. The underlying failure SHOULD remain available to the host when the execution environment can preserve it.
+A declared application failure from a host-provided function MUST use category
+`Application` and be catchable. An unexpected provider implementation failure
+MUST use category `Provider` and be uncatchable. The underlying host failure
+SHOULD remain available to the host when the execution environment can preserve
+it.
 
 The language provides no source-level mechanism for catching runtime errors.
 
@@ -87,3 +114,14 @@ Host failures, environment incompatibility, cancellation, budget exhaustion, and
 > ```
 >
 > The static type establishes that assignment is meaningful; the host representation retains the right to reject it at runtime.
+
+## 12.4. Host execution results
+
+An execution API MAY propagate a MuLang runtime error through a host exception
+or return a structured execution result.
+
+A structured execution result distinguishes successful completion from failure.
+It contains either the execution value or the same structured runtime error that
+the exception-based API would expose. A successful null result remains
+distinguishable from failure. An underlying host failure remains separately
+available to the host when one was preserved by the exception-based API.

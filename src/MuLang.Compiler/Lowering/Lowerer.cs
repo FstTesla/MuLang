@@ -1124,7 +1124,7 @@ internal sealed class Lowerer
         }
 
         IrSlotMutability mutability =
-            local.IsReadOnly && local.DeclarationLoopDepth == 0
+            local is { IsReadOnly: true, DeclarationLoopDepth: 0 }
                 ? IrSlotMutability.ReadOnly
                 : IrSlotMutability.Mutable;
         slot = builder.CreateSlot(

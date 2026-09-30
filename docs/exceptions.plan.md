@@ -21,16 +21,31 @@ The following designs are explicitly out of scope:
 - an effect system for statically propagating errors;
 - making fallible operations return `result<T>`.
 
-## Current State
+## Implementation Status
 
-`MuLangRuntimeException` already represents an execution failure and contains:
+Release `0.2.0-alpha.7` implements the host-facing foundation:
+
+- structured `RuntimeError` values with categories, catchability, source spans,
+  MuLang stack frames, causes, and data;
+- `ExecutionResult` alongside exception-based execution;
+- the explicit `MuLangProviderException` application-error contract;
+- the canonical context-aware `DotNetProviderFunction` and
+  `DotNetProviderInvocationContext` APIs.
+
+Source-level `try`, `catch`, `throw`, the built-in `error` type, and MuIR
+exception regions remain deferred to the MuLang 1.2 work.
+
+## Pre-`0.2.0-alpha.7` State
+
+Before `0.2.0-alpha.7`, `MuLangRuntimeException` represented an execution
+failure and contained:
 
 - an error code;
 - a message;
 - a source span;
 - an optional underlying host exception.
 
-The current model has several limitations:
+That model had several limitations:
 
 - an error is not a MuLang value;
 - the exception does not expose the category required by the specification;
@@ -114,8 +129,8 @@ ExecutionResult
 `ExecutionResult` improves host integration but does not itself provide
 source-level recovery.
 
-The result-based host API should initially coexist with the current
-delegate-and-exception API to avoid an immediate breaking change.
+The result-based host API coexists with the current delegate-and-exception API,
+avoiding an immediate breaking change.
 
 ## Catchability Policy
 

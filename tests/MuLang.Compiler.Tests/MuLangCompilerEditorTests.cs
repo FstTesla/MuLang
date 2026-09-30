@@ -239,12 +239,11 @@ public sealed class MuLangCompilerEditorTests
             Assert.That(
                 modifiers,
                 Is.EqualTo(
-                    new[]
-                    {
+                    [
                         SemanticClassificationModifiers.Declaration |
                         SemanticClassificationModifiers.ReadOnly,
                         SemanticClassificationModifiers.ReadOnly,
-                    }
+                    ]
                 )
             );
         }

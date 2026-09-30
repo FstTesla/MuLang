@@ -294,8 +294,7 @@ public static class IrValidator
             program.Slots
                 .Where(
                     static slot =>
-                        slot.Kind == IrSlotKind.Parameter &&
-                        slot.Mutability == IrSlotMutability.ReadOnly
+                        slot is { Kind: IrSlotKind.Parameter, Mutability: IrSlotMutability.ReadOnly }
                 )
                 .Select(static slot => slot.Id)
         );

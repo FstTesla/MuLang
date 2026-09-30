@@ -21,6 +21,19 @@ turns validated IR into a .NET delegate. Alternative exporters reference
 
 The .NET exporter exposes independent read-only and mutable array adapter contracts. Provider arrays that do not support writes implement `IDotNetReadOnlyArrayValue`; existing mutable arrays continue to implement the unchanged `IDotNetArrayValue` contract.
 
+`DotNetProviderFunction` is the canonical context-aware provider delegate.
+Hosts construct a context using these functions through
+`DotNetRuntimeContext.Create`. Its invocation context provides adapter-based
+array and object reads, MuLang structural equality, cancellation observation,
+and application-error reporting. The original `DotNetFunction` constructor
+path remains available for providers that do not require invocation services.
+
+Exported programs retain the exception-based `Delegate` and additionally expose
+an `ExecutionDelegate` returning `ExecutionResult`. Both surfaces report the
+same structured `RuntimeError`, including category, catchability, source span,
+MuLang frames, public cause, and application data. `ExecutionResult` also
+retains the underlying host exception when one is available.
+
 The standard-library packages are reserved for future opt-in modules and
 currently expose no modules. The compiler does not add constants, functions,
 or structured types implicitly.
