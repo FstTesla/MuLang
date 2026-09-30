@@ -1,6 +1,5 @@
 - Standard library
 - New features:
-  - Exception handling
   - Readonly and optional object properties
   - Comments
   - User-defined types

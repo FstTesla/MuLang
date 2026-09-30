@@ -1,11 +1,1 @@
 #nullable enable
-const MuLang.Compiler.Diagnostics.DiagnosticCodes.AlwaysTrueTypeTest = "MUL3039" -> string!
-const MuLang.Compiler.Diagnostics.DiagnosticCodes.CannotReassignReadOnlyLocal = "MUL3041" -> string!
-const MuLang.Compiler.Diagnostics.DiagnosticCodes.ConstantCondition = "MUL3033" -> string!
-const MuLang.Compiler.Diagnostics.DiagnosticCodes.ConstantNullComparison = "MUL3038" -> string!
-const MuLang.Compiler.Diagnostics.DiagnosticCodes.NullCoalescingAlwaysUsesFallback = "MUL3035" -> string!
-const MuLang.Compiler.Diagnostics.DiagnosticCodes.OptionalAccessAlwaysNull = "MUL3037" -> string!
-const MuLang.Compiler.Diagnostics.DiagnosticCodes.RedundantCast = "MUL3040" -> string!
-const MuLang.Compiler.Diagnostics.DiagnosticCodes.RedundantEmptyStatement = "MUL3032" -> string!
-const MuLang.Compiler.Diagnostics.DiagnosticCodes.RedundantNullCoalescing = "MUL3034" -> string!
-const MuLang.Compiler.Diagnostics.DiagnosticCodes.RedundantOptionalAccess = "MUL3036" -> string!
