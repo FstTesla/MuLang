@@ -60,6 +60,10 @@ execution controls, and runtime-error model as ordinary MuLang execution. An
 invocation context MUST NOT remain usable after its provider invocation
 completes.
 
+Object-property name enumeration is lazy. Acquiring the enumeration and
+advancing it are independently subject to execution controls, and an enumerator
+cannot be advanced after the provider invocation completes.
+
 A provider-reported application failure is distinct from an unexpected
 exception thrown by the provider implementation. The former is a catchable
 `Application` error; the latter is an uncatchable `Provider` error.

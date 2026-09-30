@@ -136,5 +136,4 @@ internal sealed class DotNetUserFunctionDispatcher
             execution.CallDepth = nextDepth - 1;
         }
     }
-
 }

@@ -757,7 +757,7 @@ public sealed class DotNetExporterTests
                     (invocation, arguments) =>
                     {
                         capturedContext = invocation;
-                        IReadOnlyCollection<string> names =
+                        IEnumerable<string> names =
                             invocation.GetObjectPropertyNames(arguments[0]!);
                         bool hasProperty = invocation.TryGetObjectProperty(
                             arguments[0]!,
@@ -790,7 +790,7 @@ public sealed class DotNetExporterTests
     }
 
     [Test]
-    public void EmptyProviderObjectEnumerationObservesExecutionControls()
+    public void ProviderObjectEnumerationObservesExecutionControls()
     {
         EnvironmentSchema environment = new EnvironmentBuilder()
             .AddGlobal("global.item", "item", TypeSymbols.Object)
@@ -801,7 +801,9 @@ public sealed class DotNetExporterTests
                 TypeSymbols.Int
             )
             .Build();
-        MutableObjectValue item = new ([ ]);
+        MutableObjectValue item = new (
+            [ new KeyValuePair<string, object?>("value", 7L) ]
+        );
         Func<DotNetRuntimeContext, object?> compiled = CompileExpression(
             "inspect(item)",
             environment,
@@ -814,10 +816,10 @@ public sealed class DotNetExporterTests
                 new KeyValuePair<string, DotNetProviderFunction>(
                     "function.inspect",
                     static (invocation, arguments) =>
-                        invocation.GetObjectPropertyNames(arguments[0]!).Count
+                        invocation.GetObjectPropertyNames(arguments[0]!).Count()
                 ),
             ],
-            executionBudget: 1
+            executionBudget: 2
         );
 
         MuLangRuntimeException exception = RequireRuntimeException(
@@ -828,6 +830,47 @@ public sealed class DotNetExporterTests
             exception.Error.Category,
             Is.EqualTo(RuntimeErrorCategory.Resource)
         );
+    }
+
+    [Test]
+    public void ProviderObjectPropertyEnumeratorCannotOutliveInvocation()
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddGlobal("global.item", "item", TypeSymbols.Object)
+            .AddFunction(
+                "function.inspect",
+                "inspect",
+                [ new ParameterSymbol("item", TypeSymbols.Object) ],
+                TypeSymbols.Int
+            )
+            .Build();
+        MutableObjectValue item = new (
+            [ new KeyValuePair<string, object?>("value", 7L) ]
+        );
+        Func<DotNetRuntimeContext, object?> compiled = CompileExpression(
+            "inspect(item)",
+            environment,
+            TypeSymbols.Int
+        );
+        IEnumerable<string>? names = null;
+        DotNetRuntimeContext context = CreateContext(
+            environment,
+            [ new KeyValuePair<string, object?>("global.item", item) ],
+            [
+                new KeyValuePair<string, DotNetProviderFunction>(
+                    "function.inspect",
+                    (invocation, arguments) =>
+                    {
+                        names = invocation.GetObjectPropertyNames(arguments[0]!);
+                        return 1L;
+                    }
+                ),
+            ]
+        );
+
+        Assert.That(compiled(context), Is.EqualTo(1L));
+        Assert.That(names, Is.Not.Null);
+        Assert.Throws<InvalidOperationException>(() => _ = names!.ToArray());
     }
 
     [Test]

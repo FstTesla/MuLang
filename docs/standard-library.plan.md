@@ -166,7 +166,8 @@ standard library.
 The context should provide narrowly scoped services for:
 
 - reading a read-only array;
-- reading object property names and values;
+- lazily enumerating object property names under execution controls;
+- reading object property values;
 - MuLang structural equality;
 - cancellation observation;
 - reporting a runtime failure at the provider call span.

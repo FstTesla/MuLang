@@ -3,7 +3,7 @@ MuLang.Exporters.DotNet.DotNetExportResult.ExecutionDelegate.get -> System.Func<
 MuLang.Exporters.DotNet.DotNetProviderFunction
 MuLang.Exporters.DotNet.DotNetProviderInvocationContext
 MuLang.Exporters.DotNet.DotNetProviderInvocationContext.CancellationToken.get -> System.Threading.CancellationToken
-MuLang.Exporters.DotNet.DotNetProviderInvocationContext.GetObjectPropertyNames(object! value) -> System.Collections.Generic.IReadOnlyCollection<string!>!
+MuLang.Exporters.DotNet.DotNetProviderInvocationContext.GetObjectPropertyNames(object! value) -> System.Collections.Generic.IEnumerable<string!>!
 MuLang.Exporters.DotNet.DotNetProviderInvocationContext.GetReadOnlyArrayCount(object! value) -> int
 MuLang.Exporters.DotNet.DotNetProviderInvocationContext.StructuralEquals(object? left, object? right) -> bool
 MuLang.Exporters.DotNet.DotNetProviderInvocationContext.ThrowApplicationError(string! code, string! message, MuLang.Core.Runtime.RuntimeError? cause = null, object? data = null) -> void

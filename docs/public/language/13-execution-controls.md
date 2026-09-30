@@ -9,6 +9,8 @@ The resource budget limits work performed by source evaluation, function calls, 
 Runtime services exposed to provider functions participate in the same resource
 budget. Array reads, object-property reads or enumeration, and structural
 operations MUST NOT provide an unmetered path around execution controls.
+Each advancement of a provider-facing object-property enumeration consumes
+budget and observes cancellation.
 
 The exact accounting units are implementation-defined. For a given implementation, language version, profile, source program, input values, and host-function behavior, accounting MUST be deterministic.
 

@@ -110,12 +110,12 @@ public sealed class DotNetProviderInvocationContext
         );
     }
 
-    /// <summary>Gets the available property names from an object value.</summary>
+    /// <summary>Enumerates the available property names from an object value.</summary>
     /// <param name="value">The object value.</param>
-    /// <returns>The available property names.</returns>
+    /// <returns>A controlled enumeration of the available property names.</returns>
     /// <exception cref="ArgumentException">Thrown when <paramref name="value" /> is not a .NET object adapter.</exception>
     /// <exception cref="InvalidOperationException">Thrown when the invocation has completed.</exception>
-    public IReadOnlyCollection<string> GetObjectPropertyNames(object value)
+    public IEnumerable<string> GetObjectPropertyNames(object value)
     {
         EnsureActive();
         runtimeContext.Consume(span);
@@ -131,15 +131,18 @@ public sealed class DotNetProviderInvocationContext
             );
         }
 
-        List<string> result = [ ];
+        return new DotNetProviderPropertyNameEnumerable(this, names);
+    }
 
-        foreach (string name in names)
-        {
-            runtimeContext.Consume(span);
-            result.Add(name);
-        }
+    internal void EnsureEnumerationActive()
+    {
+        EnsureActive();
+    }
 
-        return result.AsReadOnly();
+    internal void ConsumeEnumerationStep()
+    {
+        EnsureActive();
+        runtimeContext.Consume(span);
     }
 
     /// <summary>Gets a property from an object value.</summary>
