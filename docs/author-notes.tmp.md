@@ -1,12 +1,11 @@
 - Standard library
 - New features:
-  - Readonly locals
+  - Exception handling
   - Readonly and optional object properties
   - Comments
   - User-defined types
   - First-class functions and function types
 - Feature flags:
-  - Readonly locals
   - Readonly and optional object properties
   - Comments
   - User-defined types

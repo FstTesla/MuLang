@@ -21,11 +21,13 @@ internal sealed class Binder
     private readonly ICollection<Diagnostic> diagnostics;
     private readonly ISet<(string Code, int Start, int Length)> featureDiagnostics;
     private readonly ISet<(string Code, int Start, int Length)> warningDiagnostics;
+    private readonly ISet<(int Start, int Length)> readOnlyAssignmentDiagnostics;
     private readonly string returnContext;
     private readonly string? currentFunctionId;
     private BindingScope scope = new (null);
     private FlowState currentFlowState = new ([ ]);
     private readonly Stack<LoopFlowContext> loopContexts = [ ];
+    private int loopDepth;
     private int nextLocalSlot;
 
     private Binder(
@@ -38,6 +40,7 @@ internal sealed class Binder
         ICollection<Diagnostic>? diagnostics = null,
         ISet<(string Code, int Start, int Length)>? featureDiagnostics = null,
         ISet<(string Code, int Start, int Length)>? warningDiagnostics = null,
+        ISet<(int Start, int Length)>? readOnlyAssignmentDiagnostics = null,
         string? currentFunctionId = null,
         string returnContext = "program"
     )
@@ -55,6 +58,8 @@ internal sealed class Binder
             new HashSet<(string Code, int Start, int Length)>();
         this.warningDiagnostics = warningDiagnostics ??
             new HashSet<(string Code, int Start, int Length)>();
+        this.readOnlyAssignmentDiagnostics = readOnlyAssignmentDiagnostics ??
+            new HashSet<(int Start, int Length)>();
         this.currentFunctionId = currentFunctionId;
         this.returnContext = returnContext;
     }
@@ -335,6 +340,7 @@ internal sealed class Binder
             diagnostics,
             featureDiagnostics,
             warningDiagnostics,
+            readOnlyAssignmentDiagnostics,
             function.Id,
             $"function '{function.Name}'"
         );
@@ -428,10 +434,7 @@ internal sealed class Binder
             BindStatementWithReachability(statementSyntax, state, statements);
         }
 
-        foreach (BoundVariableSymbol variable in blockScope.Variables)
-        {
-            state.Assigned.Remove(variable);
-        }
+        RemoveVariablesFromFlowState(state, blockScope.Variables);
 
         scope = parentScope;
 
@@ -451,7 +454,13 @@ internal sealed class Binder
             : BindExpression(syntax.Initializer, declaredType);
         TypeSymbol localType = declaredType ?? InferLocalType(syntax, initializer);
         string name = GetText(syntax.IdentifierToken);
-        LocalSymbol local = new (name, localType, nextLocalSlot++);
+        LocalSymbol local = new (
+            name,
+            localType,
+            nextLocalSlot++,
+            syntax.IsReadOnly,
+            loopDepth
+        );
         bool hasCurrentLocal = scope.ContainsVariable(name);
         bool hasVisibleLocal = scope.TryLookup(name, out _);
         bool hasVisibleGlobal = environment.TryGetGlobal(name, out _);
@@ -488,6 +497,12 @@ internal sealed class Binder
         if (initializer is not null)
         {
             state.Assigned.Add(local);
+            state.PossiblyAssigned.Add(local);
+
+            if (local.IsReadOnly)
+            {
+                state.ReadOnlyAssignments.Add((local, syntax.IdentifierToken.Span));
+            }
         }
 
         return new BoundStatement.VariableDeclaration(syntax, local, initializer);
@@ -584,7 +599,26 @@ internal sealed class Binder
 
         if (target is BoundExpression.Local local && value.Type.Kind != TypeKind.Error)
         {
+            if (
+                state.CanCompleteNormally &&
+                local.Symbol.IsReadOnly &&
+                state.PossiblyAssigned.Contains(local.Symbol)
+            )
+            {
+                ReportReadOnlyAssignment(
+                    local.Symbol,
+                    syntax.Target.Span,
+                    $"Read-only local variable '{local.Symbol.Name}' may already be assigned on an incoming control-flow path."
+                );
+            }
+
             state.Assigned.Add(local.Symbol);
+            state.PossiblyAssigned.Add(local.Symbol);
+
+            if (local.Symbol.IsReadOnly)
+            {
+                state.ReadOnlyAssignments.Add((local.Symbol, syntax.Target.Span));
+            }
         }
 
         return new BoundStatement.Assignment(syntax, target, value);
@@ -694,25 +728,50 @@ internal sealed class Binder
             );
         }
 
-        bool wasReachable = state.CanCompleteNormally;
+        FlowState loopEntryState = state.Clone();
         BoundExpression condition = BindCondition(syntax.Condition);
+        bool isConstantTrue = IsConstantTrue(condition);
+        bool isConstantFalse = IsConstantFalse(condition);
         FlowState bodyState = state.Clone();
         LoopFlowContext loopContext = new ();
         loopContexts.Push(loopContext);
+        loopDepth++;
+        int currentLoopDepth = loopDepth;
         BoundStatement body = BindEmbeddedStatement(syntax.Body, bodyState);
+        loopDepth--;
         loopContexts.Pop();
 
-        if (wasReachable && IsConstantTrue(condition))
+        List<FlowState> backEdgeStates = [ ];
+
+        if (bodyState.CanCompleteNormally)
         {
-            if (loopContext.BreakStates.Count == 0)
+            backEdgeStates.Add(bodyState);
+        }
+
+        backEdgeStates.AddRange(loopContext.ContinueStates);
+
+        if (!isConstantFalse)
+        {
+            ReportReadOnlyAssignmentsReachingBackEdge(
+                loopEntryState,
+                backEdgeStates,
+                currentLoopDepth
+            );
+        }
+
+        List<FlowState> exitStates = [ .. loopContext.BreakStates ];
+
+        if (!isConstantTrue)
+        {
+            exitStates.Add(loopEntryState);
+
+            if (!isConstantFalse)
             {
-                state.CanCompleteNormally = false;
-            }
-            else
-            {
-                ReplaceAssignedWithIntersection(state, loopContext.BreakStates);
+                exitStates.AddRange(backEdgeStates);
             }
         }
+
+        ReplaceWithLoopExitStates(state, exitStates);
 
         return new BoundStatement.While(syntax, condition, body);
     }
@@ -731,19 +790,23 @@ internal sealed class Binder
             );
         }
 
-        bool wasReachable = state.CanCompleteNormally;
         BindingScope parentScope = scope;
         BindingScope forScope = new (parentScope);
         scope = forScope;
         BoundStatement? initializer = syntax.Initializer is null
             ? null
             : BindStatement(syntax.Initializer, state);
+        FlowState loopEntryState = state.Clone();
         BoundExpression? condition = syntax.Condition is null
             ? null
             : BindCondition(syntax.Condition);
+        bool isConstantTrue = condition is null || IsConstantTrue(condition);
+        bool isConstantFalse = condition is not null && IsConstantFalse(condition);
         FlowState bodyState = state.Clone();
         LoopFlowContext loopContext = new ();
         loopContexts.Push(loopContext);
+        loopDepth++;
+        int currentLoopDepth = loopDepth;
         BoundStatement body = BindEmbeddedStatement(syntax.Body, bodyState);
         List<FlowState> iteratorEntryStates = [ ];
 
@@ -768,25 +831,38 @@ internal sealed class Binder
         BoundStatement? iterator = syntax.Iterator is null
             ? null
             : BindStatement(syntax.Iterator, iteratorState);
+        loopDepth--;
         loopContexts.Pop();
 
-        if (wasReachable && (condition is null || IsConstantTrue(condition)))
+        if (
+            !isConstantFalse &&
+            iteratorState.CanCompleteNormally
+        )
         {
-            if (loopContext.BreakStates.Count == 0)
+            ReportReadOnlyAssignmentsReachingBackEdge(
+                loopEntryState,
+                [ iteratorState ],
+                currentLoopDepth
+            );
+        }
+
+        List<FlowState> exitStates = [ .. loopContext.BreakStates ];
+
+        if (!isConstantTrue)
+        {
+            exitStates.Add(loopEntryState);
+
+            if (
+                !isConstantFalse &&
+                iteratorState.CanCompleteNormally
+            )
             {
-                state.CanCompleteNormally = false;
-            }
-            else
-            {
-                ReplaceAssignedWithIntersection(state, loopContext.BreakStates);
+                exitStates.Add(iteratorState);
             }
         }
 
-        foreach (BoundVariableSymbol variable in forScope.Variables)
-        {
-            state.Assigned.Remove(variable);
-        }
-
+        ReplaceWithLoopExitStates(state, exitStates);
+        RemoveVariablesFromFlowState(state, forScope.Variables);
         scope = parentScope;
 
         return new BoundStatement.For(
@@ -824,10 +900,7 @@ internal sealed class Binder
             ? BindEmptyStatement(empty, false)
             : BindStatement(syntax, state);
 
-        foreach (BoundVariableSymbol variable in embeddedScope.Variables)
-        {
-            state.Assigned.Remove(variable);
-        }
+        RemoveVariablesFromFlowState(state, embeddedScope.Variables);
 
         scope = parentScope;
         return statement;
@@ -2615,19 +2688,29 @@ internal sealed class Binder
     )
     {
         target.Assigned.Clear();
+        target.PossiblyAssigned.Clear();
+        target.ReadOnlyAssignments.Clear();
 
         if (thenState.CanCompleteNormally && elseState.CanCompleteNormally)
         {
             target.Assigned.UnionWith(thenState.Assigned);
             target.Assigned.IntersectWith(elseState.Assigned);
+            target.PossiblyAssigned.UnionWith(thenState.PossiblyAssigned);
+            target.PossiblyAssigned.UnionWith(elseState.PossiblyAssigned);
+            target.ReadOnlyAssignments.UnionWith(thenState.ReadOnlyAssignments);
+            target.ReadOnlyAssignments.UnionWith(elseState.ReadOnlyAssignments);
         }
         else if (thenState.CanCompleteNormally)
         {
             target.Assigned.UnionWith(thenState.Assigned);
+            target.PossiblyAssigned.UnionWith(thenState.PossiblyAssigned);
+            target.ReadOnlyAssignments.UnionWith(thenState.ReadOnlyAssignments);
         }
         else if (elseState.CanCompleteNormally)
         {
             target.Assigned.UnionWith(elseState.Assigned);
+            target.PossiblyAssigned.UnionWith(elseState.PossiblyAssigned);
+            target.ReadOnlyAssignments.UnionWith(elseState.ReadOnlyAssignments);
         }
 
         target.CanCompleteNormally =
@@ -2645,13 +2728,15 @@ internal sealed class Binder
         foreach (FlowState state in states.Skip(1))
         {
             result.Assigned.IntersectWith(state.Assigned);
+            result.PossiblyAssigned.UnionWith(state.PossiblyAssigned);
+            result.ReadOnlyAssignments.UnionWith(state.ReadOnlyAssignments);
         }
 
         result.CanCompleteNormally = true;
         return result;
     }
 
-    private static void ReplaceAssignedWithIntersection(
+    private static void ReplaceWithIntersection(
         FlowState target,
         IReadOnlyCollection<FlowState> states
     )
@@ -2659,12 +2744,122 @@ internal sealed class Binder
         FlowState intersection = CreateIntersectionState(states);
         target.Assigned.Clear();
         target.Assigned.UnionWith(intersection.Assigned);
+        target.PossiblyAssigned.Clear();
+        target.PossiblyAssigned.UnionWith(intersection.PossiblyAssigned);
+        target.ReadOnlyAssignments.Clear();
+        target.ReadOnlyAssignments.UnionWith(intersection.ReadOnlyAssignments);
         target.CanCompleteNormally = true;
+    }
+
+    private static void ReplaceWithLoopExitStates(
+        FlowState target,
+        IReadOnlyCollection<FlowState> exitStates
+    )
+    {
+        IReadOnlyCollection<FlowState> reachableExitStates =
+        [
+            .. exitStates.Where(static state => state.CanCompleteNormally),
+        ];
+
+        if (reachableExitStates.Count == 0)
+        {
+            target.CanCompleteNormally = false;
+            return;
+        }
+
+        ReplaceWithIntersection(target, reachableExitStates);
+    }
+
+    private void ReportReadOnlyAssignmentsReachingBackEdge(
+        FlowState loopEntryState,
+        IEnumerable<FlowState> backEdgeStates,
+        int currentLoopDepth
+    )
+    {
+        foreach (FlowState backEdgeState in backEdgeStates)
+        {
+            if (!backEdgeState.CanCompleteNormally)
+            {
+                continue;
+            }
+
+            foreach (
+                (LocalSymbol symbol, TextSpan span) in
+                backEdgeState.ReadOnlyAssignments.Except(
+                    loopEntryState.ReadOnlyAssignments
+                )
+            )
+            {
+                if (symbol.DeclarationLoopDepth >= currentLoopDepth)
+                {
+                    continue;
+                }
+
+                ReportReadOnlyAssignment(
+                    symbol,
+                    span,
+                    $"Read-only local variable '{symbol.Name}' may be assigned again by another loop iteration."
+                );
+            }
+        }
+    }
+
+    private void ReportReadOnlyAssignment(
+        LocalSymbol symbol,
+        TextSpan span,
+        string message
+    )
+    {
+        if (!readOnlyAssignmentDiagnostics.Add((span.Start, span.Length)))
+        {
+            return;
+        }
+
+        Report(
+            DiagnosticCodes.CannotReassignReadOnlyLocal,
+            span,
+            message,
+            DiagnosticCategory.ControlFlow
+        );
+    }
+
+    private static void RemoveVariablesFromFlowState(
+        FlowState state,
+        IEnumerable<BoundVariableSymbol> variables
+    )
+    {
+        foreach (BoundVariableSymbol variable in variables)
+        {
+            state.Assigned.Remove(variable);
+            state.PossiblyAssigned.Remove(variable);
+
+            if (variable is LocalSymbol local)
+            {
+                IReadOnlyCollection<(LocalSymbol Symbol, TextSpan Span)> assignments =
+                [
+                    .. state.ReadOnlyAssignments.Where(
+                        assignment => ReferenceEquals(assignment.Symbol, local)
+                    ),
+                ];
+
+                foreach (
+                    (LocalSymbol Symbol, TextSpan Span) assignment in assignments
+                )
+                {
+                    state.ReadOnlyAssignments.Remove(assignment);
+                }
+            }
+        }
     }
 
     private static bool IsConstantTrue(BoundExpression expression)
     {
         return BoundExpressionFacts.TryGetTruthiness(expression, out bool value) && value;
+    }
+
+    private static bool IsConstantFalse(BoundExpression expression)
+    {
+        return BoundExpressionFacts.TryGetTruthiness(expression, out bool value) && !value;
     }
 
     private void ValidateEnvironmentCompatibility()

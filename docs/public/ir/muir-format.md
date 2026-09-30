@@ -89,7 +89,7 @@ The two integers in a span are the source start and length. Both MUST fit in a s
 
 The document MUST contain exactly one entry function. User-function, slot, block, instruction, element, and argument order is preserved. Object properties are normalized by ordinal property name.
 
-Parameter slots MUST be `readonly`, are implicitly defined at function entry, and cannot be instruction destinations. Temporary slots MUST be `mutable`. A read-only local has exactly one syntactic defining instruction; `IrValidator` enforces that constraint together with ordinary definite assignment.
+Parameter slots MUST be `readonly`, are implicitly defined at function entry, and cannot be instruction destinations. Temporary slots MUST be `mutable`. A read-only local may have zero or more mutually exclusive defining instructions, but no reachable control-flow path may execute more than one definition. `IrValidator` enforces that constraint together with ordinary definite assignment.
 
 ## 3. Type table
 

@@ -223,6 +223,41 @@ public sealed class ParserTests
     }
 
     [Test]
+    public void ParsesReadOnlyLocalModifier()
+    {
+        SyntaxTree tree = Parser.Parse(
+            SourceText.From("var value$: int;"),
+            CompilationMode.Program,
+            LanguageProfiles.Version1_1
+        );
+        ProgramRootSyntax root = (ProgramRootSyntax)tree.Root;
+        VariableDeclarationStatementSyntax declaration =
+            (VariableDeclarationStatementSyntax)root.Statements.Single();
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(declaration.IsReadOnly, Is.True);
+            Assert.That(declaration.DollarToken?.Kind, Is.EqualTo(TokenKind.Dollar));
+            Assert.That(tree.Diagnostics, Is.Empty);
+        }
+    }
+
+    [Test]
+    public void RejectsRepeatedReadOnlyLocalModifier()
+    {
+        SyntaxTree tree = Parser.Parse(
+            SourceText.From("var value$$: int;"),
+            CompilationMode.Program,
+            LanguageProfiles.Version1_1
+        );
+
+        Assert.That(
+            tree.Diagnostics.Select(static diagnostic => diagnostic.Code),
+            Does.Contain(DiagnosticCodes.RepeatedReadOnlyModifier)
+        );
+    }
+
+    [Test]
     public void UsesLanguageVersionOneOneByDefault()
     {
         SyntaxTree tree = ParseExpression("$[1]");

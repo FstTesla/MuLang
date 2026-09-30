@@ -17,7 +17,7 @@ type t10 intrinsic unknown
 type t11 intrinsic object
 type t12 intrinsic void
 
-entry "$entry" t0 bb0 slots 11 blocks 3 {
+entry "$entry" t0 bb0 slots 12 blocks 4 {
   slot %0 local t0 mutable "input"
   slot %1 local t1 mutable "flag"
   slot %2 temporary t2 mutable none
@@ -29,6 +29,7 @@ entry "$entry" t0 bb0 slots 11 blocks 3 {
   slot %8 temporary t10 mutable none
   slot %9 temporary t7 mutable none
   slot %10 temporary t11 mutable none
+  slot %11 local t0 readonly "result"
   block bb0 instructions 28 {
     ins constant 0 1 %1 t1 bool true
     ins constant 1 1 %0 t0 int 42
@@ -60,11 +61,16 @@ entry "$entry" t0 bb0 slots 11 blocks 3 {
     ins user-call 26 1 none "user.call" t12 [%0]
     term branch 27 1 %1 bb1 bb2
   }
-  block bb1 instructions 0 {
-    term jump 28 1 bb2
+  block bb1 instructions 1 {
+    ins constant 28 1 %11 t0 int 1
+    term jump 29 1 bb3
   }
-  block bb2 instructions 0 {
-    term return 29 1 %0
+  block bb2 instructions 1 {
+    ins constant 30 1 %11 t0 int 2
+    term jump 31 1 bb3
+  }
+  block bb3 instructions 0 {
+    term return 32 1 %11
   }
 }
 users 1
@@ -72,7 +78,7 @@ users 1
 user "user.call" t12 bb0 slots 1 blocks 1 {
   slot %0 parameter t0 readonly "value"
   block bb0 instructions 0 {
-    term return 30 0 none
+    term return 33 0 none
   }
 }
 end

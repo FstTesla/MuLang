@@ -38,10 +38,19 @@ internal sealed class IrBuilder
         CurrentBlock = null;
     }
 
-    public int CreateSlot(IrSlotKind kind, TypeSymbol type, string? name = null)
+    public int CreateSlot(
+        IrSlotKind kind,
+        TypeSymbol type,
+        string? name = null,
+        IrSlotMutability? mutability = null
+    )
     {
         int id = slots.Count;
-        slots.Add(new IrSlot(id, kind, type, name));
+        slots.Add(
+            mutability is null
+                ? new IrSlot(id, kind, type, name)
+                : new IrSlot(id, kind, type, name, mutability.Value)
+        );
 
         return id;
     }

@@ -213,6 +213,44 @@ public sealed class MuLangCompilerEditorTests
     }
 
     [Test]
+    public void ClassifiesReadOnlyLocalDeclarationsAndReferences()
+    {
+        const string sourceStr = "var value$ = 1; var copy = value;";
+        SourceText source = SourceText.From(sourceStr);
+        SemanticClassificationResult result = MuLangCompiler.ClassifySemantically(
+            sourceStr,
+            new EnvironmentBuilder().Build(),
+            CompilationMode.Program
+        );
+        IReadOnlyList<SemanticClassificationModifiers> modifiers =
+        [
+            .. result.Classifications
+                .Where(
+                    classification =>
+                        classification.Kind == SemanticClassificationKind.Variable &&
+                        source.GetText(classification.Span) == "value"
+                )
+                .Select(static classification => classification.Modifiers),
+        ];
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.Diagnostics, Is.Empty);
+            Assert.That(
+                modifiers,
+                Is.EqualTo(
+                    new[]
+                    {
+                        SemanticClassificationModifiers.Declaration |
+                        SemanticClassificationModifiers.ReadOnly,
+                        SemanticClassificationModifiers.ReadOnly,
+                    }
+                )
+            );
+        }
+    }
+
+    [Test]
     public void ClassifiesImplicitConversions()
     {
         const string sourceStr = "var value: number = 1;";

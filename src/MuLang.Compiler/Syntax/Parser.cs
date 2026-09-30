@@ -316,10 +316,26 @@ internal sealed class Parser
     {
         SyntaxToken varKeyword = Match(TokenKind.VarKeyword);
         SyntaxToken identifierToken = Match(TokenKind.Identifier);
+        SyntaxToken? dollarToken = null;
         SyntaxToken? colonToken = null;
         TypeSyntax? type = null;
         SyntaxToken? equalToken = null;
         ExpressionSyntax? initializer = null;
+
+        if (Current.Kind == TokenKind.Dollar)
+        {
+            dollarToken = ParseToken();
+
+            while (Current.Kind == TokenKind.Dollar)
+            {
+                SyntaxToken repeatedDollar = ParseToken();
+                Report(
+                    DiagnosticCodes.RepeatedReadOnlyModifier,
+                    repeatedDollar.Span,
+                    "The read-only modifier cannot be repeated."
+                );
+            }
+        }
 
         if (Current.Kind == TokenKind.Colon)
         {
@@ -345,6 +361,7 @@ internal sealed class Parser
         return new VariableDeclarationStatementSyntax(
             varKeyword,
             identifierToken,
+            dollarToken,
             colonToken,
             type,
             equalToken,

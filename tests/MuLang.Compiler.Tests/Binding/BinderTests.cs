@@ -653,6 +653,257 @@ public sealed class BinderTests
     }
 
     [Test]
+    public void AllowsReadOnlyLocalAssignmentOnExclusiveBranches()
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddGlobal("global.condition", "condition", TypeSymbols.Bool)
+            .Build(LanguageVersion.Version1_1);
+        BindingResult result = BindProgram(
+            "var value$: int; if (condition) value = 1; else value = 2; return value;",
+            environment,
+            TypeSymbols.Int,
+            LanguageProfiles.Version1_1
+        );
+
+        Assert.That(result.Diagnostics, Is.Empty);
+    }
+
+    [Test]
+    public void RejectsReadOnlyLocalAssignmentAfterPossiblyAssignedBranch()
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddGlobal("global.condition", "condition", TypeSymbols.Bool)
+            .Build(LanguageVersion.Version1_1);
+        BindingResult result = BindProgram(
+            "var value$: int; if (condition) value = 1; value = 2;",
+            environment,
+            TypeSymbols.Void,
+            LanguageProfiles.Version1_1
+        );
+
+        AssertDiagnostic(result, DiagnosticCodes.CannotReassignReadOnlyLocal);
+    }
+
+    [Test]
+    public void AllowsReadOnlyLocalAssignmentAfterAssignedBranchReturns()
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddGlobal("global.condition", "condition", TypeSymbols.Bool)
+            .Build(LanguageVersion.Version1_1);
+        BindingResult result = BindProgram(
+            """
+            var value$: int;
+            if (condition) {
+                value = 1;
+                return value;
+            }
+            value = 2;
+            return value;
+            """,
+            environment,
+            TypeSymbols.Int,
+            LanguageProfiles.Version1_1
+        );
+
+        Assert.That(result.Diagnostics, Is.Empty);
+    }
+
+    [Test]
+    public void RejectsReadOnlyLocalDeclaredOutsideLoopAssignment()
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddGlobal("global.condition", "condition", TypeSymbols.Bool)
+            .Build(LanguageVersion.Version1_1);
+        BindingResult result = BindProgram(
+            "var value$: int; while (condition) value = 1;",
+            environment,
+            TypeSymbols.Void,
+            LanguageProfiles.Version1_1
+        );
+
+        AssertDiagnostic(result, DiagnosticCodes.CannotReassignReadOnlyLocal);
+    }
+
+    [Test]
+    public void AllowsReadOnlyLocalAssignmentBeforeMandatoryLoopExit()
+    {
+        BindingResult result = BindProgram(
+            """
+            var value$: int;
+            while (true) {
+                value = 1;
+                break;
+            }
+            return value;
+            """,
+            CreateEmptyEnvironment(LanguageVersion.Version1_1),
+            TypeSymbols.Int,
+            LanguageProfiles.Version1_1
+        );
+
+        Assert.That(result.Diagnostics.HasErrors, Is.False);
+    }
+
+    [Test]
+    public void AllowsReadOnlyLocalAssignmentOnBranchThatExitsLoop()
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddGlobal("global.loop", "loop", TypeSymbols.Bool)
+            .AddGlobal("global.assign", "assign", TypeSymbols.Bool)
+            .Build(LanguageVersion.Version1_1);
+        BindingResult result = BindProgram(
+            """
+            var value$: int;
+            while (loop) {
+                if (assign) {
+                    value = 1;
+                    break;
+                }
+            }
+            """,
+            environment,
+            TypeSymbols.Void,
+            LanguageProfiles.Version1_1
+        );
+
+        Assert.That(result.Diagnostics, Is.Empty);
+    }
+
+    [Test]
+    public void PropagatesPossibleReadOnlyAssignmentAfterLoopExit()
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddGlobal("global.condition", "condition", TypeSymbols.Bool)
+            .Build(LanguageVersion.Version1_1);
+        BindingResult result = BindProgram(
+            """
+            var value$: int;
+            while (condition) {
+                value = 1;
+                break;
+            }
+            value = 2;
+            """,
+            environment,
+            TypeSymbols.Void,
+            LanguageProfiles.Version1_1
+        );
+
+        AssertDiagnostic(result, DiagnosticCodes.CannotReassignReadOnlyLocal);
+    }
+
+    [Test]
+    public void RejectsReadOnlyAssignmentThatReachesOuterLoopBackEdge()
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddGlobal("global.condition", "condition", TypeSymbols.Bool)
+            .Build(LanguageVersion.Version1_1);
+        BindingResult result = BindProgram(
+            """
+            var value$: int;
+            while (condition) {
+                while (condition) {
+                    value = 1;
+                    break;
+                }
+            }
+            """,
+            environment,
+            TypeSymbols.Void,
+            LanguageProfiles.Version1_1
+        );
+
+        AssertDiagnostic(result, DiagnosticCodes.CannotReassignReadOnlyLocal);
+    }
+
+    [Test]
+    public void AllowsReadOnlyAssignmentThatExitsNestedLoops()
+    {
+        BindingResult result = BindProgram(
+            """
+            var value$: int;
+            while (true) {
+                while (true) {
+                    value = 1;
+                    break 2;
+                }
+            }
+            return value;
+            """,
+            CreateEmptyEnvironment(LanguageVersion.Version1_1),
+            TypeSymbols.Int,
+            LanguageProfiles.Version1_1
+        );
+
+        Assert.That(result.Diagnostics.HasErrors, Is.False);
+    }
+
+    [Test]
+    public void AllowsReadOnlyAssignmentBeforeForLoopExit()
+    {
+        BindingResult result = BindProgram(
+            """
+            var value$: int;
+            for (;;) {
+                value = 1;
+                break;
+            }
+            return value;
+            """,
+            CreateEmptyEnvironment(LanguageVersion.Version1_1),
+            TypeSymbols.Int,
+            LanguageProfiles.Version1_1
+        );
+
+        Assert.That(result.Diagnostics.HasErrors, Is.False);
+    }
+
+    [Test]
+    public void RejectsReadOnlyAssignmentInForIterator()
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddGlobal("global.condition", "condition", TypeSymbols.Bool)
+            .Build(LanguageVersion.Version1_1);
+        BindingResult result = BindProgram(
+            "var value$: int; for (; condition; value = 1) { }",
+            environment,
+            TypeSymbols.Void,
+            LanguageProfiles.Version1_1
+        );
+
+        AssertDiagnostic(result, DiagnosticCodes.CannotReassignReadOnlyLocal);
+    }
+
+    [Test]
+    public void IgnoresReadOnlyAssignmentInConstantFalseLoop()
+    {
+        BindingResult result = BindProgram(
+            "var value$: int; while (false) value = 1; value = 2;",
+            CreateEmptyEnvironment(LanguageVersion.Version1_1),
+            TypeSymbols.Void,
+            LanguageProfiles.Version1_1
+        );
+
+        Assert.That(result.Diagnostics.HasErrors, Is.False);
+    }
+
+    [Test]
+    public void AllowsReadOnlyLocalDeclaredInsideLoopAssignment()
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddGlobal("global.condition", "condition", TypeSymbols.Bool)
+            .Build(LanguageVersion.Version1_1);
+        BindingResult result = BindProgram(
+            "while (condition) { var value$: int; value = 1; }",
+            environment,
+            TypeSymbols.Void,
+            LanguageProfiles.Version1_1
+        );
+
+        Assert.That(result.Diagnostics, Is.Empty);
+    }
+
+    [Test]
     public void RejectsLocalShadowing()
     {
         EnvironmentSchema environment = new EnvironmentBuilder()

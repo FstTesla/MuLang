@@ -1123,7 +1123,16 @@ internal sealed class Lowerer
             return slot;
         }
 
-        slot = builder.CreateSlot(IrSlotKind.Local, local.Type, local.Name);
+        IrSlotMutability mutability =
+            local.IsReadOnly && local.DeclarationLoopDepth == 0
+                ? IrSlotMutability.ReadOnly
+                : IrSlotMutability.Mutable;
+        slot = builder.CreateSlot(
+            IrSlotKind.Local,
+            local.Type,
+            local.Name,
+            mutability
+        );
         localSlots.Add(local, slot);
 
         return slot;

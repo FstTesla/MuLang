@@ -195,6 +195,9 @@ public static class DiagnosticCodes
     /// <summary>Gets the code for a checked cast to an equivalent type.</summary>
     public const string RedundantCast = "MUL3040";
 
+    /// <summary>Gets the code for reassignment of a read-only local variable.</summary>
+    public const string CannotReassignReadOnlyLocal = "MUL3041";
+
     /// <summary>Gets the code for disabled user-defined functions.</summary>
     public const string DisabledUserDefinedFunctions = "MUL7001";
 

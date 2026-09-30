@@ -43,7 +43,7 @@ block
     = "{" statement* "}" ;
 
 variable-declaration
-    = "var" identifier
+    = "var" identifier "$"?
       (":" type ("=" expression)?
       | "=" expression) ;
 

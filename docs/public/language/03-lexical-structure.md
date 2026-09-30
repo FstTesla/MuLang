@@ -159,9 +159,9 @@ String values are sequences of Unicode scalar values and are compared ordinally.
 > "first\nsecond \U0001F680"
 > ```
 
-## 3.10. Read-only array tokens
+## 3.10. Read-only tokens
 
-Language version 1.1 recognizes `$` as a postfix type-capability token and `$[` as the single opening token of a read-only array literal.
+Language version 1.1 recognizes `$` as the read-only local-declaration modifier and as a postfix type-capability token. It recognizes `$[` as the single opening token of a read-only array literal.
 
 `$[` is one token and MUST NOT be split into `$` followed by `[`.
 

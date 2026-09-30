@@ -12,10 +12,11 @@ Stable entries describe the incremental change since the preceding prerelease. T
 
 Each release heading identifies the incremental version range covered by the section, from the comparison version to the released version.
 
-## `0.2.0-alpha.5` → `0.2.0-alpha.6` - 2026-09-29
+## `0.2.0-alpha.5` → `0.2.0-alpha.6` - 2026-09-30
 
 ### New features
 
+- Added language version 1.1 [read-only local variables](https://fsttesla.github.io/MuLang/language/06-variables-and-scope.html#61-local-variables), denoted by `$` after the declaration name. They support declaration-time or delayed initialization, mutually exclusive assignment sites, definite-assignment analysis, portable IR validation, and semantic highlighting.
 - Added semantic warnings for redundant empty statements, statically constant Boolean and truthiness conditions, deterministic null coalescing and null comparisons, redundant or always-null optional access, always-true type tests, and checked casts to equivalent types. Warning analysis is independent of the constant-folding profile setting; constant-evaluation failures use `MUL3031` as a warning when folding is disabled and retain the existing error when folding is enabled.
 
 ## `0.2.0-alpha.4` → `0.2.0-alpha.5` - 2026-09-29

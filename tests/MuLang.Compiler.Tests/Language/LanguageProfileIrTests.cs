@@ -135,6 +135,80 @@ public sealed class LanguageProfileIrTests
     }
 
     [Test]
+    public void LoweringPreservesReadOnlyLocalMutabilityOutsideLoops()
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddGlobal("global.condition", "condition", TypeSymbols.Bool)
+            .Build();
+        CompilationResult result = MuLangCompiler.Compile(
+            "var value$: int; if (condition) value = 1; else value = 2; return value;",
+            environment,
+            CompilationMode.Program,
+            TypeSymbols.Int
+        );
+        IrSlot local = result.Program?.Slots.Single(
+            static slot => slot is { Kind: IrSlotKind.Local, Name: "value" }
+        ) ?? throw new AssertionException("Expected a local IR slot.");
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.Diagnostics, Is.Empty);
+            Assert.That(local.Mutability, Is.EqualTo(IrSlotMutability.ReadOnly));
+        }
+    }
+
+    [Test]
+    public void LoweringPreservesReadOnlyLocalAssignedBeforeLoopExit()
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder().Build();
+        CompilationResult result = MuLangCompiler.Compile(
+            """
+            var value$: int;
+            while (true) {
+                value = 1;
+                break;
+            }
+            return value;
+            """,
+            environment,
+            CompilationMode.Program,
+            TypeSymbols.Int
+        );
+        IrSlot local = result.Program?.Slots.Single(
+            static slot => slot is { Kind: IrSlotKind.Local, Name: "value" }
+        ) ?? throw new AssertionException("Expected a local IR slot.");
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.Diagnostics.HasErrors, Is.False);
+            Assert.That(local.Mutability, Is.EqualTo(IrSlotMutability.ReadOnly));
+        }
+    }
+
+    [Test]
+    public void LoweringUsesMutableStorageForReadOnlyLocalDeclaredInsideLoop()
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddGlobal("global.condition", "condition", TypeSymbols.Bool)
+            .Build();
+        CompilationResult result = MuLangCompiler.Compile(
+            "while (condition) { var value$: int; value = 1; }",
+            environment,
+            CompilationMode.Program,
+            TypeSymbols.Void
+        );
+        IrSlot local = result.Program?.Slots.Single(
+            static slot => slot is { Kind: IrSlotKind.Local, Name: "value" }
+        ) ?? throw new AssertionException("Expected a local IR slot.");
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.Diagnostics, Is.Empty);
+            Assert.That(local.Mutability, Is.EqualTo(IrSlotMutability.Mutable));
+        }
+    }
+
+    [Test]
     public void LoweringProjectsProviderObjectTypesToStructuralIrTypes()
     {
         ObjectTypeGraphBuilder graphBuilder = new ();

@@ -35,7 +35,9 @@ The IR MUST encode evaluation order and short-circuit behavior explicitly.
 
 The IR validator MUST require a truthiness-normalization destination to have type `bool`, its source to have a non-void type, both slots to exist, and the source to be definitely defined.
 
-Every slot records mutable or read-only capability. Parameter slots are read-only and implicitly defined at function entry; no instruction may define them. Temporary slots are mutable. A read-only local requires exactly one syntactic defining instruction in the function; the ordinary definite-assignment rules still apply before every read. Re-executing that one definition site through a loop does not constitute an additional syntactic definition.
+Every slot records mutable or read-only capability. Parameter slots are read-only and implicitly defined at function entry; no instruction may define them. Temporary slots are mutable. A read-only local may have no defining instruction or multiple mutually exclusive defining instructions, but no reachable control-flow path may execute more than one definition. The ordinary definite-assignment rules still apply before every read.
+
+Lowering MAY represent a source-level read-only local with a mutable IR slot when the storage is reused for distinct lexical instances, including a local declared inside a loop.
 
 Array types transported through IR retain their read-only capability. Array creation records that capability, mutable-to-read-only conversions are representation-preserving, acquisition of mutable capability requires a checked conversion, and `SetElement` MUST be rejected when the target slot has a read-only array type.
 

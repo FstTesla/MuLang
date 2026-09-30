@@ -163,7 +163,7 @@ public static class IrValidator
             ValidateBlock(functionProgram, environment, blocksById, block, diagnostics);
         }
 
-        ValidateReadOnlySlots(functionProgram, diagnostics);
+        ValidateReadOnlySlots(functionProgram, blocksById, diagnostics);
         ValidateDefinitions(functionProgram, blocksById, diagnostics);
     }
 
@@ -273,49 +273,153 @@ public static class IrValidator
 
     private static void ValidateReadOnlySlots(
         IrProgram program,
+        IReadOnlyDictionary<int, IrBasicBlock> blocksById,
         ICollection<Diagnostic> diagnostics
     )
     {
-        foreach (IrSlot slot in program.Slots)
+        if (!blocksById.ContainsKey(program.EntryBlock))
         {
-            if (slot.Mutability != IrSlotMutability.ReadOnly)
-            {
-                continue;
-            }
-
-            IReadOnlyList<TextSpan> definitions =
-            [
-                .. program.Blocks
-                    .SelectMany(static block => block.Instructions)
-                    .Where(instruction => GetDestination(instruction) == slot.Id)
-                    .Select(static instruction => instruction.Span),
-            ];
-
-            int expectedDefinitions =
-                slot.Kind == IrSlotKind.Parameter
-                    ? 0
-                    : slot.Kind == IrSlotKind.Local
-                        ? 1
-                        : definitions.Count;
-
-            if (definitions.Count == expectedDefinitions)
-            {
-                continue;
-            }
-
-            Report(
-                diagnostics,
-                IrDiagnosticCodes.InvalidSlot,
-                definitions.Count > expectedDefinitions
-                    ? definitions[expectedDefinitions]
-                    : default,
-                slot.Kind == IrSlotKind.Parameter
-                    ? $"Read-only IR parameter slot {slot.Id} cannot have a definition site."
-                    : definitions.Count == 0
-                        ? $"Read-only IR local slot {slot.Id} has no definition site."
-                        : $"Read-only IR local slot {slot.Id} has more than one definition site."
-            );
+            return;
         }
+
+        IReadOnlyCollection<int> reachable = GetReachableBlocks(
+            program.EntryBlock,
+            blocksById
+        );
+        IReadOnlyDictionary<int, IReadOnlyList<int>> predecessors = GetPredecessors(
+            reachable,
+            blocksById
+        );
+        IReadOnlySet<int> entryDefinitions = new HashSet<int>(
+            program.Slots
+                .Where(
+                    static slot =>
+                        slot.Kind == IrSlotKind.Parameter &&
+                        slot.Mutability == IrSlotMutability.ReadOnly
+                )
+                .Select(static slot => slot.Id)
+        );
+        IReadOnlySet<int> readOnlySlots = new HashSet<int>(
+            program.Slots
+                .Where(static slot => slot.Mutability == IrSlotMutability.ReadOnly)
+                .Select(static slot => slot.Id)
+        );
+        Dictionary<int, IReadOnlySet<int>> outgoing = reachable.ToDictionary(
+            static blockId => blockId,
+            static IReadOnlySet<int> (_) => ReadOnlySet<int>.Empty
+        );
+        bool changed;
+
+        do
+        {
+            changed = false;
+
+            foreach (int blockId in reachable.Order())
+            {
+                IReadOnlySet<int> incoming = GetIncomingPossibleDefinitions(
+                    blockId,
+                    program.EntryBlock,
+                    predecessors,
+                    outgoing,
+                    entryDefinitions
+                );
+                HashSet<int> definitions = [ .. incoming ];
+
+                foreach (IrInstruction instruction in blocksById[blockId].Instructions)
+                {
+                    int? destination = GetDestination(instruction);
+
+                    if (
+                        destination is not null &&
+                        readOnlySlots.Contains(destination.Value)
+                    )
+                    {
+                        definitions.Add(destination.Value);
+                    }
+                }
+
+                if (!outgoing[blockId].SetEquals(definitions))
+                {
+                    outgoing[blockId] = definitions;
+                    changed = true;
+                }
+            }
+        }
+        while (changed);
+
+        foreach (int blockId in reachable)
+        {
+            ISet<int> defined = new HashSet<int>(
+                GetIncomingPossibleDefinitions(
+                    blockId,
+                    program.EntryBlock,
+                    predecessors,
+                    outgoing,
+                    entryDefinitions
+                )
+            );
+
+            foreach (IrInstruction instruction in blocksById[blockId].Instructions)
+            {
+                int? destination = GetDestination(instruction);
+
+                if (
+                    destination is null ||
+                    !readOnlySlots.Contains(destination.Value)
+                )
+                {
+                    continue;
+                }
+
+                IrSlot? slot = GetSlot(program, destination.Value);
+
+                if (
+                    slot is null ||
+                    slot.Mutability != IrSlotMutability.ReadOnly
+                )
+                {
+                    continue;
+                }
+
+                if (
+                    slot.Kind == IrSlotKind.Parameter ||
+                    defined.Contains(destination.Value)
+                )
+                {
+                    Report(
+                        diagnostics,
+                        IrDiagnosticCodes.InvalidSlot,
+                        instruction.Span,
+                        slot.Kind == IrSlotKind.Parameter
+                            ? $"Read-only IR parameter slot {slot.Id} cannot have a definition site."
+                            : $"Read-only IR local slot {slot.Id} may be defined more than once on a control-flow path."
+                    );
+                }
+
+                defined.Add(destination.Value);
+            }
+        }
+    }
+
+    private static IReadOnlySet<int> GetIncomingPossibleDefinitions(
+        int blockId,
+        int entryBlock,
+        IReadOnlyDictionary<int, IReadOnlyList<int>> predecessors,
+        IReadOnlyDictionary<int, IReadOnlySet<int>> outgoing,
+        IReadOnlySet<int> entryDefinitions
+    )
+    {
+        HashSet<int> incoming =
+            blockId == entryBlock
+                ? [ .. entryDefinitions ]
+                : [ ];
+
+        foreach (int predecessor in predecessors[blockId])
+        {
+            incoming.UnionWith(outgoing[predecessor]);
+        }
+
+        return incoming;
     }
 
     private static Dictionary<int, IrBasicBlock> ValidateBlocks(

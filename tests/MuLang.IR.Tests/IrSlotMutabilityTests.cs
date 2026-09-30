@@ -30,9 +30,29 @@ public sealed class IrSlotMutabilityTests
         Assert.That(Validate(program), Is.Empty);
     }
 
-    [TestCase(0)]
-    [TestCase(2)]
-    public void RejectsInvalidReadOnlyLocalDefinitionCount(int count)
+    [Test]
+    public void AcceptsReadOnlyLocalWithoutDefinitionSite()
+    {
+        IrProgram program = CreateProgram(
+            [
+                new IrSlot(
+                    0,
+                    IrSlotKind.Local,
+                    TypeSymbols.Int,
+                    "value",
+                    IrSlotMutability.ReadOnly
+                ),
+            ],
+            [ ],
+            TypeSymbols.Void,
+            null
+        );
+
+        Assert.That(Validate(program), Is.Empty);
+    }
+
+    [Test]
+    public void RejectsRepeatedReadOnlyLocalDefinitionOnOnePath()
     {
         IrProgram program = CreateProgram(
             [
@@ -45,15 +65,8 @@ public sealed class IrSlotMutabilityTests
                 ),
             ],
             [
-                .. Enumerable.Range(0, count)
-                    .Select(
-                        static value => new IrInstruction.Constant(
-                            default,
-                            0,
-                            TypeSymbols.Int,
-                            (long)value
-                        )
-                    ),
+                new IrInstruction.Constant(default, 0, TypeSymbols.Int, 1L),
+                new IrInstruction.Constant(default, 0, TypeSymbols.Int, 2L),
             ],
             TypeSymbols.Void,
             null
@@ -167,7 +180,7 @@ public sealed class IrSlotMutabilityTests
     }
 
     [Test]
-    public void AcceptsReadOnlyDefinitionSiteInLoop()
+    public void RejectsReadOnlyDefinitionSiteInLoop()
     {
         EnvironmentSchema environment = new EnvironmentBuilder().Build();
         IrProgram program = new (
@@ -215,6 +228,82 @@ public sealed class IrSlotMutabilityTests
                     ),
                     new IrBasicBlock(
                         2,
+                        [ ],
+                        new IrTerminator.Return(default, null)
+                    ),
+                ]
+            ),
+            [ ]
+        );
+
+        Assert.That(
+            IrValidator.Validate(program, environment)
+                .Select(static diagnostic => diagnostic.Code),
+            Does.Contain(IrDiagnosticCodes.InvalidSlot)
+        );
+    }
+
+    [Test]
+    public void AcceptsReadOnlyDefinitionsOnExclusiveBranches()
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder().Build();
+        IrProgram program = new (
+            environment.Fingerprint,
+            CompilationMode.Program,
+            LanguageProfiles.Version1_1.Fingerprint,
+            new IrFunction(
+                "$entry",
+                TypeSymbols.Void,
+                0,
+                [
+                    new IrSlot(
+                        0,
+                        IrSlotKind.Local,
+                        TypeSymbols.Int,
+                        "value",
+                        IrSlotMutability.ReadOnly
+                    ),
+                    new IrSlot(1, IrSlotKind.Temporary, TypeSymbols.Bool, null),
+                ],
+                [
+                    new IrBasicBlock(
+                        0,
+                        [
+                            new IrInstruction.Constant(
+                                default,
+                                1,
+                                TypeSymbols.Bool,
+                                true
+                            ),
+                        ],
+                        new IrTerminator.Branch(default, 1, 1, 2)
+                    ),
+                    new IrBasicBlock(
+                        1,
+                        [
+                            new IrInstruction.Constant(
+                                default,
+                                0,
+                                TypeSymbols.Int,
+                                1L
+                            ),
+                        ],
+                        new IrTerminator.Jump(default, 3)
+                    ),
+                    new IrBasicBlock(
+                        2,
+                        [
+                            new IrInstruction.Constant(
+                                default,
+                                0,
+                                TypeSymbols.Int,
+                                2L
+                            ),
+                        ],
+                        new IrTerminator.Jump(default, 3)
+                    ),
+                    new IrBasicBlock(
+                        3,
                         [ ],
                         new IrTerminator.Return(default, null)
                     ),

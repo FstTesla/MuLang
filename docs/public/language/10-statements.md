@@ -56,6 +56,8 @@ The variable is not in scope within its own initializer.
 
 A declaration without an initializer MUST have an explicit type annotation and is subject to definite-assignment analysis.
 
+A declaration name followed by `$` introduces a read-only local as defined in [Section 6.1](06-variables-and-scope.md#61-local-variables).
+
 A local variable declaration cannot be used directly as the embedded statement of an `if`, `while`, or `for`. It MUST be enclosed in a block.
 
 > This form is valid:
@@ -73,6 +75,7 @@ Assignment is a statement and does not produce a value.
 Valid assignment targets are:
 
 - a mutable local variable;
+- a read-only local variable that is not already assigned on any incoming control-flow path and whose assignment cannot reach a loop back-edge that retains the same variable instance;
 - a known or dynamic object property;
 - an array element.
 

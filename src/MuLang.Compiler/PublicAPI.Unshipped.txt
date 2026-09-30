@@ -1,5 +1,6 @@
 #nullable enable
 const MuLang.Compiler.Diagnostics.DiagnosticCodes.AlwaysTrueTypeTest = "MUL3039" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.CannotReassignReadOnlyLocal = "MUL3041" -> string!
 const MuLang.Compiler.Diagnostics.DiagnosticCodes.ConstantCondition = "MUL3033" -> string!
 const MuLang.Compiler.Diagnostics.DiagnosticCodes.ConstantNullComparison = "MUL3038" -> string!
 const MuLang.Compiler.Diagnostics.DiagnosticCodes.NullCoalescingAlwaysUsesFallback = "MUL3035" -> string!

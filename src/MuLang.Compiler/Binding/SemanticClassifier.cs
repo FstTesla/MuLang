@@ -51,7 +51,12 @@ internal static class SemanticClassifier
                     Add(
                         SemanticClassificationKind.Variable,
                         syntax.IdentifierToken.Span,
-                        SemanticClassificationModifiers.Declaration
+                        SemanticClassificationModifiers.Declaration |
+                        (
+                            declaration.Local.IsReadOnly
+                                ? SemanticClassificationModifiers.ReadOnly
+                                : SemanticClassificationModifiers.None
+                        )
                     );
                     VisitType(syntax.Type);
 
@@ -137,7 +142,13 @@ internal static class SemanticClassifier
             {
                 case BoundExpression.Local local:
                 {
-                    Add(SemanticClassificationKind.Variable, local.Span);
+                    Add(
+                        SemanticClassificationKind.Variable,
+                        local.Span,
+                        local.Symbol.IsReadOnly
+                            ? SemanticClassificationModifiers.ReadOnly
+                            : SemanticClassificationModifiers.None
+                    );
                     break;
                 }
 

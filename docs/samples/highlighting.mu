@@ -26,6 +26,14 @@ func exerciseHighlighting(name: string, requested: int): void {
     var hexadecimalMask = 0x2A;
     var flags = (binaryMask | 4) & octalMask;
     var shiftedFlags = flags << 1;
+    var immutableFlags$ = shiftedFlags;
+
+    var normalizedCount$: int;
+    if (active) {
+        normalizedCount = count;
+    } else {
+        normalizedCount = 0;
+    }
 
     var values: int[] = [1, 2, 3,];
     var readOnlyValues: int[]$ = $[4, 5, 6,];
@@ -65,14 +73,22 @@ func exerciseHighlighting(name: string, requested: int): void {
     details.accent~;
 
     values[0] = exactValue;
-    var total = readOnlyValues.length + shiftedFlags + hexadecimalMask;
+    var total = readOnlyValues.length + immutableFlags + hexadecimalMask;
+
+    var firstTotal$: int;
+    while (active) {
+        firstTotal = total;
+        total = firstTotal + normalizedCount;
+        break;
+    }
 
     for (var index = 0; index < values.length; index = index + 1) {
         if (index == 1) {
             continue;
         }
 
-        total = total + values[index];
+        var currentValue$ = values[index];
+        total = total + currentValue;
     }
 
     while (total < 64) {
@@ -85,7 +101,7 @@ func exerciseHighlighting(name: string, requested: int): void {
 
     details.count = total;
     var summary = alignedLabel + ": " + details.name + " is " + details.state;
-    var comparisons = count === requested && count !== -1;
+    var comparisons$ = count === requested && count !== -1;
 
     return;
 }

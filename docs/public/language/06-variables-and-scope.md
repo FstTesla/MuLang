@@ -14,7 +14,17 @@ The inferred type of the `null` literal alone is invalid because `null` has no d
 
 An uninitialized local variable has no default value. Every read MUST be proven by definite-assignment analysis to occur after an assignment on every reachable control-flow path.
 
-Local variables are mutable.
+Local variables are mutable unless the declaration name is followed by `$`.
+
+A read-only local variable may be initialized by its declaration or assigned later when an explicit type annotation is present. Its declaration initializer, when present, counts as its assignment.
+
+Every reachable control-flow path may assign a read-only local at most once. Assignments in mutually exclusive branches are valid. A later assignment is invalid when the variable may already have been assigned on any incoming path, including when it is definitely assigned on only some incoming paths.
+
+A read-only local declared outside a loop may be assigned inside the loop only when no path following that assignment reaches a back-edge of that loop or any enclosing loop that retains the same variable instance. An assignment followed by a mandatory exit from all applicable loops is valid.
+
+A read-only local declared inside a loop denotes a new variable instance for each execution of its declaration and follows the ordinary single-assignment rule within that iteration.
+
+The `$` is a declaration modifier and is not part of the variable name.
 
 > The first variable has an explicit type, while the second infers `int`:
 >
@@ -23,7 +33,88 @@ Local variables are mutable.
 > var count = 2;
 > count = count + 1;
 > ```
+
+> Both read-only declarations are valid. `immediate` is initialized by its declaration, while `delayed` is assigned later and therefore requires an explicit type:
 >
+> ```text
+> var immediate$ = 1;
+> var delayed$: int;
+> delayed = 2;
+> return immediate + delayed;
+> ```
+>
+> The program returns `3`.
+
+> Given a host global `condition: bool`, mutually exclusive branches may assign the same read-only local:
+>
+> ```text
+> var result$: int;
+> if (condition) {
+>     result = 1;
+> } else {
+>     result = 2;
+> }
+> return result;
+> ```
+>
+> This program is valid because every path assigns `result` exactly once before it is read.
+
+> This program is invalid because the initializer is the first assignment and the following statement attempts a second assignment:
+>
+> ```text
+> var value$ = 1;
+> value = 2;
+> ```
+>
+> The second assignment produces a compile-time error.
+
+> Given a host global `condition: bool`, this program is invalid even though `value` is not definitely assigned after the `if`:
+>
+> ```text
+> var value$: int;
+> if (condition) {
+>     value = 1;
+> }
+> value = 2;
+> ```
+>
+> The final assignment produces a compile-time error because an incoming path may already have assigned `value`.
+
+> Given a host global `condition: bool`, this program is invalid because a read-only local declared outside a loop cannot be assigned by the loop:
+>
+> ```text
+> var value$: int;
+> while (condition) {
+>     value = 1;
+> }
+> ```
+>
+> The assignment in the loop produces a compile-time error.
+
+> This program is valid because the `break` prevents control from reaching another iteration after the assignment:
+>
+> ```text
+> var value$: int;
+> while (true) {
+>     value = 1;
+>     break;
+> }
+> return value;
+> ```
+>
+> The program returns `1`.
+
+> A read-only local declared inside a loop instead denotes a new variable instance on each iteration:
+>
+> ```text
+> while (condition) {
+>     var value$: int;
+>     value = 1;
+> }
+> ```
+>
+> This program is valid.
+
 > Given a host global `condition: bool`, this program is invalid because `result` is not definitely assigned on every path:
 >
 > ```text
