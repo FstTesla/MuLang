@@ -25,7 +25,11 @@ When a task is open for further steps, ask me whether I want you to proceed with
 
 ---
 
-In autopilot mode, document any decision you make in a dedicated Markdown file, so that I can review them later.
+In autopilot mode, document any autonomous decision you make in a dedicated Markdown file, so that I can review them later.
+
+---
+
+When reviewing your autonomous decisions, present them one by one and remove them from the dedicated Markdown file once they have been reviewed. For each point, allow me to skip to the next one or to suspend the review process.
 
 ---
 
@@ -41,8 +45,7 @@ Do not generate comments, unless explicitly told to do so, or unless what is bei
 
 ---
 
-Avoid code duplication and reuse existing code as much as possible.
-If existing code can be changed or extracted to cover the request, ask me whether I want to proceed that way.
+Avoid code duplication and reuse existing code as much as possible. If existing code can be changed or extracted to cover the request, ask me whether I want to proceed that way.
 
 ---
 
@@ -63,6 +66,7 @@ The guidelines above can be applied to any C#-like or JavaScript-like language, 
 ---
 
 Commented code should not have leading whitespace after the comment delimiter, except when preserving indentation. On the contrary, textual comments should have a leading space.
+
 Some examples:
 
 - Textual comment has a leading space

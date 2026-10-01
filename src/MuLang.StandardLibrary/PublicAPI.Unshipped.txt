@@ -1,1 +1,40 @@
 #nullable enable
+MuLang.StandardLibrary.StandardLibraryCapability
+MuLang.StandardLibrary.StandardLibraryCapability.Clock = 2 -> MuLang.StandardLibrary.StandardLibraryCapability
+MuLang.StandardLibrary.StandardLibraryCapability.Deterministic = 0 -> MuLang.StandardLibrary.StandardLibraryCapability
+MuLang.StandardLibrary.StandardLibraryCapability.Randomness = 1 -> MuLang.StandardLibrary.StandardLibraryCapability
+MuLang.StandardLibrary.StandardLibraryCapability.RandomnessAndClock = MuLang.StandardLibrary.StandardLibraryCapability.Randomness | MuLang.StandardLibrary.StandardLibraryCapability.Clock -> MuLang.StandardLibrary.StandardLibraryCapability
+MuLang.StandardLibrary.StandardLibraryCatalog
+MuLang.StandardLibrary.StandardLibraryComposer
+MuLang.StandardLibrary.StandardLibraryModule
+MuLang.StandardLibrary.StandardLibraryModule.Capability.get -> MuLang.StandardLibrary.StandardLibraryCapability
+MuLang.StandardLibrary.StandardLibraryModule.DisplayName.get -> string!
+MuLang.StandardLibrary.StandardLibraryModule.Functions.get -> System.Collections.Generic.IReadOnlyList<MuLang.Core.Symbols.FunctionSymbol!>!
+MuLang.StandardLibrary.StandardLibraryModule.Globals.get -> System.Collections.Generic.IReadOnlyList<MuLang.Core.Symbols.GlobalSymbol!>!
+MuLang.StandardLibrary.StandardLibraryModule.Id.get -> string!
+MuLang.StandardLibrary.StandardLibraryModule.MinimumLanguageVersion.get -> MuLang.Core.LanguageVersion
+MuLang.StandardLibrary.StandardLibraryModule.StandardLibraryModule(string! id, string! displayName, MuLang.Core.LanguageVersion minimumLanguageVersion, MuLang.StandardLibrary.StandardLibraryCapability capability, System.Collections.Generic.IEnumerable<MuLang.Core.Types.ObjectTypeSymbol!>! types, System.Collections.Generic.IEnumerable<MuLang.Core.Symbols.GlobalSymbol!>! globals, System.Collections.Generic.IEnumerable<MuLang.Core.Symbols.FunctionSymbol!>! functions) -> void
+MuLang.StandardLibrary.StandardLibraryModule.Types.get -> System.Collections.Generic.IReadOnlyList<MuLang.Core.Types.ObjectTypeSymbol!>!
+static MuLang.StandardLibrary.StandardLibraryCatalog.All.get -> System.Collections.Generic.IReadOnlyList<MuLang.StandardLibrary.StandardLibraryModule!>!
+static MuLang.StandardLibrary.StandardLibraryCatalog.Array.get -> MuLang.StandardLibrary.StandardLibraryModule!
+static MuLang.StandardLibrary.StandardLibraryCatalog.Clock.get -> MuLang.StandardLibrary.StandardLibraryModule!
+static MuLang.StandardLibrary.StandardLibraryCatalog.Guid.get -> MuLang.StandardLibrary.StandardLibraryModule!
+static MuLang.StandardLibrary.StandardLibraryCatalog.MathBasic.get -> MuLang.StandardLibrary.StandardLibraryModule!
+static MuLang.StandardLibrary.StandardLibraryCatalog.MathClassification.get -> MuLang.StandardLibrary.StandardLibraryModule!
+static MuLang.StandardLibrary.StandardLibraryCatalog.MathConstants.get -> MuLang.StandardLibrary.StandardLibraryModule!
+static MuLang.StandardLibrary.StandardLibraryCatalog.MathPowers.get -> MuLang.StandardLibrary.StandardLibraryModule!
+static MuLang.StandardLibrary.StandardLibraryCatalog.MathRounding.get -> MuLang.StandardLibrary.StandardLibraryModule!
+static MuLang.StandardLibrary.StandardLibraryCatalog.MathTrigonometry.get -> MuLang.StandardLibrary.StandardLibraryModule!
+static MuLang.StandardLibrary.StandardLibraryCatalog.Object.get -> MuLang.StandardLibrary.StandardLibraryModule!
+static MuLang.StandardLibrary.StandardLibraryCatalog.Parsing.get -> MuLang.StandardLibrary.StandardLibraryModule!
+static MuLang.StandardLibrary.StandardLibraryCatalog.Random.get -> MuLang.StandardLibrary.StandardLibraryModule!
+static MuLang.StandardLibrary.StandardLibraryCatalog.StringComparison.get -> MuLang.StandardLibrary.StandardLibraryModule!
+static MuLang.StandardLibrary.StandardLibraryCatalog.StringInspection.get -> MuLang.StandardLibrary.StandardLibraryModule!
+static MuLang.StandardLibrary.StandardLibraryCatalog.StringReplacement.get -> MuLang.StandardLibrary.StandardLibraryModule!
+static MuLang.StandardLibrary.StandardLibraryCatalog.StringSearch.get -> MuLang.StandardLibrary.StandardLibraryModule!
+static MuLang.StandardLibrary.StandardLibraryCatalog.StringSlicing.get -> MuLang.StandardLibrary.StandardLibraryModule!
+static MuLang.StandardLibrary.StandardLibraryCatalog.StringTransform.get -> MuLang.StandardLibrary.StandardLibraryModule!
+static MuLang.StandardLibrary.StandardLibraryCatalog.TextEncoding.get -> MuLang.StandardLibrary.StandardLibraryModule!
+static MuLang.StandardLibrary.StandardLibraryComposer.Compose(MuLang.Core.Environment.EnvironmentSchema! host, System.Collections.Generic.IEnumerable<MuLang.StandardLibrary.StandardLibraryModule!>! modules) -> MuLang.Core.Environment.EnvironmentSchema!
+static MuLang.StandardLibrary.StandardLibraryComposer.Compose(System.Collections.Generic.IEnumerable<MuLang.StandardLibrary.StandardLibraryModule!>! modules) -> MuLang.Core.Environment.EnvironmentSchema!
+static MuLang.StandardLibrary.StandardLibraryComposer.Compose(System.Collections.Generic.IEnumerable<MuLang.StandardLibrary.StandardLibraryModule!>! modules, MuLang.Core.LanguageVersion languageVersion) -> MuLang.Core.Environment.EnvironmentSchema!

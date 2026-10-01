@@ -4,6 +4,8 @@
   href: examples.md
 - name: Packages
   href: packages.md
+- name: Standard library
+  href: standard-library.md
 - name: Language
   href: language/
 - name: Intermediate representation

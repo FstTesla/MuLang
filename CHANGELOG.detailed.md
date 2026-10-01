@@ -25,6 +25,12 @@ Each release heading identifies the incremental version range covered by the sec
 - Added `ExecutionResult` and `DotNetExportResult.ExecutionDelegate` as a result-returning execution surface alongside the existing exception-based delegate, including preserved underlying host failures for diagnostics.
 - Added the context-aware `DotNetProviderFunction` and `DotNetProviderInvocationContext` contracts for cancellation, metered read-only array inspection, controlled lazy object-property enumeration and reads, MuLang structural equality, and application-error reporting.
 - Added `MuLangProviderException` as the explicit contract for expected provider application failures. Expected failures become catchable `Application` errors; unexpected provider exceptions become uncatchable `Provider` errors.
+- Turned the previously placeholder `MuLang.StandardLibrary` and `MuLang.StandardLibrary.DotNet` packages into a functional, explicitly opt-in standard library. The compiler, exporter, and facade packages do not import it automatically.
+- Added a versioned catalog of modules for math, arrays, objects, strings, parsing, Base64 text encoding, randomness, clocks, and GUIDs, with stable provider identifiers and metadata for deterministic, randomness, and clock capabilities. Array and Object require language version 1.1; the remaining initial modules support version 1.
+- Added runtime-independent declaration composition and matching .NET binding composition, including composition with host declarations, globals, and provider functions. Module selection remains explicit, and the catalog does not provide an import-all operation.
+- Added .NET implementations with Unicode-scalar string indexing, ordinal and culture-independent text behavior, MuLang structural equality for array membership, sorted object projections, read-only collection results, nullable parse and decoding failures, and application errors for invalid ranges, overflow, and impossible conversions.
+- Added configurable random sources and time providers for the Random, Clock, and GUID modules, with thread-safe random and system-clock defaults.
+- Added declaration collision checks and .NET declaration-to-implementation parity validation, including duplicate identifiers and names, host conflicts, missing or undeclared implementations, argument-count mismatches, and runtime value or function collisions.
 
 ## `0.2.0-alpha.5` → `0.2.0-alpha.6` - 2026-09-30
 

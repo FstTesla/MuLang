@@ -31,11 +31,14 @@ dotnet add package MuLang.Exporters.DotNet --prerelease
 | `MuLang.IR` | Public portable IR and validation |
 | `MuLang.Compiler` | Source-to-IR compilation |
 | `MuLang.Exporters.DotNet` | IR-to-.NET export and runtime adapters |
-| `MuLang.StandardLibrary` | Reserved for optional runtime-neutral standard-library declarations |
-| `MuLang.StandardLibrary.DotNet` | Reserved for optional .NET standard-library implementations |
+| `MuLang.StandardLibrary` | Optional runtime-neutral standard-library declarations and composition |
+| `MuLang.StandardLibrary.DotNet` | Optional .NET standard-library implementations and runtime composition |
 
-The standard-library packages intentionally contain no modules yet. The
-compiler never imports standard-library symbols implicitly.
+The standard library is opt-in and modular. Hosts select declarations from
+`StandardLibraryCatalog`, compose matching .NET bindings from
+`DotNetStandardLibraryModules`, and remain responsible for passing both
+compositions to the compiler and runtime. The compiler, exporter, and facade
+packages never import standard-library symbols implicitly.
 
 A MuLang host:
 
@@ -54,6 +57,7 @@ See the [examples](https://github.com/FstTesla/MuLang/blob/main/docs/public/exam
 - [MuIR serialization format](https://github.com/FstTesla/MuLang/blob/main/docs/public/ir/muir-format.md)
 - [Examples](https://github.com/FstTesla/MuLang/blob/main/docs/public/examples.md)
 - [Packages and architecture](https://fsttesla.github.io/MuLang/packages.html)
+- [Standard library](https://fsttesla.github.io/MuLang/standard-library.html)
 - [Stable changelog](https://github.com/FstTesla/MuLang/blob/main/CHANGELOG.md)
 - [Detailed changelog](https://github.com/FstTesla/MuLang/blob/main/CHANGELOG.detailed.md)
 

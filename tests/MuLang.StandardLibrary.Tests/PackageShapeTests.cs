@@ -1,3 +1,4 @@
+using MuLang.Core.Environment;
 using System.Reflection;
 
 namespace MuLang.StandardLibrary.Tests;
@@ -5,10 +6,32 @@ namespace MuLang.StandardLibrary.Tests;
 public sealed class PackageShapeTests
 {
     [Test]
-    public void PlaceholderAssemblyExposesNoPrematureApi()
+    public void ReferencesNoOtherMuLangPackageBeyondCore()
     {
-        Assembly assembly = Assembly.Load("MuLang.StandardLibrary");
+        Assembly assembly = typeof(StandardLibraryModule).Assembly;
 
-        Assert.That(assembly.GetExportedTypes(), Is.Empty);
+        Assert.That(
+            assembly.GetReferencedAssemblies()
+                .Select(static reference => reference.Name)
+                .Where(static name => name?.StartsWith("MuLang.", StringComparison.Ordinal) is true),
+            Is.EqualTo([ "MuLang.Core" ])
+        );
+    }
+
+    [Test]
+    public void ImportsNothingImplicitly()
+    {
+        EnvironmentSchema coreEnvironment = new EnvironmentBuilder().Build();
+        EnvironmentSchema emptyComposition = StandardLibraryComposer.Compose([ ]);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(coreEnvironment.Types, Is.Empty);
+            Assert.That(coreEnvironment.Globals, Is.Empty);
+            Assert.That(coreEnvironment.Functions, Is.Empty);
+            Assert.That(emptyComposition.Types, Is.Empty);
+            Assert.That(emptyComposition.Globals, Is.Empty);
+            Assert.That(emptyComposition.Functions, Is.Empty);
+        }
     }
 }

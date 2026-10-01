@@ -32,7 +32,7 @@ Language version 1 does not provide:
 - general union types;
 - exception handling in source code;
 - reflection or implicit access to host members;
-- a standard library;
+- a privileged or implicitly imported standard library;
 - comments;
 - flow-sensitive type narrowing;
 - assignment expressions.

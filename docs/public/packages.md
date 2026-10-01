@@ -35,6 +35,13 @@ same structured `RuntimeError`, including category, catchability, source span,
 MuLang frames, public cause, and application data. `ExecutionResult` also
 retains the underlying host exception when one is available.
 
-The standard-library packages are reserved for future opt-in modules and
-currently expose no modules. The compiler does not add constants, functions,
-or structured types implicitly.
+The standard-library packages provide opt-in modules with separate declarative
+and .NET runtime composition. `MuLang.StandardLibrary` exposes runtime-neutral
+module metadata and environment declarations.
+`MuLang.StandardLibrary.DotNet` exposes matching provider values and functions.
+Hosts select modules explicitly; the compiler, exporter, and facade packages do
+not add constants, functions, or structured types implicitly.
+
+See the [standard-library guide](standard-library.md) for the module catalog,
+composition rules, stable identifiers, runtime capabilities, and collision
+behavior.

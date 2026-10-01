@@ -12,6 +12,8 @@
 
    **Completed for `0.2.0-alpha.7`.**
 3. Implement an initial optional standard library on top of these contracts.
+
+   **Completed for `0.2.0-alpha.7`.**
 4. Add language-server workspace configuration for the language profile, host environment, and expected result type.
 
 Completion, hover, navigation, rename, and formatting are not release blockers.
