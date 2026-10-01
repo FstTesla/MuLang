@@ -1,4 +1,3 @@
-- Standard library
 - New features:
   - Readonly and optional object properties
   - Comments

@@ -19,10 +19,11 @@ public sealed class FunctionSemanticsTests
                 Assert.That(Invoke(StandardLibraryCatalog.Modules.MathBasic, "max", 4L, 2.5d), Is.EqualTo(4d));
                 Assert.That(Invoke(StandardLibraryCatalog.Modules.MathBasic, "clamp", 7L, 1L, 5L), Is.EqualTo(5L));
                 Assert.That(Invoke(StandardLibraryCatalog.Modules.MathRounding, "floor", 2L), Is.EqualTo(2L));
-                Assert.That(Invoke(StandardLibraryCatalog.Modules.MathRounding, "ceiling", 2.1d), Is.EqualTo(3d));
-                Assert.That(Invoke(StandardLibraryCatalog.Modules.MathRounding, "truncate", -2.9d), Is.EqualTo(-2d));
+                Assert.That(Invoke(StandardLibraryCatalog.Modules.MathRounding, "ceil", 2.1d), Is.EqualTo(3d));
+                Assert.That(Invoke(StandardLibraryCatalog.Modules.MathRounding, "trunc", -2.9d), Is.EqualTo(-2d));
                 Assert.That(Invoke(StandardLibraryCatalog.Modules.MathRounding, "round", 2.5d), Is.EqualTo(2d));
-                Assert.That(Invoke(StandardLibraryCatalog.Modules.MathRounding, "truncateToInt", -2.9d), Is.EqualTo(-2L));
+                Assert.That(Invoke(StandardLibraryCatalog.Modules.MathRounding, "truncToInt", 2L), Is.EqualTo(2L));
+                Assert.That(Invoke(StandardLibraryCatalog.Modules.MathRounding, "truncToInt", -2.9d), Is.EqualTo(-2L));
                 Assert.That(Invoke(StandardLibraryCatalog.Modules.MathPowers, "sqrt", 9L), Is.EqualTo(3d));
                 Assert.That(Invoke(StandardLibraryCatalog.Modules.MathPowers, "pow", 2L, 3L), Is.EqualTo(8d));
                 Assert.That(Invoke(StandardLibraryCatalog.Modules.MathPowers, "exp", 0L), Is.EqualTo(1d));
@@ -35,8 +36,8 @@ public sealed class FunctionSemanticsTests
                 Assert.That(Invoke(StandardLibraryCatalog.Modules.MathTrigonometry, "acos", 1L), Is.EqualTo(0d));
                 Assert.That(Invoke(StandardLibraryCatalog.Modules.MathTrigonometry, "atan", 0L), Is.EqualTo(0d));
                 Assert.That(Invoke(StandardLibraryCatalog.Modules.MathTrigonometry, "atan2", 0L, 1L), Is.EqualTo(0d));
-                Assert.That(Invoke(StandardLibraryCatalog.Modules.MathTrigonometry, "degreesToRadians", 180L), Is.EqualTo(Math.PI));
-                Assert.That(Invoke(StandardLibraryCatalog.Modules.MathTrigonometry, "radiansToDegrees", Math.PI), Is.EqualTo(180d));
+                Assert.That(Invoke(StandardLibraryCatalog.Modules.MathTrigonometry, "degToRad", 180L), Is.EqualTo(Math.PI));
+                Assert.That(Invoke(StandardLibraryCatalog.Modules.MathTrigonometry, "radToDeg", Math.PI), Is.EqualTo(180d));
             }
         );
     }
@@ -75,7 +76,7 @@ public sealed class FunctionSemanticsTests
                     Is.EqualTo("mulang.std.range")
                 );
                 Assert.That(
-                    StandardLibraryTestRuntime.InvokeError(StandardLibraryCatalog.Modules.MathRounding, "truncateToInt", double.PositiveInfinity).Code,
+                    StandardLibraryTestRuntime.InvokeError(StandardLibraryCatalog.Modules.MathRounding, "truncToInt", double.PositiveInfinity).Code,
                     Is.EqualTo("mulang.std.conversion")
                 );
             }

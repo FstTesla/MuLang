@@ -38,9 +38,9 @@ package validates catalog-wide declaration and implementation parity.
 |---|---|---|
 | Math.Constants | Deterministic | `e`, `pi`, `tau`, `minInt`, `maxInt` |
 | Math.Basic | Deterministic | `abs`, `sign`, `min`, `max`, `clamp` |
-| Math.Rounding | Deterministic | `floor`, `ceiling`, `truncate`, `round`, `truncateToInt` |
+| Math.Rounding | Deterministic | `floor`, `ceil`, `trunc`, `round`, `truncToInt` |
 | Math.Powers | Deterministic | `sqrt`, `pow`, `exp`, `log`, `log10` |
-| Math.Trigonometry | Deterministic | `sin`, `cos`, `tan`, `asin`, `acos`, `atan`, `atan2`, `degreesToRadians`, `radiansToDegrees` |
+| Math.Trigonometry | Deterministic | `sin`, `cos`, `tan`, `asin`, `acos`, `atan`, `atan2`, `degToRad`, `radToDeg` |
 | Math.Classification | Deterministic | `isFinite`, `isInfinity`, `isNaN` |
 | Array | Deterministic | `arrayContains` |
 | Object | Deterministic | `objectKeys`, `objectValues` |

@@ -139,14 +139,14 @@ public static class StandardLibraryCatalog
             "math.rounding", "floor", TypeSymbols.Number, LanguageVersion.Version1, StandardLibraryCapability.Deterministic, ("value", TypeSymbols.Number)
         );
 
-        /// <summary>Gets the <c>ceiling</c> function.</summary>
-        public static StandardLibraryFunction Ceiling { get; } = Create(
-            "math.rounding", "ceiling", TypeSymbols.Number, LanguageVersion.Version1, StandardLibraryCapability.Deterministic, ("value", TypeSymbols.Number)
+        /// <summary>Gets the <c>ceil</c> function.</summary>
+        public static StandardLibraryFunction Ceil { get; } = Create(
+            "math.rounding", "ceil", TypeSymbols.Number, LanguageVersion.Version1, StandardLibraryCapability.Deterministic, ("value", TypeSymbols.Number)
         );
 
-        /// <summary>Gets the <c>truncate</c> function.</summary>
-        public static StandardLibraryFunction Truncate { get; } = Create(
-            "math.rounding", "truncate", TypeSymbols.Number, LanguageVersion.Version1, StandardLibraryCapability.Deterministic, ("value", TypeSymbols.Number)
+        /// <summary>Gets the <c>trunc</c> function.</summary>
+        public static StandardLibraryFunction Trunc { get; } = Create(
+            "math.rounding", "trunc", TypeSymbols.Number, LanguageVersion.Version1, StandardLibraryCapability.Deterministic, ("value", TypeSymbols.Number)
         );
 
         /// <summary>Gets the <c>round</c> function.</summary>
@@ -154,9 +154,9 @@ public static class StandardLibraryCatalog
             "math.rounding", "round", TypeSymbols.Number, LanguageVersion.Version1, StandardLibraryCapability.Deterministic, ("value", TypeSymbols.Number)
         );
 
-        /// <summary>Gets the <c>truncateToInt</c> function.</summary>
-        public static StandardLibraryFunction TruncateToInt { get; } = Create(
-            "math.rounding", "truncateToInt", TypeSymbols.Int, LanguageVersion.Version1, StandardLibraryCapability.Deterministic, ("value", TypeSymbols.Float)
+        /// <summary>Gets the <c>truncToInt</c> function.</summary>
+        public static StandardLibraryFunction TruncToInt { get; } = Create(
+            "math.rounding", "truncToInt", TypeSymbols.Int, LanguageVersion.Version1, StandardLibraryCapability.Deterministic, ("value", TypeSymbols.Number)
         );
 
         /// <summary>Gets the <c>sqrt</c> function.</summary>
@@ -219,14 +219,14 @@ public static class StandardLibraryCatalog
             "math.trigonometry", "atan2", TypeSymbols.Float, LanguageVersion.Version1, StandardLibraryCapability.Deterministic, ("y", TypeSymbols.Number), ("x", TypeSymbols.Number)
         );
 
-        /// <summary>Gets the <c>degreesToRadians</c> function.</summary>
-        public static StandardLibraryFunction DegreesToRadians { get; } = Create(
-            "math.trigonometry", "degreesToRadians", TypeSymbols.Float, LanguageVersion.Version1, StandardLibraryCapability.Deterministic, ("value", TypeSymbols.Number)
+        /// <summary>Gets the <c>degToRad</c> function.</summary>
+        public static StandardLibraryFunction DegToRad { get; } = Create(
+            "math.trigonometry", "degToRad", TypeSymbols.Float, LanguageVersion.Version1, StandardLibraryCapability.Deterministic, ("value", TypeSymbols.Number)
         );
 
-        /// <summary>Gets the <c>radiansToDegrees</c> function.</summary>
-        public static StandardLibraryFunction RadiansToDegrees { get; } = Create(
-            "math.trigonometry", "radiansToDegrees", TypeSymbols.Float, LanguageVersion.Version1, StandardLibraryCapability.Deterministic, ("value", TypeSymbols.Number)
+        /// <summary>Gets the <c>radToDeg</c> function.</summary>
+        public static StandardLibraryFunction RadToDeg { get; } = Create(
+            "math.trigonometry", "radToDeg", TypeSymbols.Float, LanguageVersion.Version1, StandardLibraryCapability.Deterministic, ("value", TypeSymbols.Number)
         );
 
         /// <summary>Gets the <c>isFinite</c> function.</summary>
@@ -449,10 +449,10 @@ public static class StandardLibraryCatalog
                     Max,
                     Clamp,
                     Floor,
-                    Ceiling,
-                    Truncate,
+                    Ceil,
+                    Trunc,
                     Round,
-                    TruncateToInt,
+                    TruncToInt,
                     Sqrt,
                     Pow,
                     Exp,
@@ -465,8 +465,8 @@ public static class StandardLibraryCatalog
                     Acos,
                     Atan,
                     Atan2,
-                    DegreesToRadians,
-                    RadiansToDegrees,
+                    DegToRad,
+                    RadToDeg,
                     IsFinite,
                     IsInfinity,
                     IsNaN,
@@ -589,10 +589,10 @@ public static class StandardLibraryCatalog
             "Math.Rounding",
             [
                 Functions.Floor,
-                Functions.Ceiling,
-                Functions.Truncate,
+                Functions.Ceil,
+                Functions.Trunc,
                 Functions.Round,
-                Functions.TruncateToInt,
+                Functions.TruncToInt,
             ]
         );
 
@@ -621,8 +621,8 @@ public static class StandardLibraryCatalog
                 Functions.Acos,
                 Functions.Atan,
                 Functions.Atan2,
-                Functions.DegreesToRadians,
-                Functions.RadiansToDegrees,
+                Functions.DegToRad,
+                Functions.RadToDeg,
             ]
         );
 

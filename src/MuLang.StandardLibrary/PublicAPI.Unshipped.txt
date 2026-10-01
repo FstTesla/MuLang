@@ -66,13 +66,13 @@ static MuLang.StandardLibrary.StandardLibraryCatalog.Functions.Atan.get -> MuLan
 static MuLang.StandardLibrary.StandardLibraryCatalog.Functions.Atan2.get -> MuLang.StandardLibrary.StandardLibraryFunction!
 static MuLang.StandardLibrary.StandardLibraryCatalog.Functions.Base64Decode.get -> MuLang.StandardLibrary.StandardLibraryFunction!
 static MuLang.StandardLibrary.StandardLibraryCatalog.Functions.Base64Encode.get -> MuLang.StandardLibrary.StandardLibraryFunction!
-static MuLang.StandardLibrary.StandardLibraryCatalog.Functions.Ceiling.get -> MuLang.StandardLibrary.StandardLibraryFunction!
+static MuLang.StandardLibrary.StandardLibraryCatalog.Functions.Ceil.get -> MuLang.StandardLibrary.StandardLibraryFunction!
 static MuLang.StandardLibrary.StandardLibraryCatalog.Functions.CharAt.get -> MuLang.StandardLibrary.StandardLibraryFunction!
 static MuLang.StandardLibrary.StandardLibraryCatalog.Functions.Clamp.get -> MuLang.StandardLibrary.StandardLibraryFunction!
 static MuLang.StandardLibrary.StandardLibraryCatalog.Functions.CompareIgnoreCase.get -> MuLang.StandardLibrary.StandardLibraryFunction!
 static MuLang.StandardLibrary.StandardLibraryCatalog.Functions.CompareOrdinal.get -> MuLang.StandardLibrary.StandardLibraryFunction!
 static MuLang.StandardLibrary.StandardLibraryCatalog.Functions.Cos.get -> MuLang.StandardLibrary.StandardLibraryFunction!
-static MuLang.StandardLibrary.StandardLibraryCatalog.Functions.DegreesToRadians.get -> MuLang.StandardLibrary.StandardLibraryFunction!
+static MuLang.StandardLibrary.StandardLibraryCatalog.Functions.DegToRad.get -> MuLang.StandardLibrary.StandardLibraryFunction!
 static MuLang.StandardLibrary.StandardLibraryCatalog.Functions.EndsWith.get -> MuLang.StandardLibrary.StandardLibraryFunction!
 static MuLang.StandardLibrary.StandardLibraryCatalog.Functions.EqualsIgnoreCase.get -> MuLang.StandardLibrary.StandardLibraryFunction!
 static MuLang.StandardLibrary.StandardLibraryCatalog.Functions.Exp.get -> MuLang.StandardLibrary.StandardLibraryFunction!
@@ -98,7 +98,7 @@ static MuLang.StandardLibrary.StandardLibraryCatalog.Functions.ParseBool.get -> 
 static MuLang.StandardLibrary.StandardLibraryCatalog.Functions.ParseFloat.get -> MuLang.StandardLibrary.StandardLibraryFunction!
 static MuLang.StandardLibrary.StandardLibraryCatalog.Functions.ParseInt.get -> MuLang.StandardLibrary.StandardLibraryFunction!
 static MuLang.StandardLibrary.StandardLibraryCatalog.Functions.Pow.get -> MuLang.StandardLibrary.StandardLibraryFunction!
-static MuLang.StandardLibrary.StandardLibraryCatalog.Functions.RadiansToDegrees.get -> MuLang.StandardLibrary.StandardLibraryFunction!
+static MuLang.StandardLibrary.StandardLibraryCatalog.Functions.RadToDeg.get -> MuLang.StandardLibrary.StandardLibraryFunction!
 static MuLang.StandardLibrary.StandardLibraryCatalog.Functions.RandomFloat.get -> MuLang.StandardLibrary.StandardLibraryFunction!
 static MuLang.StandardLibrary.StandardLibraryCatalog.Functions.RandomInt.get -> MuLang.StandardLibrary.StandardLibraryFunction!
 static MuLang.StandardLibrary.StandardLibraryCatalog.Functions.Remove.get -> MuLang.StandardLibrary.StandardLibraryFunction!
@@ -120,8 +120,8 @@ static MuLang.StandardLibrary.StandardLibraryCatalog.Functions.ToUpper.get -> Mu
 static MuLang.StandardLibrary.StandardLibraryCatalog.Functions.Trim.get -> MuLang.StandardLibrary.StandardLibraryFunction!
 static MuLang.StandardLibrary.StandardLibraryCatalog.Functions.TrimEnd.get -> MuLang.StandardLibrary.StandardLibraryFunction!
 static MuLang.StandardLibrary.StandardLibraryCatalog.Functions.TrimStart.get -> MuLang.StandardLibrary.StandardLibraryFunction!
-static MuLang.StandardLibrary.StandardLibraryCatalog.Functions.Truncate.get -> MuLang.StandardLibrary.StandardLibraryFunction!
-static MuLang.StandardLibrary.StandardLibraryCatalog.Functions.TruncateToInt.get -> MuLang.StandardLibrary.StandardLibraryFunction!
+static MuLang.StandardLibrary.StandardLibraryCatalog.Functions.Trunc.get -> MuLang.StandardLibrary.StandardLibraryFunction!
+static MuLang.StandardLibrary.StandardLibraryCatalog.Functions.TruncToInt.get -> MuLang.StandardLibrary.StandardLibraryFunction!
 static MuLang.StandardLibrary.StandardLibraryCatalog.Functions.TryGetById(string! id, out MuLang.StandardLibrary.StandardLibraryFunction? function) -> bool
 static MuLang.StandardLibrary.StandardLibraryCatalog.Functions.TryGetByName(string! name, out MuLang.StandardLibrary.StandardLibraryFunction? function) -> bool
 static MuLang.StandardLibrary.StandardLibraryCatalog.Functions.UnixTimeMilliseconds.get -> MuLang.StandardLibrary.StandardLibraryFunction!

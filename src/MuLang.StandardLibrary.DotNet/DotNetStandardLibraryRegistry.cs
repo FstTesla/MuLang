@@ -53,10 +53,10 @@ internal static class DotNetStandardLibraryRegistry
                 [StandardLibraryCatalog.Functions.Max.Id] = static _ => Max,
                 [StandardLibraryCatalog.Functions.Clamp.Id] = static _ => Clamp,
                 [StandardLibraryCatalog.Functions.Floor.Id] = static _ => Floor,
-                [StandardLibraryCatalog.Functions.Ceiling.Id] = static _ => Ceiling,
-                [StandardLibraryCatalog.Functions.Truncate.Id] = static _ => Truncate,
+                [StandardLibraryCatalog.Functions.Ceil.Id] = static _ => Ceil,
+                [StandardLibraryCatalog.Functions.Trunc.Id] = static _ => Trunc,
                 [StandardLibraryCatalog.Functions.Round.Id] = static _ => Round,
-                [StandardLibraryCatalog.Functions.TruncateToInt.Id] = static _ => TruncateToInt,
+                [StandardLibraryCatalog.Functions.TruncToInt.Id] = static _ => TruncToInt,
                 [StandardLibraryCatalog.Functions.Sqrt.Id] = static _ => static (_, arguments) => Math.Sqrt(Number(arguments[0])),
                 [StandardLibraryCatalog.Functions.Pow.Id] = static _ => static (_, arguments) => Math.Pow(Number(arguments[0]), Number(arguments[1])),
                 [StandardLibraryCatalog.Functions.Exp.Id] = static _ => static (_, arguments) => Math.Exp(Number(arguments[0])),
@@ -69,8 +69,8 @@ internal static class DotNetStandardLibraryRegistry
                 [StandardLibraryCatalog.Functions.Acos.Id] = static _ => static (_, arguments) => Math.Acos(Number(arguments[0])),
                 [StandardLibraryCatalog.Functions.Atan.Id] = static _ => static (_, arguments) => Math.Atan(Number(arguments[0])),
                 [StandardLibraryCatalog.Functions.Atan2.Id] = static _ => static (_, arguments) => Math.Atan2(Number(arguments[0]), Number(arguments[1])),
-                [StandardLibraryCatalog.Functions.DegreesToRadians.Id] = static _ => static (_, arguments) => Number(arguments[0]) * Math.PI / 180d,
-                [StandardLibraryCatalog.Functions.RadiansToDegrees.Id] = static _ => static (_, arguments) => Number(arguments[0]) * 180d / Math.PI,
+                [StandardLibraryCatalog.Functions.DegToRad.Id] = static _ => static (_, arguments) => Number(arguments[0]) * Math.PI / 180d,
+                [StandardLibraryCatalog.Functions.RadToDeg.Id] = static _ => static (_, arguments) => Number(arguments[0]) * 180d / Math.PI,
                 [StandardLibraryCatalog.Functions.IsFinite.Id] = static _ => static (_, arguments) => arguments[0] is long || double.IsFinite((double)arguments[0]!),
                 [StandardLibraryCatalog.Functions.IsInfinity.Id] = static _ => static (_, arguments) => arguments[0] is double value && double.IsInfinity(value),
                 [StandardLibraryCatalog.Functions.IsNaN.Id] = static _ => static (_, arguments) => arguments[0] is double.NaN,
@@ -275,12 +275,12 @@ internal static class DotNetStandardLibraryRegistry
         return arguments[0] is long ? arguments[0]! : Math.Floor((double)arguments[0]!);
     }
 
-    private static object Ceiling(DotNetProviderInvocationContext _, IReadOnlyList<object?> arguments)
+    private static object Ceil(DotNetProviderInvocationContext _, IReadOnlyList<object?> arguments)
     {
         return arguments[0] is long ? arguments[0]! : Math.Ceiling((double)arguments[0]!);
     }
 
-    private static object Truncate(DotNetProviderInvocationContext _, IReadOnlyList<object?> arguments)
+    private static object Trunc(DotNetProviderInvocationContext _, IReadOnlyList<object?> arguments)
     {
         return arguments[0] is long ? arguments[0]! : Math.Truncate((double)arguments[0]!);
     }
@@ -290,8 +290,16 @@ internal static class DotNetStandardLibraryRegistry
         return arguments[0] is long ? arguments[0]! : Math.Round((double)arguments[0]!, MidpointRounding.ToEven);
     }
 
-    private static object TruncateToInt(DotNetProviderInvocationContext context, IReadOnlyList<object?> arguments)
+    private static object TruncToInt(
+        DotNetProviderInvocationContext context,
+        IReadOnlyList<object?> arguments
+    )
     {
+        if (arguments[0] is long integer)
+        {
+            return integer;
+        }
+
         double value = (double)arguments[0]!;
 
         if (!double.IsFinite(value) || value < long.MinValue || value >= 9223372036854775808d)
