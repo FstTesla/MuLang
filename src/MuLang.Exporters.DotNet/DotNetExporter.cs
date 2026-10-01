@@ -215,15 +215,15 @@ public static class DotNetExporter
             return new DotNetExportResult(null, diagnostics);
         }
 
-        Func<DotNetRuntimeContext, object?> compiledDelegate = Compile(program);
+        Func<DotNetRuntimeContext, ExecutionResult> executionDelegate = Compile(program);
 
         return new DotNetExportResult(
-            compiledDelegate,
+            executionDelegate,
             DiagnosticCollection.Empty
         );
     }
 
-    private static Func<DotNetRuntimeContext, object?> Compile(IrProgram program)
+    private static Func<DotNetRuntimeContext, ExecutionResult> Compile(IrProgram program)
     {
         Dictionary<string, DotNetUserFunction> compiledFunctions =
             new (StringComparer.Ordinal);
@@ -254,10 +254,12 @@ public static class DotNetExporter
         {
             try
             {
-                return entryFunction(
-                    context,
-                    dispatcher.CreateExecution(),
-                    [ ]
+                return ExecutionResult.Success(
+                    entryFunction(
+                        context,
+                        dispatcher.CreateExecution(),
+                        [ ]
+                    )
                 );
             }
             catch (MuLangRuntimeException exception)
@@ -265,7 +267,11 @@ public static class DotNetExporter
                 exception.AddFrame(
                     new RuntimeStackFrame(program.EntryFunction.Id, entrySpan)
                 );
-                throw;
+                return ExecutionResult.Failure(
+                    exception.Error,
+                    exception.InnerException,
+                    exception
+                );
             }
         };
     }

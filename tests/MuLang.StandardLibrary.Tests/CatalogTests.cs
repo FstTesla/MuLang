@@ -1,7 +1,5 @@
 using MuLang.Core;
-using MuLang.Core.Symbols;
-using MuLang.Core.Types;
-using System.Collections;
+using System.Reflection;
 
 namespace MuLang.StandardLibrary.Tests;
 
@@ -31,182 +29,147 @@ public sealed class CatalogTests
     ];
 
     [Test]
-    public void ExposesCompleteCanonicalCatalogInDeterministicOrder()
+    public void ExposesEverySymbolPropertyAndCanonicalOrder()
     {
-        Assert.That(
-            StandardLibraryCatalog.All.Select(static module => module.Id),
-            Is.EqualTo(ExpectedModuleIds)
-        );
-        Assert.That(
-            StandardLibraryCatalog.All.Select(static module => module.DisplayName),
-            Is.EqualTo(
-                [
-                    "Math.Constants",
-                    "Math.Basic",
-                    "Math.Rounding",
-                    "Math.Powers",
-                    "Math.Trigonometry",
-                    "Math.Classification",
-                    "Array",
-                    "Object",
-                    "String.Inspection",
-                    "String.Search",
-                    "String.Transform",
-                    "String.Slicing",
-                    "String.Replacement",
-                    "String.Comparison",
-                    "Parsing",
-                    "Random",
-                    "Clock",
-                    "Guid",
-                    "Text.Encoding",
-                ]
-            )
-        );
-    }
-
-    [Test]
-    public void UsesCanonicalInstances()
-    {
-        StandardLibraryModule[] properties =
+        PropertyInfo[] globalProperties =
         [
-            StandardLibraryCatalog.MathConstants,
-            StandardLibraryCatalog.MathBasic,
-            StandardLibraryCatalog.MathRounding,
-            StandardLibraryCatalog.MathPowers,
-            StandardLibraryCatalog.MathTrigonometry,
-            StandardLibraryCatalog.MathClassification,
-            StandardLibraryCatalog.Array,
-            StandardLibraryCatalog.Object,
-            StandardLibraryCatalog.StringInspection,
-            StandardLibraryCatalog.StringSearch,
-            StandardLibraryCatalog.StringTransform,
-            StandardLibraryCatalog.StringSlicing,
-            StandardLibraryCatalog.StringReplacement,
-            StandardLibraryCatalog.StringComparison,
-            StandardLibraryCatalog.Parsing,
-            StandardLibraryCatalog.Random,
-            StandardLibraryCatalog.Clock,
-            StandardLibraryCatalog.Guid,
-            StandardLibraryCatalog.TextEncoding,
+            .. typeof(StandardLibraryCatalog.Globals)
+                .GetProperties(BindingFlags.Public | BindingFlags.Static)
+                .Where(static property => property.PropertyType == typeof(StandardLibraryGlobal)),
+        ];
+        PropertyInfo[] functionProperties =
+        [
+            .. typeof(StandardLibraryCatalog.Functions)
+                .GetProperties(BindingFlags.Public | BindingFlags.Static)
+                .Where(static property => property.PropertyType == typeof(StandardLibraryFunction)),
         ];
 
-        for (int index = 0; index < properties.Length; index++)
-        {
-            Assert.That(StandardLibraryCatalog.All[index], Is.SameAs(properties[index]));
-        }
-    }
-
-    [Test]
-    public void DeclaresMinimumVersionsAndCapabilities()
-    {
         using (Assert.EnterMultipleScope())
         {
+            Assert.That(StandardLibraryCatalog.Types.All, Is.Empty);
+            Assert.That(globalProperties, Has.Length.EqualTo(5));
+            Assert.That(functionProperties, Has.Length.EqualTo(66));
+            Assert.That(StandardLibraryCatalog.Globals.All, Has.Count.EqualTo(5));
+            Assert.That(StandardLibraryCatalog.Functions.All, Has.Count.EqualTo(66));
             Assert.That(
-                StandardLibraryCatalog.Array.MinimumLanguageVersion,
-                Is.EqualTo(LanguageVersion.Version1_1)
-            );
-            Assert.That(
-                StandardLibraryCatalog.Object.MinimumLanguageVersion,
-                Is.EqualTo(LanguageVersion.Version1_1)
-            );
-            Assert.That(
-                StandardLibraryCatalog.All
-                    .Except([ StandardLibraryCatalog.Array, StandardLibraryCatalog.Object ])
-                    .Select(static module => module.MinimumLanguageVersion),
-                Is.All.EqualTo(LanguageVersion.Version1)
-            );
-            Assert.That(
-                StandardLibraryCatalog.Random.Capability,
-                Is.EqualTo(StandardLibraryCapability.Randomness)
-            );
-            Assert.That(
-                StandardLibraryCatalog.Clock.Capability,
-                Is.EqualTo(StandardLibraryCapability.Clock)
-            );
-            Assert.That(
-                StandardLibraryCatalog.Guid.Capability,
-                Is.EqualTo(StandardLibraryCapability.RandomnessAndClock)
-            );
-            Assert.That(
-                StandardLibraryCatalog.All
-                    .Except(
-                        [
-                            StandardLibraryCatalog.Random,
-                            StandardLibraryCatalog.Clock,
-                            StandardLibraryCatalog.Guid,
-                        ]
-                    )
-                    .Select(static module => module.Capability),
-                Is.All.EqualTo(StandardLibraryCapability.Deterministic)
+                StandardLibraryCatalog.Symbols,
+                Is.EqualTo(
+                    StandardLibraryCatalog.Globals.All
+                        .Cast<IStandardLibrarySymbol>()
+                        .Concat(StandardLibraryCatalog.Functions.All)
+                )
             );
         }
     }
 
     [Test]
-    public void CatalogDeclarationsAreGloballyUnique()
+    public void SupportsOrdinalIdentifierAndNameLookups()
     {
-        IReadOnlyList<GlobalSymbol> globals =
-        [
-            .. StandardLibraryCatalog.All.SelectMany(static module => module.Globals),
-        ];
-        IReadOnlyList<FunctionSymbol> functions =
-        [
-            .. StandardLibraryCatalog.All.SelectMany(static module => module.Functions),
-        ];
-        IReadOnlyList<string> providerIds =
-        [
-            .. StandardLibraryCatalog.All.SelectMany(
-                static module => module.Types.Select(static type => type.Id!)
-                    .Concat(module.Globals.Select(static global => global.Id))
-                    .Concat(module.Functions.Select(static function => function.Id))
-            ),
-        ];
+        StandardLibraryGlobal global = StandardLibraryCatalog.Globals.Pi;
+        StandardLibraryFunction function = StandardLibraryCatalog.Functions.ArrayContains;
+        StandardLibraryModule module = StandardLibraryCatalog.Modules.MathBasic;
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(StandardLibraryCatalog.All.SelectMany(static module => module.Types), Is.Empty);
-            Assert.That(StandardLibraryCatalog.All.Sum(static module => module.Globals.Count), Is.EqualTo(5));
-            Assert.That(StandardLibraryCatalog.All.Sum(static module => module.Functions.Count), Is.EqualTo(66));
-            Assert.That(
-                StandardLibraryCatalog.All.Select(static module => module.Id),
-                Is.Unique
-            );
-            Assert.That(globals.Select(static global => global.Name), Is.Unique);
-            Assert.That(functions.Select(static function => function.Name), Is.Unique);
-            Assert.That(providerIds, Is.Unique);
+            Assert.That(StandardLibraryCatalog.Globals.TryGetById(global.Id, out StandardLibraryGlobal? globalById), Is.True);
+            Assert.That(globalById, Is.SameAs(global));
+            Assert.That(StandardLibraryCatalog.Globals.TryGetByName(global.Name, out StandardLibraryGlobal? globalByName), Is.True);
+            Assert.That(globalByName, Is.SameAs(global));
+            Assert.That(StandardLibraryCatalog.Functions.TryGetById(function.Id, out StandardLibraryFunction? functionById), Is.True);
+            Assert.That(functionById, Is.SameAs(function));
+            Assert.That(StandardLibraryCatalog.Functions.TryGetByName(function.Name, out StandardLibraryFunction? functionByName), Is.True);
+            Assert.That(functionByName, Is.SameAs(function));
+            Assert.That(StandardLibraryCatalog.Modules.TryGetById(module.Id, out StandardLibraryModule? moduleById), Is.True);
+            Assert.That(moduleById, Is.SameAs(module));
+            Assert.That(StandardLibraryCatalog.Modules.TryGetByName(module.DisplayName, out StandardLibraryModule? moduleByName), Is.True);
+            Assert.That(moduleByName, Is.SameAs(module));
+            Assert.That(StandardLibraryCatalog.Globals.TryGetByName("Pi", out _), Is.False);
+            Assert.That(StandardLibraryCatalog.Functions.TryGetById(function.Id.ToUpperInvariant(), out _), Is.False);
+            Assert.That(StandardLibraryCatalog.Modules.TryGetByName("math.basic", out _), Is.False);
+            Assert.That(StandardLibraryCatalog.Types.TryGetById("missing", out _), Is.False);
+            Assert.That(StandardLibraryCatalog.Types.TryGetByName("missing", out _), Is.False);
         }
     }
 
     [Test]
-    public void ModuleCollectionsAreReadOnlySnapshots()
+    public void ModulesUseCanonicalSymbolInstances()
     {
-        List<GlobalSymbol> globals =
+        IReadOnlyList<IStandardLibrarySymbol> moduleSymbols =
         [
-            new ("mulang.std.test.global.value", "value", TypeSymbols.Int),
+            .. StandardLibraryCatalog.Modules.All.SelectMany(static module => module.Symbols),
         ];
-        StandardLibraryModule module = new (
-            "mulang.std.test",
-            "Test",
-            LanguageVersion.Version1_1,
-            StandardLibraryCapability.Deterministic,
-            [ ],
-            globals,
-            [ ]
-        );
-
-        globals.Clear();
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(module.Globals, Has.Count.EqualTo(1));
-            Assert.That(module.Globals, Is.AssignableTo<IList>());
             Assert.That(
-                () => ((IList)module.Globals).Add(
-                    new GlobalSymbol("mulang.std.test.global.other", "other", TypeSymbols.Int)
-                ),
-                Throws.InstanceOf<NotSupportedException>()
+                StandardLibraryCatalog.Modules.All.Select(static module => module.Id),
+                Is.EqualTo(ExpectedModuleIds)
             );
+            Assert.That(moduleSymbols, Is.EqualTo(StandardLibraryCatalog.Symbols));
+
+            foreach (IStandardLibrarySymbol symbol in moduleSymbols)
+            {
+                Assert.That(
+                    StandardLibraryCatalog.Symbols.Any(candidate => ReferenceEquals(candidate, symbol)),
+                    Is.True
+                );
+            }
+        }
+    }
+
+    [Test]
+    public void DeclaresUniqueIdentifiersAndNames()
+    {
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(StandardLibraryCatalog.Symbols.Select(static symbol => symbol.Id), Is.Unique);
+            Assert.That(StandardLibraryCatalog.Globals.All.Select(static symbol => symbol.Name), Is.Unique);
+            Assert.That(StandardLibraryCatalog.Functions.All.Select(static symbol => symbol.Name), Is.Unique);
+            Assert.That(StandardLibraryCatalog.Modules.All.Select(static module => module.Id), Is.Unique);
+            Assert.That(StandardLibraryCatalog.Modules.All.Select(static module => module.DisplayName), Is.Unique);
+        }
+    }
+
+    [Test]
+    public void AssignsMetadataPerSymbolAndDerivesModuleMetadata()
+    {
+        ISet<StandardLibraryFunction> versionOneOne =
+            new HashSet<StandardLibraryFunction>(ReferenceEqualityComparer.Instance)
+            {
+                StandardLibraryCatalog.Functions.ArrayContains,
+                StandardLibraryCatalog.Functions.ObjectKeys,
+                StandardLibraryCatalog.Functions.ObjectValues,
+            };
+
+        foreach (StandardLibraryFunction function in StandardLibraryCatalog.Functions.All)
+        {
+            LanguageVersion expectedVersion = versionOneOne.Contains(function)
+                ? LanguageVersion.Version1_1
+                : LanguageVersion.Version1;
+            StandardLibraryCapability expectedCapability = function.Name switch
+            {
+                "randomFloat" or "randomInt" or "newGuid" =>
+                    StandardLibraryCapability.Randomness,
+                "unixTimeSeconds" or "unixTimeMilliseconds" =>
+                    StandardLibraryCapability.Clock,
+                "newGuidV7" => StandardLibraryCapability.RandomnessAndClock,
+                _ => StandardLibraryCapability.Deterministic,
+            };
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(function.MinimumLanguageVersion, Is.EqualTo(expectedVersion), function.Id);
+                Assert.That(function.Capability, Is.EqualTo(expectedCapability), function.Id);
+            }
+        }
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(StandardLibraryCatalog.Modules.Array.MinimumLanguageVersion, Is.EqualTo(LanguageVersion.Version1_1));
+            Assert.That(StandardLibraryCatalog.Modules.Object.MinimumLanguageVersion, Is.EqualTo(LanguageVersion.Version1_1));
+            Assert.That(StandardLibraryCatalog.Modules.Random.Capability, Is.EqualTo(StandardLibraryCapability.Randomness));
+            Assert.That(StandardLibraryCatalog.Modules.Clock.Capability, Is.EqualTo(StandardLibraryCapability.Clock));
+            Assert.That(StandardLibraryCatalog.Modules.Guid.Capability, Is.EqualTo(StandardLibraryCapability.RandomnessAndClock));
         }
     }
 }

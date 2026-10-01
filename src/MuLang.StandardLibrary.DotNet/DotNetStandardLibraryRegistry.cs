@@ -1,13 +1,13 @@
-using MuLang.Core.Symbols;
+using MuLang.Core.Types;
 using MuLang.Exporters.DotNet;
 using System.Buffers;
+using System.Collections.Frozen;
 using System.Globalization;
 using System.Text;
 
 namespace MuLang.StandardLibrary.DotNet;
 
-/// <summary>Provides canonical .NET bindings for standard-library modules.</summary>
-public static class DotNetStandardLibraryModules
+internal static class DotNetStandardLibraryRegistry
 {
     private const string ConversionError = "mulang.std.conversion";
     private const string InvalidArgumentError = "mulang.std.invalid_argument";
@@ -16,289 +16,182 @@ public static class DotNetStandardLibraryModules
     private const string ResourceError = "mulang.std.resource";
     private static readonly UTF8Encoding StrictUtf8 = new (false, true);
 
-    /// <summary>Gets the Math.Constants binding.</summary>
-    public static DotNetStandardLibraryModuleBinding MathConstants { get; } = CreateBinding(
-        StandardLibraryCatalog.MathConstants,
-        [
-            Global(StandardLibraryCatalog.MathConstants, "e", Math.E),
-            Global(StandardLibraryCatalog.MathConstants, "pi", Math.PI),
-            Global(StandardLibraryCatalog.MathConstants, "tau", Math.Tau),
-            Global(StandardLibraryCatalog.MathConstants, "minInt", long.MinValue),
-            Global(StandardLibraryCatalog.MathConstants, "maxInt", long.MaxValue),
-        ],
-        [ ]
-    );
+    public static IStandardLibraryRandomSource DefaultRandomSource { get; } =
+        new ThreadSafeRandomSource();
 
-    /// <summary>Gets the Math.Basic binding.</summary>
-    public static DotNetStandardLibraryModuleBinding MathBasic { get; } = CreateBinding(
-        StandardLibraryCatalog.MathBasic,
-        [ ],
-        [
-            Function(StandardLibraryCatalog.MathBasic, "abs", Abs),
-            Function(StandardLibraryCatalog.MathBasic, "sign", Sign),
-            Function(StandardLibraryCatalog.MathBasic, "min", Min),
-            Function(StandardLibraryCatalog.MathBasic, "max", Max),
-            Function(StandardLibraryCatalog.MathBasic, "clamp", Clamp),
-        ]
-    );
-
-    /// <summary>Gets the Math.Rounding binding.</summary>
-    public static DotNetStandardLibraryModuleBinding MathRounding { get; } = CreateBinding(
-        StandardLibraryCatalog.MathRounding,
-        [ ],
-        [
-            Function(StandardLibraryCatalog.MathRounding, "floor", Floor),
-            Function(StandardLibraryCatalog.MathRounding, "ceiling", Ceiling),
-            Function(StandardLibraryCatalog.MathRounding, "truncate", Truncate),
-            Function(StandardLibraryCatalog.MathRounding, "round", Round),
-            Function(StandardLibraryCatalog.MathRounding, "truncateToInt", TruncateToInt),
-        ]
-    );
-
-    /// <summary>Gets the Math.Powers binding.</summary>
-    public static DotNetStandardLibraryModuleBinding MathPowers { get; } = CreateBinding(
-        StandardLibraryCatalog.MathPowers,
-        [ ],
-        [
-            Function(StandardLibraryCatalog.MathPowers, "sqrt", static (_, arguments) => Math.Sqrt(Number(arguments[0]))),
-            Function(StandardLibraryCatalog.MathPowers, "pow", static (_, arguments) => Math.Pow(Number(arguments[0]), Number(arguments[1]))),
-            Function(StandardLibraryCatalog.MathPowers, "exp", static (_, arguments) => Math.Exp(Number(arguments[0]))),
-            Function(StandardLibraryCatalog.MathPowers, "log", static (_, arguments) => Math.Log(Number(arguments[0]))),
-            Function(StandardLibraryCatalog.MathPowers, "log10", static (_, arguments) => Math.Log10(Number(arguments[0]))),
-        ]
-    );
-
-    /// <summary>Gets the Math.Trigonometry binding.</summary>
-    public static DotNetStandardLibraryModuleBinding MathTrigonometry { get; } = CreateBinding(
-        StandardLibraryCatalog.MathTrigonometry,
-        [ ],
-        [
-            Function(StandardLibraryCatalog.MathTrigonometry, "sin", static (_, arguments) => Math.Sin(Number(arguments[0]))),
-            Function(StandardLibraryCatalog.MathTrigonometry, "cos", static (_, arguments) => Math.Cos(Number(arguments[0]))),
-            Function(StandardLibraryCatalog.MathTrigonometry, "tan", static (_, arguments) => Math.Tan(Number(arguments[0]))),
-            Function(StandardLibraryCatalog.MathTrigonometry, "asin", static (_, arguments) => Math.Asin(Number(arguments[0]))),
-            Function(StandardLibraryCatalog.MathTrigonometry, "acos", static (_, arguments) => Math.Acos(Number(arguments[0]))),
-            Function(StandardLibraryCatalog.MathTrigonometry, "atan", static (_, arguments) => Math.Atan(Number(arguments[0]))),
-            Function(StandardLibraryCatalog.MathTrigonometry, "atan2", static (_, arguments) => Math.Atan2(Number(arguments[0]), Number(arguments[1]))),
-            Function(StandardLibraryCatalog.MathTrigonometry, "degreesToRadians", static (_, arguments) => Number(arguments[0]) * Math.PI / 180d),
-            Function(StandardLibraryCatalog.MathTrigonometry, "radiansToDegrees", static (_, arguments) => Number(arguments[0]) * 180d / Math.PI),
-        ]
-    );
-
-    /// <summary>Gets the Math.Classification binding.</summary>
-    public static DotNetStandardLibraryModuleBinding MathClassification { get; } = CreateBinding(
-        StandardLibraryCatalog.MathClassification,
-        [ ],
-        [
-            Function(StandardLibraryCatalog.MathClassification, "isFinite", static (_, arguments) => arguments[0] is long || double.IsFinite((double)arguments[0]!)),
-            Function(StandardLibraryCatalog.MathClassification, "isInfinity", static (_, arguments) => arguments[0] is double value && double.IsInfinity(value)),
-            Function(StandardLibraryCatalog.MathClassification, "isNaN", static (_, arguments) => arguments[0] is double.NaN),
-        ]
-    );
-
-    /// <summary>Gets the Array binding.</summary>
-    public static DotNetStandardLibraryModuleBinding Array { get; } = CreateBinding(
-        StandardLibraryCatalog.Array,
-        [ ],
-        [ Function(StandardLibraryCatalog.Array, "arrayContains", ArrayContains) ]
-    );
-
-    /// <summary>Gets the Object binding.</summary>
-    public static DotNetStandardLibraryModuleBinding Object { get; } = CreateBinding(
-        StandardLibraryCatalog.Object,
-        [ ],
-        [
-            Function(StandardLibraryCatalog.Object, "objectKeys", ObjectKeys),
-            Function(StandardLibraryCatalog.Object, "objectValues", ObjectValues),
-        ]
-    );
-
-    /// <summary>Gets the String.Inspection binding.</summary>
-    public static DotNetStandardLibraryModuleBinding StringInspection { get; } = CreateBinding(
-        StandardLibraryCatalog.StringInspection,
-        [ ],
-        [
-            Function(StandardLibraryCatalog.StringInspection, "stringLength", StringLength),
-            Function(StandardLibraryCatalog.StringInspection, "charAt", CharAt),
-            Function(StandardLibraryCatalog.StringInspection, "isEmpty", static (_, arguments) => ((string)arguments[0]!).Length == 0),
-            Function(StandardLibraryCatalog.StringInspection, "isWhiteSpace", IsWhiteSpace),
-            Function(StandardLibraryCatalog.StringInspection, "stringContains", StringContains),
-            Function(StandardLibraryCatalog.StringInspection, "startsWith", StartsWith),
-            Function(StandardLibraryCatalog.StringInspection, "endsWith", EndsWith),
-        ]
-    );
-
-    /// <summary>Gets the String.Search binding.</summary>
-    public static DotNetStandardLibraryModuleBinding StringSearch { get; } = CreateBinding(
-        StandardLibraryCatalog.StringSearch,
-        [ ],
-        [
-            Function(StandardLibraryCatalog.StringSearch, "indexOf", IndexOf),
-            Function(StandardLibraryCatalog.StringSearch, "lastIndexOf", LastIndexOf),
-        ]
-    );
-
-    /// <summary>Gets the String.Transform binding.</summary>
-    public static DotNetStandardLibraryModuleBinding StringTransform { get; } = CreateBinding(
-        StandardLibraryCatalog.StringTransform,
-        [ ],
-        [
-            Function(StandardLibraryCatalog.StringTransform, "toLower", static (_, arguments) => ((string)arguments[0]!).ToLowerInvariant()),
-            Function(StandardLibraryCatalog.StringTransform, "toUpper", static (_, arguments) => ((string)arguments[0]!).ToUpperInvariant()),
-            Function(StandardLibraryCatalog.StringTransform, "trim", static (_, arguments) => ((string)arguments[0]!).Trim()),
-            Function(StandardLibraryCatalog.StringTransform, "trimStart", static (_, arguments) => ((string)arguments[0]!).TrimStart()),
-            Function(StandardLibraryCatalog.StringTransform, "trimEnd", static (_, arguments) => ((string)arguments[0]!).TrimEnd()),
-            Function(StandardLibraryCatalog.StringTransform, "repeat", Repeat),
-            Function(StandardLibraryCatalog.StringTransform, "reverse", Reverse),
-        ]
-    );
-
-    /// <summary>Gets the String.Slicing binding.</summary>
-    public static DotNetStandardLibraryModuleBinding StringSlicing { get; } = CreateBinding(
-        StandardLibraryCatalog.StringSlicing,
-        [ ],
-        [
-            Function(StandardLibraryCatalog.StringSlicing, "substring", Substring),
-            Function(StandardLibraryCatalog.StringSlicing, "remove", Remove),
-            Function(StandardLibraryCatalog.StringSlicing, "insert", Insert),
-        ]
-    );
-
-    /// <summary>Gets the String.Replacement binding.</summary>
-    public static DotNetStandardLibraryModuleBinding StringReplacement { get; } = CreateBinding(
-        StandardLibraryCatalog.StringReplacement,
-        [ ],
-        [
-            Function(StandardLibraryCatalog.StringReplacement, "replaceFirst", ReplaceFirst),
-            Function(StandardLibraryCatalog.StringReplacement, "replaceAll", ReplaceAll),
-        ]
-    );
-
-    /// <summary>Gets the String.Comparison binding.</summary>
-    public static DotNetStandardLibraryModuleBinding StringComparison { get; } = CreateBinding(
-        StandardLibraryCatalog.StringComparison,
-        [ ],
-        [
-            Function(StandardLibraryCatalog.StringComparison, "compareOrdinal", static (_, arguments) => NormalizeComparison(string.CompareOrdinal((string)arguments[0]!, (string)arguments[1]!))),
-            Function(StandardLibraryCatalog.StringComparison, "compareIgnoreCase", static (_, arguments) => NormalizeComparison(string.Compare((string)arguments[0]!, (string)arguments[1]!, System.StringComparison.OrdinalIgnoreCase))),
-            Function(StandardLibraryCatalog.StringComparison, "equalsIgnoreCase", static (_, arguments) => string.Equals((string)arguments[0]!, (string)arguments[1]!, System.StringComparison.OrdinalIgnoreCase)),
-        ]
-    );
-
-    /// <summary>Gets the Parsing binding.</summary>
-    public static DotNetStandardLibraryModuleBinding Parsing { get; } = CreateBinding(
-        StandardLibraryCatalog.Parsing,
-        [ ],
-        [
-            Function(StandardLibraryCatalog.Parsing, "parseInt", ParseInt),
-            Function(StandardLibraryCatalog.Parsing, "parseFloat", ParseFloat),
-            Function(StandardLibraryCatalog.Parsing, "parseBool", ParseBool),
-        ]
-    );
-
-    /// <summary>Gets the Text.Encoding binding.</summary>
-    public static DotNetStandardLibraryModuleBinding TextEncoding { get; } = CreateBinding(
-        StandardLibraryCatalog.TextEncoding,
-        [ ],
-        [
-            Function(StandardLibraryCatalog.TextEncoding, "base64Encode", Base64Encode),
-            Function(StandardLibraryCatalog.TextEncoding, "base64Decode", Base64Decode),
-        ]
-    );
-
-    /// <summary>Gets every deterministic binding in catalog order.</summary>
-    public static IReadOnlyList<DotNetStandardLibraryModuleBinding> Deterministic { get; } =
-    [
-        MathConstants,
-        MathBasic,
-        MathRounding,
-        MathPowers,
-        MathTrigonometry,
-        MathClassification,
-        Array,
-        Object,
-        StringInspection,
-        StringSearch,
-        StringTransform,
-        StringSlicing,
-        StringReplacement,
-        StringComparison,
-        Parsing,
-        TextEncoding,
-    ];
-
-    /// <summary>Creates a Random module binding.</summary>
-    /// <param name="options">The random configuration.</param>
-    /// <returns>The configured binding.</returns>
-    /// <exception cref="ArgumentNullException">Thrown when <paramref name="options" /> is <c>null</c>.</exception>
-    public static DotNetStandardLibraryModuleBinding CreateRandom(RandomStandardLibraryOptions options)
-    {
-        if (options is null)
+    public static IReadOnlyDictionary<string, object?> Globals { get; } =
+        new Dictionary<string, object?>(StringComparer.Ordinal)
         {
-            throw new ArgumentNullException(nameof(options));
-        }
+            [StandardLibraryCatalog.Globals.E.Id] = Math.E,
+            [StandardLibraryCatalog.Globals.Pi.Id] = Math.PI,
+            [StandardLibraryCatalog.Globals.Tau.Id] = Math.Tau,
+            [StandardLibraryCatalog.Globals.MinInt.Id] = long.MinValue,
+            [StandardLibraryCatalog.Globals.MaxInt.Id] = long.MaxValue,
+        }.ToFrozenDictionary(StringComparer.Ordinal);
 
-        IStandardLibraryRandomSource randomSource = options.RandomSource ?? DefaultRandomSource.Instance;
+    public static IReadOnlyDictionary<
+        string,
+        Func<DotNetStandardLibraryServices, DotNetProviderFunction>
+    > Functions { get; } = CreateFunctions();
 
-        return CreateBinding(
-            StandardLibraryCatalog.Random,
-            [ ],
-            [
-                Function(StandardLibraryCatalog.Random, "randomFloat", (context, _) => RandomFloat(context, randomSource)),
-                Function(StandardLibraryCatalog.Random, "randomInt", (context, arguments) => RandomInt(context, arguments, randomSource)),
-            ]
-        );
+    static DotNetStandardLibraryRegistry()
+    {
+        ValidateParity();
     }
 
-    /// <summary>Creates a Clock module binding.</summary>
-    /// <param name="options">The clock configuration.</param>
-    /// <returns>The configured binding.</returns>
-    /// <exception cref="ArgumentException">Thrown when the configured time provider is <c>null</c>.</exception>
-    /// <exception cref="ArgumentNullException">Thrown when <paramref name="options" /> is <c>null</c>.</exception>
-    public static DotNetStandardLibraryModuleBinding CreateClock(ClockStandardLibraryOptions options)
+    private static IReadOnlyDictionary<
+        string,
+        Func<DotNetStandardLibraryServices, DotNetProviderFunction>
+    > CreateFunctions()
     {
-        if (options is null)
-        {
-            throw new ArgumentNullException(nameof(options));
-        }
+        Dictionary<string, Func<DotNetStandardLibraryServices, DotNetProviderFunction>> functions =
+            new (StringComparer.Ordinal)
+            {
+                [StandardLibraryCatalog.Functions.Abs.Id] = static _ => Abs,
+                [StandardLibraryCatalog.Functions.Sign.Id] = static _ => Sign,
+                [StandardLibraryCatalog.Functions.Min.Id] = static _ => Min,
+                [StandardLibraryCatalog.Functions.Max.Id] = static _ => Max,
+                [StandardLibraryCatalog.Functions.Clamp.Id] = static _ => Clamp,
+                [StandardLibraryCatalog.Functions.Floor.Id] = static _ => Floor,
+                [StandardLibraryCatalog.Functions.Ceiling.Id] = static _ => Ceiling,
+                [StandardLibraryCatalog.Functions.Truncate.Id] = static _ => Truncate,
+                [StandardLibraryCatalog.Functions.Round.Id] = static _ => Round,
+                [StandardLibraryCatalog.Functions.TruncateToInt.Id] = static _ => TruncateToInt,
+                [StandardLibraryCatalog.Functions.Sqrt.Id] = static _ => static (_, arguments) => Math.Sqrt(Number(arguments[0])),
+                [StandardLibraryCatalog.Functions.Pow.Id] = static _ => static (_, arguments) => Math.Pow(Number(arguments[0]), Number(arguments[1])),
+                [StandardLibraryCatalog.Functions.Exp.Id] = static _ => static (_, arguments) => Math.Exp(Number(arguments[0])),
+                [StandardLibraryCatalog.Functions.Log.Id] = static _ => static (_, arguments) => Math.Log(Number(arguments[0])),
+                [StandardLibraryCatalog.Functions.Log10.Id] = static _ => static (_, arguments) => Math.Log10(Number(arguments[0])),
+                [StandardLibraryCatalog.Functions.Sin.Id] = static _ => static (_, arguments) => Math.Sin(Number(arguments[0])),
+                [StandardLibraryCatalog.Functions.Cos.Id] = static _ => static (_, arguments) => Math.Cos(Number(arguments[0])),
+                [StandardLibraryCatalog.Functions.Tan.Id] = static _ => static (_, arguments) => Math.Tan(Number(arguments[0])),
+                [StandardLibraryCatalog.Functions.Asin.Id] = static _ => static (_, arguments) => Math.Asin(Number(arguments[0])),
+                [StandardLibraryCatalog.Functions.Acos.Id] = static _ => static (_, arguments) => Math.Acos(Number(arguments[0])),
+                [StandardLibraryCatalog.Functions.Atan.Id] = static _ => static (_, arguments) => Math.Atan(Number(arguments[0])),
+                [StandardLibraryCatalog.Functions.Atan2.Id] = static _ => static (_, arguments) => Math.Atan2(Number(arguments[0]), Number(arguments[1])),
+                [StandardLibraryCatalog.Functions.DegreesToRadians.Id] = static _ => static (_, arguments) => Number(arguments[0]) * Math.PI / 180d,
+                [StandardLibraryCatalog.Functions.RadiansToDegrees.Id] = static _ => static (_, arguments) => Number(arguments[0]) * 180d / Math.PI,
+                [StandardLibraryCatalog.Functions.IsFinite.Id] = static _ => static (_, arguments) => arguments[0] is long || double.IsFinite((double)arguments[0]!),
+                [StandardLibraryCatalog.Functions.IsInfinity.Id] = static _ => static (_, arguments) => arguments[0] is double value && double.IsInfinity(value),
+                [StandardLibraryCatalog.Functions.IsNaN.Id] = static _ => static (_, arguments) => arguments[0] is double.NaN,
+                [StandardLibraryCatalog.Functions.ArrayContains.Id] = static _ => ArrayContains,
+                [StandardLibraryCatalog.Functions.ObjectKeys.Id] = static _ => ObjectKeys,
+                [StandardLibraryCatalog.Functions.ObjectValues.Id] = static _ => ObjectValues,
+                [StandardLibraryCatalog.Functions.StringLength.Id] = static _ => StringLength,
+                [StandardLibraryCatalog.Functions.CharAt.Id] = static _ => CharAt,
+                [StandardLibraryCatalog.Functions.IsEmpty.Id] = static _ => static (_, arguments) => ((string)arguments[0]!).Length == 0,
+                [StandardLibraryCatalog.Functions.IsWhiteSpace.Id] = static _ => IsWhiteSpace,
+                [StandardLibraryCatalog.Functions.StringContains.Id] = static _ => StringContains,
+                [StandardLibraryCatalog.Functions.StartsWith.Id] = static _ => StartsWith,
+                [StandardLibraryCatalog.Functions.EndsWith.Id] = static _ => EndsWith,
+                [StandardLibraryCatalog.Functions.IndexOf.Id] = static _ => IndexOf,
+                [StandardLibraryCatalog.Functions.LastIndexOf.Id] = static _ => LastIndexOf,
+                [StandardLibraryCatalog.Functions.ToLower.Id] = static _ => static (_, arguments) => ((string)arguments[0]!).ToLowerInvariant(),
+                [StandardLibraryCatalog.Functions.ToUpper.Id] = static _ => static (_, arguments) => ((string)arguments[0]!).ToUpperInvariant(),
+                [StandardLibraryCatalog.Functions.Trim.Id] = static _ => static (_, arguments) => ((string)arguments[0]!).Trim(),
+                [StandardLibraryCatalog.Functions.TrimStart.Id] = static _ => static (_, arguments) => ((string)arguments[0]!).TrimStart(),
+                [StandardLibraryCatalog.Functions.TrimEnd.Id] = static _ => static (_, arguments) => ((string)arguments[0]!).TrimEnd(),
+                [StandardLibraryCatalog.Functions.Repeat.Id] = static _ => Repeat,
+                [StandardLibraryCatalog.Functions.Reverse.Id] = static _ => Reverse,
+                [StandardLibraryCatalog.Functions.Substring.Id] = static _ => Substring,
+                [StandardLibraryCatalog.Functions.Remove.Id] = static _ => Remove,
+                [StandardLibraryCatalog.Functions.Insert.Id] = static _ => Insert,
+                [StandardLibraryCatalog.Functions.ReplaceFirst.Id] = static _ => ReplaceFirst,
+                [StandardLibraryCatalog.Functions.ReplaceAll.Id] = static _ => ReplaceAll,
+                [StandardLibraryCatalog.Functions.CompareOrdinal.Id] = static _ => static (_, arguments) => NormalizeComparison(string.CompareOrdinal((string)arguments[0]!, (string)arguments[1]!)),
+                [StandardLibraryCatalog.Functions.CompareIgnoreCase.Id] = static _ => static (_, arguments) => NormalizeComparison(string.Compare((string)arguments[0]!, (string)arguments[1]!, StringComparison.OrdinalIgnoreCase)),
+                [StandardLibraryCatalog.Functions.EqualsIgnoreCase.Id] = static _ => static (_, arguments) => string.Equals((string)arguments[0]!, (string)arguments[1]!, StringComparison.OrdinalIgnoreCase),
+                [StandardLibraryCatalog.Functions.ParseInt.Id] = static _ => ParseInt,
+                [StandardLibraryCatalog.Functions.ParseFloat.Id] = static _ => ParseFloat,
+                [StandardLibraryCatalog.Functions.ParseBool.Id] = static _ => ParseBool,
+                [StandardLibraryCatalog.Functions.RandomFloat.Id] = static services => (context, _) => RandomFloat(context, services.RandomSource),
+                [StandardLibraryCatalog.Functions.RandomInt.Id] = static services => (context, arguments) => RandomInt(context, arguments, services.RandomSource),
+                [StandardLibraryCatalog.Functions.UnixTimeSeconds.Id] = static services =>
+                {
+                    TimeProvider timeProvider = services.GetClockTimeProvider();
+                    return (context, _) => UnixTime(context, timeProvider, false);
+                },
+                [StandardLibraryCatalog.Functions.UnixTimeMilliseconds.Id] = static services =>
+                {
+                    TimeProvider timeProvider = services.GetClockTimeProvider();
+                    return (context, _) => UnixTime(context, timeProvider, true);
+                },
+                [StandardLibraryCatalog.Functions.NewGuid.Id] = static _ => static (_, _) => Guid.NewGuid().ToString("D", CultureInfo.InvariantCulture),
+                [StandardLibraryCatalog.Functions.NewGuidV7.Id] = static services =>
+                {
+                    TimeProvider timeProvider = services.GetGuidTimeProvider();
+                    return (context, _) => NewGuidV7(context, timeProvider);
+                },
+                [StandardLibraryCatalog.Functions.IsGuid.Id] = static _ => static (_, arguments) => IsCanonicalGuid((string)arguments[0]!),
+                [StandardLibraryCatalog.Functions.Base64Encode.Id] = static _ => Base64Encode,
+                [StandardLibraryCatalog.Functions.Base64Decode.Id] = static _ => Base64Decode,
+            };
 
-        TimeProvider timeProvider = options.TimeProvider ??
-            throw new ArgumentException("The time provider cannot be null.", nameof(options));
-
-        return CreateBinding(
-            StandardLibraryCatalog.Clock,
-            [ ],
-            [
-                Function(StandardLibraryCatalog.Clock, "unixTimeSeconds", (context, _) => UnixTime(context, timeProvider, false)),
-                Function(StandardLibraryCatalog.Clock, "unixTimeMilliseconds", (context, _) => UnixTime(context, timeProvider, true)),
-            ]
-        );
+        return functions.ToFrozenDictionary(StringComparer.Ordinal);
     }
 
-    /// <summary>Creates a Guid module binding.</summary>
-    /// <param name="options">The GUID configuration.</param>
-    /// <returns>The configured binding.</returns>
-    /// <exception cref="ArgumentException">Thrown when the configured time provider is <c>null</c>.</exception>
-    /// <exception cref="ArgumentNullException">Thrown when <paramref name="options" /> is <c>null</c>.</exception>
-    public static DotNetStandardLibraryModuleBinding CreateGuid(GuidStandardLibraryOptions options)
+    private static void ValidateParity()
     {
-        if (options is null)
+        ISet<string> declaredGlobals = StandardLibraryCatalog.Globals.All
+            .Select(static global => global.Id)
+            .ToHashSet(StringComparer.Ordinal);
+        ISet<string> declaredFunctions = StandardLibraryCatalog.Functions.All
+            .Select(static function => function.Id)
+            .ToHashSet(StringComparer.Ordinal);
+
+        if (!declaredGlobals.SetEquals(Globals.Keys))
         {
-            throw new ArgumentNullException(nameof(options));
+            throw new InvalidOperationException(
+                "The .NET standard-library global registry does not match the declaration catalog."
+            );
         }
 
-        TimeProvider timeProvider = options.TimeProvider ??
-            throw new ArgumentException("The time provider cannot be null.", nameof(options));
+        if (!declaredFunctions.SetEquals(Functions.Keys))
+        {
+            throw new InvalidOperationException(
+                "The .NET standard-library function registry does not match the declaration catalog."
+            );
+        }
 
-        return CreateBinding(
-            StandardLibraryCatalog.Guid,
-            [ ],
-            [
-                Function(StandardLibraryCatalog.Guid, "newGuid", static (_, _) => Guid.NewGuid().ToString("D", CultureInfo.InvariantCulture)),
-                Function(StandardLibraryCatalog.Guid, "newGuidV7", (context, _) => NewGuidV7(context, timeProvider)),
-                Function(StandardLibraryCatalog.Guid, "isGuid", static (_, arguments) => IsCanonicalGuid((string)arguments[0]!)),
-            ]
-        );
+        foreach (StandardLibraryGlobal global in StandardLibraryCatalog.Globals.All)
+        {
+            if (!IsCompatibleGlobalValue(global.Declaration.Type, Globals[global.Id]))
+            {
+                throw new InvalidOperationException(
+                    $"The .NET standard-library global '{global.Id}' is incompatible with its declaration."
+                );
+            }
+        }
+    }
+
+    private static bool IsCompatibleGlobalValue(TypeSymbol type, object? value)
+    {
+        if (ReferenceEquals(type, TypeSymbols.Bool))
+        {
+            return value is bool;
+        }
+
+        if (ReferenceEquals(type, TypeSymbols.Int))
+        {
+            return value is long;
+        }
+
+        if (ReferenceEquals(type, TypeSymbols.Float))
+        {
+            return value is double;
+        }
+
+        if (ReferenceEquals(type, TypeSymbols.Number))
+        {
+            return value is long or double;
+        }
+
+        if (ReferenceEquals(type, TypeSymbols.String))
+        {
+            return value is string;
+        }
+
+        return false;
     }
 
     private static object Abs(DotNetProviderInvocationContext context, IReadOnlyList<object?> arguments)
@@ -495,7 +388,7 @@ public static class DotNetStandardLibraryModules
 
         for (int index = 1; index < names.Count; index++)
         {
-            if (string.Equals(names[index - 1], names[index], System.StringComparison.Ordinal))
+            if (string.Equals(names[index - 1], names[index], StringComparison.Ordinal))
             {
                 throw new InvalidOperationException(
                     $"Object property '{names[index]}' was enumerated more than once."
@@ -1082,7 +975,7 @@ public static class DotNetStandardLibraryModules
     {
         return value.Length == 36 &&
             Guid.TryParseExact(value, "D", out Guid parsed) &&
-            string.Equals(parsed.ToString("D", CultureInfo.InvariantCulture), value, System.StringComparison.OrdinalIgnoreCase);
+            string.Equals(parsed.ToString("D", CultureInfo.InvariantCulture), value, StringComparison.OrdinalIgnoreCase);
     }
 
     private static (int Start, int End) GetUtf16Range(
@@ -1398,49 +1291,10 @@ public static class DotNetStandardLibraryModules
         return value is long integer ? integer : (double)value!;
     }
 
-    private static KeyValuePair<string, object?> Global(
-        StandardLibraryModule module,
-        string name,
-        object? value
-    )
-    {
-        GlobalSymbol declaration = module.Globals.Single(
-            global => string.Equals(global.Name, name, System.StringComparison.Ordinal)
-        );
-        return KeyValuePair.Create(declaration.Id, value);
-    }
-
-    private static DotNetStandardLibraryFunction Function(
-        StandardLibraryModule module,
-        string name,
-        DotNetProviderFunction implementation
-    )
-    {
-        FunctionSymbol declaration = module.Functions.Single(
-            function => string.Equals(function.Name, name, System.StringComparison.Ordinal)
-        );
-        return new DotNetStandardLibraryFunction(
-            declaration.Id,
-            declaration.Parameters.Count,
-            implementation
-        );
-    }
-
-    private static DotNetStandardLibraryModuleBinding CreateBinding(
-        StandardLibraryModule module,
-        IEnumerable<KeyValuePair<string, object?>> globals,
-        IEnumerable<DotNetStandardLibraryFunction> functions
-    )
-    {
-        return new DotNetStandardLibraryModuleBinding(module.Id, module, globals, functions);
-    }
-
-    private sealed class DefaultRandomSource : IStandardLibraryRandomSource
+    private sealed class ThreadSafeRandomSource : IStandardLibraryRandomSource
     {
         private readonly Lock syncRoot = new ();
         private readonly Random random = new ();
-
-        public static DefaultRandomSource Instance { get; } = new ();
 
         public double NextDouble()
         {

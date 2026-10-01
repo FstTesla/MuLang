@@ -38,7 +38,7 @@ Renaming a language-visible symbol does not silently change its provider identif
 
 The declarative package contains:
 
-- module metadata;
+- canonical symbol metadata and proposed module aggregates;
 - types;
 - constants and global declarations;
 - function signatures;
@@ -48,11 +48,10 @@ It contains no delegates, `System.Random`, `TimeProvider`, GUID generation, text
 
 ### Runtime parity
 
-Each .NET module declares exactly the globals and functions implemented by its matching declarative module.
+The .NET implementation binds exactly the globals and functions declared by the canonical symbol catalog.
 
 Automated parity tests compare:
 
-- module identifiers;
 - global identifiers;
 - function identifiers;
 - argument counts;
@@ -62,7 +61,8 @@ Automated parity tests compare:
 
 ### Determinism metadata
 
-Modules declare whether they require nondeterministic runtime capabilities.
+Symbols declare whether they require nondeterministic runtime capabilities.
+Modules and selections derive their requirements from their members.
 
 Initial capability categories are:
 
@@ -77,39 +77,57 @@ This metadata is descriptive and supports host policy. It does not enable module
 
 Introduce a small immutable model in `MuLang.StandardLibrary`.
 
-### Standard-library module
+### Standard-library symbols
 
-A module exposes:
+Each type, global, and function symbol exposes:
 
-- stable module identifier;
-- display name;
+- its runtime-independent declaration;
+- stable provider identifier;
+- language-visible name;
 - minimum language version;
 - capability metadata;
-- structured types, if any;
-- global declarations;
-- function declarations.
+- symbol dependencies.
 
 Collections are immutable or read-only and have deterministic ordering.
 
-The initial catalog does not require structured types, but the model should support them so future modules do not need a parallel abstraction.
+Types, globals, and functions use distinct public wrapper types implementing one
+common symbol interface. The initial catalog does not require structured types,
+but the model supports them without a parallel abstraction.
+
+### Standard-library selections
+
+A normalized selection:
+
+- accepts individual symbols, proposed modules, or both;
+- expands transitive symbol dependencies;
+- deduplicates canonical symbols;
+- rejects conflicting identifiers and dependency cycles;
+- preserves deterministic dependencies-first ordering;
+- derives its minimum language version and capability metadata.
+
+### Standard-library modules
+
+A module is a proposed immutable aggregate of canonical symbols. It exposes a
+stable module identifier, display name, symbols, and typed projections. Its
+minimum language version and capability metadata are derived from its members.
 
 ### Module catalog
 
-Expose one canonical module instance for each module.
-
-Also expose read-only catalog collections for discovery. Do not expose an aggregate that silently imports every module.
-
-Convenience collections may group modules by category or determinism, but consumers must still pass the selected modules explicitly to composition.
+Expose canonical type, global, function, and module instances through nested
+`Types`, `Globals`, `Functions`, and `Modules` catalogs. Each catalog exposes
+static properties, deterministic `All` collections, and ordinal lookup by ID
+and name. A flat symbol collection supports discovery but is not an implicit
+import operation.
 
 ### Environment composition
 
-Provide a standard-library composer that adds selected module declarations to an `EnvironmentBuilder`.
+Provide a standard-library composer that adds a normalized symbol selection to
+an `EnvironmentBuilder`.
 
 Composition must:
 
-- require a language version compatible with every module;
-- preserve caller-selected module order only for diagnostics, not fingerprints;
-- reject duplicate module identifiers;
+- require a language version compatible with every symbol;
+- preserve normalized symbol order only for diagnostics, not fingerprints;
 - reject duplicate type, global, or function names;
 - reject duplicate provider identifiers;
 - surface the exact conflicting modules and symbols;
@@ -125,28 +143,19 @@ Expose declarations through their module objects or through generated/shared imm
 
 ## .NET implementation model
 
-### Module bindings
+### Runtime binding
 
-Each .NET module provides:
-
-- runtime global values keyed by the declaration identifiers;
-- runtime function implementations keyed by the declaration identifiers;
-- a reference to the matching declarative module.
-
-Bindings are immutable after creation.
-
-### Runtime composition
-
-Provide a composer for selected .NET module bindings.
+Provide a configurable .NET standard-library instance that binds the same
+normalized symbol selection used for declaration composition.
 
 It must:
 
-- validate that each implementation matches its declaration;
-- reject duplicate global and function identifiers;
-- reject implementations for undeclared symbols;
-- reject missing implementations;
-- expose collections suitable for constructing `DotNetRuntimeContext`;
-- compose with host-provided globals and functions while preserving collision errors.
+- validate catalog-wide declaration and implementation parity;
+- reject unsupported or noncanonical symbols;
+- expose immutable global and function dictionaries suitable for
+  `DotNetRuntimeContext.Create`;
+- resolve random and clock services only for selected symbols that require
+  them.
 
 Do not make `DotNetRuntimeContext` depend on the standard-library package.
 
@@ -484,12 +493,15 @@ If per-element budget charging is introduced, it should be a general provider-op
 
 Cover:
 
-- module metadata;
+- symbol metadata and dependencies;
+- derived module and selection metadata;
 - stable identifiers;
 - minimum language versions;
 - exact symbol names and signatures;
 - global uniqueness across the complete catalog;
 - deterministic ordering;
+- lookup by ID and name;
+- individual-symbol and mixed module/symbol selection;
 - collision diagnostics;
 - selective composition;
 - composition with host declarations;
@@ -500,7 +512,7 @@ Cover:
 
 For every module, verify:
 
-- one matching implementation binding;
+- every canonical runtime global and function has one matching implementation;
 - no missing globals or functions;
 - no extra implementations;
 - exact identifier matching;
@@ -526,8 +538,10 @@ GUID tests validate version, canonical formatting, and Version 7 timestamp behav
 
 Compile and execute source against:
 
+- one selected symbol;
 - one selected module;
 - multiple non-conflicting modules;
+- mixed individual symbols and modules;
 - host declarations plus selected modules;
 - declaration-only environments missing implementations;
 - runtime bindings with missing or duplicate entries;
@@ -540,11 +554,13 @@ Update package READMEs and conceptual documentation with:
 
 - package selection;
 - explicit module composition;
+- individual symbol selection;
 - declaration/runtime package separation;
 - module catalog;
+- symbol lookup by ID and name;
 - stable identifier policy;
-- deterministic and nondeterministic module metadata;
-- Version 1.1 requirement;
+- deterministic and nondeterministic symbol metadata;
+- per-symbol language-version requirements;
 - runtime service configuration;
 - collision behavior;
 - no implicit compiler or facade integration.
@@ -564,7 +580,7 @@ Package verification must continue validating:
 
 ### Phase 1: Finalize contracts and semantics
 
-1. Finalize module, composer, capability, and binding type names.
+1. Finalize symbol, selection, module, composer, capability, and binding type names.
 2. Freeze stable module and symbol identifiers.
 3. Confirm every language-visible name is globally unique.
 4. Encode the semantic rules from this plan in focused specification text.
@@ -573,12 +589,12 @@ Package verification must continue validating:
 Exit criteria:
 
 - every initial symbol has one signature, identifier, module, and semantic definition;
-- no module collision exists in the complete catalog;
+- no symbol collision exists in the complete catalog;
 - runtime services required by implementations are explicit.
 
 ### Phase 2: Build declarative module infrastructure
 
-1. Add immutable module and capability models.
+1. Add immutable symbol, selection, module, and capability models.
 2. Add module composition and collision validation.
 3. Add stable declaration access for runtime packages.
 4. Add the complete declaration catalog.
@@ -586,7 +602,7 @@ Exit criteria:
 
 Exit criteria:
 
-- hosts can compose any selected module set into an environment;
+- hosts can compose any selected symbol and module set into an environment;
 - declarations contain no runtime-specific dependency;
 - catalog-wide uniqueness and fingerprints are tested.
 
@@ -605,15 +621,15 @@ Exit criteria:
 
 ### Phase 4: Build .NET composition infrastructure
 
-1. Add immutable module bindings.
-2. Add declaration/implementation parity validation.
-3. Add runtime composition with host values and functions.
+1. Add configurable binding of normalized symbol selections.
+2. Add catalog-wide declaration/implementation parity validation.
+3. Expose immutable runtime values and functions for host composition.
 4. Add injectable time and randomness services.
 5. Add parity and collision tests.
 
 Exit criteria:
 
-- selected declaration modules and runtime bindings compose independently but validate as one set;
+- the same normalized selection drives declarations and runtime bindings;
 - missing, duplicate, and extra implementations fail explicitly.
 
 ### Phase 5: Implement deterministic modules

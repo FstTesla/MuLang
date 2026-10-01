@@ -5,45 +5,43 @@ using MuLang.Core.Types;
 
 namespace MuLang.StandardLibrary;
 
-/// <summary>Composes selected standard-library modules into MuLang environments.</summary>
+/// <summary>Composes selected standard-library symbols into MuLang environments.</summary>
 public static class StandardLibraryComposer
 {
-    /// <summary>Creates an environment from selected modules.</summary>
-    /// <param name="modules">The explicitly selected modules.</param>
+    /// <summary>Creates an environment from a symbol selection.</summary>
+    /// <param name="selection">The normalized symbol selection.</param>
     /// <returns>The composed environment schema.</returns>
-    /// <exception cref="ArgumentNullException">Thrown when <paramref name="modules" /> is <c>null</c>.</exception>
-    /// <exception cref="InvalidOperationException">Thrown when modules are incompatible or declarations collide.</exception>
-    public static EnvironmentSchema Compose(
-        IEnumerable<StandardLibraryModule> modules
-    )
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="selection" /> is <c>null</c>.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when symbols are incompatible or declarations collide.</exception>
+    public static EnvironmentSchema Compose(StandardLibrarySelection selection)
     {
-        return ComposeCore(null, modules, LanguageVersion.Version1_1);
+        return ComposeCore(null, selection, LanguageVersion.Version1_1);
     }
 
-    /// <summary>Creates an environment from selected modules.</summary>
-    /// <param name="modules">The explicitly selected modules.</param>
+    /// <summary>Creates an environment from a symbol selection.</summary>
+    /// <param name="selection">The normalized symbol selection.</param>
     /// <param name="languageVersion">The target language version.</param>
     /// <returns>The composed environment schema.</returns>
-    /// <exception cref="ArgumentNullException">Thrown when <paramref name="modules" /> is <c>null</c>.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="selection" /> is <c>null</c>.</exception>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="languageVersion" /> is not defined.</exception>
-    /// <exception cref="InvalidOperationException">Thrown when modules are incompatible or declarations collide.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when symbols are incompatible or declarations collide.</exception>
     public static EnvironmentSchema Compose(
-        IEnumerable<StandardLibraryModule> modules,
+        StandardLibrarySelection selection,
         LanguageVersion languageVersion
     )
     {
-        return ComposeCore(null, modules, languageVersion);
+        return ComposeCore(null, selection, languageVersion);
     }
 
-    /// <summary>Creates an environment by adding selected modules to a host schema.</summary>
+    /// <summary>Creates an environment by adding a symbol selection to a host schema.</summary>
     /// <param name="host">The host environment schema.</param>
-    /// <param name="modules">The explicitly selected modules.</param>
+    /// <param name="selection">The normalized symbol selection.</param>
     /// <returns>The composed environment schema.</returns>
     /// <exception cref="ArgumentNullException">Thrown when an argument is <c>null</c>.</exception>
-    /// <exception cref="InvalidOperationException">Thrown when modules are incompatible or declarations collide.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when symbols are incompatible or declarations collide.</exception>
     public static EnvironmentSchema Compose(
         EnvironmentSchema host,
-        IEnumerable<StandardLibraryModule> modules
+        StandardLibrarySelection selection
     )
     {
         if (host is null)
@@ -51,16 +49,35 @@ public static class StandardLibraryComposer
             throw new ArgumentNullException(nameof(host));
         }
 
-        return ComposeCore(host, modules, host.LanguageVersion);
+        return ComposeCore(host, selection, host.LanguageVersion);
     }
 
     private static EnvironmentSchema ComposeCore(
         EnvironmentSchema? host,
-        IEnumerable<StandardLibraryModule> modules,
+        StandardLibrarySelection selection,
         LanguageVersion languageVersion
     )
     {
-        IReadOnlyList<StandardLibraryModule> selected = ValidateModules(modules, languageVersion);
+        if (selection is null)
+        {
+            throw new ArgumentNullException(nameof(selection));
+        }
+
+        if (!Enum.IsDefined(languageVersion))
+        {
+            throw new ArgumentOutOfRangeException(nameof(languageVersion));
+        }
+
+        foreach (IStandardLibrarySymbol symbol in selection.Symbols)
+        {
+            if (languageVersion < symbol.MinimumLanguageVersion)
+            {
+                throw new InvalidOperationException(
+                    $"Standard-library symbol '{symbol.Name}' ({symbol.Id}) requires language version {symbol.MinimumLanguageVersion}, but {languageVersion} was selected."
+                );
+            }
+        }
+
         EnvironmentBuilder builder = new ();
         DeclarationRegistry registry = new ();
 
@@ -69,57 +86,9 @@ public static class StandardLibraryComposer
             AddHost(builder, registry, host);
         }
 
-        ValidateDeclarations(registry, selected);
-        AddModules(builder, selected);
+        ValidateSelection(registry, selection);
+        AddSelection(builder, selection);
         return builder.Build(languageVersion);
-    }
-
-    private static IReadOnlyList<StandardLibraryModule> ValidateModules(
-        IEnumerable<StandardLibraryModule> modules,
-        LanguageVersion languageVersion
-    )
-    {
-        if (modules is null)
-        {
-            throw new ArgumentNullException(nameof(modules));
-        }
-
-        if (!Enum.IsDefined(languageVersion))
-        {
-            throw new ArgumentOutOfRangeException(nameof(languageVersion));
-        }
-
-        StandardLibraryModule[] selected = [ .. modules ];
-
-        if (selected.Any(static module => module is null))
-        {
-            throw new ArgumentException("Selected modules cannot contain null values.", nameof(modules));
-        }
-
-        IDictionary<string, StandardLibraryModule> modulesById =
-            new Dictionary<string, StandardLibraryModule>(StringComparer.Ordinal);
-
-        foreach (StandardLibraryModule module in selected)
-        {
-            if (modulesById.TryGetValue(module.Id, out StandardLibraryModule? existing))
-            {
-                throw new InvalidOperationException(
-                    $"Duplicate module identifier '{module.Id}' between modules '{existing.DisplayName}' and '{module.DisplayName}'."
-                );
-            }
-
-            modulesById.Add(module.Id, module);
-
-            if (languageVersion < module.MinimumLanguageVersion)
-            {
-                throw new InvalidOperationException(
-                    $"Module '{module.DisplayName}' ({module.Id}) requires language version {module.MinimumLanguageVersion}, but {languageVersion} was selected."
-                );
-            }
-        }
-
-        ValidateDeclarations(new DeclarationRegistry(), selected);
-        return selected;
     }
 
     private static void AddHost(
@@ -147,65 +116,57 @@ public static class StandardLibraryComposer
         }
     }
 
-    private static void ValidateDeclarations(
+    private static void ValidateSelection(
         DeclarationRegistry registry,
-        IReadOnlyList<StandardLibraryModule> modules
+        StandardLibrarySelection selection
     )
     {
-        foreach (StandardLibraryModule module in modules)
+        foreach (StandardLibraryType type in selection.Types)
         {
-            foreach (ObjectTypeSymbol type in module.Types)
-            {
-                registry.AddType(type, Describe(module, "type", type.Name));
-            }
+            registry.AddType(type.Declaration, Describe("type", type));
+        }
 
-            foreach (GlobalSymbol global in module.Globals)
-            {
-                registry.AddGlobal(global, Describe(module, "global", global.Name));
-            }
+        foreach (StandardLibraryGlobal global in selection.Globals)
+        {
+            registry.AddGlobal(global.Declaration, Describe("global", global));
+        }
 
-            foreach (FunctionSymbol function in module.Functions)
-            {
-                registry.AddFunction(function, Describe(module, "function", function.Name));
-            }
+        foreach (StandardLibraryFunction function in selection.Functions)
+        {
+            registry.AddFunction(function.Declaration, Describe("function", function));
         }
     }
 
-    private static string Describe(
-        StandardLibraryModule module,
-        string declarationKind,
-        string declarationName
-    )
+    private static string Describe(string declarationKind, IStandardLibrarySymbol symbol)
     {
-        return $"module '{module.DisplayName}' ({module.Id}) {declarationKind} '{declarationName}'";
+        return $"standard-library {declarationKind} '{symbol.Name}' ({symbol.Id})";
     }
 
-    private static void AddModules(
+    private static void AddSelection(
         EnvironmentBuilder builder,
-        IReadOnlyList<StandardLibraryModule> modules
+        StandardLibrarySelection selection
     )
     {
-        foreach (StandardLibraryModule module in modules)
+        foreach (StandardLibraryType type in selection.Types)
         {
-            foreach (ObjectTypeSymbol type in module.Types)
-            {
-                builder.AddType(type);
-            }
+            builder.AddType(type.Declaration);
+        }
 
-            foreach (GlobalSymbol global in module.Globals)
-            {
-                builder.AddGlobal(global.Id, global.Name, global.Type);
-            }
+        foreach (StandardLibraryGlobal global in selection.Globals)
+        {
+            GlobalSymbol declaration = global.Declaration;
+            builder.AddGlobal(declaration.Id, declaration.Name, declaration.Type);
+        }
 
-            foreach (FunctionSymbol function in module.Functions)
-            {
-                builder.AddFunction(
-                    function.Id,
-                    function.Name,
-                    function.Parameters,
-                    function.ReturnType
-                );
-            }
+        foreach (StandardLibraryFunction function in selection.Functions)
+        {
+            FunctionSymbol declaration = function.Declaration;
+            builder.AddFunction(
+                declaration.Id,
+                declaration.Name,
+                declaration.Parameters,
+                declaration.ReturnType
+            );
         }
     }
 

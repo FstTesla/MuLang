@@ -35,10 +35,10 @@ dotnet add package MuLang.Exporters.DotNet --prerelease
 | `MuLang.StandardLibrary.DotNet` | Optional .NET standard-library implementations and runtime composition |
 
 The standard library is opt-in and modular. Hosts select declarations from
-`StandardLibraryCatalog`, compose matching .NET bindings from
-`DotNetStandardLibraryModules`, and remain responsible for passing both
-compositions to the compiler and runtime. The compiler, exporter, and facade
-packages never import standard-library symbols implicitly.
+`StandardLibraryCatalog`, normalize them through `StandardLibrarySelection`,
+and use the same selection for environment composition and .NET binding. The
+compiler, exporter, and facade packages never import standard-library symbols
+implicitly.
 
 A MuLang host:
 

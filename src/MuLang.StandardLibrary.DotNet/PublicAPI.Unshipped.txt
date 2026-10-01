@@ -3,27 +3,13 @@ MuLang.StandardLibrary.DotNet.ClockStandardLibraryOptions
 MuLang.StandardLibrary.DotNet.ClockStandardLibraryOptions.ClockStandardLibraryOptions() -> void
 MuLang.StandardLibrary.DotNet.ClockStandardLibraryOptions.TimeProvider.get -> System.TimeProvider!
 MuLang.StandardLibrary.DotNet.ClockStandardLibraryOptions.TimeProvider.set -> void
-MuLang.StandardLibrary.DotNet.DotNetStandardLibraryComposer
-MuLang.StandardLibrary.DotNet.DotNetStandardLibraryComposition
-MuLang.StandardLibrary.DotNet.DotNetStandardLibraryComposition.Functions.get -> System.Collections.Generic.IReadOnlyDictionary<string!, MuLang.Exporters.DotNet.DotNetProviderFunction!>!
-MuLang.StandardLibrary.DotNet.DotNetStandardLibraryComposition.Globals.get -> System.Collections.Generic.IReadOnlyDictionary<string!, object?>!
-MuLang.StandardLibrary.DotNet.DotNetStandardLibraryFunction
-MuLang.StandardLibrary.DotNet.DotNetStandardLibraryFunction.ArgumentCount.get -> int
-MuLang.StandardLibrary.DotNet.DotNetStandardLibraryFunction.DotNetStandardLibraryFunction(string! id, int argumentCount, MuLang.Exporters.DotNet.DotNetProviderFunction! implementation) -> void
-MuLang.StandardLibrary.DotNet.DotNetStandardLibraryFunction.Id.get -> string!
-MuLang.StandardLibrary.DotNet.DotNetStandardLibraryFunction.Implementation.get -> MuLang.Exporters.DotNet.DotNetProviderFunction!
-MuLang.StandardLibrary.DotNet.DotNetStandardLibraryModuleBinding
-MuLang.StandardLibrary.DotNet.DotNetStandardLibraryModuleBinding.DotNetStandardLibraryModuleBinding(string! moduleId, MuLang.StandardLibrary.StandardLibraryModule! module, System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string!, object?>>! globals, System.Collections.Generic.IEnumerable<MuLang.StandardLibrary.DotNet.DotNetStandardLibraryFunction!>! functions) -> void
-MuLang.StandardLibrary.DotNet.DotNetStandardLibraryModuleBinding.Functions.get -> System.Collections.Generic.IReadOnlyList<MuLang.StandardLibrary.DotNet.DotNetStandardLibraryFunction!>!
-MuLang.StandardLibrary.DotNet.DotNetStandardLibraryModuleBinding.Globals.get -> System.Collections.Generic.IReadOnlyList<System.Collections.Generic.KeyValuePair<string!, object?>>!
-MuLang.StandardLibrary.DotNet.DotNetStandardLibraryModuleBinding.Module.get -> MuLang.StandardLibrary.StandardLibraryModule!
-MuLang.StandardLibrary.DotNet.DotNetStandardLibraryModuleBinding.ModuleId.get -> string!
-MuLang.StandardLibrary.DotNet.DotNetStandardLibraryModules
-MuLang.StandardLibrary.DotNet.DotNetStandardLibraryReadOnlyArray
-MuLang.StandardLibrary.DotNet.DotNetStandardLibraryReadOnlyArray.Count.get -> int
-MuLang.StandardLibrary.DotNet.DotNetStandardLibraryReadOnlyArray.DotNetStandardLibraryReadOnlyArray(System.Collections.Generic.IEnumerable<object?>! elements) -> void
-MuLang.StandardLibrary.DotNet.DotNetStandardLibraryReadOnlyArray.Identity.get -> object!
-MuLang.StandardLibrary.DotNet.DotNetStandardLibraryReadOnlyArray.TryGetElement(int index, out object? value) -> bool
+MuLang.StandardLibrary.DotNet.DotNetStandardLibrary
+MuLang.StandardLibrary.DotNet.DotNetStandardLibrary.Bind(MuLang.StandardLibrary.StandardLibrarySelection! selection) -> MuLang.StandardLibrary.DotNet.DotNetStandardLibraryBindings!
+static MuLang.StandardLibrary.DotNet.DotNetStandardLibrary.Default.get -> MuLang.StandardLibrary.DotNet.DotNetStandardLibrary!
+MuLang.StandardLibrary.DotNet.DotNetStandardLibrary.DotNetStandardLibrary(MuLang.StandardLibrary.DotNet.RandomStandardLibraryOptions? randomOptions = null, MuLang.StandardLibrary.DotNet.ClockStandardLibraryOptions? clockOptions = null, MuLang.StandardLibrary.DotNet.GuidStandardLibraryOptions? guidOptions = null) -> void
+MuLang.StandardLibrary.DotNet.DotNetStandardLibraryBindings
+MuLang.StandardLibrary.DotNet.DotNetStandardLibraryBindings.Functions.get -> System.Collections.Generic.IReadOnlyDictionary<string!, MuLang.Exporters.DotNet.DotNetProviderFunction!>!
+MuLang.StandardLibrary.DotNet.DotNetStandardLibraryBindings.Globals.get -> System.Collections.Generic.IReadOnlyDictionary<string!, object?>!
 MuLang.StandardLibrary.DotNet.GuidStandardLibraryOptions
 MuLang.StandardLibrary.DotNet.GuidStandardLibraryOptions.GuidStandardLibraryOptions() -> void
 MuLang.StandardLibrary.DotNet.GuidStandardLibraryOptions.TimeProvider.get -> System.TimeProvider!
@@ -35,25 +21,3 @@ MuLang.StandardLibrary.DotNet.RandomStandardLibraryOptions
 MuLang.StandardLibrary.DotNet.RandomStandardLibraryOptions.RandomSource.get -> MuLang.StandardLibrary.DotNet.IStandardLibraryRandomSource?
 MuLang.StandardLibrary.DotNet.RandomStandardLibraryOptions.RandomSource.set -> void
 MuLang.StandardLibrary.DotNet.RandomStandardLibraryOptions.RandomStandardLibraryOptions() -> void
-static MuLang.StandardLibrary.DotNet.DotNetStandardLibraryComposer.Compose(System.Collections.Generic.IEnumerable<MuLang.StandardLibrary.DotNet.DotNetStandardLibraryModuleBinding!>! bindings, System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string!, object?>>! hostGlobals, System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string!, MuLang.Exporters.DotNet.DotNetProviderFunction!>>! hostFunctions) -> MuLang.StandardLibrary.DotNet.DotNetStandardLibraryComposition!
-static MuLang.StandardLibrary.DotNet.DotNetStandardLibraryComposer.Compose(System.Collections.Generic.IEnumerable<MuLang.StandardLibrary.DotNet.DotNetStandardLibraryModuleBinding!>! bindings) -> MuLang.StandardLibrary.DotNet.DotNetStandardLibraryComposition!
-static MuLang.StandardLibrary.DotNet.DotNetStandardLibraryModules.Array.get -> MuLang.StandardLibrary.DotNet.DotNetStandardLibraryModuleBinding!
-static MuLang.StandardLibrary.DotNet.DotNetStandardLibraryModules.CreateClock(MuLang.StandardLibrary.DotNet.ClockStandardLibraryOptions! options) -> MuLang.StandardLibrary.DotNet.DotNetStandardLibraryModuleBinding!
-static MuLang.StandardLibrary.DotNet.DotNetStandardLibraryModules.CreateGuid(MuLang.StandardLibrary.DotNet.GuidStandardLibraryOptions! options) -> MuLang.StandardLibrary.DotNet.DotNetStandardLibraryModuleBinding!
-static MuLang.StandardLibrary.DotNet.DotNetStandardLibraryModules.CreateRandom(MuLang.StandardLibrary.DotNet.RandomStandardLibraryOptions! options) -> MuLang.StandardLibrary.DotNet.DotNetStandardLibraryModuleBinding!
-static MuLang.StandardLibrary.DotNet.DotNetStandardLibraryModules.Deterministic.get -> System.Collections.Generic.IReadOnlyList<MuLang.StandardLibrary.DotNet.DotNetStandardLibraryModuleBinding!>!
-static MuLang.StandardLibrary.DotNet.DotNetStandardLibraryModules.MathBasic.get -> MuLang.StandardLibrary.DotNet.DotNetStandardLibraryModuleBinding!
-static MuLang.StandardLibrary.DotNet.DotNetStandardLibraryModules.MathClassification.get -> MuLang.StandardLibrary.DotNet.DotNetStandardLibraryModuleBinding!
-static MuLang.StandardLibrary.DotNet.DotNetStandardLibraryModules.MathConstants.get -> MuLang.StandardLibrary.DotNet.DotNetStandardLibraryModuleBinding!
-static MuLang.StandardLibrary.DotNet.DotNetStandardLibraryModules.MathPowers.get -> MuLang.StandardLibrary.DotNet.DotNetStandardLibraryModuleBinding!
-static MuLang.StandardLibrary.DotNet.DotNetStandardLibraryModules.MathRounding.get -> MuLang.StandardLibrary.DotNet.DotNetStandardLibraryModuleBinding!
-static MuLang.StandardLibrary.DotNet.DotNetStandardLibraryModules.MathTrigonometry.get -> MuLang.StandardLibrary.DotNet.DotNetStandardLibraryModuleBinding!
-static MuLang.StandardLibrary.DotNet.DotNetStandardLibraryModules.Object.get -> MuLang.StandardLibrary.DotNet.DotNetStandardLibraryModuleBinding!
-static MuLang.StandardLibrary.DotNet.DotNetStandardLibraryModules.Parsing.get -> MuLang.StandardLibrary.DotNet.DotNetStandardLibraryModuleBinding!
-static MuLang.StandardLibrary.DotNet.DotNetStandardLibraryModules.StringComparison.get -> MuLang.StandardLibrary.DotNet.DotNetStandardLibraryModuleBinding!
-static MuLang.StandardLibrary.DotNet.DotNetStandardLibraryModules.StringInspection.get -> MuLang.StandardLibrary.DotNet.DotNetStandardLibraryModuleBinding!
-static MuLang.StandardLibrary.DotNet.DotNetStandardLibraryModules.StringReplacement.get -> MuLang.StandardLibrary.DotNet.DotNetStandardLibraryModuleBinding!
-static MuLang.StandardLibrary.DotNet.DotNetStandardLibraryModules.StringSearch.get -> MuLang.StandardLibrary.DotNet.DotNetStandardLibraryModuleBinding!
-static MuLang.StandardLibrary.DotNet.DotNetStandardLibraryModules.StringSlicing.get -> MuLang.StandardLibrary.DotNet.DotNetStandardLibraryModuleBinding!
-static MuLang.StandardLibrary.DotNet.DotNetStandardLibraryModules.StringTransform.get -> MuLang.StandardLibrary.DotNet.DotNetStandardLibraryModuleBinding!
-static MuLang.StandardLibrary.DotNet.DotNetStandardLibraryModules.TextEncoding.get -> MuLang.StandardLibrary.DotNet.DotNetStandardLibraryModuleBinding!

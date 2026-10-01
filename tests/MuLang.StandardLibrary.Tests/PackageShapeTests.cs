@@ -22,7 +22,8 @@ public sealed class PackageShapeTests
     public void ImportsNothingImplicitly()
     {
         EnvironmentSchema coreEnvironment = new EnvironmentBuilder().Build();
-        EnvironmentSchema emptyComposition = StandardLibraryComposer.Compose([ ]);
+        StandardLibrarySelection selection = StandardLibrarySelection.Create([ ]);
+        EnvironmentSchema emptyComposition = StandardLibraryComposer.Compose(selection);
 
         using (Assert.EnterMultipleScope())
         {

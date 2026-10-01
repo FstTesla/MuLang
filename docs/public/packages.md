@@ -29,19 +29,21 @@ structural equality, cancellation observation, and application-error reporting.
 The original `DotNetFunction` constructor path remains temporarily available as
 an obsolete compatibility API.
 
-Exported programs retain the exception-based `Delegate` and additionally expose
-an `ExecutionDelegate` returning `ExecutionResult`. Both surfaces report the
-same structured `RuntimeError`, including category, catchability, source span,
-MuLang frames, public cause, and application data. `ExecutionResult` also
-retains the underlying host exception when one is available.
+Exported programs expose an `ExecutionDelegate` returning `ExecutionResult` as
+the canonical execution surface. The exception-based `Delegate` is derived from
+it for compatibility. Both surfaces report the same structured `RuntimeError`,
+including category, catchability, source span, MuLang frames, public cause, and
+application data. `ExecutionResult` also retains the underlying host exception
+when one is available.
 
-The standard-library packages provide opt-in modules with separate declarative
-and .NET runtime composition. `MuLang.StandardLibrary` exposes runtime-neutral
-module metadata and environment declarations.
-`MuLang.StandardLibrary.DotNet` exposes matching provider values and functions.
-Hosts select modules explicitly; the compiler, exporter, and facade packages do
+The standard-library packages provide opt-in symbols and proposed modules with
+separate declarative composition and .NET runtime binding.
+`MuLang.StandardLibrary` exposes runtime-neutral symbol metadata, normalized
+selections, modules, and environment declarations.
+`MuLang.StandardLibrary.DotNet` binds matching provider values and functions.
+Hosts select symbols explicitly; the compiler, exporter, and facade packages do
 not add constants, functions, or structured types implicitly.
 
-See the [standard-library guide](standard-library.md) for the module catalog,
-composition rules, stable identifiers, runtime capabilities, and collision
-behavior.
+See the [standard-library guide](standard-library.md) for symbol and module
+catalogs, selection rules, stable identifiers, runtime capabilities, and
+collision behavior.

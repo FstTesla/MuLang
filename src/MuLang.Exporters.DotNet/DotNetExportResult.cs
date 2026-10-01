@@ -1,37 +1,46 @@
 using MuLang.Core.Diagnostics;
 using MuLang.Core.Runtime;
+using System.Runtime.ExceptionServices;
 
 namespace MuLang.Exporters.DotNet;
 
 /// <summary>Represents the result of exporting portable MuLang IR to a .NET delegate.</summary>
-/// <param name="Delegate">The exported delegate, or <c>null</c> when export failed.</param>
+/// <param name="ExecutionDelegate">The exported result-returning delegate, or <c>null</c> when export failed.</param>
 /// <param name="Diagnostics">The diagnostics produced during validation and export.</param>
 public sealed record DotNetExportResult(
-    Func<DotNetRuntimeContext, object?>? Delegate,
+    Func<DotNetRuntimeContext, ExecutionResult>? ExecutionDelegate,
     DiagnosticCollection Diagnostics
 )
 {
-    /// <summary>Gets the exported result-returning delegate, or <c>null</c> when export failed.</summary>
-    public Func<DotNetRuntimeContext, ExecutionResult>? ExecutionDelegate =>
-        Delegate is null
+    /// <summary>Gets the exported exception-based delegate, or <c>null</c> when export failed.</summary>
+    public Func<DotNetRuntimeContext, object?>? Delegate =>
+        ExecutionDelegate is null
             ? null
-            : context => Execute(Delegate, context);
+            : context => Execute(ExecutionDelegate, context);
 
-    private static ExecutionResult Execute(
-        Func<DotNetRuntimeContext, object?> compiledDelegate,
+    private static object? Execute(
+        Func<DotNetRuntimeContext, ExecutionResult> executionDelegate,
         DotNetRuntimeContext context
     )
     {
-        try
+        ExecutionResult result = executionDelegate(context);
+
+        if (result.IsSuccess)
         {
-            return ExecutionResult.Success(compiledDelegate(context));
+            return result.Value;
         }
-        catch (MuLangRuntimeException exception)
+
+        if (result.RuntimeException is not null)
         {
-            return ExecutionResult.Failure(
-                exception.Error,
-                exception.InnerException
-            );
+            ExceptionDispatchInfo.Capture(result.RuntimeException).Throw();
         }
+
+        throw new MuLangRuntimeException(
+            result.Error ??
+            throw new InvalidOperationException(
+                "A failed execution result does not contain a runtime error."
+            ),
+            result.HostException
+        );
     }
 }

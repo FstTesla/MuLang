@@ -1,6 +1,5 @@
 using MuLang.Core.Environment;
 using MuLang.Core.Runtime;
-using MuLang.Core.Symbols;
 using MuLang.Core.Text;
 using MuLang.Exporters.DotNet;
 using System.Reflection;
@@ -16,29 +15,32 @@ internal static class StandardLibraryTestRuntime
     )!;
 
     public static object? Invoke(
-        DotNetStandardLibraryModuleBinding binding,
+        StandardLibraryModule module,
         string name,
         IReadOnlyList<object?> arguments,
-        CancellationToken cancellationToken = default
+        CancellationToken cancellationToken = default,
+        DotNetStandardLibrary? standardLibrary = null
     )
     {
-        EnvironmentSchema environment = StandardLibraryComposer.Compose([ binding.Module ]);
-        DotNetStandardLibraryComposition composition = DotNetStandardLibraryComposer.Compose([ binding ]);
+        StandardLibraryFunction function = module.Functions.Single(
+            declaration => string.Equals(declaration.Name, name, StringComparison.Ordinal)
+        );
+        StandardLibrarySelection selection = StandardLibrarySelection.Create([ function ]);
+        EnvironmentSchema environment = StandardLibraryComposer.Compose(selection);
+        DotNetStandardLibraryBindings bindings = (standardLibrary ?? DotNetStandardLibrary.Default)
+            .Bind(selection);
         DotNetRuntimeContext context = DotNetRuntimeContext.Create(
             environment,
-            composition.Globals,
-            composition.Functions,
+            bindings.Globals,
+            bindings.Functions,
             cancellationToken: cancellationToken
-        );
-        FunctionSymbol function = binding.Module.Functions.Single(
-            declaration => string.Equals(declaration.Name, name, StringComparison.Ordinal)
         );
 
         try
         {
             return InvokeMethod.Invoke(
                 context,
-                [ function.Id, arguments, function.ReturnType, new TextSpan(0, 0) ]
+                [ function.Id, arguments, function.Declaration.ReturnType, new TextSpan(0, 0) ]
             );
         }
         catch (TargetInvocationException exception) when (exception.InnerException is not null)
@@ -49,13 +51,13 @@ internal static class StandardLibraryTestRuntime
     }
 
     public static MuLangRuntimeException InvokeError(
-        DotNetStandardLibraryModuleBinding binding,
+        StandardLibraryModule module,
         string name,
         params object?[] arguments
     )
     {
         return Assert.Throws<MuLangRuntimeException>(
-            () => Invoke(binding, name, arguments)
+            () => Invoke(module, name, arguments)
         )!;
     }
 }

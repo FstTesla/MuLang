@@ -3,7 +3,7 @@ using MuLang.Exporters.DotNet;
 namespace MuLang.StandardLibrary.DotNet;
 
 /// <summary>Represents a read-only array value returned by standard-library functions.</summary>
-public sealed class DotNetStandardLibraryReadOnlyArray : IDotNetReadOnlyArrayValue
+internal sealed class DotNetStandardLibraryReadOnlyArray : IDotNetReadOnlyArrayValue
 {
     private readonly IReadOnlyList<object?> elements;
 

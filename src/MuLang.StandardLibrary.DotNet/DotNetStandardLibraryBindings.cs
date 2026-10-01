@@ -2,10 +2,10 @@ using MuLang.Exporters.DotNet;
 
 namespace MuLang.StandardLibrary.DotNet;
 
-/// <summary>Represents runtime values and functions produced by standard-library composition.</summary>
-public sealed class DotNetStandardLibraryComposition
+/// <summary>Represents immutable .NET bindings for selected standard-library symbols.</summary>
+public sealed class DotNetStandardLibraryBindings
 {
-    internal DotNetStandardLibraryComposition(
+    internal DotNetStandardLibraryBindings(
         IReadOnlyDictionary<string, object?> globals,
         IReadOnlyDictionary<string, DotNetProviderFunction> functions
     )
@@ -14,9 +14,9 @@ public sealed class DotNetStandardLibraryComposition
         Functions = functions;
     }
 
-    /// <summary>Gets runtime globals keyed by provider identifier.</summary>
+    /// <summary>Gets the selected runtime globals keyed by provider identifier.</summary>
     public IReadOnlyDictionary<string, object?> Globals { get; }
 
-    /// <summary>Gets runtime functions keyed by provider identifier.</summary>
+    /// <summary>Gets the selected runtime functions keyed by provider identifier.</summary>
     public IReadOnlyDictionary<string, DotNetProviderFunction> Functions { get; }
 }

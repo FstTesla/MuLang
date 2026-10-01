@@ -25,6 +25,10 @@ Leverage local functions for small helper functions.
 
 ---
 
+Avoid primary constructors for non-`record` types.
+
+---
+
 Put `[MethodImpl(MethodImplOptions.AggressiveInlining)]` on small methods and local functions when possible, especially in hot paths.
 
 ---

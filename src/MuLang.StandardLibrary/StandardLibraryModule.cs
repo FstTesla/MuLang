@@ -1,6 +1,5 @@
 using MuLang.Core;
-using MuLang.Core.Symbols;
-using MuLang.Core.Types;
+using System.Collections.ObjectModel;
 
 namespace MuLang.StandardLibrary;
 
@@ -10,21 +9,14 @@ public sealed class StandardLibraryModule
     /// <summary>Initializes a new instance of the <see cref="StandardLibraryModule" /> class.</summary>
     /// <param name="id">The stable module identifier.</param>
     /// <param name="displayName">The display name.</param>
-    /// <param name="minimumLanguageVersion">The minimum supported language version.</param>
-    /// <param name="capability">The required runtime capabilities.</param>
-    /// <param name="types">The structured types.</param>
-    /// <param name="globals">The global declarations.</param>
-    /// <param name="functions">The function declarations.</param>
-    /// <exception cref="ArgumentException">Thrown when a metadata value is invalid.</exception>
-    /// <exception cref="ArgumentNullException">Thrown when a declaration collection is <c>null</c>.</exception>
+    /// <param name="symbols">The symbols declared by the module.</param>
+    /// <exception cref="ArgumentException">Thrown when metadata or symbols are invalid.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="symbols" /> is <c>null</c>.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when symbol dependencies contain conflicts or cycles.</exception>
     public StandardLibraryModule(
         string id,
         string displayName,
-        LanguageVersion minimumLanguageVersion,
-        StandardLibraryCapability capability,
-        IEnumerable<ObjectTypeSymbol> types,
-        IEnumerable<GlobalSymbol> globals,
-        IEnumerable<FunctionSymbol> functions
+        IEnumerable<IStandardLibrarySymbol> symbols
     )
     {
         if (string.IsNullOrWhiteSpace(id))
@@ -37,23 +29,67 @@ public sealed class StandardLibraryModule
             throw new ArgumentException("Display name cannot be null or whitespace.", nameof(displayName));
         }
 
-        if (!Enum.IsDefined(minimumLanguageVersion))
+        if (symbols is null)
         {
-            throw new ArgumentOutOfRangeException(nameof(minimumLanguageVersion));
+            throw new ArgumentNullException(nameof(symbols));
         }
 
-        if ((capability & ~(StandardLibraryCapability.Randomness | StandardLibraryCapability.Clock)) != 0)
+        IStandardLibrarySymbol[] copy = [ .. symbols ];
+
+        if (copy.Length == 0)
         {
-            throw new ArgumentOutOfRangeException(nameof(capability));
+            throw new ArgumentException("A standard-library module cannot be empty.", nameof(symbols));
         }
+
+        if (copy.Any(static symbol => symbol is null))
+        {
+            throw new ArgumentException(
+                "Module symbols cannot contain null values.",
+                nameof(symbols)
+            );
+        }
+
+        IGrouping<string, IStandardLibrarySymbol>? duplicate = copy
+            .GroupBy(static symbol => symbol.Id, StringComparer.Ordinal)
+            .FirstOrDefault(static group => group.Count() > 1);
+
+        if (duplicate is not null)
+        {
+            throw new ArgumentException(
+                $"Symbol identifier '{duplicate.Key}' is declared more than once.",
+                nameof(symbols)
+            );
+        }
+
+        string symbolIdPrefix = $"{id}.";
+        IStandardLibrarySymbol? inconsistent = copy.FirstOrDefault(
+            symbol => !symbol.Id.StartsWith(symbolIdPrefix, StringComparison.Ordinal)
+        );
+
+        if (inconsistent is not null)
+        {
+            throw new ArgumentException(
+                $"Symbol identifier '{inconsistent.Id}' is inconsistent with module identifier '{id}'.",
+                nameof(symbols)
+            );
+        }
+
+        StandardLibrarySelection expanded = StandardLibrarySelection.Create(copy);
 
         Id = id;
         DisplayName = displayName;
-        MinimumLanguageVersion = minimumLanguageVersion;
-        Capability = capability;
-        Types = Copy(types, nameof(types));
-        Globals = Copy(globals, nameof(globals));
-        Functions = Copy(functions, nameof(functions));
+        Symbols = new ReadOnlyCollection<IStandardLibrarySymbol>(copy);
+        Types = new ReadOnlyCollection<StandardLibraryType>(
+            [ .. copy.OfType<StandardLibraryType>() ]
+        );
+        Globals = new ReadOnlyCollection<StandardLibraryGlobal>(
+            [ .. copy.OfType<StandardLibraryGlobal>() ]
+        );
+        Functions = new ReadOnlyCollection<StandardLibraryFunction>(
+            [ .. copy.OfType<StandardLibraryFunction>() ]
+        );
+        MinimumLanguageVersion = expanded.MinimumLanguageVersion;
+        Capability = expanded.Capability;
     }
 
     /// <summary>Gets the stable module identifier.</summary>
@@ -62,35 +98,21 @@ public sealed class StandardLibraryModule
     /// <summary>Gets the display name.</summary>
     public string DisplayName { get; }
 
-    /// <summary>Gets the minimum supported language version.</summary>
+    /// <summary>Gets the symbols in deterministic declaration order.</summary>
+    public IReadOnlyList<IStandardLibrarySymbol> Symbols { get; }
+
+    /// <summary>Gets the minimum supported language version derived from symbols and dependencies.</summary>
     public LanguageVersion MinimumLanguageVersion { get; }
 
-    /// <summary>Gets the required runtime capabilities.</summary>
+    /// <summary>Gets the required runtime capabilities derived from symbols and dependencies.</summary>
     public StandardLibraryCapability Capability { get; }
 
     /// <summary>Gets the structured types in deterministic declaration order.</summary>
-    public IReadOnlyList<ObjectTypeSymbol> Types { get; }
+    public IReadOnlyList<StandardLibraryType> Types { get; }
 
-    /// <summary>Gets the global declarations in deterministic declaration order.</summary>
-    public IReadOnlyList<GlobalSymbol> Globals { get; }
+    /// <summary>Gets the globals in deterministic declaration order.</summary>
+    public IReadOnlyList<StandardLibraryGlobal> Globals { get; }
 
-    /// <summary>Gets the function declarations in deterministic declaration order.</summary>
-    public IReadOnlyList<FunctionSymbol> Functions { get; }
-
-    private static IReadOnlyList<T> Copy<T>(IEnumerable<T> items, string parameterName)
-    {
-        if (items is null)
-        {
-            throw new ArgumentNullException(parameterName);
-        }
-
-        IReadOnlyList<T> copy = [ .. items ];
-
-        if (copy.Any(static item => item is null))
-        {
-            throw new ArgumentException("Declaration collections cannot contain null values.", parameterName);
-        }
-
-        return copy;
-    }
+    /// <summary>Gets the functions in deterministic declaration order.</summary>
+    public IReadOnlyList<StandardLibraryFunction> Functions { get; }
 }

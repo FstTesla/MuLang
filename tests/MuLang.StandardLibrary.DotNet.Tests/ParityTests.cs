@@ -1,70 +1,74 @@
+using MuLang.Core.Types;
+
 namespace MuLang.StandardLibrary.DotNet.Tests;
 
 public sealed class ParityTests
 {
     [Test]
-    public void CompleteCatalogHasExactDeclarationParity()
+    public void CompleteCatalogHasExactImplementationParity()
     {
-        IReadOnlyList<DotNetStandardLibraryModuleBinding> bindings =
-        [
-            .. DotNetStandardLibraryModules.Deterministic,
-            DotNetStandardLibraryModules.CreateRandom(new RandomStandardLibraryOptions()),
-            DotNetStandardLibraryModules.CreateClock(new ClockStandardLibraryOptions()),
-            DotNetStandardLibraryModules.CreateGuid(new GuidStandardLibraryOptions()),
-        ];
-
-        DotNetStandardLibraryComposition composition = DotNetStandardLibraryComposer.Compose(bindings);
+        StandardLibrarySelection selection = StandardLibrarySelection.Create(
+            StandardLibraryCatalog.Symbols
+        );
+        DotNetStandardLibraryBindings bindings = DotNetStandardLibrary.Default.Bind(selection);
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(bindings.Select(static binding => binding.Module), Is.EquivalentTo(StandardLibraryCatalog.All));
-            Assert.That(composition.Globals, Has.Count.EqualTo(5));
-            Assert.That(composition.Functions, Has.Count.EqualTo(66));
+            Assert.That(
+                bindings.Globals.Keys,
+                Is.EquivalentTo(StandardLibraryCatalog.Globals.All.Select(static global => global.Id))
+            );
+            Assert.That(
+                bindings.Functions.Keys,
+                Is.EquivalentTo(StandardLibraryCatalog.Functions.All.Select(static function => function.Id))
+            );
+            Assert.That(bindings.Globals, Has.Count.EqualTo(StandardLibraryCatalog.Globals.All.Count));
+            Assert.That(bindings.Functions, Has.Count.EqualTo(StandardLibraryCatalog.Functions.All.Count));
         }
 
-        foreach (DotNetStandardLibraryModuleBinding binding in bindings)
+        foreach (StandardLibraryGlobal global in StandardLibraryCatalog.Globals.All)
         {
-            Assert.That(binding.ModuleId, Is.EqualTo(binding.Module.Id));
             Assert.That(
-                binding.Globals.Select(static implementation => implementation.Key),
-                Is.EquivalentTo(binding.Module.Globals.Select(static declaration => declaration.Id))
+                IsCompatible(global.Declaration.Type, bindings.Globals[global.Id]),
+                Is.True,
+                global.Id
             );
-            Assert.That(
-                binding.Functions.Select(static implementation => implementation.Id),
-                Is.EquivalentTo(binding.Module.Functions.Select(static declaration => declaration.Id))
-            );
-
-            foreach (DotNetStandardLibraryFunction implementation in binding.Functions)
-            {
-                Assert.That(
-                    implementation.ArgumentCount,
-                    Is.EqualTo(binding.Module.Functions.Single(declaration => declaration.Id == implementation.Id).Parameters.Count)
-                );
-            }
         }
     }
 
     [Test]
-    public void DeterministicBindingsAreSingletons()
+    public void DefaultIsSingleton()
     {
-        Assert.That(DotNetStandardLibraryModules.MathBasic, Is.SameAs(DotNetStandardLibraryModules.MathBasic));
-        Assert.That(DotNetStandardLibraryModules.StringTransform, Is.SameAs(DotNetStandardLibraryModules.StringTransform));
+        Assert.That(DotNetStandardLibrary.Default, Is.SameAs(DotNetStandardLibrary.Default));
     }
 
-    [Test]
-    public void NondeterministicFactoriesCreateDistinctBindings()
+    private static bool IsCompatible(TypeSymbol type, object? value)
     {
-        Assert.That(
-            DotNetStandardLibraryModules.CreateRandom(new RandomStandardLibraryOptions()),
-            Is.Not.SameAs(DotNetStandardLibraryModules.CreateRandom(new RandomStandardLibraryOptions()))
-        );
-        Assert.That(
-            DotNetStandardLibraryModules.CreateClock(new ClockStandardLibraryOptions()),
-            Is.Not.SameAs(DotNetStandardLibraryModules.CreateClock(new ClockStandardLibraryOptions()))
-        );
-        Assert.That(
-            DotNetStandardLibraryModules.CreateGuid(new GuidStandardLibraryOptions()),
-            Is.Not.SameAs(DotNetStandardLibraryModules.CreateGuid(new GuidStandardLibraryOptions()))
-        );
+        if (ReferenceEquals(type, TypeSymbols.Bool))
+        {
+            return value is bool;
+        }
+
+        if (ReferenceEquals(type, TypeSymbols.Int))
+        {
+            return value is long;
+        }
+
+        if (ReferenceEquals(type, TypeSymbols.Float))
+        {
+            return value is double;
+        }
+
+        if (ReferenceEquals(type, TypeSymbols.Number))
+        {
+            return value is long or double;
+        }
+
+        if (ReferenceEquals(type, TypeSymbols.String))
+        {
+            return value is string;
+        }
+
+        return false;
     }
 }

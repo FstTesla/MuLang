@@ -18,19 +18,21 @@ Each release heading identifies the incremental version range covered by the sec
 
 - Marked `MuLangRuntimeException(string, string, TextSpan, Exception?)` obsolete. Custom runtimes and exporters should construct a structured `RuntimeError` and use `MuLangRuntimeException(RuntimeError, Exception?)`; MuLang no longer uses the compatibility overload internally.
 - Marked the legacy `DotNetFunction` delegate and matching `DotNetRuntimeContext` constructor obsolete. Providers should implement `DotNetProviderFunction` and register functions through `DotNetRuntimeContext.Create`.
+- Changed `DotNetExportResult` to store and deconstruct its result-returning `ExecutionDelegate` instead of its exception-based `Delegate`. The exporter now generates the result-returning surface directly; `Delegate` is a derived compatibility view and is no longer init-settable.
 
 ### New features
 
 - Added structured runtime errors with stable categories, explicit catchability, source spans, MuLang stack frames, public causes, and application payloads while preserving the existing `MuLangRuntimeException.Code` and `Span` API.
-- Added `ExecutionResult` and `DotNetExportResult.ExecutionDelegate` as a result-returning execution surface alongside the existing exception-based delegate, including preserved underlying host failures for diagnostics.
+- Added `ExecutionResult` and `DotNetExportResult.ExecutionDelegate` as the canonical result-returning execution surface, including preserved underlying host failures for diagnostics. The existing exception-based delegate is now derived from it as a compatibility view.
 - Added the context-aware `DotNetProviderFunction` and `DotNetProviderInvocationContext` contracts for cancellation, metered read-only array inspection, controlled lazy object-property enumeration and reads, MuLang structural equality, and application-error reporting.
 - Added `MuLangProviderException` as the explicit contract for expected provider application failures. Expected failures become catchable `Application` errors; unexpected provider exceptions become uncatchable `Provider` errors.
 - Turned the previously placeholder `MuLang.StandardLibrary` and `MuLang.StandardLibrary.DotNet` packages into a functional, explicitly opt-in standard library. The compiler, exporter, and facade packages do not import it automatically.
-- Added a versioned catalog of modules for math, arrays, objects, strings, parsing, Base64 text encoding, randomness, clocks, and GUIDs, with stable provider identifiers and metadata for deterministic, randomness, and clock capabilities. Array and Object require language version 1.1; the remaining initial modules support version 1.
-- Added runtime-independent declaration composition and matching .NET binding composition, including composition with host declarations, globals, and provider functions. Module selection remains explicit, and the catalog does not provide an import-all operation.
+- Added a versioned symbol catalog for math, arrays, objects, strings, parsing, Base64 text encoding, randomness, clocks, and GUIDs. Types, globals, functions, and proposed modules expose canonical static properties, read-only collections, and ordinal lookup by provider ID or language/display name.
+- Added normalized symbol selections with dependency expansion, deduplication, per-symbol language-version and capability metadata, and modules whose aggregate requirements are derived from their members. Hosts can select individual symbols, complete modules, or both.
+- Added runtime-independent environment composition and matching .NET binding from the same selection, including composition with host declarations. `DotNetStandardLibrary` captures configurable services and produces immutable runtime globals and provider functions only for selected symbols.
 - Added .NET implementations with Unicode-scalar string indexing, ordinal and culture-independent text behavior, MuLang structural equality for array membership, sorted object projections, read-only collection results, nullable parse and decoding failures, and application errors for invalid ranges, overflow, and impossible conversions.
-- Added configurable random sources and time providers for the Random, Clock, and GUID modules, with thread-safe random and system-clock defaults.
-- Added declaration collision checks and .NET declaration-to-implementation parity validation, including duplicate identifiers and names, host conflicts, missing or undeclared implementations, argument-count mismatches, and runtime value or function collisions.
+- Added configurable random sources and time providers for the selected Random, Clock, and GUID functions, with thread-safe random and system-clock defaults.
+- Added declaration collision checks and catalog-wide .NET declaration-to-implementation parity validation, including duplicate identifiers and names, host conflicts, unsupported or noncanonical selections, and incompatible runtime globals.
 
 ## `0.2.0-alpha.5` → `0.2.0-alpha.6` - 2026-09-30
 

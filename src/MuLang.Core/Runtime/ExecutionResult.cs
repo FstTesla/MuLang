@@ -6,12 +6,14 @@ public sealed class ExecutionResult
     private ExecutionResult(
         object? value,
         RuntimeError? error,
-        Exception? hostException
+        Exception? hostException,
+        MuLangRuntimeException? runtimeException
     )
     {
         Value = value;
         Error = error;
         HostException = hostException;
+        RuntimeException = runtimeException;
     }
 
     /// <summary>Gets a value indicating whether execution completed successfully.</summary>
@@ -26,20 +28,24 @@ public sealed class ExecutionResult
     /// <summary>Gets the underlying host failure, or <c>null</c> when unavailable.</summary>
     public Exception? HostException { get; }
 
+    internal MuLangRuntimeException? RuntimeException { get; }
+
     internal static ExecutionResult Success(object? value)
     {
-        return new ExecutionResult(value, null, null);
+        return new ExecutionResult(value, null, null, null);
     }
 
     internal static ExecutionResult Failure(
         RuntimeError error,
-        Exception? hostException
+        Exception? hostException,
+        MuLangRuntimeException runtimeException
     )
     {
         return new ExecutionResult(
             null,
             error ?? throw new ArgumentNullException(nameof(error)),
-            hostException
+            hostException,
+            runtimeException ?? throw new ArgumentNullException(nameof(runtimeException))
         );
     }
 }

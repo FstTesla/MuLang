@@ -597,25 +597,78 @@ public sealed class DotNetExporterTests
     }
 
     [Test]
-    public void ExecutionDelegateTracksRecordDelegateChanges()
+    public void DelegateTracksRecordExecutionDelegateChanges()
     {
+        EnvironmentSchema environment = CreateEmptyEnvironment();
+        DotNetExportResult exported = ExportResult(
+            LowerExpression("42", environment, TypeSymbols.Int),
+            environment
+        );
         DotNetExportResult original = new (
             null,
             DiagnosticCollection.Empty
         );
         DotNetExportResult clone = original with
         {
-            Delegate = static _ => 42L,
+            ExecutionDelegate = exported.ExecutionDelegate,
         };
 
+        object result =
+            clone.Delegate?.Invoke(CreateContext(environment)) ??
+            throw new AssertionException("Expected an exception-based delegate.");
+
+        Assert.That(result, Is.EqualTo(42L));
+    }
+
+    [Test]
+    public void DerivedDelegatePreservesRuntimeErrorPropagationThroughProviders()
+    {
+        EnvironmentSchema innerEnvironment = new EnvironmentBuilder()
+            .AddGlobal("global.denominator", "denominator", TypeSymbols.Int)
+            .Build();
+        DotNetExportResult innerExport = ExportResult(
+            LowerExpression(
+                "1 / denominator",
+                innerEnvironment,
+                TypeSymbols.Int
+            ),
+            innerEnvironment
+        );
+        Func<DotNetRuntimeContext, object?> inner =
+            innerExport.Delegate ??
+            throw new AssertionException("Expected an exception-based delegate.");
+        DotNetRuntimeContext innerContext = CreateContext(
+            innerEnvironment,
+            [ new KeyValuePair<string, object?>("global.denominator", 0L) ]
+        );
+        EnvironmentSchema outerEnvironment = new EnvironmentBuilder()
+            .AddFunction("function.inner", "inner", [ ], TypeSymbols.Int)
+            .Build();
+        DotNetExportResult outerExport = ExportResult(
+            LowerExpression("inner()", outerEnvironment, TypeSymbols.Int),
+            outerEnvironment
+        );
+        DotNetRuntimeContext outerContext = CreateContext(
+            outerEnvironment,
+            functions:
+            [
+                new KeyValuePair<string, DotNetProviderFunction>(
+                    "function.inner",
+                    (_, _) => inner(innerContext)
+                ),
+            ]
+        );
+
         ExecutionResult result =
-            clone.ExecutionDelegate?.Invoke(CreateContext(CreateEmptyEnvironment())) ??
+            outerExport.ExecutionDelegate?.Invoke(outerContext) ??
             throw new AssertionException("Expected a result-returning delegate.");
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(result.IsSuccess, Is.True);
-            Assert.That(result.Value, Is.EqualTo(42L));
+            Assert.That(result.IsSuccess, Is.False);
+            Assert.That(result.Error!.Code, Is.EqualTo(DotNetRuntimeErrorCodes.DivisionByZero));
+            Assert.That(result.Error.Category, Is.EqualTo(RuntimeErrorCategory.Operation));
+            Assert.That(result.Error.IsCatchable, Is.True);
         }
     }
 

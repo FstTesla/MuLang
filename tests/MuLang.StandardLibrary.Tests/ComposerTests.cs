@@ -8,17 +8,22 @@ namespace MuLang.StandardLibrary.Tests;
 public sealed class ComposerTests
 {
     [Test]
-    public void ComposesOnlySelectedModules()
+    public void ComposesSingleSymbolsAndModulesWithoutImplicitImports()
     {
-        EnvironmentSchema schema = StandardLibraryComposer.Compose(
-            [ StandardLibraryCatalog.MathConstants, StandardLibraryCatalog.Clock ]
+        StandardLibrarySelection selection = StandardLibrarySelection.Create(
+            [ StandardLibraryCatalog.Functions.Abs ],
+            [ StandardLibraryCatalog.Modules.Clock ]
         );
+        EnvironmentSchema schema = StandardLibraryComposer.Compose(selection);
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(schema.Globals.Select(static global => global.Name), Is.EquivalentTo([ "e", "pi", "tau", "minInt", "maxInt" ]));
-            Assert.That(schema.Functions.Select(static function => function.Name), Is.EquivalentTo([ "unixTimeSeconds", "unixTimeMilliseconds" ]));
-            Assert.That(schema.TryGetFunction("abs", out _), Is.False);
+            Assert.That(
+                schema.Functions.Select(static function => function.Name),
+                Is.EquivalentTo([ "abs", "unixTimeSeconds", "unixTimeMilliseconds" ])
+            );
+            Assert.That(schema.Globals, Is.Empty);
+            Assert.That(schema.TryGetFunction("sign", out _), Is.False);
         }
     }
 
@@ -26,10 +31,20 @@ public sealed class ComposerTests
     public void ProducesOrderIndependentFingerprint()
     {
         EnvironmentSchema first = StandardLibraryComposer.Compose(
-            [ StandardLibraryCatalog.MathBasic, StandardLibraryCatalog.StringSearch ]
+            StandardLibrarySelection.Create(
+                [
+                    StandardLibraryCatalog.Functions.Abs,
+                    StandardLibraryCatalog.Functions.IndexOf,
+                ]
+            )
         );
         EnvironmentSchema second = StandardLibraryComposer.Compose(
-            [ StandardLibraryCatalog.StringSearch, StandardLibraryCatalog.MathBasic ]
+            StandardLibrarySelection.Create(
+                [
+                    StandardLibraryCatalog.Functions.IndexOf,
+                    StandardLibraryCatalog.Functions.Abs,
+                ]
+            )
         );
 
         Assert.That(second.Fingerprint, Is.EqualTo(first.Fingerprint));
@@ -38,7 +53,9 @@ public sealed class ComposerTests
     [Test]
     public void ComposesCompleteCatalog()
     {
-        EnvironmentSchema schema = StandardLibraryComposer.Compose(StandardLibraryCatalog.All);
+        EnvironmentSchema schema = StandardLibraryComposer.Compose(
+            StandardLibrarySelection.CreateFromModules(StandardLibraryCatalog.Modules.All)
+        );
 
         using (Assert.EnterMultipleScope())
         {
@@ -48,242 +65,124 @@ public sealed class ComposerTests
     }
 
     [Test]
-    public void RejectsIncompatibleLanguageVersion()
+    public void ReportsIncompatibleSymbolAndIdentifier()
     {
+        StandardLibraryFunction symbol = StandardLibraryCatalog.Functions.ArrayContains;
+
         Assert.That(
-            static () => StandardLibraryComposer.Compose(
-                [ StandardLibraryCatalog.Array ],
+            () => StandardLibraryComposer.Compose(
+                StandardLibrarySelection.Create([ symbol ]),
                 LanguageVersion.Version1
             ),
             Throws.InvalidOperationException
-                .With.Message.Contains(StandardLibraryCatalog.Array.Id)
+                .With.Message.Contains(symbol.Name)
+                .And.Message.Contains(symbol.Id)
                 .And.Message.Contains(nameof(LanguageVersion.Version1_1))
                 .And.Message.Contains(nameof(LanguageVersion.Version1))
         );
     }
 
     [Test]
-    public void ComposesVersion1CompatibleModulesForVersion1()
-    {
-        EnvironmentSchema schema = StandardLibraryComposer.Compose(
-            [ StandardLibraryCatalog.MathBasic, StandardLibraryCatalog.StringSearch ],
-            LanguageVersion.Version1
-        );
-
-        using (Assert.EnterMultipleScope())
-        {
-            Assert.That(schema.LanguageVersion, Is.EqualTo(LanguageVersion.Version1));
-            Assert.That(schema.TryGetFunction("abs", out _), Is.True);
-            Assert.That(schema.TryGetFunction("indexOf", out _), Is.True);
-        }
-    }
-
-    [Test]
-    public void RejectsDuplicateModuleIdentifiers()
-    {
-        StandardLibraryModule duplicate = CreateModule(
-            StandardLibraryCatalog.MathBasic.Id,
-            "Duplicate"
-        );
-
-        Assert.That(
-            () => StandardLibraryComposer.Compose(
-                [ StandardLibraryCatalog.MathBasic, duplicate ]
-            ),
-            Throws.InvalidOperationException
-                .With.Message.Contains("Duplicate module identifier")
-                .And.Message.Contains(StandardLibraryCatalog.MathBasic.Id)
-                .And.Message.Contains("Math.Basic")
-                .And.Message.Contains("Duplicate")
-        );
-    }
-
-    [TestCaseSource(nameof(ModuleCollisionCases))]
-    public void RejectsDeclarationCollisions(
-        StandardLibraryModule first,
-        StandardLibraryModule second,
-        string expectedKind,
-        string expectedValue
-    )
-    {
-        Assert.That(
-            () => StandardLibraryComposer.Compose([ first, second ]),
-            Throws.InvalidOperationException
-                .With.Message.Contains(expectedKind)
-                .And.Message.Contains(expectedValue)
-                .And.Message.Contains(first.Id)
-                .And.Message.Contains(second.Id)
-        );
-    }
-
-    [Test]
-    public void RejectsProviderIdentifierCollisionsAcrossDeclarationKinds()
-    {
-        StandardLibraryModule globalModule = CreateModule(
-            "mulang.std.first",
-            "First",
-            globals:
-            [
-                new GlobalSymbol("shared.provider", "firstGlobal", TypeSymbols.Int),
-            ]
-        );
-        StandardLibraryModule functionModule = CreateModule(
-            "mulang.std.second",
-            "Second",
-            functions:
-            [
-                new FunctionSymbol("shared.provider", "secondFunction", [ ], TypeSymbols.Int),
-            ]
-        );
-
-        Assert.That(
-            () => StandardLibraryComposer.Compose([ globalModule, functionModule ]),
-            Throws.InvalidOperationException
-                .With.Message.Contains("provider identifier")
-                .And.Message.Contains("shared.provider")
-                .And.Message.Contains(globalModule.Id)
-                .And.Message.Contains(functionModule.Id)
-        );
-    }
-
-    [Test]
-    public void ReportsHostNameCollisionsPrecisely()
-    {
-        EnvironmentSchema host = new EnvironmentBuilder()
-            .AddFunction("host.abs", "abs", [ ], TypeSymbols.Int)
-            .Build();
-
-        Assert.That(
-            () => StandardLibraryComposer.Compose(
-                host,
-                [ StandardLibraryCatalog.MathBasic ]
-            ),
-            Throws.InvalidOperationException
-                .With.Message.Contains("function name")
-                .And.Message.Contains("host function 'abs'")
-                .And.Message.Contains(StandardLibraryCatalog.MathBasic.Id)
-        );
-    }
-
-    [Test]
-    public void ReportsHostProviderIdentifierCollisionsPrecisely()
-    {
-        string providerId = StandardLibraryCatalog.MathConstants.Globals[0].Id;
-        EnvironmentSchema host = new EnvironmentBuilder()
-            .AddFunction(providerId, "hostFunction", [ ], TypeSymbols.Int)
-            .Build();
-
-        Assert.That(
-            () => StandardLibraryComposer.Compose(
-                host,
-                [ StandardLibraryCatalog.MathConstants ]
-            ),
-            Throws.InvalidOperationException
-                .With.Message.Contains("provider identifier")
-                .And.Message.Contains("host function 'hostFunction'")
-                .And.Message.Contains("global 'e'")
-        );
-    }
-
-    [Test]
-    public void PreservesHostDeclarations()
+    public void PreservesHostDeclarationsAndLanguageVersion()
     {
         EnvironmentSchema host = new EnvironmentBuilder()
             .AddGlobal("host.value", "hostValue", TypeSymbols.String)
-            .Build();
+            .Build(LanguageVersion.Version1);
 
         EnvironmentSchema composed = StandardLibraryComposer.Compose(
             host,
-            [ StandardLibraryCatalog.Parsing ]
+            StandardLibrarySelection.Create([ StandardLibraryCatalog.Functions.ParseInt ])
         );
 
         using (Assert.EnterMultipleScope())
         {
+            Assert.That(composed.LanguageVersion, Is.EqualTo(LanguageVersion.Version1));
             Assert.That(composed.TryGetGlobal("hostValue", out _), Is.True);
             Assert.That(composed.TryGetFunction("parseInt", out _), Is.True);
         }
     }
 
-    private static IEnumerable<TestCaseData> ModuleCollisionCases()
+    [Test]
+    public void RejectsHostAndSelectionCollisions()
     {
-        yield return new TestCaseData(
-            CreateModule(
-                "mulang.std.first",
-                "First",
-                types:
+        StandardLibraryFunction abs = StandardLibraryCatalog.Functions.Abs;
+        EnvironmentSchema nameHost = new EnvironmentBuilder()
+            .AddFunction("host.abs", abs.Name, [ ], TypeSymbols.Int)
+            .Build();
+        EnvironmentSchema idHost = new EnvironmentBuilder()
+            .AddGlobal(abs.Id, "hostValue", TypeSymbols.Int)
+            .Build();
+        StandardLibrarySelection selection = StandardLibrarySelection.Create([ abs ]);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(
+                () => StandardLibraryComposer.Compose(nameHost, selection),
+                Throws.InvalidOperationException
+                    .With.Message.Contains("function name")
+                    .And.Message.Contains("host function")
+                    .And.Message.Contains(abs.Id)
+            );
+            Assert.That(
+                () => StandardLibraryComposer.Compose(idHost, selection),
+                Throws.InvalidOperationException
+                    .With.Message.Contains("provider identifier")
+                    .And.Message.Contains("host global")
+                    .And.Message.Contains(abs.Id)
+            );
+        }
+    }
+
+    [TestCase("type")]
+    [TestCase("global")]
+    [TestCase("function")]
+    public void RejectsSelectionNameCollisions(string kind)
+    {
+        StandardLibrarySelection selection = kind switch
+        {
+            "type" => StandardLibrarySelection.Create(
                 [
-                    new ObjectTypeSymbol("first.type", "Shared", false, [ ]),
+                    CreateType("mulang.std.first.type.shared", "Shared"),
+                    CreateType("mulang.std.second.type.shared", "Shared"),
                 ]
             ),
-            CreateModule(
-                "mulang.std.second",
-                "Second",
-                types:
+            "global" => StandardLibrarySelection.Create(
                 [
-                    new ObjectTypeSymbol("second.type", "Shared", false, [ ]),
+                    CreateGlobal("mulang.std.first.global.shared", "shared"),
+                    CreateGlobal("mulang.std.second.global.shared", "shared"),
                 ]
             ),
-            "type name",
-            "Shared"
-        );
-        yield return new TestCaseData(
-            CreateModule(
-                "mulang.std.first",
-                "First",
-                globals:
+            "function" => StandardLibrarySelection.Create(
                 [
-                    new GlobalSymbol("first.global", "shared", TypeSymbols.Int),
+                    CreateFunction("mulang.std.first.function.shared", "shared"),
+                    CreateFunction("mulang.std.second.function.shared", "shared"),
                 ]
             ),
-            CreateModule(
-                "mulang.std.second",
-                "Second",
-                globals:
-                [
-                    new GlobalSymbol("second.global", "shared", TypeSymbols.Int),
-                ]
-            ),
-            "global name",
-            "shared"
-        );
-        yield return new TestCaseData(
-            CreateModule(
-                "mulang.std.first",
-                "First",
-                functions:
-                [
-                    new FunctionSymbol("first.function", "shared", [ ], TypeSymbols.Int),
-                ]
-            ),
-            CreateModule(
-                "mulang.std.second",
-                "Second",
-                functions:
-                [
-                    new FunctionSymbol("second.function", "shared", [ ], TypeSymbols.Int),
-                ]
-            ),
-            "function name",
-            "shared"
+            _ => throw new InvalidOperationException(),
+        };
+
+        Assert.That(
+            () => StandardLibraryComposer.Compose(selection),
+            Throws.InvalidOperationException
+                .With.Message.Contains($"{kind} name")
+                .And.Message.Contains("shared").IgnoreCase
         );
     }
 
-    private static StandardLibraryModule CreateModule(
-        string id,
-        string displayName,
-        IEnumerable<ObjectTypeSymbol>? types = null,
-        IEnumerable<GlobalSymbol>? globals = null,
-        IEnumerable<FunctionSymbol>? functions = null
-    )
+    private static StandardLibraryType CreateType(string id, string name)
     {
-        return new StandardLibraryModule(
-            id,
-            displayName,
-            LanguageVersion.Version1_1,
-            StandardLibraryCapability.Deterministic,
-            types ?? [ ],
-            globals ?? [ ],
-            functions ?? [ ]
+        return new StandardLibraryType(new ObjectTypeSymbol(id, name, false, [ ]));
+    }
+
+    private static StandardLibraryGlobal CreateGlobal(string id, string name)
+    {
+        return new StandardLibraryGlobal(new GlobalSymbol(id, name, TypeSymbols.Int));
+    }
+
+    private static StandardLibraryFunction CreateFunction(string id, string name)
+    {
+        return new StandardLibraryFunction(
+            new FunctionSymbol(id, name, [ ], TypeSymbols.Int)
         );
     }
 }
