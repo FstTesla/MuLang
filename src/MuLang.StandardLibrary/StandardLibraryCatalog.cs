@@ -1,7 +1,6 @@
 using MuLang.Core;
 using MuLang.Core.Symbols;
 using MuLang.Core.Types;
-using System.Collections.ObjectModel;
 
 namespace MuLang.StandardLibrary;
 
@@ -389,9 +388,7 @@ public static class StandardLibraryCatalog
             moduleId,
             string.Join(
                 '.',
-                name.Split('.').Select(
-                    static part => $"{char.ToUpperInvariant(part[0])}{part[1..]}"
-                )
+                name.Split('.').Select(static part => $"{char.ToUpperInvariant(part[0])}{part[1..]}")
             ),
             minimumLanguageVersion,
             capability,
@@ -403,29 +400,27 @@ public static class StandardLibraryCatalog
 
     /// <summary>Gets every canonical module in deterministic catalog order.</summary>
     public static IReadOnlyList<StandardLibraryModule> All { get; } =
-        new ReadOnlyCollection<StandardLibraryModule>(
-            [
-                MathConstants,
-                MathBasic,
-                MathRounding,
-                MathPowers,
-                MathTrigonometry,
-                MathClassification,
-                Array,
-                Object,
-                StringInspection,
-                StringSearch,
-                StringTransform,
-                StringSlicing,
-                StringReplacement,
-                StringComparison,
-                Parsing,
-                Random,
-                Clock,
-                Guid,
-                TextEncoding,
-            ]
-        );
+    [
+        MathConstants,
+        MathBasic,
+        MathRounding,
+        MathPowers,
+        MathTrigonometry,
+        MathClassification,
+        Array,
+        Object,
+        StringInspection,
+        StringSearch,
+        StringTransform,
+        StringSlicing,
+        StringReplacement,
+        StringComparison,
+        Parsing,
+        Random,
+        Clock,
+        Guid,
+        TextEncoding,
+    ];
 
     private static FunctionDeclaration Function(
         string name,

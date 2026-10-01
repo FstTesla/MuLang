@@ -1,3 +1,4 @@
+using MuLang.Core.Runtime;
 using MuLang.Exporters.DotNet;
 
 namespace MuLang.StandardLibrary.DotNet.Tests;
@@ -12,17 +13,38 @@ public sealed class NondeterministicModuleTests
             new RandomStandardLibraryOptions { RandomSource = source }
         );
 
-        Assert.Multiple(() =>
+        Assert.Multiple(
+            () =>
+            {
+                Assert.That(StandardLibraryTestRuntime.Invoke(binding, "randomFloat", [ ]), Is.EqualTo(0.25d));
+                Assert.That(StandardLibraryTestRuntime.Invoke(binding, "randomInt", [ 10L, 20L ]), Is.EqualTo(10L));
+                Assert.That(source.LastMinimum, Is.EqualTo(10L));
+                Assert.That(source.LastMaximum, Is.EqualTo(20L));
+                Assert.That(
+                    StandardLibraryTestRuntime.InvokeError(binding, "randomInt", 1L, 1L).Code,
+                    Is.EqualTo("mulang.std.range")
+                );
+            }
+        );
+    }
+
+    [Test]
+    public void InvalidRandomSourceResultsBecomeProviderFailures()
+    {
+        DotNetStandardLibraryModuleBinding binding = DotNetStandardLibraryModules.CreateRandom(
+            new RandomStandardLibraryOptions { RandomSource = new InvalidRandomSource() }
+        );
+        MuLangRuntimeException exception = StandardLibraryTestRuntime.InvokeError(
+            binding,
+            "randomFloat"
+        );
+
+        using (Assert.EnterMultipleScope())
         {
-            Assert.That(StandardLibraryTestRuntime.Invoke(binding, "randomFloat", [ ]), Is.EqualTo(0.25d));
-            Assert.That(StandardLibraryTestRuntime.Invoke(binding, "randomInt", [ 10L, 20L ]), Is.EqualTo(10L));
-            Assert.That(source.LastMinimum, Is.EqualTo(10L));
-            Assert.That(source.LastMaximum, Is.EqualTo(20L));
-            Assert.That(
-                StandardLibraryTestRuntime.InvokeError(binding, "randomInt", 1L, 1L).Code,
-                Is.EqualTo("mulang.std.range")
-            );
-        });
+            Assert.That(exception.Code, Is.EqualTo(DotNetRuntimeErrorCodes.ProviderFailure));
+            Assert.That(exception.Error.Category, Is.EqualTo(RuntimeErrorCategory.Provider));
+            Assert.That(exception.Error.IsCatchable, Is.False);
+        }
     }
 
     [Test]
@@ -33,17 +55,19 @@ public sealed class NondeterministicModuleTests
             new ClockStandardLibraryOptions { TimeProvider = new FixedTimeProvider(timestamp) }
         );
 
-        Assert.Multiple(() =>
-        {
-            Assert.That(
-                StandardLibraryTestRuntime.Invoke(binding, "unixTimeSeconds", [ ]),
-                Is.EqualTo(timestamp.ToUnixTimeSeconds())
-            );
-            Assert.That(
-                StandardLibraryTestRuntime.Invoke(binding, "unixTimeMilliseconds", [ ]),
-                Is.EqualTo(timestamp.ToUnixTimeMilliseconds())
-            );
-        });
+        Assert.Multiple(
+            () =>
+            {
+                Assert.That(
+                    StandardLibraryTestRuntime.Invoke(binding, "unixTimeSeconds", [ ]),
+                    Is.EqualTo(timestamp.ToUnixTimeSeconds())
+                );
+                Assert.That(
+                    StandardLibraryTestRuntime.Invoke(binding, "unixTimeMilliseconds", [ ]),
+                    Is.EqualTo(timestamp.ToUnixTimeMilliseconds())
+                );
+            }
+        );
     }
 
     [Test]
@@ -55,8 +79,8 @@ public sealed class NondeterministicModuleTests
         );
         string version4 = (string)StandardLibraryTestRuntime.Invoke(binding, "newGuid", [ ])!;
         string version7 = (string)StandardLibraryTestRuntime.Invoke(binding, "newGuidV7", [ ])!;
-        System.Guid parsed4 = System.Guid.ParseExact(version4, "D");
-        System.Guid parsed7 = System.Guid.ParseExact(version7, "D");
+        Guid parsed4 = Guid.ParseExact(version4, "D");
+        Guid parsed7 = Guid.ParseExact(version7, "D");
         long encodedMilliseconds =
             ((long)parsed7.ToByteArray(true)[0] << 40) |
             ((long)parsed7.ToByteArray(true)[1] << 32) |
@@ -65,17 +89,19 @@ public sealed class NondeterministicModuleTests
             ((long)parsed7.ToByteArray(true)[4] << 8) |
             parsed7.ToByteArray(true)[5];
 
-        Assert.Multiple(() =>
-        {
-            Assert.That(parsed4.Version, Is.EqualTo(4));
-            Assert.That(parsed7.Version, Is.EqualTo(7));
-            Assert.That(version4, Is.EqualTo(version4.ToLowerInvariant()));
-            Assert.That(version7, Is.EqualTo(version7.ToLowerInvariant()));
-            Assert.That(encodedMilliseconds, Is.EqualTo(timestamp.ToUnixTimeMilliseconds()));
-            Assert.That(StandardLibraryTestRuntime.Invoke(binding, "isGuid", [ version7.ToUpperInvariant() ]), Is.True);
-            Assert.That(StandardLibraryTestRuntime.Invoke(binding, "isGuid", [ parsed7.ToString("N") ]), Is.False);
-            Assert.That(StandardLibraryTestRuntime.Invoke(binding, "isGuid", [ "not-a-guid" ]), Is.False);
-        });
+        Assert.Multiple(
+            () =>
+            {
+                Assert.That(parsed4.Version, Is.EqualTo(4));
+                Assert.That(parsed7.Version, Is.EqualTo(7));
+                Assert.That(version4, Is.EqualTo(version4.ToLowerInvariant()));
+                Assert.That(version7, Is.EqualTo(version7.ToLowerInvariant()));
+                Assert.That(encodedMilliseconds, Is.EqualTo(timestamp.ToUnixTimeMilliseconds()));
+                Assert.That(StandardLibraryTestRuntime.Invoke(binding, "isGuid", [ version7.ToUpperInvariant() ]), Is.True);
+                Assert.That(StandardLibraryTestRuntime.Invoke(binding, "isGuid", [ parsed7.ToString("N") ]), Is.False);
+                Assert.That(StandardLibraryTestRuntime.Invoke(binding, "isGuid", [ "not-a-guid" ]), Is.False);
+            }
+        );
     }
 
     private sealed class DeterministicRandomSource : IStandardLibraryRandomSource
@@ -109,6 +135,19 @@ public sealed class NondeterministicModuleTests
         public override DateTimeOffset GetUtcNow()
         {
             return timestamp;
+        }
+    }
+
+    private sealed class InvalidRandomSource : IStandardLibraryRandomSource
+    {
+        public double NextDouble()
+        {
+            return 1d;
+        }
+
+        public long NextInt64(long minimum, long maximum)
+        {
+            return maximum;
         }
     }
 }

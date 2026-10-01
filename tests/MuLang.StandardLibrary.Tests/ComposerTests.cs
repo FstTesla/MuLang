@@ -51,7 +51,7 @@ public sealed class ComposerTests
     public void RejectsIncompatibleLanguageVersion()
     {
         Assert.That(
-            () => StandardLibraryComposer.Compose(
+            static () => StandardLibraryComposer.Compose(
                 [ StandardLibraryCatalog.Array ],
                 LanguageVersion.Version1
             ),

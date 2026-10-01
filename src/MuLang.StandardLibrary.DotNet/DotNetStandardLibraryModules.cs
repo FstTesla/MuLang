@@ -1,6 +1,5 @@
 using MuLang.Core.Symbols;
 using MuLang.Exporters.DotNet;
-using MuLang.StandardLibrary;
 using System.Buffers;
 using System.Globalization;
 using System.Text;
@@ -10,7 +9,6 @@ namespace MuLang.StandardLibrary.DotNet;
 /// <summary>Provides canonical .NET bindings for standard-library modules.</summary>
 public static class DotNetStandardLibraryModules
 {
-    private const string AdapterContractError = "mulang.std.adapter_contract";
     private const string ConversionError = "mulang.std.conversion";
     private const string InvalidArgumentError = "mulang.std.invalid_argument";
     private const string OverflowError = "mulang.std.overflow";
@@ -94,7 +92,7 @@ public static class DotNetStandardLibraryModules
         [
             Function(StandardLibraryCatalog.MathClassification, "isFinite", static (_, arguments) => arguments[0] is long || double.IsFinite((double)arguments[0]!)),
             Function(StandardLibraryCatalog.MathClassification, "isInfinity", static (_, arguments) => arguments[0] is double value && double.IsInfinity(value)),
-            Function(StandardLibraryCatalog.MathClassification, "isNaN", static (_, arguments) => arguments[0] is double value && double.IsNaN(value)),
+            Function(StandardLibraryCatalog.MathClassification, "isNaN", static (_, arguments) => arguments[0] is double.NaN),
         ]
     );
 
@@ -296,7 +294,7 @@ public static class DotNetStandardLibraryModules
             StandardLibraryCatalog.Guid,
             [ ],
             [
-                Function(StandardLibraryCatalog.Guid, "newGuid", static (_, _) => System.Guid.NewGuid().ToString("D", CultureInfo.InvariantCulture)),
+                Function(StandardLibraryCatalog.Guid, "newGuid", static (_, _) => Guid.NewGuid().ToString("D", CultureInfo.InvariantCulture)),
                 Function(StandardLibraryCatalog.Guid, "newGuidV7", (context, _) => NewGuidV7(context, timeProvider)),
                 Function(StandardLibraryCatalog.Guid, "isGuid", static (_, arguments) => IsCanonicalGuid((string)arguments[0]!)),
             ]
@@ -417,17 +415,7 @@ public static class DotNetStandardLibraryModules
     )
     {
         object array = arguments[0]!;
-        int count;
-
-        try
-        {
-            count = context.GetReadOnlyArrayCount(array);
-        }
-        catch (ArgumentException)
-        {
-            context.ThrowApplicationError(AdapterContractError, "The array adapter contract is invalid.");
-            throw;
-        }
+        int count = context.GetReadOnlyArrayCount(array);
 
         for (int index = 0; index < count; index++)
         {
@@ -435,7 +423,9 @@ public static class DotNetStandardLibraryModules
 
             if (!context.TryGetReadOnlyArrayElement(array, index, out object? element))
             {
-                context.ThrowApplicationError(AdapterContractError, "The array adapter failed to return a declared element.");
+                throw new InvalidOperationException(
+                    "The array adapter failed to return a declared element."
+                );
             }
 
             if (context.StructuralEquals(element, arguments[1]))
@@ -471,7 +461,9 @@ public static class DotNetStandardLibraryModules
 
             if (!context.TryGetObjectProperty(value, names[index], out values[index]))
             {
-                context.ThrowApplicationError(AdapterContractError, $"Object property '{names[index]}' disappeared during enumeration.");
+                throw new InvalidOperationException(
+                    $"Object property '{names[index]}' disappeared during enumeration."
+                );
             }
         }
 
@@ -485,23 +477,18 @@ public static class DotNetStandardLibraryModules
     {
         List<string> names = [ ];
 
-        try
+        foreach (string name in context.GetObjectPropertyNames(value))
         {
-            foreach (string name in context.GetObjectPropertyNames(value))
+            context.ThrowIfCancellationRequested();
+
+            if (name is null)
             {
-                context.ThrowIfCancellationRequested();
-
-                if (name is null)
-                {
-                    context.ThrowApplicationError(AdapterContractError, "An object adapter returned a null property name.");
-                }
-
-                names.Add(name);
+                throw new InvalidOperationException(
+                    "An object adapter returned a null property name."
+                );
             }
-        }
-        catch (ArgumentException)
-        {
-            context.ThrowApplicationError(AdapterContractError, "The object adapter contract is invalid.");
+
+            names.Add(name);
         }
 
         names.Sort(StringComparer.Ordinal);
@@ -510,7 +497,9 @@ public static class DotNetStandardLibraryModules
         {
             if (string.Equals(names[index - 1], names[index], System.StringComparison.Ordinal))
             {
-                context.ThrowApplicationError(AdapterContractError, $"Object property '{names[index]}' was enumerated more than once.");
+                throw new InvalidOperationException(
+                    $"Object property '{names[index]}' was enumerated more than once."
+                );
             }
         }
 
@@ -1019,9 +1008,11 @@ public static class DotNetStandardLibraryModules
     {
         double value = randomSource.NextDouble();
 
-        if (value < 0d || value >= 1d || double.IsNaN(value))
+        if (value is < 0d or >= 1d or double.NaN)
         {
-            context.ThrowApplicationError(AdapterContractError, "The random source returned a value outside [0, 1).");
+            throw new InvalidOperationException(
+                "The random source returned a value outside [0, 1)."
+            );
         }
 
         return value;
@@ -1045,7 +1036,9 @@ public static class DotNetStandardLibraryModules
 
         if (result < minimum || result >= maximum)
         {
-            context.ThrowApplicationError(AdapterContractError, "The random source returned a value outside the requested range.");
+            throw new InvalidOperationException(
+                "The random source returned a value outside the requested range."
+            );
         }
 
         return result;
@@ -1076,7 +1069,7 @@ public static class DotNetStandardLibraryModules
     {
         try
         {
-            return System.Guid.CreateVersion7(timeProvider.GetUtcNow()).ToString("D", CultureInfo.InvariantCulture);
+            return Guid.CreateVersion7(timeProvider.GetUtcNow()).ToString("D", CultureInfo.InvariantCulture);
         }
         catch (ArgumentOutOfRangeException)
         {
@@ -1088,7 +1081,7 @@ public static class DotNetStandardLibraryModules
     private static bool IsCanonicalGuid(string value)
     {
         return value.Length == 36 &&
-            System.Guid.TryParseExact(value, "D", out System.Guid parsed) &&
+            Guid.TryParseExact(value, "D", out Guid parsed) &&
             string.Equals(parsed.ToString("D", CultureInfo.InvariantCulture), value, System.StringComparison.OrdinalIgnoreCase);
     }
 
@@ -1445,7 +1438,7 @@ public static class DotNetStandardLibraryModules
     private sealed class DefaultRandomSource : IStandardLibraryRandomSource
     {
         private readonly Lock syncRoot = new ();
-        private readonly System.Random random = new ();
+        private readonly Random random = new ();
 
         public static DefaultRandomSource Instance { get; } = new ();
 

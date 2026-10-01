@@ -8,10 +8,10 @@ public enum StandardLibraryCapability
     Deterministic = 0,
 
     /// <summary>Indicates that the module requires randomness.</summary>
-    Randomness = 1,
+    Randomness = 1 << 0,
 
     /// <summary>Indicates that the module requires a clock.</summary>
-    Clock = 2,
+    Clock = 1 << 1,
 
     /// <summary>Indicates that the module requires randomness and a clock.</summary>
     RandomnessAndClock = Randomness | Clock,

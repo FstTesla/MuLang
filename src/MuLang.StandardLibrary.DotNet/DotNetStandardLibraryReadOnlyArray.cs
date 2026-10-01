@@ -1,5 +1,4 @@
 using MuLang.Exporters.DotNet;
-using System.Collections.ObjectModel;
 
 namespace MuLang.StandardLibrary.DotNet;
 
@@ -13,13 +12,7 @@ public sealed class DotNetStandardLibraryReadOnlyArray : IDotNetReadOnlyArrayVal
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="elements" /> is <c>null</c>.</exception>
     public DotNetStandardLibraryReadOnlyArray(IEnumerable<object?> elements)
     {
-        if (elements is null)
-        {
-            throw new ArgumentNullException(nameof(elements));
-        }
-
-        object?[] copy = [ .. elements ];
-        this.elements = new ReadOnlyCollection<object?>(copy);
+        this.elements = [ .. elements ?? throw new ArgumentNullException(nameof(elements)) ];
     }
 
     /// <inheritdoc />

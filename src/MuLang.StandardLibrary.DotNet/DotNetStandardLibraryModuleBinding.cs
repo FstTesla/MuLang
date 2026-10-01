@@ -1,7 +1,3 @@
-using MuLang.Exporters.DotNet;
-using MuLang.StandardLibrary;
-using System.Collections.ObjectModel;
-
 namespace MuLang.StandardLibrary.DotNet;
 
 /// <summary>Represents an immutable .NET binding for a declarative standard-library module.</summary>
@@ -53,14 +49,14 @@ public sealed class DotNetStandardLibraryModuleBinding
             throw new ArgumentNullException(nameof(globals));
         }
 
-        KeyValuePair<string, object?>[] copy = [ .. globals ];
+        IReadOnlyList<KeyValuePair<string, object?>> copy = [ .. globals ];
 
         if (copy.Any(static pair => string.IsNullOrWhiteSpace(pair.Key)))
         {
             throw new ArgumentException("Global identifiers cannot be null or whitespace.", nameof(globals));
         }
 
-        return new ReadOnlyCollection<KeyValuePair<string, object?>>(copy);
+        return copy;
     }
 
     private static IReadOnlyList<DotNetStandardLibraryFunction> CopyFunctions(
@@ -72,13 +68,13 @@ public sealed class DotNetStandardLibraryModuleBinding
             throw new ArgumentNullException(nameof(functions));
         }
 
-        DotNetStandardLibraryFunction[] copy = [ .. functions ];
+        IReadOnlyList<DotNetStandardLibraryFunction> copy = [ .. functions ];
 
         if (copy.Any(static function => function is null))
         {
             throw new ArgumentException("Function implementations cannot contain null values.", nameof(functions));
         }
 
-        return new ReadOnlyCollection<DotNetStandardLibraryFunction>(copy);
+        return copy;
     }
 }

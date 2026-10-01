@@ -1,7 +1,6 @@
 using MuLang.Core;
 using MuLang.Core.Symbols;
 using MuLang.Core.Types;
-using System.Collections.ObjectModel;
 
 namespace MuLang.StandardLibrary;
 
@@ -85,13 +84,13 @@ public sealed class StandardLibraryModule
             throw new ArgumentNullException(parameterName);
         }
 
-        T[] copy = [ .. items ];
+        IReadOnlyList<T> copy = [ .. items ];
 
         if (copy.Any(static item => item is null))
         {
             throw new ArgumentException("Declaration collections cannot contain null values.", parameterName);
         }
 
-        return new ReadOnlyCollection<T>(copy);
+        return copy;
     }
 }

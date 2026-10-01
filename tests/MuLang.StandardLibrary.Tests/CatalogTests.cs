@@ -183,7 +183,7 @@ public sealed class CatalogTests
     {
         List<GlobalSymbol> globals =
         [
-            new GlobalSymbol("mulang.std.test.global.value", "value", TypeSymbols.Int),
+            new ("mulang.std.test.global.value", "value", TypeSymbols.Int),
         ];
         StandardLibraryModule module = new (
             "mulang.std.test",

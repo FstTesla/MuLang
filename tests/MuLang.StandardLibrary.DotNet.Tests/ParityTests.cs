@@ -1,5 +1,3 @@
-using MuLang.StandardLibrary;
-
 namespace MuLang.StandardLibrary.DotNet.Tests;
 
 public sealed class ParityTests

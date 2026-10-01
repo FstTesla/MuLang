@@ -1,5 +1,4 @@
 using MuLang.Exporters.DotNet;
-using MuLang.StandardLibrary;
 
 namespace MuLang.StandardLibrary.DotNet.Tests;
 
@@ -45,54 +44,56 @@ public sealed class ComposerTests
         DotNetStandardLibraryModuleBinding canonical = DotNetStandardLibraryModules.Array;
         string id = canonical.Module.Functions[0].Id;
 
-        Assert.Multiple(() =>
-        {
-            Assert.That(
-                () => DotNetStandardLibraryComposer.Compose(
-                    [ new DotNetStandardLibraryModuleBinding(canonical.ModuleId, canonical.Module, [ ], [ ]) ]
-                ),
-                Throws.InvalidOperationException.With.Message.Contains("missing function")
-            );
-            Assert.That(
-                () => DotNetStandardLibraryComposer.Compose(
-                    [
-                        new DotNetStandardLibraryModuleBinding(
-                            canonical.ModuleId,
-                            canonical.Module,
-                            [ ],
-                            [ .. canonical.Functions, new DotNetStandardLibraryFunction("extra", 0, NoOp) ]
-                        ),
-                    ]
-                ),
-                Throws.InvalidOperationException.With.Message.Contains("undeclared function")
-            );
-            Assert.That(
-                () => DotNetStandardLibraryComposer.Compose(
-                    [
-                        new DotNetStandardLibraryModuleBinding(
-                            canonical.ModuleId,
-                            canonical.Module,
-                            [ ],
-                            [ .. canonical.Functions, canonical.Functions[0] ]
-                        ),
-                    ]
-                ),
-                Throws.InvalidOperationException.With.Message.Contains("duplicate function")
-            );
-            Assert.That(
-                () => DotNetStandardLibraryComposer.Compose(
-                    [
-                        new DotNetStandardLibraryModuleBinding(
-                            canonical.ModuleId,
-                            canonical.Module,
-                            [ ],
-                            [ new DotNetStandardLibraryFunction(id, 1, NoOp) ]
-                        ),
-                    ]
-                ),
-                Throws.InvalidOperationException.With.Message.Contains("requires 2")
-            );
-        });
+        Assert.Multiple(
+            () =>
+            {
+                Assert.That(
+                    () => DotNetStandardLibraryComposer.Compose(
+                        [ new DotNetStandardLibraryModuleBinding(canonical.ModuleId, canonical.Module, [ ], [ ]) ]
+                    ),
+                    Throws.InvalidOperationException.With.Message.Contains("missing function")
+                );
+                Assert.That(
+                    () => DotNetStandardLibraryComposer.Compose(
+                        [
+                            new DotNetStandardLibraryModuleBinding(
+                                canonical.ModuleId,
+                                canonical.Module,
+                                [ ],
+                                [ .. canonical.Functions, new DotNetStandardLibraryFunction("extra", 0, NoOp) ]
+                            ),
+                        ]
+                    ),
+                    Throws.InvalidOperationException.With.Message.Contains("undeclared function")
+                );
+                Assert.That(
+                    () => DotNetStandardLibraryComposer.Compose(
+                        [
+                            new DotNetStandardLibraryModuleBinding(
+                                canonical.ModuleId,
+                                canonical.Module,
+                                [ ],
+                                [ .. canonical.Functions, canonical.Functions[0] ]
+                            ),
+                        ]
+                    ),
+                    Throws.InvalidOperationException.With.Message.Contains("duplicate function")
+                );
+                Assert.That(
+                    () => DotNetStandardLibraryComposer.Compose(
+                        [
+                            new DotNetStandardLibraryModuleBinding(
+                                canonical.ModuleId,
+                                canonical.Module,
+                                [ ],
+                                [ new DotNetStandardLibraryFunction(id, 1, NoOp) ]
+                            ),
+                        ]
+                    ),
+                    Throws.InvalidOperationException.With.Message.Contains("requires 2")
+                );
+            }
+        );
     }
 
     [Test]
@@ -100,54 +101,58 @@ public sealed class ComposerTests
     {
         DotNetStandardLibraryModuleBinding canonical = DotNetStandardLibraryModules.MathConstants;
 
-        Assert.Multiple(() =>
-        {
-            Assert.That(
-                () => DotNetStandardLibraryComposer.Compose(
-                    [ new DotNetStandardLibraryModuleBinding(canonical.ModuleId, canonical.Module, [ ], [ ]) ]
-                ),
-                Throws.InvalidOperationException.With.Message.Contains("missing global")
-            );
-            Assert.That(
-                () => DotNetStandardLibraryComposer.Compose(
-                    [
-                        new DotNetStandardLibraryModuleBinding(
-                            canonical.ModuleId,
-                            canonical.Module,
-                            [ .. canonical.Globals, KeyValuePair.Create<string, object?>("extra", null) ],
-                            [ ]
-                        ),
-                    ]
-                ),
-                Throws.InvalidOperationException.With.Message.Contains("undeclared global")
-            );
-            Assert.That(
-                () => DotNetStandardLibraryComposer.Compose(
-                    [
-                        new DotNetStandardLibraryModuleBinding(
-                            canonical.ModuleId,
-                            canonical.Module,
-                            [ .. canonical.Globals, canonical.Globals[0] ],
-                            [ ]
-                        ),
-                    ]
-                ),
-                Throws.InvalidOperationException.With.Message.Contains("duplicate global")
-            );
-        });
+        Assert.Multiple(
+            () =>
+            {
+                Assert.That(
+                    () => DotNetStandardLibraryComposer.Compose(
+                        [ new DotNetStandardLibraryModuleBinding(canonical.ModuleId, canonical.Module, [ ], [ ]) ]
+                    ),
+                    Throws.InvalidOperationException.With.Message.Contains("missing global")
+                );
+                Assert.That(
+                    () => DotNetStandardLibraryComposer.Compose(
+                        [
+                            new DotNetStandardLibraryModuleBinding(
+                                canonical.ModuleId,
+                                canonical.Module,
+                                [ .. canonical.Globals, KeyValuePair.Create<string, object?>("extra", null) ],
+                                [ ]
+                            ),
+                        ]
+                    ),
+                    Throws.InvalidOperationException.With.Message.Contains("undeclared global")
+                );
+                Assert.That(
+                    () => DotNetStandardLibraryComposer.Compose(
+                        [
+                            new DotNetStandardLibraryModuleBinding(
+                                canonical.ModuleId,
+                                canonical.Module,
+                                [ .. canonical.Globals, canonical.Globals[0] ],
+                                [ ]
+                            ),
+                        ]
+                    ),
+                    Throws.InvalidOperationException.With.Message.Contains("duplicate global")
+                );
+            }
+        );
     }
 
     [Test]
     public void RejectsGlobalValuesIncompatibleWithDeclarations()
     {
         DotNetStandardLibraryModuleBinding canonical = DotNetStandardLibraryModules.MathConstants;
-        KeyValuePair<string, object?>[] globals = canonical.Globals
-            .Select(
-                (global, index) => index == 0
-                    ? KeyValuePair.Create<string, object?>(global.Key, "invalid")
-                    : global
-            )
-            .ToArray();
+        KeyValuePair<string, object?>[] globals =
+        [
+            .. canonical.Globals
+                .Select(
+                    static (global, index) => index == 0
+                        ? KeyValuePair.Create<string, object?>(global.Key, "invalid")
+                        : global
+                ),
+        ];
         DotNetStandardLibraryModuleBinding binding = new (
             canonical.ModuleId,
             canonical.Module,
