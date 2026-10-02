@@ -1,12 +1,26 @@
 #nullable enable
 MuLang.Exporters.DotNet.DotNetExportResult
 MuLang.Exporters.DotNet.DotNetExportResult.<Clone>$() -> MuLang.Exporters.DotNet.DotNetExportResult!
+MuLang.Exporters.DotNet.DotNetExportResult.Deconstruct(out System.Func<MuLang.Exporters.DotNet.DotNetRuntimeContext!, MuLang.Core.Runtime.ExecutionResult!>? ExecutionDelegate, out MuLang.Core.Diagnostics.DiagnosticCollection! Diagnostics) -> void
 MuLang.Exporters.DotNet.DotNetExportResult.Delegate.get -> System.Func<MuLang.Exporters.DotNet.DotNetRuntimeContext!, object?>?
 MuLang.Exporters.DotNet.DotNetExportResult.Diagnostics.get -> MuLang.Core.Diagnostics.DiagnosticCollection!
 MuLang.Exporters.DotNet.DotNetExportResult.Diagnostics.init -> void
+MuLang.Exporters.DotNet.DotNetExportResult.DotNetExportResult(System.Func<MuLang.Exporters.DotNet.DotNetRuntimeContext!, MuLang.Core.Runtime.ExecutionResult!>? ExecutionDelegate, MuLang.Core.Diagnostics.DiagnosticCollection! Diagnostics) -> void
 MuLang.Exporters.DotNet.DotNetExportResult.Equals(MuLang.Exporters.DotNet.DotNetExportResult? other) -> bool
+MuLang.Exporters.DotNet.DotNetExportResult.ExecutionDelegate.get -> System.Func<MuLang.Exporters.DotNet.DotNetRuntimeContext!, MuLang.Core.Runtime.ExecutionResult!>?
+MuLang.Exporters.DotNet.DotNetExportResult.ExecutionDelegate.init -> void
 MuLang.Exporters.DotNet.DotNetExporter
 MuLang.Exporters.DotNet.DotNetFunction
+MuLang.Exporters.DotNet.DotNetProviderFunction
+MuLang.Exporters.DotNet.DotNetProviderInvocationContext
+MuLang.Exporters.DotNet.DotNetProviderInvocationContext.CancellationToken.get -> System.Threading.CancellationToken
+MuLang.Exporters.DotNet.DotNetProviderInvocationContext.GetObjectPropertyNames(object! value) -> System.Collections.Generic.IEnumerable<string!>!
+MuLang.Exporters.DotNet.DotNetProviderInvocationContext.GetReadOnlyArrayCount(object! value) -> int
+MuLang.Exporters.DotNet.DotNetProviderInvocationContext.StructuralEquals(object? left, object? right) -> bool
+MuLang.Exporters.DotNet.DotNetProviderInvocationContext.ThrowApplicationError(string! code, string! message, MuLang.Core.Runtime.RuntimeError? cause = null, object? data = null) -> void
+MuLang.Exporters.DotNet.DotNetProviderInvocationContext.ThrowIfCancellationRequested() -> void
+MuLang.Exporters.DotNet.DotNetProviderInvocationContext.TryGetObjectProperty(object! value, string! name, out object? propertyValue) -> bool
+MuLang.Exporters.DotNet.DotNetProviderInvocationContext.TryGetReadOnlyArrayElement(object! value, int index, out object? element) -> bool
 MuLang.Exporters.DotNet.DotNetRuntimeContext
 MuLang.Exporters.DotNet.DotNetRuntimeContext.CancellationToken.get -> System.Threading.CancellationToken
 MuLang.Exporters.DotNet.DotNetRuntimeContext.DotNetRuntimeContext(MuLang.Core.Environment.EnvironmentSchema! environment, System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string!, object?>>! globals, System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string!, MuLang.Exporters.DotNet.DotNetFunction!>>! functions, long? executionBudget = null, int maximumTraversalDepth = 256, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken), int maximumUserFunctionCallDepth = 256) -> void
@@ -29,6 +43,11 @@ MuLang.Exporters.DotNet.IDotNetReadOnlyArrayValue
 MuLang.Exporters.DotNet.IDotNetReadOnlyArrayValue.Count.get -> int
 MuLang.Exporters.DotNet.IDotNetReadOnlyArrayValue.Identity.get -> object!
 MuLang.Exporters.DotNet.IDotNetReadOnlyArrayValue.TryGetElement(int index, out object? value) -> bool
+MuLang.Exporters.DotNet.MuLangProviderException
+MuLang.Exporters.DotNet.MuLangProviderException.Cause.get -> MuLang.Core.Runtime.RuntimeError?
+MuLang.Exporters.DotNet.MuLangProviderException.Code.get -> string!
+MuLang.Exporters.DotNet.MuLangProviderException.MuLangProviderException(string! code, string! message, MuLang.Core.Runtime.RuntimeError? cause = null, object? data = null, System.Exception? innerException = null) -> void
+MuLang.Exporters.DotNet.MuLangProviderException.Payload.get -> object?
 const MuLang.Exporters.DotNet.DotNetRuntimeErrorCodes.BudgetExceeded = "MUL6011" -> string!
 const MuLang.Exporters.DotNet.DotNetRuntimeErrorCodes.CallDepthExceeded = "MUL6017" -> string!
 const MuLang.Exporters.DotNet.DotNetRuntimeErrorCodes.Cancelled = "MUL6016" -> string!
@@ -54,4 +73,6 @@ static MuLang.Exporters.DotNet.DotNetExportResult.operator !=(MuLang.Exporters.D
 static MuLang.Exporters.DotNet.DotNetExportResult.operator ==(MuLang.Exporters.DotNet.DotNetExportResult? left, MuLang.Exporters.DotNet.DotNetExportResult? right) -> bool
 static MuLang.Exporters.DotNet.DotNetExporter.Export(MuLang.IR.IrProgram! program, MuLang.Core.Environment.EnvironmentSchema! environment) -> MuLang.Exporters.DotNet.DotNetExportResult!
 static MuLang.Exporters.DotNet.DotNetExporter.Export(MuLang.IR.IrProgram! program, MuLang.Core.Environment.EnvironmentSchema! environment, MuLang.Core.CompilationMode? expectedCompilationMode, MuLang.Core.LanguageProfileFingerprint? expectedLanguageProfileFingerprint) -> MuLang.Exporters.DotNet.DotNetExportResult!
+static MuLang.Exporters.DotNet.DotNetRuntimeContext.Create(MuLang.Core.Environment.EnvironmentSchema! environment, System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string!, object?>>! globals, System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string!, MuLang.Exporters.DotNet.DotNetProviderFunction!>>! functions, long? executionBudget = null, int maximumTraversalDepth = 256, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken), int maximumUserFunctionCallDepth = 256) -> MuLang.Exporters.DotNet.DotNetRuntimeContext!
 virtual MuLang.Exporters.DotNet.DotNetFunction.Invoke(System.Collections.Generic.IReadOnlyList<object?>! arguments) -> object?
+virtual MuLang.Exporters.DotNet.DotNetProviderFunction.Invoke(MuLang.Exporters.DotNet.DotNetProviderInvocationContext! context, System.Collections.Generic.IReadOnlyList<object?>! arguments) -> object?

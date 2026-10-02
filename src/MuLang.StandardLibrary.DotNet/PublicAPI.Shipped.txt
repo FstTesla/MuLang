@@ -1,1 +1,23 @@
 #nullable enable
+MuLang.StandardLibrary.DotNet.ClockStandardLibraryOptions
+MuLang.StandardLibrary.DotNet.ClockStandardLibraryOptions.ClockStandardLibraryOptions() -> void
+MuLang.StandardLibrary.DotNet.ClockStandardLibraryOptions.TimeProvider.get -> System.TimeProvider!
+MuLang.StandardLibrary.DotNet.ClockStandardLibraryOptions.TimeProvider.set -> void
+MuLang.StandardLibrary.DotNet.DotNetStandardLibrary
+MuLang.StandardLibrary.DotNet.DotNetStandardLibrary.Bind(MuLang.StandardLibrary.StandardLibrarySelection! selection) -> MuLang.StandardLibrary.DotNet.DotNetStandardLibraryBindings!
+MuLang.StandardLibrary.DotNet.DotNetStandardLibrary.DotNetStandardLibrary(MuLang.StandardLibrary.DotNet.RandomStandardLibraryOptions? randomOptions = null, MuLang.StandardLibrary.DotNet.ClockStandardLibraryOptions? clockOptions = null, MuLang.StandardLibrary.DotNet.GuidStandardLibraryOptions? guidOptions = null) -> void
+MuLang.StandardLibrary.DotNet.DotNetStandardLibraryBindings
+MuLang.StandardLibrary.DotNet.DotNetStandardLibraryBindings.Functions.get -> System.Collections.Generic.IReadOnlyDictionary<string!, MuLang.Exporters.DotNet.DotNetProviderFunction!>!
+MuLang.StandardLibrary.DotNet.DotNetStandardLibraryBindings.Globals.get -> System.Collections.Generic.IReadOnlyDictionary<string!, object?>!
+MuLang.StandardLibrary.DotNet.GuidStandardLibraryOptions
+MuLang.StandardLibrary.DotNet.GuidStandardLibraryOptions.GuidStandardLibraryOptions() -> void
+MuLang.StandardLibrary.DotNet.GuidStandardLibraryOptions.TimeProvider.get -> System.TimeProvider!
+MuLang.StandardLibrary.DotNet.GuidStandardLibraryOptions.TimeProvider.set -> void
+MuLang.StandardLibrary.DotNet.IStandardLibraryRandomSource
+MuLang.StandardLibrary.DotNet.IStandardLibraryRandomSource.NextDouble() -> double
+MuLang.StandardLibrary.DotNet.IStandardLibraryRandomSource.NextInt64(long minimum, long maximum) -> long
+MuLang.StandardLibrary.DotNet.RandomStandardLibraryOptions
+MuLang.StandardLibrary.DotNet.RandomStandardLibraryOptions.RandomSource.get -> MuLang.StandardLibrary.DotNet.IStandardLibraryRandomSource?
+MuLang.StandardLibrary.DotNet.RandomStandardLibraryOptions.RandomSource.set -> void
+MuLang.StandardLibrary.DotNet.RandomStandardLibraryOptions.RandomStandardLibraryOptions() -> void
+static MuLang.StandardLibrary.DotNet.DotNetStandardLibrary.Default.get -> MuLang.StandardLibrary.DotNet.DotNetStandardLibrary!

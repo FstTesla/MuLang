@@ -124,10 +124,41 @@ MuLang.Core.ProviderFunctionCallsFeature.Enabled = 1 -> MuLang.Core.ProviderFunc
 MuLang.Core.RecursionFeature
 MuLang.Core.RecursionFeature.Disabled = 0 -> MuLang.Core.RecursionFeature
 MuLang.Core.RecursionFeature.Enabled = 1 -> MuLang.Core.RecursionFeature
+MuLang.Core.Runtime.ExecutionResult
+MuLang.Core.Runtime.ExecutionResult.Error.get -> MuLang.Core.Runtime.RuntimeError?
+MuLang.Core.Runtime.ExecutionResult.HostException.get -> System.Exception?
+MuLang.Core.Runtime.ExecutionResult.IsSuccess.get -> bool
+MuLang.Core.Runtime.ExecutionResult.Value.get -> object?
 MuLang.Core.Runtime.MuLangRuntimeException
 MuLang.Core.Runtime.MuLangRuntimeException.Code.get -> string!
+MuLang.Core.Runtime.MuLangRuntimeException.Error.get -> MuLang.Core.Runtime.RuntimeError!
+MuLang.Core.Runtime.MuLangRuntimeException.MuLangRuntimeException(MuLang.Core.Runtime.RuntimeError! error) -> void
+MuLang.Core.Runtime.MuLangRuntimeException.MuLangRuntimeException(MuLang.Core.Runtime.RuntimeError! error, System.Exception? innerException) -> void
 MuLang.Core.Runtime.MuLangRuntimeException.MuLangRuntimeException(string! code, string! message, MuLang.Core.Text.TextSpan span, System.Exception? innerException = null) -> void
 MuLang.Core.Runtime.MuLangRuntimeException.Span.get -> MuLang.Core.Text.TextSpan
+MuLang.Core.Runtime.RuntimeError
+MuLang.Core.Runtime.RuntimeError.Category.get -> MuLang.Core.Runtime.RuntimeErrorCategory
+MuLang.Core.Runtime.RuntimeError.Cause.get -> MuLang.Core.Runtime.RuntimeError?
+MuLang.Core.Runtime.RuntimeError.Code.get -> string!
+MuLang.Core.Runtime.RuntimeError.Data.get -> object?
+MuLang.Core.Runtime.RuntimeError.Frames.get -> System.Collections.Generic.IReadOnlyList<MuLang.Core.Runtime.RuntimeStackFrame!>!
+MuLang.Core.Runtime.RuntimeError.IsCatchable.get -> bool
+MuLang.Core.Runtime.RuntimeError.Message.get -> string!
+MuLang.Core.Runtime.RuntimeError.RuntimeError(string! code, string! message, MuLang.Core.Runtime.RuntimeErrorCategory category, bool isCatchable, MuLang.Core.Text.TextSpan span, System.Collections.Generic.IEnumerable<MuLang.Core.Runtime.RuntimeStackFrame!>! frames, MuLang.Core.Runtime.RuntimeError? cause = null, object? data = null) -> void
+MuLang.Core.Runtime.RuntimeError.Span.get -> MuLang.Core.Text.TextSpan
+MuLang.Core.Runtime.RuntimeErrorCategory
+MuLang.Core.Runtime.RuntimeErrorCategory.Application = 2 -> MuLang.Core.Runtime.RuntimeErrorCategory
+MuLang.Core.Runtime.RuntimeErrorCategory.Cancellation = 5 -> MuLang.Core.Runtime.RuntimeErrorCategory
+MuLang.Core.Runtime.RuntimeErrorCategory.Environment = 6 -> MuLang.Core.Runtime.RuntimeErrorCategory
+MuLang.Core.Runtime.RuntimeErrorCategory.Mutation = 1 -> MuLang.Core.Runtime.RuntimeErrorCategory
+MuLang.Core.Runtime.RuntimeErrorCategory.Operation = 0 -> MuLang.Core.Runtime.RuntimeErrorCategory
+MuLang.Core.Runtime.RuntimeErrorCategory.Provider = 3 -> MuLang.Core.Runtime.RuntimeErrorCategory
+MuLang.Core.Runtime.RuntimeErrorCategory.Resource = 4 -> MuLang.Core.Runtime.RuntimeErrorCategory
+MuLang.Core.Runtime.RuntimeErrorCategory.RuntimeContract = 7 -> MuLang.Core.Runtime.RuntimeErrorCategory
+MuLang.Core.Runtime.RuntimeStackFrame
+MuLang.Core.Runtime.RuntimeStackFrame.CallSpan.get -> MuLang.Core.Text.TextSpan
+MuLang.Core.Runtime.RuntimeStackFrame.FunctionId.get -> string!
+MuLang.Core.Runtime.RuntimeStackFrame.RuntimeStackFrame(string! functionId, MuLang.Core.Text.TextSpan callSpan) -> void
 MuLang.Core.ShadowingPolicy
 MuLang.Core.ShadowingPolicy.Globals = 2 -> MuLang.Core.ShadowingPolicy
 MuLang.Core.ShadowingPolicy.NestedScopes = 1 -> MuLang.Core.ShadowingPolicy
