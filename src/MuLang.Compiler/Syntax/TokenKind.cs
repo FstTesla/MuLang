@@ -25,6 +25,7 @@ internal enum TokenKind
     NullKeyword,
     NumberKeyword,
     ObjectKeyword,
+    PrimitiveKeyword,
     ReturnKeyword,
     AsKeyword,
     StringKeyword,

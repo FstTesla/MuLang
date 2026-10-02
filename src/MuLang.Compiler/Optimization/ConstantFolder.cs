@@ -316,7 +316,7 @@ internal sealed class ConstantFolder
 
         if (
             operand is not BoundExpression.Literal literal ||
-            !PrimitiveValueOperations.IsPrimitiveType(expression.Type)
+            !PrimitiveValueOperations.IsConstantEvaluableType(expression.Type)
         )
         {
             return new BoundExpression.Conversion(
@@ -371,7 +371,7 @@ internal sealed class ConstantFolder
 
         if (
             operand is BoundExpression.Literal literal &&
-            PrimitiveValueOperations.IsPrimitiveType(expression.TestedType)
+            PrimitiveValueOperations.IsConstantEvaluableType(expression.TestedType)
         )
         {
             return CreateLiteral(

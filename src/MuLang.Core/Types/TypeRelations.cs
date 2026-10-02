@@ -104,6 +104,14 @@ public static class TypeRelations
         }
 
         if (
+            target.Kind == TypeKind.Primitive &&
+            IsConcretePrimitive(source)
+        )
+        {
+            return true;
+        }
+
+        if (
             source.Kind == TypeKind.Int &&
             target.Kind is TypeKind.Float or TypeKind.Number
         )
@@ -195,6 +203,16 @@ public static class TypeRelations
         }
 
         if (source.Kind == TypeKind.Unknown)
+        {
+            return true;
+        }
+
+        if (
+            source.Kind == TypeKind.Primitive &&
+            IsConcretePrimitive(target) ||
+            target.Kind == TypeKind.Primitive &&
+            IsConcretePrimitive(source)
+        )
         {
             return true;
         }
@@ -293,6 +311,13 @@ public static class TypeRelations
         else if (target.Kind == TypeKind.Unknown)
         {
             guaranteed = source.Kind is not TypeKind.Null and not TypeKind.Void;
+        }
+        else if (
+            target.Kind == TypeKind.Primitive &&
+            IsConcretePrimitive(source)
+        )
+        {
+            guaranteed = true;
         }
         else if (
             source.Kind is TypeKind.Int or TypeKind.Float &&
@@ -408,6 +433,11 @@ public static class TypeRelations
                 : TypeSymbols.Int;
         }
 
+        if (IsPrimitive(left) && IsPrimitive(right))
+        {
+            return TypeSymbols.Primitive;
+        }
+
         if (left is ArrayTypeSymbol leftArray && right is ArrayTypeSymbol rightArray)
         {
             TypeSymbol? elementType = GetCommonViewType(
@@ -472,6 +502,7 @@ public static class TypeRelations
                 TypeKind.Float or
                 TypeKind.Number or
                 TypeKind.String or
+                TypeKind.Primitive or
                 TypeKind.Null
         )
         {
@@ -511,6 +542,14 @@ public static class TypeRelations
         if (target.Kind == TypeKind.Unknown)
         {
             return source.Kind is not TypeKind.Null and not TypeKind.Void;
+        }
+
+        if (
+            target.Kind == TypeKind.Primitive &&
+            IsConcretePrimitive(source)
+        )
+        {
+            return true;
         }
 
         if (
@@ -629,6 +668,21 @@ public static class TypeRelations
         return type.Kind is TypeKind.Int or TypeKind.Float or TypeKind.Number;
     }
 
+    private static bool IsPrimitive(TypeSymbol type)
+    {
+        return type.Kind == TypeKind.Primitive || IsConcretePrimitive(type);
+    }
+
+    private static bool IsConcretePrimitive(TypeSymbol type)
+    {
+        return type.Kind is
+            TypeKind.Bool or
+            TypeKind.Int or
+            TypeKind.Float or
+            TypeKind.Number or
+            TypeKind.String;
+    }
+
     private static TypeSymbol? GetCommonViewType(TypeSymbol left, TypeSymbol right)
     {
         if (IsViewCompatible(left, right))
@@ -644,6 +698,11 @@ public static class TypeRelations
         if (IsNumeric(left) && IsNumeric(right))
         {
             return TypeSymbols.Number;
+        }
+
+        if (IsPrimitive(left) && IsPrimitive(right))
+        {
+            return TypeSymbols.Primitive;
         }
 
         if (left is NullableTypeSymbol leftNullable)

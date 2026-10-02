@@ -1379,7 +1379,7 @@ internal sealed class Binder
 
             TypeSymbol? commonType = elementType is null
                 ? element.Type
-                : TypeRelations.GetCommonType(elementType, element.Type);
+                : GetCommonType(elementType, element.Type);
 
             if (commonType is null)
             {
@@ -1815,7 +1815,7 @@ internal sealed class Binder
         (
             leftValueType is null
                 ? right.Type
-                : TypeRelations.GetCommonType(leftValueType, right.Type)
+                : GetCommonType(leftValueType, right.Type)
         );
 
         if (resultType is null)
@@ -2083,7 +2083,7 @@ internal sealed class Binder
         BoundExpression whenTrue = BindExpression(syntax.WhenTrue, expectedType);
         BoundExpression whenFalse = BindExpression(syntax.WhenFalse, expectedType);
         TypeSymbol? resultType = expectedType ??
-            TypeRelations.GetCommonType(whenTrue.Type, whenFalse.Type);
+            GetCommonType(whenTrue.Type, whenFalse.Type);
 
         if (resultType is null)
         {
@@ -2596,6 +2596,7 @@ internal sealed class Binder
             TokenKind.FloatKeyword => TypeSymbols.Float,
             TokenKind.NumberKeyword => TypeSymbols.Number,
             TokenKind.StringKeyword => TypeSymbols.String,
+            TokenKind.PrimitiveKeyword => TypeSymbols.Primitive,
             TokenKind.UnknownKeyword => TypeSymbols.Unknown,
             TokenKind.ObjectKeyword => TypeSymbols.Object,
             TokenKind.VoidKeyword => TypeSymbols.Void,
@@ -3113,6 +3114,28 @@ internal sealed class Binder
             : TypeSymbols.Nullable(type);
     }
 
+    private TypeSymbol? GetCommonType(TypeSymbol left, TypeSymbol right)
+    {
+        TypeSymbol? commonType = TypeRelations.GetCommonType(left, right);
+
+        return profile.LanguageVersion < LanguageVersion.Version1_2 &&
+            commonType is not null &&
+            ContainsPrimitive(commonType)
+                ? null
+                : commonType;
+    }
+
+    private static bool ContainsPrimitive(TypeSymbol type)
+    {
+        return type switch
+        {
+            { Kind: TypeKind.Primitive } => true,
+            NullableTypeSymbol nullable => ContainsPrimitive(nullable.UnderlyingType),
+            ArrayTypeSymbol array => ContainsPrimitive(array.ElementType),
+            _ => false,
+        };
+    }
+
     private static TypeSymbol GetNonNullable(TypeSymbol? type)
     {
         return type is NullableTypeSymbol nullable
@@ -3139,6 +3162,7 @@ internal sealed class Binder
             TypeKind.Float or
             TypeKind.Number or
             TypeKind.String or
+            TypeKind.Primitive or
             TypeKind.Null;
     }
 

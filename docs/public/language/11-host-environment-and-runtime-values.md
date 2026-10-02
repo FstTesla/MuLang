@@ -75,6 +75,8 @@ An executable result MUST be associated with the static environment against whic
 Execution MUST be rejected when declarations that can affect compilation are incompatible. Relevant declarations include names, types, function signatures, object schemas, and mutability capabilities.
 
 Mutable and read-only array types are distinct for compatibility purposes.
+The language version and the presence of `primitive` in any recursively
+referenced type also contribute to compatibility.
 
 > For example, an executable compiled against a global `values: int[]` cannot be executed with an environment that redeclares the global as `values: int[]$`.
 
@@ -83,6 +85,10 @@ Mutable and read-only array types are distinct for compatibility purposes.
 Host-specific values MUST cross the MuLang boundary through explicit representations of the operations required by their declared MuLang types. They MUST NOT acquire object properties, array behavior, or callable behavior through implicit reflection or unrelated host-language conventions.
 
 Global values, function arguments entering MuLang, and host-provided function results MUST conform recursively to their declared MuLang types.
+
+A boundary value declared as `primitive` MUST be represented as a Boolean,
+signed 64-bit integer, binary64 floating-point value, or string. No wrapper or
+tagged union is introduced, and the concrete representation is preserved.
 
 An object representation defines the applicable subset of:
 

@@ -482,7 +482,7 @@ public sealed class SemanticWarningTests
     )
     {
         environment ??= CreateEmptyEnvironment(
-            profile?.LanguageVersion ?? LanguageVersion.Version1_1
+            profile?.LanguageVersion ?? LanguageVersion.Version1_2
         );
 
         return MuLangCompiler.Analyze(
@@ -500,7 +500,7 @@ public sealed class SemanticWarningTests
     )
     {
         environment ??= CreateEmptyEnvironment(
-            profile?.LanguageVersion ?? LanguageVersion.Version1_1
+            profile?.LanguageVersion ?? LanguageVersion.Version1_2
         );
 
         return MuLangCompiler.Analyze(

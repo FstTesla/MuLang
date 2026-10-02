@@ -24,6 +24,88 @@ public sealed class DotNetExporterTests
         Assert.That(compiled(context), Is.EqualTo(7L));
     }
 
+    [TestCase(true)]
+    [TestCase(42L)]
+    [TestCase(2.5)]
+    [TestCase("value")]
+    public void PreservesPrimitiveRuntimeRepresentations(object value)
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddGlobal("global.value", "value", TypeSymbols.Primitive)
+            .Build(LanguageVersion.Version1_2);
+        Func<DotNetRuntimeContext, object?> compiled = CompileExpression(
+            "value",
+            environment,
+            TypeSymbols.Primitive
+        );
+        DotNetRuntimeContext context = CreateContext(
+            environment,
+            [ new KeyValuePair<string, object?>("global.value", value) ]
+        );
+
+        Assert.That(compiled(context), Is.EqualTo(value));
+    }
+
+    [Test]
+    public void ExecutesPrimitiveConcatenationAndRefinement()
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddGlobal("global.value", "value", TypeSymbols.Primitive)
+            .Build(LanguageVersion.Version1_2);
+        Func<DotNetRuntimeContext, object?> concatenate = CompileExpression(
+            "\"value: \" + value",
+            environment
+        );
+        Func<DotNetRuntimeContext, object?> refine = CompileExpression(
+            "value as string",
+            environment
+        );
+        DotNetRuntimeContext stringContext = CreateContext(
+            environment,
+            [ new KeyValuePair<string, object?>("global.value", "text") ]
+        );
+        DotNetRuntimeContext integerContext = CreateContext(
+            environment,
+            [ new KeyValuePair<string, object?>("global.value", 42L) ]
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(concatenate(integerContext), Is.EqualTo("value: 42"));
+            Assert.That(refine(stringContext), Is.EqualTo("text"));
+            Assert.That(
+                () => refine(integerContext),
+                Throws.TypeOf<MuLangRuntimeException>()
+            );
+        }
+    }
+
+    [TestCase(null, "value: null")]
+    [TestCase(42L, "value: 42")]
+    public void ExecutesNullablePrimitiveConcatenation(
+        object? value,
+        string expected
+    )
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddGlobal(
+                "global.value",
+                "value",
+                TypeSymbols.Nullable(TypeSymbols.Primitive)
+            )
+            .Build(LanguageVersion.Version1_2);
+        Func<DotNetRuntimeContext, object?> compiled = CompileExpression(
+            "\"value: \" + value",
+            environment
+        );
+        DotNetRuntimeContext context = CreateContext(
+            environment,
+            [ new KeyValuePair<string, object?>("global.value", value) ]
+        );
+
+        Assert.That(compiled(context), Is.EqualTo(expected));
+    }
+
     [Test]
     public void ResolvesGlobalsAndProviderFunctionsById()
     {
@@ -2481,9 +2563,13 @@ public sealed class DotNetExporterTests
 
     private static LanguageProfile GetProfile(EnvironmentSchema environment)
     {
-        return environment.LanguageVersion == LanguageVersion.Version1_1
-            ? LanguageProfiles.Version1_1
-            : LanguageProfiles.Version1;
+        return environment.LanguageVersion switch
+        {
+            LanguageVersion.Version1 => LanguageProfiles.Version1,
+            LanguageVersion.Version1_1 => LanguageProfiles.Version1_1,
+            LanguageVersion.Version1_2 => LanguageProfiles.Version1_2,
+            _ => throw new ArgumentOutOfRangeException(nameof(environment)),
+        };
     }
 
     private static DotNetRuntimeContext CreateContext(

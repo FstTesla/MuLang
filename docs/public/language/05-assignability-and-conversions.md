@@ -32,6 +32,33 @@ Conversion from `unknown` or `unknown?` to a more specific type requires an expl
 > var text: string = source as string;
 > ```
 
+### 5.3.1. Primitive conversion
+
+Language version 1.2 implicitly widens `bool`, `int`, `float`, `number`, and
+`string` to `primitive`. `primitive` is implicitly assignable to `unknown`.
+Nullable conversions lift these relations in the ordinary way.
+
+A checked cast may refine `primitive` to any concrete primitive type or to
+`number`, and may refine `unknown` to `primitive`. The cast preserves the
+original runtime representation.
+
+When two non-null primitive types have no more specific common type, their
+common type is `primitive`. Numeric common-type rules are applied first.
+
+> The conditional expression has type `primitive` and preserves either
+> concrete result:
+>
+> ```text
+> condition ? 42 : "forty-two"
+> ```
+>
+> Refinement succeeds only when the stored representation is already a string:
+>
+> ```text
+> var value: primitive = "text";
+> var text: string = value as string;
+> ```
+
 ## 5.4. Numeric conversion
 
 `int` is implicitly convertible to `float`.
@@ -62,7 +89,8 @@ Integer arithmetic is checked. Overflow produces a runtime error.
 
 ## 5.5. String conversion
 
-Primitive values and `null` are contextually converted to `string` by string concatenation.
+Primitive values, values with static type `primitive`, and `null` are
+contextually converted to `string` by string concatenation.
 
 The `as` operator does not perform string conversion. A checked cast to `string` only validates that a value whose static type does not determine its runtime representation, such as `unknown`, already contains a string.
 
@@ -72,6 +100,7 @@ The result uses the culture-independent source representation of the value:
 - an `int` uses signed invariant decimal notation;
 - a finite `float` uses the shortest round-trip decimal representation accepted by the float-literal grammar;
 - a `number` uses the representation of its concrete runtime kind;
+- a `primitive` uses the representation of its concrete runtime kind;
 - positive infinity, negative infinity, and NaN use `infty`, `-infty`, and `nan`, respectively;
 - a `string` is unchanged and is not surrounded by quotes or escaped.
 
@@ -109,7 +138,7 @@ An array of `T` is not implicitly assignable to an array of another element type
 
 This rule prevents writes through a widened mutable array reference from violating the original element type.
 
-Language version 1.1 permits an array of `S` to be observed as `T[]$` when `S` is representation-safe for reads as `T`. The relation permits equivalent types, non-null values to `unknown`, nullable lifting, `int` or `float` to `number`, structured objects to `object`, and recursively compatible read-only array views. It does not permit representation-changing conversions such as `int` to `float`.
+Language version 1.1 permits an array of `S` to be observed as `T[]$` when `S` is representation-safe for reads as `T`. The relation permits equivalent types, non-null values to `unknown`, nullable lifting, `int` or `float` to `number`, structured objects to `object`, and recursively compatible read-only array views. Language version 1.2 also permits concrete primitive element types to widen to `primitive`. The relation does not permit representation-changing conversions such as `int` to `float`.
 
 Both `S[]` and `S[]$` may convert implicitly to a compatible `T[]$`. A read-only array is never implicitly assignable to a mutable array.
 

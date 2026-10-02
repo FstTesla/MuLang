@@ -66,7 +66,7 @@ Division or remainder by integer zero produces a runtime error.
 
 Floating-point arithmetic follows IEEE 754 binary64 semantics.
 
-The `+` operator performs string concatenation when at least one operand has type `string` and the other operand is a primitive value, a nullable primitive value, or the `null` literal.
+The `+` operator performs string concatenation when at least one operand has type `string` and the other operand is a primitive value, has type `primitive` or `primitive?`, is another nullable primitive value, or is the `null` literal.
 
 Non-string operands are converted using the string conversion rules before concatenation. A nullable primitive operand whose runtime value is `null` is converted to `"null"`.
 
@@ -85,6 +85,16 @@ Objects and arrays cannot participate in intrinsic string concatenation.
 > ```text
 > "count=" + 2
 > ```
+>
+> Given `value: primitive`, this expression is also valid:
+>
+> ```text
+> "value=" + value
+> ```
+
+Two operands whose static type is only `primitive` do not dynamically select
+between arithmetic and concatenation. Arithmetic, relational, bitwise, and
+unary operators continue to require their specific operand types.
 
 ## 9.4. Relational operators
 
@@ -144,6 +154,10 @@ Bitwise operations do not perform overflow checks.
 `value is Type` evaluates to `true` when the value conforms to the specified non-void type.
 
 Numeric conformance follows concrete representation: `int` values conform to `int` and `number`, while `float` values conform to `float` and `number`. Type tests do not apply the implicit `int`-to-`float` conversion.
+
+Every concrete primitive value conforms to `primitive`. A value with static
+type `primitive` may be tested or checked-cast to `bool`, `int`, `float`,
+`number`, or `string`.
 
 When the operand's static type and the tested type cannot describe the same runtime value, the test remains valid, evaluates to `false`, and produces a warning diagnostic.
 

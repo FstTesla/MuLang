@@ -99,7 +99,7 @@ public sealed class EnvironmentBuilder
     /// <returns>The immutable environment schema.</returns>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="languageVersion" /> is not defined.</exception>
     /// <exception cref="InvalidOperationException">Thrown when a symbol name is reserved in the selected language version or a referenced structured type is not registered by the same instance.</exception>
-    public EnvironmentSchema Build(LanguageVersion languageVersion = LanguageVersion.Version1_1)
+    public EnvironmentSchema Build(LanguageVersion languageVersion = LanguageVersion.Version1_2)
     {
         if (!Enum.IsDefined(languageVersion))
         {
@@ -113,7 +113,7 @@ public sealed class EnvironmentBuilder
         IReadOnlyCollection<FunctionSymbol> functions =
             [ .. functionsByName.Values.OrderBy(static function => function.Name, StringComparer.Ordinal) ];
         ValidateLanguageVersionNames(languageVersion, types, globals, functions);
-        ValidateReferencedTypes(types, globals, functions);
+        ValidateReferencedTypes(languageVersion, types, globals, functions);
         EnvironmentFingerprint fingerprint = EnvironmentFingerprintFactory.Create(
             languageVersion,
             types,
@@ -175,6 +175,7 @@ public sealed class EnvironmentBuilder
     }
 
     private void ValidateReferencedTypes(
+        LanguageVersion languageVersion,
         IReadOnlyCollection<ObjectTypeSymbol> types,
         IReadOnlyCollection<GlobalSymbol> globals,
         IReadOnlyCollection<FunctionSymbol> functions
@@ -184,41 +185,52 @@ public sealed class EnvironmentBuilder
 
         foreach (ObjectTypeSymbol type in types)
         {
-            ValidateReferencedType(type, visited);
+            ValidateReferencedType(type, languageVersion, visited);
         }
 
         foreach (GlobalSymbol global in globals)
         {
-            ValidateReferencedType(global.Type, visited);
+            ValidateReferencedType(global.Type, languageVersion, visited);
         }
 
         foreach (FunctionSymbol function in functions)
         {
             foreach (ParameterSymbol parameter in function.Parameters)
             {
-                ValidateReferencedType(parameter.Type, visited);
+                ValidateReferencedType(parameter.Type, languageVersion, visited);
             }
 
-            ValidateReferencedType(function.ReturnType, visited);
+            ValidateReferencedType(function.ReturnType, languageVersion, visited);
         }
     }
 
     private void ValidateReferencedType(
         TypeSymbol type,
+        LanguageVersion languageVersion,
         ISet<ObjectTypeSymbol> visited
     )
     {
+        if (
+            type.Kind == TypeKind.Primitive &&
+            languageVersion < LanguageVersion.Version1_2
+        )
+        {
+            throw new InvalidOperationException(
+                "Type 'primitive' requires language version 1.2."
+            );
+        }
+
         switch (type)
         {
             case NullableTypeSymbol nullable:
             {
-                ValidateReferencedType(nullable.UnderlyingType, visited);
+                ValidateReferencedType(nullable.UnderlyingType, languageVersion, visited);
                 break;
             }
 
             case ArrayTypeSymbol array:
             {
-                ValidateReferencedType(array.ElementType, visited);
+                ValidateReferencedType(array.ElementType, languageVersion, visited);
                 break;
             }
 
@@ -245,7 +257,7 @@ public sealed class EnvironmentBuilder
 
                 foreach (ObjectPropertySymbol property in structuredObject.Properties)
                 {
-                    ValidateReferencedType(property.Type, visited);
+                    ValidateReferencedType(property.Type, languageVersion, visited);
                 }
 
                 break;

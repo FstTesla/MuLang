@@ -5,11 +5,11 @@ namespace MuLang.Core.Evaluation;
 
 internal static class PrimitiveValueOperations
 {
-    public static bool IsPrimitiveType(TypeSymbol type)
+    public static bool IsConstantEvaluableType(TypeSymbol type)
     {
         if (type is NullableTypeSymbol nullable)
         {
-            return IsPrimitiveType(nullable.UnderlyingType);
+            return IsConstantEvaluableType(nullable.UnderlyingType);
         }
 
         return type.Kind is
@@ -18,6 +18,7 @@ internal static class PrimitiveValueOperations
             TypeKind.Float or
             TypeKind.Number or
             TypeKind.String or
+            TypeKind.Primitive or
             TypeKind.Unknown or
             TypeKind.Null;
     }
@@ -150,6 +151,7 @@ internal static class PrimitiveValueOperations
             TypeKind.Int when value is long => value,
             TypeKind.Float => ConvertToFloat(value),
             TypeKind.Number when value is long or double => value,
+            TypeKind.Primitive when value is bool or long or double or string => value,
             TypeKind.Unknown => value,
             _ => throw InvalidValue(
                 $"Value cannot be converted to '{targetType.DisplayName}'."
@@ -176,6 +178,7 @@ internal static class PrimitiveValueOperations
             TypeKind.Float => value is double,
             TypeKind.Number => value is long or double,
             TypeKind.String => value is string,
+            TypeKind.Primitive => value is bool or long or double or string,
             TypeKind.Unknown => true,
             _ => false,
         };

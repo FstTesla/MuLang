@@ -26,7 +26,7 @@ internal sealed class Parser
 
     public static SyntaxTree Parse(SourceText source, CompilationMode compilationMode)
     {
-        return Parse(source, compilationMode, LanguageProfiles.Version1_1);
+        return Parse(source, compilationMode, LanguageProfiles.Latest);
     }
 
     public static SyntaxTree Parse(

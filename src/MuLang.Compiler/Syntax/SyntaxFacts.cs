@@ -66,6 +66,7 @@ internal static class SyntaxFacts
             TokenKind.FloatKeyword or
             TokenKind.NumberKeyword or
             TokenKind.StringKeyword or
+            TokenKind.PrimitiveKeyword or
             TokenKind.UnknownKeyword or
             TokenKind.ObjectKeyword or
             TokenKind.Identifier;

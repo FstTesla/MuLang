@@ -15,7 +15,7 @@ public static class StandardLibraryComposer
     /// <exception cref="InvalidOperationException">Thrown when symbols are incompatible or declarations collide.</exception>
     public static EnvironmentSchema Compose(StandardLibrarySelection selection)
     {
-        return ComposeCore(null, selection, LanguageVersion.Version1_1);
+        return ComposeCore(null, selection, LanguageVersion.Version1_2);
     }
 
     /// <summary>Creates an environment from a symbol selection.</summary>

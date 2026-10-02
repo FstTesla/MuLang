@@ -28,6 +28,7 @@ The primitive types are:
 | `float` | IEEE 754 binary64 floating-point value |
 | `number` | Numeric value represented as either `int` or `float` |
 | `string` | Unicode string |
+| `primitive` | Boolean, numeric, or string value |
 
 Primitive values are immutable.
 
@@ -35,12 +36,37 @@ Primitive values are immutable.
 
 Type conformance observes that concrete representation and does not apply numeric promotion. An `int` value therefore conforms to `int` and `number`, but not to `float`.
 
+Language version 1.2 adds `primitive` as the non-null common supertype of
+`bool`, `number`, and `string`. `int` and `float` are therefore transitively
+assignable to `primitive` through `number`.
+
+`primitive` has no dedicated runtime representation or literal syntax. A value
+stored as `primitive` retains its concrete `bool`, `int`, `float`, or `string`
+representation. It is narrower than `unknown`: objects and arrays are not
+primitive values.
+
 > For example, the initializer of `total` converts the `int` operand to `float`, while the value stored in `count` retains its concrete `int` representation:
 >
 > ```text
 > var total: float = 1 + 2.5;
 > var count: number = 3;
 > ```
+>
+> A mixed primitive array can infer `primitive[]` in language version 1.2:
+>
+> ```text
+> var values = [true, 1, 2.5, "text"];
+> ```
+>
+> The abstract type does not enable dynamic arithmetic:
+>
+> ```text
+> var value: primitive = 1;
+> return value + 1;
+> ```
+>
+> The preceding program is invalid because arithmetic requires a statically
+> numeric operand.
 
 ## 4.3. The `unknown` type
 
@@ -132,6 +158,9 @@ Arrays are homogeneous. Every element MUST be assignable to the declared element
 The generic array type is `unknown[]`.
 
 The generic read-only array type is `unknown[]$`.
+
+In language version 1.2, a read-only array view may widen a concrete primitive
+element type to `primitive`. Mutable arrays remain invariant.
 
 Nullability binds to the immediately preceding type construction. Element nullability and array nullability are independent.
 

@@ -36,6 +36,16 @@ public sealed class TypeSymbolsTests
     }
 
     [Test]
+    public void ExposesPrimitiveType()
+    {
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(TypeSymbols.Primitive.Kind, Is.EqualTo(TypeKind.Primitive));
+            Assert.That(TypeSymbols.Primitive.DisplayName, Is.EqualTo("primitive"));
+        }
+    }
+
+    [Test]
     public void RejectsInvalidTypeConstructions()
     {
         Assert.That(

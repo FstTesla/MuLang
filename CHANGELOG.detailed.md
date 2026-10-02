@@ -12,6 +12,19 @@ Stable entries describe the incremental change since the preceding prerelease. T
 
 Each release heading identifies the incremental version range covered by the section, from the comparison version to the released version.
 
+## `0.2.0` → `0.3.0-alpha.1` - 2026-10-02
+
+### Breaking changes
+
+- Changed the default and latest standard language profile, environment builder, and standalone standard-library composition from MuLang 1.1 to 1.2. Hosts that require 1.1 keyword and type-inference behavior must select `LanguageProfiles.Version1_1` and build or compose their environment for `LanguageVersion.Version1_1` explicitly.
+- Changed canonical MuIR output from format version 1 to version 2. The reader continues accepting version 1 documents, while rewriting them upgrades the document header to version 2.
+
+### New features
+
+- Added MuLang 1.2 and the `primitive` intrinsic abstract type as the non-null common supertype of `bool`, `number`, and `string`, including nullable lifting, checked refinement, type tests, mixed-primitive common-type inference, and covariant read-only array views.
+- Added contextual string concatenation for `primitive` and `primitive?` values while preserving their concrete Boolean, integer, floating-point, or string representation. The abstract type does not enable dynamic arithmetic, relational, bitwise, or unary operations.
+- Added version-aware `primitive` keyword handling, migration warnings in earlier language versions, host-environment validation, lexical and Visual Studio highlighting, portable IR validation, MuIR version 2 serialization, and .NET runtime and provider-boundary conformance.
+
 ## `0.2.0-rc.1` → `0.2.0` - 2026-10-02
 
 No consumer-visible changes.

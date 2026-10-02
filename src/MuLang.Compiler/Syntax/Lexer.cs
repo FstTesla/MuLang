@@ -24,7 +24,7 @@ internal sealed class Lexer
 
     public static LexResult Lex(SourceText source)
     {
-        return Lex(source, LanguageProfiles.Version1_1);
+        return Lex(source, LanguageProfiles.Latest);
     }
 
     public static LexResult Lex(SourceText source, LanguageProfile profile)
@@ -594,6 +594,12 @@ internal sealed class Lexer
             "null" => TokenKind.NullKeyword,
             "number" => TokenKind.NumberKeyword,
             "object" => TokenKind.ObjectKeyword,
+            "primitive" => GetVersionedKeywordKind(
+                TokenKind.PrimitiveKeyword,
+                LanguageVersion.Version1_2,
+                text,
+                span
+            ),
             "return" => TokenKind.ReturnKeyword,
             "string" => TokenKind.StringKeyword,
             "true" => TokenKind.TrueKeyword,
@@ -636,6 +642,7 @@ internal sealed class Lexer
         {
             LanguageVersion.Version1 => "1",
             LanguageVersion.Version1_1 => "1.1",
+            LanguageVersion.Version1_2 => "1.2",
             _ => throw new ArgumentOutOfRangeException(nameof(version)),
         };
     }

@@ -23,7 +23,14 @@ The standard profile for language version 1 enables user-defined functions, recu
 
 The standard profile for language version 1.1 has the same settings and adds read-only array types and literals, binary, octal, and hexadecimal integer literals, and the `infty` and `nan` float literals. These additions are determined by the language version and are not independently configurable.
 
+The standard profile for language version 1.2 has the same settings and adds
+the `primitive` abstract type. Its availability is determined only by the
+language version and has no independent feature flag.
+
 Language version 1 rejects `$`, `$[`, and prefixed integer literals and treats `infty` and `nan` as identifiers.
+
+Language versions 1 and 1.1 treat `primitive` as an identifier and warn that
+the spelling becomes reserved in version 1.2.
 
 > For example, this expression is valid in the standard language-version-1.1 profile and rejected as an unavailable feature in language version 1:
 >
@@ -186,7 +193,7 @@ A value with static type `number` is interpreted according to its concrete `int`
 
 Truthiness is contextual. It does not add an implicit conversion to `bool`, a source-level Boolean cast, flow-sensitive narrowing, or changes to equality and identity. `void` remains invalid. A value that cannot be represented by any supported MuLang type produces a runtime error.
 
-Both standard language profiles use strict Boolean semantics.
+All standard language profiles use strict Boolean semantics.
 
 > Under strict Boolean semantics, this condition is invalid:
 >

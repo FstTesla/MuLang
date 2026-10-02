@@ -144,7 +144,7 @@ public sealed class LanguageProfileTests
     {
         LanguageProfile profile = new LanguageProfileBuilder().Build();
 
-        Assert.That(profile, Is.EqualTo(LanguageProfiles.Version1_1));
+        Assert.That(profile, Is.EqualTo(LanguageProfiles.Version1_2));
     }
 
     [Test]

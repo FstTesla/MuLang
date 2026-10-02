@@ -153,7 +153,7 @@ internal static class DotNetRuntimeOperations
             );
         }
 
-        if (PrimitiveValueOperations.IsPrimitiveType(targetType))
+        if (PrimitiveValueOperations.IsConstantEvaluableType(targetType))
         {
             return EvaluatePrimitive(
                 () => PrimitiveValueOperations.ConvertValue(value, targetType),
@@ -231,6 +231,7 @@ internal static class DotNetRuntimeOperations
             TypeKind.Float => value is double,
             TypeKind.Number => value is long or double,
             TypeKind.String => value is string,
+            TypeKind.Primitive => value is bool or long or double or string,
             TypeKind.Unknown => true,
             TypeKind.Object => IsObject(value),
             TypeKind.StructuredObject => IsObject(value),
@@ -673,6 +674,7 @@ internal static class DotNetRuntimeOperations
                 TypeKind.Float => value is double,
                 TypeKind.Number => value is long or double,
                 TypeKind.String => value is string,
+                TypeKind.Primitive => value is bool or long or double or string,
                 TypeKind.Unknown => true,
                 TypeKind.Object => IsGenericObject(
                     context,

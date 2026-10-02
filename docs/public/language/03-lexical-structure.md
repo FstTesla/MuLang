@@ -59,9 +59,15 @@ Language version 1.1 additionally reserves:
 - `infty`
 - `nan`
 
+Language version 1.2 additionally reserves:
+
+- `primitive`
+
 When compiling an earlier language version, each identifier occurrence whose spelling becomes reserved in a later supported version produces a warning while remaining an identifier.
 
-Host-defined function, global, and type names MUST NOT use reserved keywords.
+Host-defined function, global, type, and parameter names MUST NOT use reserved
+keywords in the language version targeted by the environment. A schema targeting
+an earlier version may continue using a spelling that becomes reserved later.
 
 ## 3.5. Boolean literals
 

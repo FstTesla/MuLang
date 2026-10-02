@@ -18,6 +18,12 @@ public static class TypeSymbols
     /// <summary>Gets the built-in string type.</summary>
     public static TypeSymbol String { get; } = new IntrinsicTypeSymbol(TypeKind.String, "string");
 
+    /// <summary>Gets the built-in common non-null primitive type.</summary>
+    public static TypeSymbol Primitive { get; } = new IntrinsicTypeSymbol(
+        TypeKind.Primitive,
+        "primitive"
+    );
+
     /// <summary>Gets the built-in dynamically checked unknown type.</summary>
     public static TypeSymbol Unknown { get; } = new IntrinsicTypeSymbol(
         TypeKind.Unknown,

@@ -97,7 +97,7 @@ public static class MuIrWriter
 
         public void Write()
         {
-            Line("muir 1");
+            Line("muir 2");
             Line($"mode {GetCompilationMode(program.CompilationMode)}");
             Line($"environment {Quote(program.EnvironmentFingerprint.Value)}");
             Line($"profile {Quote(program.LanguageProfileFingerprint.Value)}");
@@ -400,6 +400,7 @@ public static class MuIrWriter
                 TypeKind.Float => "float",
                 TypeKind.Number => "number",
                 TypeKind.String => "string",
+                TypeKind.Primitive => "primitive",
                 TypeKind.Unknown => "unknown",
                 TypeKind.Object => "object",
                 TypeKind.Void => "void",

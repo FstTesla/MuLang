@@ -21,6 +21,10 @@ turns validated IR into a .NET delegate. Alternative exporters reference
 
 The .NET exporter exposes independent read-only and mutable array adapter contracts. Provider arrays that do not support writes implement `IDotNetReadOnlyArrayValue`; existing mutable arrays continue to implement the unchanged `IDotNetArrayValue` contract.
 
+MuLang 1.2 `primitive` declarations use the existing scalar .NET
+representations (`bool`, `long`, `double`, and `string`) at provider and
+execution boundaries. The packages introduce no primitive wrapper type.
+
 `DotNetProviderFunction` is the canonical context-aware provider delegate.
 Hosts construct a context using these functions through
 `DotNetRuntimeContext.Create`. Its invocation context provides adapter-based

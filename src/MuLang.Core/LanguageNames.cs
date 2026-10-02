@@ -40,6 +40,12 @@ internal static class LanguageNames
             "nan",
         };
 
+    private static readonly IReadOnlySet<string> versionOneTwoReservedKeywords =
+        new HashSet<string>(StringComparer.Ordinal)
+        {
+            "primitive",
+        };
+
     public static void ValidateIdentifier(string value, string parameterName)
     {
         if (string.IsNullOrWhiteSpace(value))
@@ -110,6 +116,8 @@ internal static class LanguageNames
     {
         return reservedKeywords.Contains(value) ||
             languageVersion >= LanguageVersion.Version1_1 &&
-            versionOneOneReservedKeywords.Contains(value);
+            versionOneOneReservedKeywords.Contains(value) ||
+            languageVersion >= LanguageVersion.Version1_2 &&
+            versionOneTwoReservedKeywords.Contains(value);
     }
 }

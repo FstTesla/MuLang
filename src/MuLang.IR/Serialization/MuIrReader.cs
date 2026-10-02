@@ -209,6 +209,7 @@ public static class MuIrReader
         private readonly List<TypeDescriptor> typeDescriptors = [ ];
         private readonly List<TypeSymbol> types = [ ];
         private int declaredTypeCount;
+        private int formatVersion;
         private Token current;
 
         public DocumentParser(string text, MuIrReaderOptions options)
@@ -221,13 +222,13 @@ public static class MuIrReader
         public IrProgram Parse()
         {
             Expect("muir", MuIrDiagnosticCodes.InvalidMagic);
-            int version = ReadNonNegativeInteger();
+            formatVersion = ReadNonNegativeInteger();
 
-            if (version != 1)
+            if (formatVersion is not 1 and not 2)
             {
                 Fail(
                     MuIrDiagnosticCodes.UnsupportedVersion,
-                    $"MuIR format version {version} is not supported."
+                    $"MuIR format version {formatVersion} is not supported."
                 );
             }
 
@@ -868,6 +869,7 @@ public static class MuIrReader
                 "float" => TypeSymbols.Float,
                 "number" => TypeSymbols.Number,
                 "string" => TypeSymbols.String,
+                "primitive" when formatVersion >= 2 => TypeSymbols.Primitive,
                 "unknown" => TypeSymbols.Unknown,
                 "object" => TypeSymbols.Object,
                 "void" => TypeSymbols.Void,

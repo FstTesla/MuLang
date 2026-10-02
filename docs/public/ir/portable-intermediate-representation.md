@@ -41,6 +41,11 @@ Lowering MAY represent a source-level read-only local with a mutable IR slot whe
 
 Array types transported through IR retain their read-only capability. Array creation records that capability, mutable-to-read-only conversions are representation-preserving, acquisition of mutable capability requires a checked conversion, and `SetElement` MUST be rejected when the target slot has a read-only array type.
 
+The `primitive` intrinsic type is transported as an ordinary static type.
+Constants stored under that static type retain a concrete Boolean, integer,
+floating-point, or string value. Conversions to `primitive` preserve the value,
+while checked casts and type tests inspect the concrete representation.
+
 Conversion instructions use an explicit conversion kind that distinguishes checked casts from value conversions. Checked casts validate the same runtime conformance relation as type-test instructions and return the original runtime value unchanged. Value conversions may change representation where the language specifies an implicit, contextual, or compiler-required conversion. Statically guaranteed casts SHOULD lower directly to a typed copy rather than a conversion instruction.
 
 Provider-call validation accepts arguments assignable through read-only array covariance.
@@ -53,4 +58,4 @@ Runtime exporters MUST NOT perform name resolution, type inference, overload res
 
 Portable IR MAY be persisted and exchanged as a MuIR document with the `.muir` extension. MuIR is versioned independently from the MuLang language and profile versions. A host that reads MuIR MUST validate the reconstructed program against its selected environment through the ordinary IR validator before export or execution.
 
-The normative MuIR version 1 format is defined in the [MuIR serialization format](muir-format.md).
+The normative MuIR version 2 format is defined in the [MuIR serialization format](muir-format.md). Version 1 remains readable for compatibility.

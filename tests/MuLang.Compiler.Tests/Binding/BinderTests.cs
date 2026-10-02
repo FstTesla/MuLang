@@ -491,6 +491,96 @@ public sealed class BinderTests
     }
 
     [Test]
+    public void BindsPrimitiveDeclarationsAndCommonTypes()
+    {
+        EnvironmentSchema environment = CreateEmptyEnvironment(
+            LanguageVersion.Version1_2
+        );
+        BindingResult declaration = BindProgram(
+            "var value: primitive = true; return value;",
+            environment,
+            TypeSymbols.Primitive,
+            LanguageProfiles.Version1_2
+        );
+        BindingResult array = BindExpression(
+            "[1, true, \"value\"]",
+            environment,
+            profile: LanguageProfiles.Version1_2
+        );
+        BoundExpression.Array arrayExpression = (BoundExpression.Array)
+            ((BoundRoot.Expression)array.Root).Value;
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(declaration.Diagnostics, Is.Empty);
+            Assert.That(
+                arrayExpression.ArrayType.ElementType,
+                Is.SameAs(TypeSymbols.Primitive)
+            );
+            Assert.That(array.Diagnostics, Is.Empty);
+        }
+    }
+
+    [Test]
+    public void SupportsPrimitiveConcatenationAndRefinement()
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddGlobal("global.value", "value", TypeSymbols.Primitive)
+            .Build(LanguageVersion.Version1_2);
+        BindingResult concatenation = BindExpression(
+            "\"value: \" + value",
+            environment,
+            profile: LanguageProfiles.Version1_2
+        );
+        BindingResult cast = BindExpression(
+            "value as string",
+            environment,
+            profile: LanguageProfiles.Version1_2
+        );
+        BindingResult typeTest = BindExpression(
+            "value is number",
+            environment,
+            profile: LanguageProfiles.Version1_2
+        );
+        BindingResult arithmetic = BindExpression(
+            "value + 1",
+            environment,
+            profile: LanguageProfiles.Version1_2
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(
+                ((BoundRoot.Expression)concatenation.Root).Value.Type,
+                Is.SameAs(TypeSymbols.String)
+            );
+            Assert.That(concatenation.Diagnostics, Is.Empty);
+            Assert.That(cast.Diagnostics, Is.Empty);
+            Assert.That(typeTest.Diagnostics, Is.Empty);
+            AssertDiagnostic(arithmetic, DiagnosticCodes.OperatorNotDefined);
+        }
+    }
+
+    [Test]
+    public void SupportsNullablePrimitiveConcatenation()
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddGlobal(
+                "global.value",
+                "value",
+                TypeSymbols.Nullable(TypeSymbols.Primitive)
+            )
+            .Build(LanguageVersion.Version1_2);
+        BindingResult result = BindExpression(
+            "\"value: \" + value",
+            environment,
+            profile: LanguageProfiles.Version1_2
+        );
+
+        Assert.That(result.Diagnostics, Is.Empty);
+    }
+
+    [Test]
     public void RequiresConcreteIntForBitwiseOperators()
     {
         EnvironmentSchema environment = new EnvironmentBuilder()
@@ -1216,6 +1306,21 @@ public sealed class BinderTests
         BindingResult result = BindExpression(
             "condition ? 1 : \"value\"",
             environment
+        );
+
+        AssertDiagnostic(result, DiagnosticCodes.TypeMismatch);
+    }
+
+    [Test]
+    public void DoesNotInferCompositePrimitiveTypesBeforeVersionOneTwo()
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddGlobal("global.condition", "condition", TypeSymbols.Bool)
+            .Build(LanguageVersion.Version1_1);
+        BindingResult result = BindExpression(
+            "condition ? [true] : [\"value\"]",
+            environment,
+            profile: LanguageProfiles.Version1_1
         );
 
         AssertDiagnostic(result, DiagnosticCodes.TypeMismatch);

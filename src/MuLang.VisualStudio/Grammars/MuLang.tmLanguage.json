@@ -75,7 +75,7 @@
         },
         {
           "name": "storage.type.mulang",
-          "match": "\\b(?:bool|float|int|number|object|string|unknown|void)\\b"
+          "match": "\\b(?:bool|float|int|number|object|primitive|string|unknown|void)\\b"
         },
         {
           "name": "constant.language.mulang",

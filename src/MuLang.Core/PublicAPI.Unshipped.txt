@@ -1,1 +1,6 @@
 #nullable enable
+MuLang.Core.Environment.EnvironmentBuilder.Build(MuLang.Core.LanguageVersion languageVersion = MuLang.Core.LanguageVersion.Version1_2) -> MuLang.Core.Environment.EnvironmentSchema!
+MuLang.Core.LanguageVersion.Version1_2 = 2 -> MuLang.Core.LanguageVersion
+MuLang.Core.Types.TypeKind.Primitive = 14 -> MuLang.Core.Types.TypeKind
+static MuLang.Core.LanguageProfiles.Version1_2.get -> MuLang.Core.LanguageProfile!
+static MuLang.Core.Types.TypeSymbols.Primitive.get -> MuLang.Core.Types.TypeSymbol!

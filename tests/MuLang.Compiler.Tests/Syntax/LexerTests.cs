@@ -96,6 +96,33 @@ public sealed class LexerTests
     }
 
     [Test]
+    public void VersionsPrimitiveKeyword()
+    {
+        LexResult earlier = Lexer.Lex(
+            SourceText.From("primitive"),
+            LanguageProfiles.Version1_1
+        );
+        LexResult current = Lexer.Lex(
+            SourceText.From("primitive"),
+            LanguageProfiles.Version1_2
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(earlier.Tokens[0].Kind, Is.EqualTo(TokenKind.Identifier));
+            Assert.That(
+                earlier.Diagnostics.Single().Code,
+                Is.EqualTo(DiagnosticCodes.FutureReservedKeyword)
+            );
+            Assert.That(
+                current.Tokens[0].Kind,
+                Is.EqualTo(TokenKind.PrimitiveKeyword)
+            );
+            Assert.That(current.Diagnostics, Is.Empty);
+        }
+    }
+
+    [Test]
     public void RecognizesOperatorsUsingLongestMatch()
     {
         LexResult result = Lexer.Lex(
@@ -152,7 +179,7 @@ public sealed class LexerTests
     }
 
     [Test]
-    public void UsesLanguageVersionOneOneByDefault()
+    public void UsesLatestLanguageVersionByDefault()
     {
         LexResult result = Lexer.Lex(SourceText.From("$[1] int[]$"));
 

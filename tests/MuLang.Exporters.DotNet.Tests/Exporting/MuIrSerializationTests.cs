@@ -30,13 +30,13 @@ public sealed class MuIrSerializationTests
             original,
             environment,
             CompilationMode.Expression,
-            LanguageProfiles.Version1_1.Fingerprint
+            LanguageProfiles.Version1_2.Fingerprint
         );
         DotNetExportResult deserializedExport = DotNetExporter.Export(
             deserialized,
             environment,
             CompilationMode.Expression,
-            LanguageProfiles.Version1_1.Fingerprint
+            LanguageProfiles.Version1_2.Fingerprint
         );
         DotNetRuntimeContext context = DotNetRuntimeContext.Create(
             environment,

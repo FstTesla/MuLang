@@ -72,7 +72,10 @@ MuLang stores source spans in Unicode scalar offsets. The language server conver
 
 ## Hybrid highlighting
 
-TextMate provides immediate lexical highlighting for keywords, literals, strings, operators, and punctuation. It remains active while the language server starts and acts as a fallback if the server is unavailable.
+TextMate provides immediate lexical highlighting for keywords, including the
+language-version-1.2 `primitive` intrinsic type, literals, strings, operators,
+and punctuation. It remains active while the language server starts and acts
+as a fallback if the server is unavailable.
 
 The compiler supplements TextMate with binding-based semantic classifications for:
 

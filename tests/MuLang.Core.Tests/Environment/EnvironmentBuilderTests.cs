@@ -7,11 +7,11 @@ namespace MuLang.Core.Tests.Environment;
 public sealed class EnvironmentBuilderTests
 {
     [Test]
-    public void UsesLanguageVersionOneOneByDefault()
+    public void UsesLatestLanguageVersionByDefault()
     {
         EnvironmentSchema schema = new EnvironmentBuilder().Build();
 
-        Assert.That(schema.LanguageVersion, Is.EqualTo(LanguageVersion.Version1_1));
+        Assert.That(schema.LanguageVersion, Is.EqualTo(LanguageVersion.Version1_2));
     }
 
     [Test]
@@ -109,6 +109,35 @@ public sealed class EnvironmentBuilderTests
             Assert.That(
                 () => createBuilder().Build(LanguageVersion.Version1_1),
                 Throws.InvalidOperationException
+            );
+        }
+    }
+
+    [Test]
+    public void GatesPrimitiveNamesAndTypesByLanguageVersion()
+    {
+        EnvironmentBuilder namedBuilder = new EnvironmentBuilder()
+            .AddGlobal("global.primitive", "primitive", TypeSymbols.Int);
+        EnvironmentBuilder typedBuilder = new EnvironmentBuilder()
+            .AddGlobal("global.value", "value", TypeSymbols.Primitive);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(
+                () => namedBuilder.Build(LanguageVersion.Version1_1),
+                Throws.Nothing
+            );
+            Assert.That(
+                () => namedBuilder.Build(LanguageVersion.Version1_2),
+                Throws.InvalidOperationException
+            );
+            Assert.That(
+                () => typedBuilder.Build(LanguageVersion.Version1_1),
+                Throws.InvalidOperationException
+            );
+            Assert.That(
+                () => typedBuilder.Build(LanguageVersion.Version1_2),
+                Throws.Nothing
             );
         }
     }

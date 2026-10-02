@@ -114,7 +114,7 @@ public sealed class LanguageProfileIrTests
     }
 
     [Test]
-    public void CompilerUsesLanguageVersionOneOneByDefault()
+    public void CompilerUsesLatestLanguageVersionByDefault()
     {
         EnvironmentSchema environment = new EnvironmentBuilder().Build();
         CompilationResult result = MuLangCompiler.Compile(
@@ -129,7 +129,38 @@ public sealed class LanguageProfileIrTests
             Assert.That(result.Diagnostics, Is.Empty);
             Assert.That(
                 result.Program?.LanguageProfileFingerprint,
-                Is.EqualTo(LanguageProfiles.Version1_1.Fingerprint)
+                Is.EqualTo(LanguageProfiles.Version1_2.Fingerprint)
+            );
+        }
+    }
+
+    [Test]
+    public void RejectsPrimitiveExpectedTypesBeforeVersionOneTwo()
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .Build(LanguageVersion.Version1_1);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(
+                () => MuLangCompiler.Compile(
+                    "1",
+                    environment,
+                    CompilationMode.Expression,
+                    TypeSymbols.Primitive,
+                    LanguageProfiles.Version1_1
+                ),
+                Throws.ArgumentException
+            );
+            Assert.That(
+                () => MuLangCompiler.Compile(
+                    "[1]",
+                    environment,
+                    CompilationMode.Expression,
+                    TypeSymbols.Array(TypeSymbols.Primitive),
+                    LanguageProfiles.Version1_1
+                ),
+                Throws.ArgumentException
             );
         }
     }

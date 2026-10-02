@@ -338,6 +338,7 @@ internal static class MuIrTypeTableBuilder
                 TypeKind.Float => "float",
                 TypeKind.Number => "number",
                 TypeKind.String => "string",
+                TypeKind.Primitive => "primitive",
                 TypeKind.Unknown => "unknown",
                 TypeKind.Object => "object",
                 TypeKind.Void => "void",

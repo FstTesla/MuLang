@@ -1179,6 +1179,7 @@ public static class IrValidator
             TypeKind.Float => value is double,
             TypeKind.Number => value is long or double,
             TypeKind.String => value is string,
+            TypeKind.Primitive => value is bool or long or double or string,
             TypeKind.Unknown => value is not null,
             _ => false,
         };

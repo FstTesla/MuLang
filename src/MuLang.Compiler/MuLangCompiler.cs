@@ -18,7 +18,7 @@ public static class MuLangCompiler
     /// <param name="environment">The environment schema available to the analyzed code.</param>
     /// <param name="compilationMode">The compilation mode.</param>
     /// <param name="expectedResultType">The expected result type, or <c>null</c> to infer an expression result or use <c>void</c> for a program.</param>
-    /// <param name="profile">The language profile, or <c>null</c> to use <see cref="LanguageProfiles.Version1_1" />.</param>
+    /// <param name="profile">The language profile, or <c>null</c> to use <see cref="LanguageProfiles.Latest" />.</param>
     /// <returns>The analysis result.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="source" /> or <paramref name="environment" /> is <c>null</c>.</exception>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="compilationMode" /> is not defined.</exception>
@@ -44,7 +44,7 @@ public static class MuLangCompiler
 
     /// <summary>Classifies MuLang source text using the specified language profile.</summary>
     /// <param name="source">The MuLang source code.</param>
-    /// <param name="profile">The language profile, or <c>null</c> to use <see cref="LanguageProfiles.Version1_1" />.</param>
+    /// <param name="profile">The language profile, or <c>null</c> to use <see cref="LanguageProfiles.Latest" />.</param>
     /// <returns>The lexical classification result.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="source" /> is <c>null</c>.</exception>
     public static ClassificationResult Classify(
@@ -57,7 +57,7 @@ public static class MuLangCompiler
             throw new ArgumentNullException(nameof(source));
         }
 
-        profile ??= LanguageProfiles.Version1_1;
+        profile ??= LanguageProfiles.Latest;
         LexResult lexing = Lexer.Lex(SourceText.From(source), profile);
         IReadOnlyList<SourceClassification> classifications =
         [
@@ -79,7 +79,7 @@ public static class MuLangCompiler
     /// <param name="environment">The environment schema available to the classified code.</param>
     /// <param name="compilationMode">The compilation mode.</param>
     /// <param name="expectedResultType">The expected result type, or <c>null</c> to infer an expression result or use <c>void</c> for a program.</param>
-    /// <param name="profile">The language profile, or <c>null</c> to use <see cref="LanguageProfiles.Version1_1" />.</param>
+    /// <param name="profile">The language profile, or <c>null</c> to use <see cref="LanguageProfiles.Latest" />.</param>
     /// <returns>The semantic classification result.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="source" /> or <paramref name="environment" /> is <c>null</c>.</exception>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="compilationMode" /> is not defined.</exception>
@@ -111,7 +111,7 @@ public static class MuLangCompiler
     /// <param name="environment">The environment schema available to the compiled code.</param>
     /// <param name="compilationMode">The compilation mode.</param>
     /// <param name="expectedResultType">The expected result type, or <c>null</c> to infer an expression result or use <c>void</c> for a program.</param>
-    /// <param name="profile">The language profile, or <c>null</c> to use <see cref="LanguageProfiles.Version1_1" />.</param>
+    /// <param name="profile">The language profile, or <c>null</c> to use <see cref="LanguageProfiles.Latest" />.</param>
     /// <returns>The compilation result.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="source" /> or <paramref name="environment" /> is <c>null</c>.</exception>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="compilationMode" /> is not defined.</exception>
@@ -172,7 +172,7 @@ public static class MuLangCompiler
             return (binding, binding.Diagnostics);
         }
 
-        LanguageProfile effectiveProfile = profile ?? LanguageProfiles.Version1_1;
+        LanguageProfile effectiveProfile = profile ?? LanguageProfiles.Latest;
         BindingResult optimizedBinding = binding;
         DiagnosticCollection optimizationDiagnostics;
         ConstantFoldingResult folding = ConstantFolder.Fold(binding);
@@ -233,7 +233,7 @@ public static class MuLangCompiler
             throw new ArgumentOutOfRangeException(nameof(compilationMode));
         }
 
-        profile ??= LanguageProfiles.Version1_1;
+        profile ??= LanguageProfiles.Latest;
 
         if (environment.LanguageVersion != profile.LanguageVersion)
         {
@@ -254,6 +254,18 @@ public static class MuLangCompiler
             );
         }
 
+        if (
+            profile.LanguageVersion < LanguageVersion.Version1_2 &&
+            expectedResultType is not null &&
+            ContainsPrimitive(expectedResultType)
+        )
+        {
+            throw new ArgumentException(
+                "Type 'primitive' requires language version 1.2.",
+                nameof(expectedResultType)
+            );
+        }
+
         SyntaxTree syntaxTree = Parser.Parse(
             SourceText.From(source),
             compilationMode,
@@ -264,6 +276,37 @@ public static class MuLangCompiler
             environment,
             expectedResultType
         );
+    }
+
+    private static bool ContainsPrimitive(TypeSymbol type)
+    {
+        return ContainsPrimitive(
+            type,
+            new HashSet<TypeSymbol>(ReferenceEqualityComparer.Instance)
+        );
+    }
+
+    private static bool ContainsPrimitive(
+        TypeSymbol type,
+        ISet<TypeSymbol> visited
+    )
+    {
+        if (!visited.Add(type))
+        {
+            return false;
+        }
+
+        return type switch
+        {
+            { Kind: TypeKind.Primitive } => true,
+            NullableTypeSymbol nullable =>
+                ContainsPrimitive(nullable.UnderlyingType, visited),
+            ArrayTypeSymbol array => ContainsPrimitive(array.ElementType, visited),
+            ObjectTypeSymbol objectType => objectType.Properties.Any(
+                property => ContainsPrimitive(property.Type, visited)
+            ),
+            _ => false,
+        };
     }
 
     private static SourceClassificationKind ClassifyToken(TokenKind kind)
@@ -320,6 +363,7 @@ public static class MuLangCompiler
                 TokenKind.NullKeyword or
                 TokenKind.NumberKeyword or
                 TokenKind.ObjectKeyword or
+                TokenKind.PrimitiveKeyword or
                 TokenKind.ReturnKeyword or
                 TokenKind.StringKeyword or
                 TokenKind.TrueKeyword or

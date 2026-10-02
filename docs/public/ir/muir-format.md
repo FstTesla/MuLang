@@ -39,11 +39,11 @@ Non-negative integers use invariant decimal notation without a sign. Signed inte
 
 ## 2. Document grammar
 
-The following grammar describes MuIR version 1. Repetition counts are declared immediately before the repeated production and MUST match the number of following declarations.
+The following grammar describes MuIR version 2. Repetition counts are declared immediately before the repeated production and MUST match the number of following declarations.
 
 ```text
 document ::=
-  "muir" "1"
+  "muir" "2"
   "mode" compilation-mode
   "environment" string
   "profile" string
@@ -105,7 +105,7 @@ type-definition ::=
 
 intrinsic-type ::=
     "bool" | "int" | "float" | "number" | "string"
-  | "unknown" | "object" | "void" | "null"
+  | "primitive" | "unknown" | "object" | "void" | "null"
 
 array-capability ::= "mutable" | "readonly"
 openness         ::= "open" | "closed"
@@ -154,6 +154,9 @@ float-value ::=
 Finite binary64 values use invariant round-trip notation. `negative-zero` preserves the negative-zero bit pattern. `nan` represents the MuLang NaN value; payload and sign bits are not preserved.
 
 Arbitrary host objects are not portable constants and MUST be rejected by the writer.
+
+A constant whose static type is `primitive` uses the token for its concrete
+runtime representation. No separate primitive constant token exists.
 
 ## 5. Instructions
 
@@ -261,8 +264,15 @@ Hosts MAY configure positive limits for document, string, token, type-nesting, t
 
 ## 9. Compatibility
 
-MuIR version 1 compatibility is defined by this wire contract, not by .NET enum names, record names, or numeric enum values.
+MuIR version 2 adds the `primitive` intrinsic-type token. The reader continues
+to accept version 1 documents and MUST reject `primitive` when the document
+declares version 1. The canonical writer emits version 2.
+
+MuIR compatibility is defined by the wire contract, not by .NET enum names,
+record names, or numeric enum values.
 
 Changing an existing token, operand order, required field, or semantic interpretation requires a new MuIR format version. Adding an instruction, terminator, type form, or other required executable construct also requires a new version.
 
-A version 1 reader MUST reject unknown required constructs and unsupported versions rather than guessing. Canonical fixtures are compatibility artifacts and MUST remain byte-stable.
+A reader MUST reject unknown required constructs and unsupported versions
+rather than guessing. Version 1 fixtures remain reader-compatibility artifacts;
+rewriting them with the current writer upgrades the header to version 2.

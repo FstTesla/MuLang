@@ -41,4 +41,7 @@ public enum TypeKind
 
     /// <summary>Identifies the floating-point type.</summary>
     Float = 13,
+
+    /// <summary>Identifies the common non-null primitive type.</summary>
+    Primitive = 14,
 }

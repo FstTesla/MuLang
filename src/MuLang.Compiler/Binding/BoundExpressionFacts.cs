@@ -89,7 +89,7 @@ internal static class BoundExpressionFacts
 
         if (
             TryEvaluateConstant(expression, out object? constant) &&
-            PrimitiveValueOperations.IsPrimitiveType(testedType)
+            PrimitiveValueOperations.IsConstantEvaluableType(testedType)
         )
         {
             value = PrimitiveValueOperations.IsValueOfType(
@@ -204,7 +204,7 @@ internal static class BoundExpressionFacts
                     typeTest.Expression,
                     out object? operand
                 ) &&
-                PrimitiveValueOperations.IsPrimitiveType(typeTest.TestedType):
+                PrimitiveValueOperations.IsConstantEvaluableType(typeTest.TestedType):
             {
                 value = PrimitiveValueOperations.IsValueOfType(
                     operand,

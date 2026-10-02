@@ -20,6 +20,104 @@ public sealed class TypeRelationsTests
     }
 
     [Test]
+    public void AppliesPrimitiveAssignabilityAndCastability()
+    {
+        IReadOnlyList<TypeSymbol> concreteTypes =
+        [
+            TypeSymbols.Bool,
+            TypeSymbols.Int,
+            TypeSymbols.Float,
+            TypeSymbols.Number,
+            TypeSymbols.String,
+        ];
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(
+                concreteTypes,
+                Has.All.Matches<TypeSymbol>(
+                    type => TypeRelations.IsAssignable(type, TypeSymbols.Primitive)
+                )
+            );
+            Assert.That(
+                concreteTypes,
+                Has.All.Matches<TypeSymbol>(
+                    type => TypeRelations.IsCastable(TypeSymbols.Primitive, type)
+                )
+            );
+            Assert.That(
+                TypeRelations.IsAssignable(TypeSymbols.Primitive, TypeSymbols.Unknown),
+                Is.True
+            );
+            Assert.That(
+                TypeRelations.IsAssignable(TypeSymbols.Object, TypeSymbols.Primitive),
+                Is.False
+            );
+            Assert.That(
+                TypeRelations.IsAssignable(
+                    TypeSymbols.Array(TypeSymbols.Int),
+                    TypeSymbols.Primitive
+                ),
+                Is.False
+            );
+        }
+    }
+
+    [Test]
+    public void AppliesNullableAndReadOnlyPrimitiveWidening()
+    {
+        TypeSymbol nullableInt = TypeSymbols.Nullable(TypeSymbols.Int);
+        TypeSymbol nullablePrimitive = TypeSymbols.Nullable(TypeSymbols.Primitive);
+        TypeSymbol mutableInts = TypeSymbols.Array(TypeSymbols.Int);
+        TypeSymbol readOnlyPrimitives = TypeSymbols.ReadOnlyArray(
+            TypeSymbols.Primitive
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(
+                TypeRelations.IsAssignable(nullableInt, nullablePrimitive),
+                Is.True
+            );
+            Assert.That(
+                TypeRelations.IsAssignable(mutableInts, readOnlyPrimitives),
+                Is.True
+            );
+            Assert.That(
+                TypeRelations.IsAssignable(
+                    mutableInts,
+                    TypeSymbols.Array(TypeSymbols.Primitive)
+                ),
+                Is.False
+            );
+        }
+    }
+
+    [Test]
+    public void FindsPrimitiveCommonTypes()
+    {
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(
+                TypeRelations.GetCommonType(TypeSymbols.Bool, TypeSymbols.String),
+                Is.SameAs(TypeSymbols.Primitive)
+            );
+            Assert.That(
+                TypeRelations.GetCommonType(TypeSymbols.Int, TypeSymbols.String),
+                Is.SameAs(TypeSymbols.Primitive)
+            );
+            Assert.That(
+                TypeRelations.GetCommonType(TypeSymbols.Int, TypeSymbols.Float),
+                Is.SameAs(TypeSymbols.Float)
+            );
+            Assert.That(
+                TypeRelations.GetCommonType(TypeSymbols.Object, TypeSymbols.String),
+                Is.Null
+            );
+        }
+    }
+
+    [Test]
     public void KeepsMutableArraysInvariant()
     {
         TypeSymbol intArray = TypeSymbols.Array(TypeSymbols.Int);
@@ -334,7 +432,7 @@ public sealed class TypeRelationsTests
             );
             Assert.That(
                 TypeRelations.GetCommonType(TypeSymbols.Bool, TypeSymbols.String),
-                Is.Null
+                Is.SameAs(TypeSymbols.Primitive)
             );
         }
     }

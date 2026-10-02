@@ -24,7 +24,7 @@ public sealed class MuIrSerializationTests
             Assert.That(result.Diagnostics, Is.Empty);
             Assert.That(result.Program, Is.Not.Null);
             Assert.That(MuIrWriter.WriteToString(result.Program!), Is.EqualTo(text));
-            Assert.That(text, Does.StartWith("muir 1\n"));
+            Assert.That(text, Does.StartWith("muir 2\n"));
             Assert.That(text, Does.EndWith("end\n"));
             Assert.That(text, Does.Not.Contain("\r"));
         }
@@ -68,7 +68,10 @@ public sealed class MuIrSerializationTests
         using (Assert.EnterMultipleScope())
         {
             Assert.That(result.Success, Is.True);
-            Assert.That(MuIrWriter.WriteToString(result.Program!), Is.EqualTo(text));
+            Assert.That(
+                MuIrWriter.WriteToString(result.Program!),
+                Is.EqualTo(text.Replace("muir 1\n", "muir 2\n", StringComparison.Ordinal))
+            );
         }
     }
 
@@ -104,7 +107,7 @@ public sealed class MuIrSerializationTests
             Assert.That(stream.CanWrite, Is.True);
             Assert.That(bytes, Is.Not.Empty);
             Assert.That(bytes.Take(3), Is.Not.EqualTo(new byte[] { 0xEF, 0xBB, 0xBF }));
-            Assert.That(Encoding.UTF8.GetString(bytes), Does.StartWith("muir 1\n"));
+            Assert.That(Encoding.UTF8.GetString(bytes), Does.StartWith("muir 2\n"));
         }
     }
 
@@ -125,7 +128,7 @@ public sealed class MuIrSerializationTests
     }
 
     [TestCase("nope 1", MuIrDiagnosticCodes.InvalidMagic)]
-    [TestCase("muir 2", MuIrDiagnosticCodes.UnsupportedVersion)]
+    [TestCase("muir 3", MuIrDiagnosticCodes.UnsupportedVersion)]
     [TestCase(
         "muir 1 mode expression environment \"e\" profile \"p\" types 0 entry",
         MuIrDiagnosticCodes.UnexpectedToken
@@ -162,6 +165,33 @@ public sealed class MuIrSerializationTests
             result.Diagnostics.Single().Code,
             Is.EqualTo(MuIrDiagnosticCodes.TrailingContent)
         );
+    }
+
+    [Test]
+    public void PrimitiveTypeRequiresMuIrVersionTwo()
+    {
+        string text = MuIrWriter.WriteToString(
+            CreateMinimalProgram(TypeSymbols.Primitive, true)
+        );
+        MuIrReadResult current = MuIrReader.Read(text);
+        MuIrReadResult legacy = MuIrReader.Read(
+            text.Replace("muir 2\n", "muir 1\n", StringComparison.Ordinal)
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(text, Does.Contain("intrinsic primitive"));
+            Assert.That(current.Success, Is.True);
+            Assert.That(
+                current.Program!.EntryFunction.ReturnType,
+                Is.SameAs(TypeSymbols.Primitive)
+            );
+            Assert.That(legacy.Success, Is.False);
+            Assert.That(
+                legacy.Diagnostics.Single().Code,
+                Is.EqualTo(MuIrDiagnosticCodes.InvalidType)
+            );
+        }
     }
 
     [Test]
