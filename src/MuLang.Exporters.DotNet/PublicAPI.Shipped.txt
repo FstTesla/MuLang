@@ -1,12 +1,9 @@
 #nullable enable
 MuLang.Exporters.DotNet.DotNetExportResult
 MuLang.Exporters.DotNet.DotNetExportResult.<Clone>$() -> MuLang.Exporters.DotNet.DotNetExportResult!
-MuLang.Exporters.DotNet.DotNetExportResult.Deconstruct(out System.Func<MuLang.Exporters.DotNet.DotNetRuntimeContext!, object?>? Delegate, out MuLang.Core.Diagnostics.DiagnosticCollection! Diagnostics) -> void
 MuLang.Exporters.DotNet.DotNetExportResult.Delegate.get -> System.Func<MuLang.Exporters.DotNet.DotNetRuntimeContext!, object?>?
-MuLang.Exporters.DotNet.DotNetExportResult.Delegate.init -> void
 MuLang.Exporters.DotNet.DotNetExportResult.Diagnostics.get -> MuLang.Core.Diagnostics.DiagnosticCollection!
 MuLang.Exporters.DotNet.DotNetExportResult.Diagnostics.init -> void
-MuLang.Exporters.DotNet.DotNetExportResult.DotNetExportResult(System.Func<MuLang.Exporters.DotNet.DotNetRuntimeContext!, object?>? Delegate, MuLang.Core.Diagnostics.DiagnosticCollection! Diagnostics) -> void
 MuLang.Exporters.DotNet.DotNetExportResult.Equals(MuLang.Exporters.DotNet.DotNetExportResult? other) -> bool
 MuLang.Exporters.DotNet.DotNetExporter
 MuLang.Exporters.DotNet.DotNetFunction

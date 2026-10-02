@@ -1,7 +1,4 @@
 #nullable enable
-*REMOVED*MuLang.Exporters.DotNet.DotNetExportResult.Deconstruct(out System.Func<MuLang.Exporters.DotNet.DotNetRuntimeContext!, object?>? Delegate, out MuLang.Core.Diagnostics.DiagnosticCollection! Diagnostics) -> void
-*REMOVED*MuLang.Exporters.DotNet.DotNetExportResult.Delegate.init -> void
-*REMOVED*MuLang.Exporters.DotNet.DotNetExportResult.DotNetExportResult(System.Func<MuLang.Exporters.DotNet.DotNetRuntimeContext!, object?>? Delegate, MuLang.Core.Diagnostics.DiagnosticCollection! Diagnostics) -> void
 MuLang.Exporters.DotNet.DotNetExportResult.Deconstruct(out System.Func<MuLang.Exporters.DotNet.DotNetRuntimeContext!, MuLang.Core.Runtime.ExecutionResult!>? ExecutionDelegate, out MuLang.Core.Diagnostics.DiagnosticCollection! Diagnostics) -> void
 MuLang.Exporters.DotNet.DotNetExportResult.DotNetExportResult(System.Func<MuLang.Exporters.DotNet.DotNetRuntimeContext!, MuLang.Core.Runtime.ExecutionResult!>? ExecutionDelegate, MuLang.Core.Diagnostics.DiagnosticCollection! Diagnostics) -> void
 MuLang.Exporters.DotNet.DotNetExportResult.ExecutionDelegate.get -> System.Func<MuLang.Exporters.DotNet.DotNetRuntimeContext!, MuLang.Core.Runtime.ExecutionResult!>?
