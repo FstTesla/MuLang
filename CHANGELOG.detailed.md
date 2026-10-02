@@ -16,14 +16,15 @@ Each release heading identifies the incremental version range covered by the sec
 
 ### Breaking changes
 
-- Changed the default and latest standard language profile, environment builder, and standalone standard-library composition from MuLang 1.1 to 1.2. Hosts that require 1.1 keyword and type-inference behavior must select `LanguageProfiles.Version1_1` and build or compose their environment for `LanguageVersion.Version1_1` explicitly.
+- Changed the default and latest standard language profile, environment builder, and standalone standard-library composition from MuLang 1.1 to 1.2. This changes the profile and environment fingerprints produced through those defaults; persisted or cached IR compiled with the previous defaults must be recompiled. Hosts that require 1.1 keyword, type-inference, or fingerprint behavior must select `LanguageProfiles.Version1_1` and build or compose their environment for `LanguageVersion.Version1_1` explicitly.
+- Reserved `primitive` as a keyword in MuLang 1.2. Source identifiers and host-provided type, global, function, or parameter names using that spelling must be renamed or continue targeting MuLang 1.1.
 - Changed canonical MuIR output from format version 1 to version 2. The reader continues accepting version 1 documents, while rewriting them upgrades the document header to version 2.
 
 ### New features
 
-- Added MuLang 1.2 and the `primitive` intrinsic abstract type as the non-null common supertype of `bool`, `number`, and `string`, including nullable lifting, checked refinement, type tests, mixed-primitive common-type inference, and covariant read-only array views.
+- Added MuLang 1.2 and the `primitive` intrinsic abstract type as the non-null common supertype of `bool`, `int`, `float`, `number`, and `string`, including nullable lifting, checked refinement, type tests, mixed-primitive common-type inference, and covariant read-only array views.
 - Added contextual string concatenation for `primitive` and `primitive?` values while preserving their concrete Boolean, integer, floating-point, or string representation. The abstract type does not enable dynamic arithmetic, relational, bitwise, or unary operations.
-- Added version-aware `primitive` keyword handling, migration warnings in earlier language versions, host-environment validation, lexical and Visual Studio highlighting, portable IR validation, MuIR version 2 serialization, and .NET runtime and provider-boundary conformance.
+- Added migration warnings when `primitive` is used as an identifier in earlier language versions, together with lexical and Visual Studio highlighting, portable IR validation, MuIR version 2 serialization, and .NET runtime and provider-boundary conformance.
 
 ## `0.2.0-rc.1` → `0.2.0` - 2026-10-02
 
