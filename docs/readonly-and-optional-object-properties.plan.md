@@ -102,8 +102,8 @@ optional modifier immediately followed by a type annotation.
 
 Add a public `ObjectLiteralSyntax` enum:
 
-- `Legacy = 0`;
-- `Full = 1`.
+- `Legacy = 0`.
+- `Full = 1`;
 
 Add `LanguageProfile.ObjectLiteralSyntax` and
 `LanguageProfileBuilder.WithObjectLiteralSyntax`.

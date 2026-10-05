@@ -1,14 +1,23 @@
-- name: Home
+- name: 🏠 Home
   href: index.md
-- name: Examples
+- name: 🚀 Examples
   href: examples.md
-- name: Packages
+- name: 📦 Packages
   href: packages.md
-- name: Standard library
+- name: 📚 Standard library
   href: standard-library.md
-- name: Language
+  items:
+  - name: 🧱 Modules
+    href: standard-library-modules.md
+  - name: 🏷️ Types
+    href: standard-library-types.md
+  - name: 🔢 Constants
+    href: standard-library-constants.md
+  - name: 🛠️ Functions
+    href: standard-library-functions.md
+- name: 🧭 Language
   href: language/
-- name: Intermediate representation
+- name: ⚙️ Intermediate representation
   href: ir/
-- name: API reference
+- name: 🧩 API reference
   href: /MuLang/api/MuLang.Compiler.html

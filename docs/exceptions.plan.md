@@ -223,20 +223,21 @@ hierarchy.
 
 The built-in `error` type exposes at least:
 
-- `code: string`;
-- `category: string`, or an intrinsic category representation;
-- `message: string`;
-- `cause: error?`;
-- `data?: unknown?`;
-- source location information.
+- `code$: string`;
+- `category$: string`, or an intrinsic category representation;
+- `message$: string`;
+- `cause$?: error`;
+- `data$?: unknown?`;
+- read-only source location information.
 
-The properties of `error` are declared read-only through the general read-only
+All properties of `error` are declared read-only through the general read-only
 object-property model. Error values do not introduce special mutability rules.
 This part therefore depends on the specification and implementation of
 read-only object properties.
 
 `cause` is populated at the discretion of the runtime, provider, or MuLang code
-that creates the error. It is not derived automatically from the host exception
+that creates the error. The property is optional but, when present, contains a
+non-null `error` value. It is not derived automatically from the host exception
 chain.
 
 `data` is an optional channel for arbitrary application information. The
@@ -288,7 +289,7 @@ The prototype has the following contextual shape:
 
 - required `code: string`;
 - required `message: string`;
-- optional `cause`;
+- optional `cause`, accepting `error`, a compatible error prototype, or `null`;
 - optional `data: unknown?`.
 
 When present, `cause` can be:
@@ -321,7 +322,7 @@ At runtime, `throw` normalizes the prototype into a well-formed `error` value:
 - `code` and `message` are copied;
 - the category is always set to `Application`;
 - the MuLang source span and stack are added;
-- an absent or `null` cause becomes `null`;
+- an absent or `null` cause results in an absent `cause` property;
 - an existing `error` cause is reused;
 - a prototype cause is normalized recursively;
 - `data`, when present, is copied while preserving its value and identity.

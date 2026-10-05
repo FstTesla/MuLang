@@ -37,7 +37,7 @@ MuLang.Core.Environment.EnvironmentBuilder
 MuLang.Core.Environment.EnvironmentBuilder.AddFunction(string! id, string! name, System.Collections.Generic.IEnumerable<MuLang.Core.Symbols.ParameterSymbol!>! parameters, MuLang.Core.Types.TypeSymbol! returnType) -> MuLang.Core.Environment.EnvironmentBuilder!
 MuLang.Core.Environment.EnvironmentBuilder.AddGlobal(string! id, string! name, MuLang.Core.Types.TypeSymbol! type) -> MuLang.Core.Environment.EnvironmentBuilder!
 MuLang.Core.Environment.EnvironmentBuilder.AddType(MuLang.Core.Types.ObjectTypeSymbol! type) -> MuLang.Core.Environment.EnvironmentBuilder!
-MuLang.Core.Environment.EnvironmentBuilder.Build(MuLang.Core.LanguageVersion languageVersion = MuLang.Core.LanguageVersion.Version1_1) -> MuLang.Core.Environment.EnvironmentSchema!
+MuLang.Core.Environment.EnvironmentBuilder.Build(MuLang.Core.LanguageVersion languageVersion = MuLang.Core.LanguageVersion.Version1_2) -> MuLang.Core.Environment.EnvironmentSchema!
 MuLang.Core.Environment.EnvironmentBuilder.EnvironmentBuilder() -> void
 MuLang.Core.Environment.EnvironmentFingerprint
 MuLang.Core.Environment.EnvironmentFingerprint.<Clone>$() -> MuLang.Core.Environment.EnvironmentFingerprint!
@@ -102,6 +102,7 @@ MuLang.Core.LanguageProfiles
 MuLang.Core.LanguageVersion
 MuLang.Core.LanguageVersion.Version1 = 0 -> MuLang.Core.LanguageVersion
 MuLang.Core.LanguageVersion.Version1_1 = 1 -> MuLang.Core.LanguageVersion
+MuLang.Core.LanguageVersion.Version1_2 = 2 -> MuLang.Core.LanguageVersion
 MuLang.Core.LoopFeatures
 MuLang.Core.LoopFeatures.For = 2 -> MuLang.Core.LoopFeatures
 MuLang.Core.LoopFeatures.None = 0 -> MuLang.Core.LoopFeatures
@@ -247,6 +248,7 @@ MuLang.Core.Types.TypeKind.Null = 11 -> MuLang.Core.Types.TypeKind
 MuLang.Core.Types.TypeKind.Nullable = 7 -> MuLang.Core.Types.TypeKind
 MuLang.Core.Types.TypeKind.Number = 3 -> MuLang.Core.Types.TypeKind
 MuLang.Core.Types.TypeKind.Object = 6 -> MuLang.Core.Types.TypeKind
+MuLang.Core.Types.TypeKind.Primitive = 14 -> MuLang.Core.Types.TypeKind
 MuLang.Core.Types.TypeKind.String = 4 -> MuLang.Core.Types.TypeKind
 MuLang.Core.Types.TypeKind.StructuredObject = 9 -> MuLang.Core.Types.TypeKind
 MuLang.Core.Types.TypeKind.Unknown = 5 -> MuLang.Core.Types.TypeKind
@@ -290,6 +292,7 @@ static MuLang.Core.LanguageProfileFingerprint.operator ==(MuLang.Core.LanguagePr
 static MuLang.Core.LanguageProfiles.Latest.get -> MuLang.Core.LanguageProfile!
 static MuLang.Core.LanguageProfiles.Version1.get -> MuLang.Core.LanguageProfile!
 static MuLang.Core.LanguageProfiles.Version1_1.get -> MuLang.Core.LanguageProfile!
+static MuLang.Core.LanguageProfiles.Version1_2.get -> MuLang.Core.LanguageProfile!
 static MuLang.Core.Text.SourceText.From(string! text) -> MuLang.Core.Text.SourceText!
 static MuLang.Core.Text.TextPosition.operator !=(MuLang.Core.Text.TextPosition left, MuLang.Core.Text.TextPosition right) -> bool
 static MuLang.Core.Text.TextPosition.operator ==(MuLang.Core.Text.TextPosition left, MuLang.Core.Text.TextPosition right) -> bool
@@ -311,6 +314,7 @@ static MuLang.Core.Types.TypeSymbols.Null.get -> MuLang.Core.Types.TypeSymbol!
 static MuLang.Core.Types.TypeSymbols.Nullable(MuLang.Core.Types.TypeSymbol! underlyingType) -> MuLang.Core.Types.NullableTypeSymbol!
 static MuLang.Core.Types.TypeSymbols.Number.get -> MuLang.Core.Types.TypeSymbol!
 static MuLang.Core.Types.TypeSymbols.Object.get -> MuLang.Core.Types.TypeSymbol!
+static MuLang.Core.Types.TypeSymbols.Primitive.get -> MuLang.Core.Types.TypeSymbol!
 static MuLang.Core.Types.TypeSymbols.ReadOnlyArray(MuLang.Core.Types.TypeSymbol! elementType) -> MuLang.Core.Types.ArrayTypeSymbol!
 static MuLang.Core.Types.TypeSymbols.String.get -> MuLang.Core.Types.TypeSymbol!
 static MuLang.Core.Types.TypeSymbols.Unknown.get -> MuLang.Core.Types.TypeSymbol!

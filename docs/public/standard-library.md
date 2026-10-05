@@ -32,29 +32,16 @@ and provider functions suitable for `DotNetRuntimeContext.Create`.
 Alternative runtimes can bind the same selection independently. The .NET
 package validates catalog-wide declaration and implementation parity.
 
-## Module catalog
+## Catalog
 
-| Module | Capability | Language symbols |
-|---|---|---|
-| Math.Constants | Deterministic | `e`, `pi`, `tau`, `minInt`, `maxInt` |
-| Math.Basic | Deterministic | `abs`, `sign`, `min`, `max`, `clamp` |
-| Math.Rounding | Deterministic | `floor`, `ceil`, `trunc`, `round`, `truncToInt` |
-| Math.Powers | Deterministic | `sqrt`, `pow`, `exp`, `log`, `log10` |
-| Math.Trigonometry | Deterministic | `sin`, `cos`, `tan`, `asin`, `acos`, `atan`, `atan2`, `degToRad`, `radToDeg` |
-| Math.Classification | Deterministic | `isFinite`, `isInfinity`, `isNaN` |
-| Array | Deterministic | `arrayContains` |
-| Object | Deterministic | `objectKeys`, `objectValues` |
-| String.Inspection | Deterministic | `stringLength`, `charAt`, `isEmpty`, `isWhiteSpace`, `stringContains`, `startsWith`, `endsWith` |
-| String.Search | Deterministic | `indexOf`, `lastIndexOf` |
-| String.Transform | Deterministic | `toLower`, `toUpper`, `trim`, `trimStart`, `trimEnd`, `repeat`, `reverse` |
-| String.Slicing | Deterministic | `substring`, `remove`, `insert` |
-| String.Replacement | Deterministic | `replaceFirst`, `replaceAll` |
-| String.Comparison | Deterministic | `compareOrdinal`, `compareIgnoreCase`, `equalsIgnoreCase` |
-| Parsing | Deterministic | `parseInt`, `parseFloat`, `parseBool` |
-| Text.Encoding | Deterministic | `base64Encode`, `base64Decode` |
-| Random | Randomness | `randomFloat`, `randomInt` |
-| Clock | Clock | `unixTimeSeconds`, `unixTimeMilliseconds` |
-| Guid | Randomness and clock | `newGuid`, `newGuidV7`, `isGuid` |
+The complete catalog is organized by symbol kind:
+
+- [Modules](standard-library-modules.md) describe the proposed symbol groups,
+  language-version requirements, and runtime capabilities.
+- [Types](standard-library-types.md) list structured types supplied by the
+  library.
+- [Constants](standard-library-constants.md) list immutable global values.
+- [Functions](standard-library-functions.md) list signatures and behavior.
 
 The catalog exposes one canonical property for every symbol and proposed
 module. Each nested `Types`, `Globals`, `Functions`, and `Modules` catalog also
