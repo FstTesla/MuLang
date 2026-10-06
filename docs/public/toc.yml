@@ -5,16 +5,7 @@
 - name: 📦 Packages
   href: packages.md
 - name: 📚 Standard library
-  href: standard-library.md
-  items:
-  - name: 🧱 Modules
-    href: standard-library-modules.md
-  - name: 🏷️ Types
-    href: standard-library-types.md
-  - name: 🔢 Constants
-    href: standard-library-constants.md
-  - name: 🛠️ Functions
-    href: standard-library-functions.md
+  href: standard-library/
 - name: 🧭 Language
   href: language/
 - name: ⚙️ Intermediate representation

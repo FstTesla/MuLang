@@ -57,7 +57,7 @@ See the [examples](https://github.com/FstTesla/MuLang/blob/main/docs/public/exam
 - [MuIR serialization format](https://github.com/FstTesla/MuLang/blob/main/docs/public/ir/muir-format.md)
 - [Examples](https://github.com/FstTesla/MuLang/blob/main/docs/public/examples.md)
 - [Packages and architecture](https://fsttesla.github.io/MuLang/packages.html)
-- [Standard library](https://fsttesla.github.io/MuLang/standard-library.html)
+- [Standard library](https://fsttesla.github.io/MuLang/standard-library/)
 - [Stable changelog](https://github.com/FstTesla/MuLang/blob/main/CHANGELOG.md)
 - [Detailed changelog](https://github.com/FstTesla/MuLang/blob/main/CHANGELOG.detailed.md)
 

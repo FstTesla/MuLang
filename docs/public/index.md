@@ -6,7 +6,7 @@ MuLang is a small, embeddable, statically checked language for expressions and i
 
 - [Get started with MuLang](examples.md).
 - Review the [package architecture](packages.md).
-- Explore the [standard library](standard-library.md).
+- Explore the [standard library](standard-library/index.md).
 - Read the [language specification](language/index.md).
 - Read the [intermediate representation specifications](ir/index.md).
 - Browse the [compiler API reference](xref:MuLang.Compiler).

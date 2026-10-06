@@ -30,7 +30,7 @@ Each release heading identifies the stable version range covered by the section,
 - Added the versioned canonical [MuIR serialization format](https://fsttesla.github.io/MuLang/ir/muir-format.html), public reader and writer APIs, configurable resource limits, mutable/read-only IR slots, and atomic construction of recursive structured-object type graphs.
 - Added a Visual Studio extension for `.mu` and `.mulang` files with lexical and semantic highlighting, live diagnostics, and an embedded language server, together with compiler APIs for analysis and source classification.
 - Added structured runtime errors and result-returning execution, context-aware provider functions with metered value inspection and cancellation, explicit expected provider failures, and preserved underlying host failures for diagnostics.
-- Added an explicitly opt-in [standard library](https://fsttesla.github.io/MuLang/standard-library.html) with versioned symbol selection and .NET implementations for math, arrays, objects, strings, parsing, Base64, randomness, clocks, and GUIDs.
+- Added an explicitly opt-in [standard library](https://fsttesla.github.io/MuLang/standard-library/) with versioned symbol selection and .NET implementations for math, arrays, objects, strings, parsing, Base64, randomness, clocks, and GUIDs.
 
 ### Fixes
 

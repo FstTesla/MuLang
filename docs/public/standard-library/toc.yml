@@ -1,0 +1,10 @@
+- name: Standard library
+  href: index.md
+- name: Modules
+  href: modules.md
+- name: Types
+  href: types.md
+- name: Constants
+  href: constants.md
+- name: Functions
+  href: functions.md

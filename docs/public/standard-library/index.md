@@ -36,12 +36,12 @@ package validates catalog-wide declaration and implementation parity.
 
 The complete catalog is organized by symbol kind:
 
-- [Modules](standard-library-modules.md) describe the proposed symbol groups,
+- [Modules](modules.md) describe the proposed symbol groups,
   language-version requirements, and runtime capabilities.
-- [Types](standard-library-types.md) list structured types supplied by the
+- [Types](types.md) list structured types supplied by the
   library.
-- [Constants](standard-library-constants.md) list immutable global values.
-- [Functions](standard-library-functions.md) list signatures and behavior.
+- [Constants](constants.md) list immutable global values.
+- [Functions](functions.md) list signatures and behavior.
 
 The catalog exposes one canonical property for every symbol and proposed
 module. Each nested `Types`, `Globals`, `Functions`, and `Modules` catalog also

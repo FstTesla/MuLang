@@ -48,6 +48,6 @@ selections, modules, and environment declarations.
 Hosts select symbols explicitly; the compiler, exporter, and facade packages do
 not add constants, functions, or structured types implicitly.
 
-See the [standard-library guide](standard-library.md) for symbol and module
+See the [standard-library guide](standard-library/index.md) for symbol and module
 catalogs, selection rules, stable identifiers, runtime capabilities, and
 collision behavior.
