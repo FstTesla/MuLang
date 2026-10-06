@@ -47,7 +47,8 @@
     "output": "../artifacts/docs/site",
     "template": [
       "default",
-      "modern"
+      "modern",
+      "templates/my"
     ],
     "globalMetadata": {
       "_appBasePath": "/MuLang/",
