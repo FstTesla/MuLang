@@ -771,7 +771,59 @@ public static class IrValidator
 
                 foreach (IrInstruction.ObjectPropertyValue property in objectValue.Properties)
                 {
-                    ValidateSlot(program, property.Value, objectValue.Span, diagnostics);
+                    if (
+                        objectValue.Type.TryGetProperty(
+                            property.Name,
+                            out ObjectPropertySymbol? declaration
+                        )
+                    )
+                    {
+                        if (declaration.IsReadOnly)
+                        {
+                            ValidateSlotViewType(
+                                program,
+                                property.Value,
+                                declaration.Type,
+                                objectValue.Span,
+                                diagnostics
+                            );
+                        }
+                        else
+                        {
+                            ValidateSlotType(
+                                program,
+                                property.Value,
+                                declaration.Type,
+                                objectValue.Span,
+                                diagnostics
+                            );
+                        }
+                    }
+                    else if (objectValue.Type.IsOpen)
+                    {
+                        ValidateSlotType(
+                            program,
+                            property.Value,
+                            TypeSymbols.Nullable(TypeSymbols.Unknown),
+                            objectValue.Span,
+                            diagnostics
+                        );
+                    }
+                    else
+                    {
+                        ValidateSlot(
+                            program,
+                            property.Value,
+                            objectValue.Span,
+                            diagnostics
+                        );
+                        Report(
+                            diagnostics,
+                            IrDiagnosticCodes.InvalidStructure,
+                            objectValue.Span,
+                            $"IR object creation supplies undeclared property '{property.Name}'."
+                        );
+                    }
                 }
 
                 if (
@@ -787,6 +839,27 @@ public static class IrValidator
                         objectValue.Span,
                         "IR object creation contains duplicate property names."
                     );
+                }
+
+                IReadOnlySet<string> suppliedNames = objectValue.Properties
+                    .Select(static property => property.Name)
+                    .ToHashSet(StringComparer.Ordinal);
+
+                foreach (
+                    ObjectPropertySymbol requiredProperty in objectValue.Type.Properties.Where(
+                        static property => !property.IsOptional
+                    )
+                )
+                {
+                    if (!suppliedNames.Contains(requiredProperty.Name))
+                    {
+                        Report(
+                            diagnostics,
+                            IrDiagnosticCodes.InvalidStructure,
+                            objectValue.Span,
+                            $"IR object creation omits required property '{requiredProperty.Name}'."
+                        );
+                    }
                 }
 
                 break;
@@ -807,6 +880,28 @@ public static class IrValidator
             case IrInstruction.RemoveProperty property:
             {
                 ValidateSlot(program, property.Target, property.Span, diagnostics);
+                IrSlot? target = GetSlot(program, property.Target);
+                TypeSymbol? targetType = target is null
+                    ? null
+                    : GetNonNullable(target.Type);
+
+                if (
+                    targetType is ObjectTypeSymbol objectType &&
+                    objectType.TryGetProperty(
+                        property.Name,
+                        out ObjectPropertySymbol? declaration
+                    ) &&
+                    (!declaration.IsOptional || declaration.IsReadOnly)
+                )
+                {
+                    Report(
+                        diagnostics,
+                        IrDiagnosticCodes.InvalidStructure,
+                        property.Span,
+                        $"IR cannot remove property '{property.Name}' because it is required or read-only."
+                    );
+                }
+
                 break;
             }
 
@@ -832,6 +927,32 @@ public static class IrValidator
                     property.Span,
                     diagnostics
                 );
+
+                IrSlot? target = GetSlot(program, property.Target);
+
+                if (
+                    target is not null &&
+                    GetNonNullable(target.Type) is ObjectTypeSymbol objectType &&
+                    TryGetConstantString(
+                        program,
+                        property.Key,
+                        out string propertyName
+                    ) &&
+                    objectType.TryGetProperty(
+                        propertyName,
+                        out ObjectPropertySymbol? declaration
+                    ) &&
+                    (!declaration.IsOptional || declaration.IsReadOnly)
+                )
+                {
+                    Report(
+                        diagnostics,
+                        IrDiagnosticCodes.InvalidStructure,
+                        property.Span,
+                        $"IR cannot remove property '{propertyName}' because it is required or read-only."
+                    );
+                }
+
                 break;
             }
 
@@ -1053,7 +1174,10 @@ public static class IrValidator
             objectType.TryGetProperty(property.Name, out ObjectPropertySymbol? symbol)
         )
         {
-            expectedType = symbol.Type;
+            if (!symbol.IsReadOnly)
+            {
+                expectedType = symbol.Type;
+            }
         }
         else if (
             targetType.Kind == TypeKind.Object ||
@@ -1148,8 +1272,7 @@ public static class IrValidator
 
         TypeSymbol targetType = GetNonNullable(target.Type);
         bool isValid = element.IsObjectAccess
-            ? targetType.Kind is TypeKind.Object or TypeKind.StructuredObject &&
-            AreType(index, TypeSymbols.String)
+            ? IsValidObjectElementWrite(program, targetType, index, value)
             : targetType is ArrayTypeSymbol { IsReadOnly: false } arrayType &&
             AreType(index, TypeSymbols.Int) &&
             TypeRelations.AreEquivalent(value.Type, arrayType.ElementType);
@@ -1163,6 +1286,80 @@ public static class IrValidator
                 "IR element write has incompatible target, index, or value types."
             );
         }
+
+        static bool IsValidObjectElementWrite(
+            IrProgram program,
+            TypeSymbol targetType,
+            IrSlot index,
+            IrSlot value
+        )
+        {
+            if (
+                targetType.Kind is not
+                    TypeKind.Object and not
+                    TypeKind.StructuredObject ||
+                !AreType(index, TypeSymbols.String)
+            )
+            {
+                return false;
+            }
+
+            if (
+                targetType is not ObjectTypeSymbol objectType ||
+                !TryGetConstantString(
+                    program,
+                    index.Id,
+                    out string propertyName
+                )
+            )
+            {
+                return true;
+            }
+
+            if (
+                objectType.TryGetProperty(
+                    propertyName,
+                    out ObjectPropertySymbol? declaration
+                )
+            )
+            {
+                return !declaration.IsReadOnly &&
+                    TypeRelations.AreEquivalent(declaration.Type, value.Type);
+            }
+
+            return objectType.IsOpen &&
+                TypeRelations.AreEquivalent(
+                    TypeSymbols.Nullable(TypeSymbols.Unknown),
+                    value.Type
+                );
+        }
+    }
+
+    private static bool TryGetConstantString(
+        IrProgram program,
+        int slotId,
+        out string value
+    )
+    {
+        IReadOnlyList<IrInstruction.Constant> definitions =
+        [
+            .. program.Blocks
+                .SelectMany(static block => block.Instructions)
+                .OfType<IrInstruction.Constant>()
+                .Where(constant => constant.Destination == slotId),
+        ];
+
+        if (
+            definitions.Count == 1 &&
+            definitions[0].Value is string stringValue
+        )
+        {
+            value = stringValue;
+            return true;
+        }
+
+        value = "";
+        return false;
     }
 
     private static bool IsConstantCompatible(object? value, TypeSymbol type)
@@ -1742,6 +1939,33 @@ public static class IrValidator
                 IrDiagnosticCodes.TypeMismatch,
                 span,
                 $"IR slot {slotId} has type '{slot.Type.DisplayName}', expected '{expectedType.DisplayName}'."
+            );
+        }
+    }
+
+    private static void ValidateSlotViewType(
+        IrProgram program,
+        int slotId,
+        TypeSymbol expectedType,
+        TextSpan span,
+        ICollection<Diagnostic> diagnostics
+    )
+    {
+        IrSlot? slot = GetSlot(program, slotId);
+
+        if (slot is null)
+        {
+            ValidateSlot(program, slotId, span, diagnostics);
+            return;
+        }
+
+        if (!TypeRelations.IsViewCompatible(slot.Type, expectedType))
+        {
+            Report(
+                diagnostics,
+                IrDiagnosticCodes.TypeMismatch,
+                span,
+                $"IR slot {slotId} has type '{slot.Type.DisplayName}', but a read-compatible '{expectedType.DisplayName}' value is required."
             );
         }
     }

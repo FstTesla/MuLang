@@ -13,6 +13,7 @@ public sealed class LanguageProfileBuilder
     private MultiLevelLoopControlFeature multiLevelLoopControl;
     private TrailingCommasFeature trailingCommas;
     private ConstantFoldingFeature constantFolding;
+    private ObjectLiteralSyntax objectLiteralSyntax;
     private ConditionSemantics conditionSemantics;
     private ShadowingPolicy shadowing;
 
@@ -40,6 +41,7 @@ public sealed class LanguageProfileBuilder
         multiLevelLoopControl = profile.MultiLevelLoopControl;
         trailingCommas = profile.TrailingCommas;
         constantFolding = profile.ConstantFolding;
+        objectLiteralSyntax = profile.ObjectLiteralSyntax;
         conditionSemantics = profile.ConditionSemantics;
         shadowing = profile.Shadowing;
     }
@@ -237,6 +239,23 @@ public sealed class LanguageProfileBuilder
         return this;
     }
 
+    /// <summary>Sets the object-literal property grammar.</summary>
+    /// <param name="objectLiteralSyntax">The object-literal property grammar.</param>
+    /// <returns>The same <see cref="LanguageProfileBuilder" /> instance, for chaining.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="objectLiteralSyntax" /> is not defined.</exception>
+    public LanguageProfileBuilder WithObjectLiteralSyntax(
+        ObjectLiteralSyntax objectLiteralSyntax
+    )
+    {
+        LanguageProfile.ValidateDefined(
+            objectLiteralSyntax,
+            nameof(objectLiteralSyntax)
+        );
+        this.objectLiteralSyntax = objectLiteralSyntax;
+
+        return this;
+    }
+
     /// <summary>Sets the condition semantics setting.</summary>
     /// <param name="conditionSemantics">The condition semantics.</param>
     /// <returns>The same <see cref="LanguageProfileBuilder" /> instance, for chaining.</returns>
@@ -305,6 +324,7 @@ public sealed class LanguageProfileBuilder
             multiLevelLoopControl,
             trailingCommas,
             constantFolding,
+            objectLiteralSyntax,
             conditionSemantics,
             shadowing
         );

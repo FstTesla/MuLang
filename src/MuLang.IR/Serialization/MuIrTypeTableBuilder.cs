@@ -354,6 +354,7 @@ internal static class MuIrTypeTableBuilder
             StringBuilder builder = new ();
             Append(builder, property.Name);
             Append(builder, property.IsOptional ? "optional" : "required");
+            Append(builder, property.IsReadOnly ? "readonly" : "mutable");
             return builder.ToString();
         }
 

@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed for MuLang `1.2`.
+Implemented for MuLang `1.2` in `0.3.0-alpha.2`.
 
 ## Goal
 
@@ -180,25 +180,23 @@ An object literal may still be contextually typed by a structured object type.
 
 For every explicitly listed property:
 
-- the name must exist unless the expected type is open;
-- an explicit source type must be equivalent to the expected known property
-  type;
 - an initializer is bound using the explicit type when present, otherwise the
   expected property type when available;
-- source optionality and read-only modifiers must be validated against the
-  expected property declaration;
-- an omitted property initializer is valid only for an optional expected
+- source optionality and read-only modifiers define the concrete property
+  capabilities;
+- an omitted property initializer is valid only for an optional source
   property.
 
-For properties omitted entirely from the literal:
+The full literal produces its own concrete structured type. That type is checked
+for ordinary structural assignability to the expected type, including property
+names, openness, optionality, read-only capability, and value types. Mutable
+target properties remain invariant. Read-only target properties permit
+read-view compatibility, including a required source property satisfying an
+optional target property.
 
-- every expected required property produces the existing missing-property
-  diagnostic;
-- expected optional properties remain absent.
-
-The expected type remains the resulting static type when contextual typing
-succeeds. The literal syntax must not silently weaken or strengthen known
-property capabilities.
+When contextual typing succeeds, an enclosing implicit conversion exposes the
+expected static type while the literal retains its concrete type and runtime
+capabilities.
 
 Legacy contextual typing retains the existing behavior: the expected structured
 type supplies optionality and read-only capability because the legacy grammar

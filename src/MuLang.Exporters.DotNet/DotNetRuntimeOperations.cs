@@ -267,12 +267,16 @@ internal static class DotNetRuntimeOperations
             : new DotNetArrayValue(elements);
     }
 
-    public static object CreateObject(IEnumerable<string> names, IEnumerable<object?> values)
+    public static object CreateObject(
+        ObjectTypeSymbol type,
+        IEnumerable<string> names,
+        IEnumerable<object?> values
+    )
     {
         IEnumerable<KeyValuePair<string, object?>> properties =
             names.Zip(values).Select(static nv => KeyValuePair.Create(nv.First, nv.Second));
 
-        return new DotNetObjectValue(properties);
+        return new DotNetObjectValue(type, properties);
     }
 
     public static object? GetProperty(
@@ -742,6 +746,15 @@ internal static class DotNetRuntimeOperations
 
         foreach (ObjectPropertySymbol property in type.Properties)
         {
+            if (
+                !property.IsReadOnly &&
+                value is IDotNetObjectPropertyCapabilities capabilities &&
+                capabilities.IsPropertyReadOnly(property.Name)
+            )
+            {
+                return false;
+            }
+
             if (!TryGetProperty(value, property.Name, out object? propertyValue))
             {
                 if (property.IsOptional)

@@ -184,7 +184,7 @@ The key expression is evaluated exactly once. The `has` operator does not read t
 > For example, a present property whose value is `null` still satisfies `has`:
 >
 > ```text
-> var item = @{ value: null };
+> var item = @{ value = null };
 > return item has "value";
 > ```
 >

@@ -74,7 +74,8 @@ An executable result MUST be associated with the static environment against whic
 
 Execution MUST be rejected when declarations that can affect compilation are incompatible. Relevant declarations include names, types, function signatures, object schemas, and mutability capabilities.
 
-Mutable and read-only array types are distinct for compatibility purposes.
+Mutable and read-only array types and object-property capabilities are distinct
+for compatibility purposes.
 The language version and the presence of `primitive` in any recursively
 referenced type also contribute to compatibility.
 
@@ -98,6 +99,10 @@ An object representation defines the applicable subset of:
 - property enumeration;
 - logical identity.
 
+A host value declared with read-only properties MUST preserve those restrictions
+through every alias exposed to MuLang. An adapter MAY reject operations more
+strictly than its static declaration.
+
 An array representation defines:
 
 - element reads;
@@ -114,6 +119,10 @@ Boundary representations do not define or customize truthiness. Determining trut
 The condition-semantics profile option and truthiness rules are defined in [Section 14.8](14-language-profiles.md#148-conditions).
 
 A host-provided object or array MAY reject a mutation or removal at runtime. Previous completed side effects are not rolled back.
+
+The .NET runtime's optional `IDotNetObjectPropertyCapabilities` interface exposes
+known read-only capability for checked conformance. Literal objects implement it
+and enforce required, optional, mutable, and read-only declarations internally.
 
 MuLang provides no source-level operation for testing whether a specific property or array element is writable or whether a property is removable. `has` reports only property presence and does not imply either capability.
 

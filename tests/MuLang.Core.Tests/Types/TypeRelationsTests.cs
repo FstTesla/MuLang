@@ -258,6 +258,65 @@ public sealed class TypeRelationsTests
     }
 
     [Test]
+    public void AppliesReadOnlyObjectPropertyViews()
+    {
+        ObjectTypeSymbol mutableInt = CreateObject(
+            "mutable-int",
+            "MutableInt",
+            false,
+            new ObjectPropertySymbol("value", TypeSymbols.Int)
+        );
+        ObjectTypeSymbol readOnlyNumber = CreateObject(
+            "readonly-number",
+            "ReadOnlyNumber",
+            false,
+            new ObjectPropertySymbol("value", TypeSymbols.Number, false, true)
+        );
+        ObjectTypeSymbol readOnlyInt = CreateObject(
+            "readonly-int",
+            "ReadOnlyInt",
+            false,
+            new ObjectPropertySymbol("value", TypeSymbols.Int, false, true)
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(
+                TypeRelations.IsAssignable(mutableInt, readOnlyNumber),
+                Is.True
+            );
+            Assert.That(
+                TypeRelations.IsAssignable(readOnlyInt, mutableInt),
+                Is.False
+            );
+            Assert.That(
+                TypeRelations.AreEquivalent(mutableInt, readOnlyInt),
+                Is.False
+            );
+        }
+    }
+
+    [Test]
+    public void AppliesRecursiveReadOnlyObjectPropertyViewsCoinductively()
+    {
+        ObjectTypeSymbol mutable = CreateRecursiveObject(false);
+        ObjectTypeSymbol readOnly = CreateRecursiveObject(true);
+
+        Assert.That(TypeRelations.IsAssignable(mutable, readOnly), Is.True);
+
+        static ObjectTypeSymbol CreateRecursiveObject(bool isReadOnly)
+        {
+            ObjectTypeGraphBuilder builder = new ();
+            ObjectTypeGraphReference node = builder.DeclareAnonymous(
+                "node",
+                false
+            );
+            builder.AddProperty(node, "next", node, false, isReadOnly);
+            return (ObjectTypeSymbol)builder.Build()[node];
+        }
+    }
+
+    [Test]
     public void DistinguishesAssignabilityFromCheckedConversion()
     {
         TypeSymbol nullableObject = TypeSymbols.Nullable(TypeSymbols.Object);

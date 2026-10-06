@@ -54,6 +54,16 @@ Structured object types transported through IR MAY be self-recursive or mutually
 
 Structured object types in IR are purely structural. Lowering MUST erase provider type IDs, language-facing type names, and named-versus-anonymous origin while preserving openness, properties, optionality, capabilities, and recursive edges. Provider symbol IDs and the environment fingerprint remain unchanged.
 
+`CreateObject` carries the complete structured object type separately from its
+present property values. Values must be unique, declared or valid additional
+open-object properties, and type-compatible. Every required property must be
+present; optional properties may be omitted without synthesizing a value.
+Object creation is the only instruction that may establish the initial value or
+absence of a read-only property.
+
+Property write and removal instructions MUST reject statically known read-only
+properties. Required known properties MUST also be rejected by removal.
+
 Runtime exporters MUST NOT perform name resolution, type inference, overload resolution, or high-level control-flow interpretation.
 
 Portable IR MAY be persisted and exchanged as a MuIR document with the `.muir` extension. MuIR is versioned independently from the MuLang language and profile versions. A host that reads MuIR MUST validate the reconstructed program against its selected environment through the ordinary IR validator before export or execution.

@@ -180,7 +180,7 @@ public sealed class ParserTests
     [Test]
     public void ParsesOpenObjectLiteral()
     {
-        SyntaxTree tree = ParseExpression("@{ name: \"MuLang\" }");
+        SyntaxTree tree = ParseExpression("@{ name = \"MuLang\" }");
         ExpressionRootSyntax root = (ExpressionRootSyntax)tree.Root;
         ObjectLiteralExpressionSyntax objectLiteral =
             (ObjectLiteralExpressionSyntax)root.Expression;
@@ -284,7 +284,7 @@ public sealed class ParserTests
     [Test]
     public void ParsesOptionalObjectLiteralProperty()
     {
-        SyntaxTree tree = ParseExpression("{ value?: 1 }");
+        SyntaxTree tree = ParseExpression("{ value? = 1 }");
         ExpressionRootSyntax root = (ExpressionRootSyntax)tree.Root;
         ObjectLiteralExpressionSyntax objectLiteral =
             (ObjectLiteralExpressionSyntax)root.Expression;
@@ -297,11 +297,60 @@ public sealed class ParserTests
     }
 
     [Test]
-    public void RejectsWhitespaceInsideOptionalPropertySeparator()
+    public void ParsesFullObjectPropertyDeclarations()
     {
-        SyntaxTree tree = ParseExpression("{ value? : 1 }");
+        SyntaxTree tree = ParseExpression(
+            "{ required$: number = 1, absent$?: string, present?: int = 2 }"
+        );
+        ObjectLiteralExpressionSyntax literal =
+            (ObjectLiteralExpressionSyntax)((ExpressionRootSyntax)tree.Root).Expression;
 
-        Assert.That(tree.Diagnostics.HasErrors, Is.True);
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(literal.Properties[0].IsReadOnly, Is.True);
+            Assert.That(literal.Properties[0].Type, Is.Not.Null);
+            Assert.That(literal.Properties[0].Value, Is.Not.Null);
+            Assert.That(literal.Properties[1].IsOptional, Is.True);
+            Assert.That(literal.Properties[1].IsReadOnly, Is.True);
+            Assert.That(literal.Properties[1].Value, Is.Null);
+            Assert.That(literal.Properties[2].IsOptional, Is.True);
+            Assert.That(tree.Diagnostics, Is.Empty);
+        }
+    }
+
+    [Test]
+    public void ReportsObjectLiteralSyntaxModeMismatch()
+    {
+        SyntaxTree full = ParseExpression("{ value: 1 }");
+        SyntaxTree legacy = Parser.Parse(
+            SourceText.From("{ value = 1 }"),
+            CompilationMode.Expression,
+            LanguageProfiles.Version1_1
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(
+                full.Diagnostics.Select(static diagnostic => diagnostic.Code),
+                Does.Contain(DiagnosticCodes.ObjectLiteralSyntaxMismatch)
+            );
+            Assert.That(
+                legacy.Diagnostics.Select(static diagnostic => diagnostic.Code),
+                Does.Contain(DiagnosticCodes.ObjectLiteralSyntaxMismatch)
+            );
+        }
+    }
+
+    [Test]
+    public void ParsesWhitespaceInsideLegacyOptionalPropertySeparator()
+    {
+        SyntaxTree tree = Parser.Parse(
+            SourceText.From("{ value? : 1 }"),
+            CompilationMode.Expression,
+            LanguageProfiles.Version1_1
+        );
+
+        Assert.That(tree.Diagnostics, Is.Empty);
     }
 
     [Test]
@@ -395,8 +444,8 @@ public sealed class ParserTests
     }
 
     [TestCase("[1,]")]
-    [TestCase("{ value: 1, }")]
-    [TestCase("@{ value: 1, }")]
+    [TestCase("{ value = 1, }")]
+    [TestCase("@{ value = 1, }")]
     public void AllowsTrailingSeparatorsInCollectionLiterals(string source)
     {
         SyntaxTree tree = ParseExpression(source);

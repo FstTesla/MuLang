@@ -9,7 +9,13 @@ public sealed class ObjectPropertySymbol
     /// <param name="isOptional">A value indicating whether the property may be omitted.</param>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="name" /> or <paramref name="type" /> is <c>null</c>.</exception>
     /// <exception cref="ArgumentException">Thrown when <paramref name="type" /> cannot be used for an object property.</exception>
-    public ObjectPropertySymbol(string name, TypeSymbol type, bool isOptional = false)
+    /// <param name="isReadOnly">A value indicating whether the property value and presence are read-only.</param>
+    public ObjectPropertySymbol(
+        string name,
+        TypeSymbol type,
+        bool isOptional = false,
+        bool isReadOnly = false
+    )
     {
         Name = name ?? throw new ArgumentNullException(nameof(name));
 
@@ -28,6 +34,7 @@ public sealed class ObjectPropertySymbol
 
         Type = type;
         IsOptional = isOptional;
+        IsReadOnly = isReadOnly;
     }
 
     /// <summary>Gets the property name.</summary>
@@ -38,4 +45,7 @@ public sealed class ObjectPropertySymbol
 
     /// <summary>Gets a value indicating whether the property may be omitted.</summary>
     public bool IsOptional { get; }
+
+    /// <summary>Gets a value indicating whether the property value and presence are read-only.</summary>
+    public bool IsReadOnly { get; }
 }

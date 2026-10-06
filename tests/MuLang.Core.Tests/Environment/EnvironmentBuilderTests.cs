@@ -219,6 +219,31 @@ public sealed class EnvironmentBuilderTests
     }
 
     [Test]
+    public void DistinguishesPropertyCapabilityInFingerprint()
+    {
+        ObjectTypeSymbol mutableType = new (
+            "type.item",
+            "Item",
+            false,
+            [ new ObjectPropertySymbol("value", TypeSymbols.Int) ]
+        );
+        ObjectTypeSymbol readOnlyType = new (
+            "type.item",
+            "Item",
+            false,
+            [ new ObjectPropertySymbol("value", TypeSymbols.Int, false, true) ]
+        );
+        EnvironmentSchema mutable = new EnvironmentBuilder()
+            .AddType(mutableType)
+            .Build();
+        EnvironmentSchema readOnly = new EnvironmentBuilder()
+            .AddType(readOnlyType)
+            .Build();
+
+        Assert.That(readOnly.Fingerprint, Is.Not.EqualTo(mutable.Fingerprint));
+    }
+
+    [Test]
     public void RejectsUnregisteredStructuredTypes()
     {
         ObjectTypeSymbol itemType = CreateItemType();

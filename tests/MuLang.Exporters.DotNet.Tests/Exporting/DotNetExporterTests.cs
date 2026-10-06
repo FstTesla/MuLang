@@ -1181,12 +1181,14 @@ public sealed class DotNetExporterTests
     public void ExecutesDynamicObjectMutationRemovalAndHas()
     {
         const string source = """
-                              var item = @{ value: 1 };
+                              var item = @{ value = 1 };
                               item.extra = 2;
                               item.extra~;
                               return item has "extra";
                               """;
-        EnvironmentSchema environment = CreateEmptyEnvironment();
+        EnvironmentSchema environment = CreateEmptyEnvironment(
+            LanguageVersion.Version1_2
+        );
         Func<DotNetRuntimeContext, object?> compiled = CompileProgram(
             source,
             environment,
@@ -1264,11 +1266,13 @@ public sealed class DotNetExporterTests
     public void ExecutesRemovalOfInferredOptionalProperty()
     {
         const string source = """
-                              var item = { value?: 1 };
+                              var item = { value? = 1 };
                               item.value~;
                               return item has "value";
                               """;
-        EnvironmentSchema environment = CreateEmptyEnvironment();
+        EnvironmentSchema environment = CreateEmptyEnvironment(
+            LanguageVersion.Version1_2
+        );
         Func<DotNetRuntimeContext, object?> compiled = CompileProgram(
             source,
             environment,
@@ -1279,15 +1283,98 @@ public sealed class DotNetExporterTests
     }
 
     [Test]
+    public void ExecutesReadCompatibleExplicitReadOnlyPropertyType()
+    {
+        ObjectTypeSymbol itemType = new (
+            "type.item",
+            "Item",
+            false,
+            [
+                new ObjectPropertySymbol(
+                    "value",
+                    TypeSymbols.Number,
+                    false,
+                    true
+                ),
+            ]
+        );
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddType(itemType)
+            .Build(LanguageVersion.Version1_2);
+        Func<DotNetRuntimeContext, object?> compiled = CompileProgram(
+            """
+            var item: Item = { value$: int = 1 };
+            return item.value;
+            """,
+            environment,
+            TypeSymbols.Number
+        );
+
+        Assert.That(compiled(CreateContext(environment)), Is.EqualTo(1L));
+    }
+
+    [TestCase(
+        """
+        var item = { value$ = 1 };
+        var alias: object = item;
+        alias.value = 2;
+        return 0;
+        """
+    )]
+    [TestCase(
+        """
+        var item = { value$?: int };
+        var alias: object = item;
+        alias.value = 2;
+        return 0;
+        """
+    )]
+    [TestCase(
+        """
+        var item = { value$?: int = 1 };
+        var alias: object = item;
+        alias.value~;
+        return 0;
+        """
+    )]
+    public void EnforcesReadOnlyLiteralPropertiesThroughObjectAliases(
+        string source
+    )
+    {
+        EnvironmentSchema environment = CreateEmptyEnvironment(
+            LanguageVersion.Version1_2
+        );
+        Func<DotNetRuntimeContext, object?> compiled = CompileProgram(
+            source,
+            environment,
+            TypeSymbols.Int
+        );
+
+        MuLangRuntimeException exception = RequireRuntimeException(
+            () => compiled(CreateContext(environment))
+        );
+
+        Assert.That(
+            exception.Code,
+            Is.AnyOf(
+                DotNetRuntimeErrorCodes.MutationRejected,
+                DotNetRuntimeErrorCodes.RemovalRejected
+            )
+        );
+    }
+
+    [Test]
     public void DistinguishesStructuralEqualityAndIdentity()
     {
-        EnvironmentSchema environment = CreateEmptyEnvironment();
+        EnvironmentSchema environment = CreateEmptyEnvironment(
+            LanguageVersion.Version1_2
+        );
         Func<DotNetRuntimeContext, object?> structural = CompileExpression(
-            "{ value: 1 } == { value: 1 }",
+            "{ value = 1 } == { value = 1 }",
             environment
         );
         Func<DotNetRuntimeContext, object?> identity = CompileExpression(
-            "{ value: 1 } === { value: 1 }",
+            "{ value = 1 } === { value = 1 }",
             environment
         );
         DotNetRuntimeContext structuralContext = CreateContext(environment);

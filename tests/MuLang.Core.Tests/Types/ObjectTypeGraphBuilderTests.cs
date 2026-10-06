@@ -93,6 +93,30 @@ public sealed class ObjectTypeGraphBuilderTests
         );
     }
 
+    [Test]
+    public void PreservesPropertyCapabilities()
+    {
+        ObjectTypeGraphBuilder builder = new ();
+        ObjectTypeGraphReference value = builder.DeclareAnonymous("value", false);
+        builder.AddProperty(
+            value,
+            "optional",
+            builder.From(TypeSymbols.String),
+            true,
+            true
+        );
+
+        ObjectPropertySymbol property = ((ObjectTypeSymbol)builder.Build()[value])
+            .Properties
+            .Single();
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(property.IsOptional, Is.True);
+            Assert.That(property.IsReadOnly, Is.True);
+        }
+    }
+
     private static (ObjectTypeSymbol First, ObjectTypeSymbol Second) CreatePair()
     {
         ObjectTypeGraphBuilder builder = new ();

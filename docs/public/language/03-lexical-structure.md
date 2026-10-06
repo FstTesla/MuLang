@@ -169,7 +169,13 @@ String values are sequences of Unicode scalar values and are compared ordinally.
 
 Language version 1.1 recognizes `$` as the read-only local-declaration modifier and as a postfix type-capability token. It recognizes `$[` as the single opening token of a read-only array literal.
 
+Language version 1.2 also uses `$` as the read-only object-property modifier.
+
 `$[` is one token and MUST NOT be split into `$` followed by `[`.
+
+`?` followed by `:` is always tokenized as two ordinary tokens. The selected
+object-literal grammar determines whether that sequence is an optional legacy
+initializer marker or an optional modifier followed by a type annotation.
 
 Language version 1 rejects both token forms as unavailable in that version.
 

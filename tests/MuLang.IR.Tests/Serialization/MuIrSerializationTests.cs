@@ -25,6 +25,7 @@ public sealed class MuIrSerializationTests
             Assert.That(result.Program, Is.Not.Null);
             Assert.That(MuIrWriter.WriteToString(result.Program!), Is.EqualTo(text));
             Assert.That(text, Does.StartWith("muir 2\n"));
+            Assert.That(text, Does.Contain("optional readonly"));
             Assert.That(text, Does.EndWith("end\n"));
             Assert.That(text, Does.Not.Contain("\r"));
         }
@@ -70,7 +71,24 @@ public sealed class MuIrSerializationTests
             Assert.That(result.Success, Is.True);
             Assert.That(
                 MuIrWriter.WriteToString(result.Program!),
-                Is.EqualTo(text.Replace("muir 1\n", "muir 2\n", StringComparison.Ordinal))
+                Is.EqualTo(
+                    text
+                        .Replace(
+                            "muir 1\n",
+                            "muir 2\n",
+                            StringComparison.Ordinal
+                        )
+                        .Replace(
+                            " optional",
+                            " optional mutable",
+                            StringComparison.Ordinal
+                        )
+                        .Replace(
+                            " required",
+                            " required mutable",
+                            StringComparison.Ordinal
+                        )
+                )
             );
         }
     }
@@ -558,7 +576,12 @@ public sealed class MuIrSerializationTests
             true,
             [
                 new ObjectPropertySymbol("value", TypeSymbols.Int),
-                new ObjectPropertySymbol("label", TypeSymbols.String, true),
+                new ObjectPropertySymbol(
+                    "label",
+                    TypeSymbols.String,
+                    true,
+                    true
+                ),
             ]
         );
         ObjectTypeSymbol anonymousObject = ObjectTypeSymbol.CreateAnonymous(

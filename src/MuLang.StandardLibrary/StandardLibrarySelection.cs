@@ -251,7 +251,7 @@ public sealed class StandardLibrarySelection
 
         static string Format(ObjectPropertySymbol property)
         {
-            return $"{property.Name}:{property.Type.DisplayName}:{property.IsOptional}";
+            return $"{property.Name}:{property.Type.DisplayName}:{property.IsOptional}:{property.IsReadOnly}";
         }
     }
 

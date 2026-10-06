@@ -134,7 +134,15 @@ property-initializer-list
     = property-initializer ("," property-initializer)* ","? ;
 
 property-initializer
-    = (identifier | string-literal) (":" | "?:") expression ;
+    = (identifier | string-literal)
+      "$"? "?"?
+      (":" type)?
+      ("=" expression)? ;
 ```
 
 Expression grammar is defined by the precedence table rather than expanded in this summary.
+
+The property modifier order is fixed. Required properties and every property
+without an explicit type require an initializer. Profiles selecting
+`ObjectLiteralSyntax.Legacy` instead use
+`(identifier | string-literal) (":" | "?" ":") expression`.

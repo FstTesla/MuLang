@@ -198,6 +198,18 @@ public static class DiagnosticCodes
     /// <summary>Gets the code for reassignment of a read-only local variable.</summary>
     public const string CannotReassignReadOnlyLocal = "MUL3041";
 
+    /// <summary>Gets the code for a required object property without an initializer.</summary>
+    public const string MissingObjectPropertyInitializer = "MUL3042";
+
+    /// <summary>Gets the code for an uninitialized optional object property without a type.</summary>
+    public const string MissingObjectPropertyType = "MUL3043";
+
+    /// <summary>Gets the code for an invalid object property modifier.</summary>
+    public const string InvalidObjectPropertyModifier = "MUL3045";
+
+    /// <summary>Gets the code for object-literal syntax that conflicts with the selected grammar.</summary>
+    public const string ObjectLiteralSyntaxMismatch = "MUL3046";
+
     /// <summary>Gets the code for disabled user-defined functions.</summary>
     public const string DisabledUserDefinedFunctions = "MUL7001";
 

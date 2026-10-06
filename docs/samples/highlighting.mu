@@ -60,11 +60,11 @@ func exerciseHighlighting(name: string, requested: int): void {
     ;
 
     var details = @{
-        title: displayText,
-        name: name,
-        state: state,
-        count: count,
-        accent?: "blue",
+        title = displayText,
+        name = name,
+        state = state,
+        count = count,
+        accent? = "blue",
     };
 
     details.version = 1;

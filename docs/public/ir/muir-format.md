@@ -111,7 +111,10 @@ array-capability ::= "mutable" | "readonly"
 openness         ::= "open" | "closed"
 
 object-property-list ::= object-property ("," object-property)*
-object-property ::= string type-ref ("required" | "optional")
+object-property ::=
+  string type-ref
+  ("required" | "optional")
+  ("mutable" | "readonly")
 ```
 
 The compiler error-recovery type is not representable. A writer MUST fail explicitly when that type occurs.
@@ -127,7 +130,11 @@ Canonical type identity is the complete wire definition. The writer:
 - orders acyclic dependencies before dependants;
 - permits forward references within a recursive strongly connected component.
 
-Openness, property name, optionality, property type, and array capability remain identity-bearing. Property declaration order does not.
+Openness, property name, optionality, mutability, property type, and array
+capability remain identity-bearing. Property declaration order does not.
+
+Version 1 object properties omit the mutability token and are read as mutable.
+Version 2 writers always emit both independent capability tokens.
 
 Provider type IDs, language-facing object type names, and named-versus-anonymous origin are not represented. The environment fingerprint identifies the required provider schema, while IR validation compares the reconstructed object type structurally.
 
@@ -264,9 +271,11 @@ Hosts MAY configure positive limits for document, string, token, type-nesting, t
 
 ## 9. Compatibility
 
-MuIR version 2 adds the `primitive` intrinsic-type token. The reader continues
-to accept version 1 documents and MUST reject `primitive` when the document
-declares version 1. The canonical writer emits version 2.
+MuIR version 2 adds the `primitive` intrinsic-type token and the
+structured-object property mutability token. The reader continues to accept
+version 1 documents, reads their properties as mutable, and MUST reject
+`primitive` when the document declares version 1. The canonical writer emits
+version 2.
 
 MuIR compatibility is defined by the wire contract, not by .NET enum names,
 record names, or numeric enum values.
@@ -275,4 +284,4 @@ Changing an existing token, operand order, required field, or semantic interpret
 
 A reader MUST reject unknown required constructs and unsupported versions
 rather than guessing. Version 1 fixtures remain reader-compatibility artifacts;
-rewriting them with the current writer upgrades the header to version 2.
+rewriting version 1 input with the current writer upgrades it to version 2.

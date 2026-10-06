@@ -85,6 +85,9 @@ The intrinsic array `length` property is not an assignment target.
 
 An element accessed through a read-only array type is not an assignment target, independently of the language profile's mutable-array mutation setting.
 
+A statically known read-only object property is not an assignment target,
+including an absent read-only optional property.
+
 Global bindings cannot be assigned.
 
 The assigned value MUST be statically assignable to the target type.
@@ -118,6 +121,8 @@ The selected property MUST be statically known to be removable because:
 
 A known required property cannot be removed.
 
+A known read-only property cannot be removed, regardless of optionality.
+
 Array elements cannot be removed with this statement.
 
 The intrinsic array `length` property cannot be removed.
@@ -131,7 +136,7 @@ Property removal has no value and cannot occur inside an expression.
 > For example, this program removes an additional property and returns `false`:
 >
 > ```text
-> var item = @{ value: 1 };
+> var item = @{ value = 1 };
 > item.value~;
 > return item has "value";
 > ```

@@ -108,11 +108,6 @@ internal sealed class Lexer
             return CreateToken(TokenKind.OptionalDot, start);
         }
 
-        if (TryRead("?:"))
-        {
-            return CreateToken(TokenKind.OptionalPropertyColon, start);
-        }
-
         if (TryRead("??"))
         {
             return CreateToken(TokenKind.QuestionQuestion, start);

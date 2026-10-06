@@ -101,6 +101,7 @@ public static class DotNetExporter
 
     private static readonly MethodInfo createObjectMethod = GetMethod(
         nameof(DotNetRuntimeOperations.CreateObject),
+        typeof(ObjectTypeSymbol),
         typeof(IEnumerable<string>),
         typeof(IEnumerable<object?>)
     );
@@ -502,6 +503,7 @@ public static class DotNetExporter
                 objectValue.Destination,
                 Expression.Call(
                     createObjectMethod,
+                    Expression.Constant(objectValue.Type),
                     Expression.NewArrayInit(
                         typeof(string),
                         objectValue.Properties.Select(

@@ -218,10 +218,8 @@ MuLang.Core.Types.NullableTypeSymbol.UnderlyingType.get -> MuLang.Core.Types.Typ
 MuLang.Core.Types.ObjectPropertySymbol
 MuLang.Core.Types.ObjectPropertySymbol.IsOptional.get -> bool
 MuLang.Core.Types.ObjectPropertySymbol.Name.get -> string!
-MuLang.Core.Types.ObjectPropertySymbol.ObjectPropertySymbol(string! name, MuLang.Core.Types.TypeSymbol! type, bool isOptional = false) -> void
 MuLang.Core.Types.ObjectPropertySymbol.Type.get -> MuLang.Core.Types.TypeSymbol!
 MuLang.Core.Types.ObjectTypeGraphBuilder
-MuLang.Core.Types.ObjectTypeGraphBuilder.AddProperty(MuLang.Core.Types.ObjectTypeGraphReference! objectType, string! name, MuLang.Core.Types.ObjectTypeGraphReference! propertyType, bool isOptional = false) -> MuLang.Core.Types.ObjectTypeGraphBuilder!
 MuLang.Core.Types.ObjectTypeGraphBuilder.Array(MuLang.Core.Types.ObjectTypeGraphReference! elementType) -> MuLang.Core.Types.ObjectTypeGraphReference!
 MuLang.Core.Types.ObjectTypeGraphBuilder.Build() -> System.Collections.Generic.IReadOnlyDictionary<MuLang.Core.Types.ObjectTypeGraphReference!, MuLang.Core.Types.TypeSymbol!>!
 MuLang.Core.Types.ObjectTypeGraphBuilder.DeclareAnonymous(string! key, bool isOpen) -> MuLang.Core.Types.ObjectTypeGraphReference!

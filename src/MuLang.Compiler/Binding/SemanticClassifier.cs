@@ -184,14 +184,21 @@ internal static class SemanticClassifier
                     ObjectLiteralExpressionSyntax syntax =
                         (ObjectLiteralExpressionSyntax)value.Syntax;
 
-                    for (int index = 0; index < value.Properties.Count; index++)
+                    foreach (
+                        ObjectPropertyInitializerSyntax property in syntax.Properties
+                    )
                     {
                         Add(
                             SemanticClassificationKind.Property,
-                            syntax.Properties[index].NameToken.Span,
+                            property.NameToken.Span,
                             SemanticClassificationModifiers.Declaration
                         );
-                        VisitExpression(value.Properties[index].Value);
+                        VisitType(property.Type);
+                    }
+
+                    foreach (BoundExpression.ObjectProperty property in value.Properties)
+                    {
+                        VisitExpression(property.Value);
                     }
 
                     break;

@@ -124,9 +124,17 @@ Objects and arrays have no intrinsic string conversion.
 
 Every non-null structured object type is assignable to `object`.
 
-Assignment between structured object types is structural and requires compatibility of known properties, optionality, and openness.
+Assignment between structured object types is structural and requires
+compatibility of known properties, optionality, property capability, and
+openness.
 
-Because structured objects are mutable, structural object types are invariant. Assignment requires the same openness and the same set of known properties, with equivalent property types and matching optionality. Type names and host-defined identifiers do not affect structural compatibility.
+Mutable target properties are invariant: the source property must also be
+mutable, have matching optionality, and have an equivalent value type.
+Read-only target properties are read views: the source may be mutable or
+read-only, a required source may satisfy an optional target, and the source
+value type may use the representation-safe read compatibility relation.
+Read-only source properties are not assignable to mutable target properties.
+Type names and host-defined identifiers do not affect structural compatibility.
 
 Structural compatibility depends only on the MuLang type shapes described above. Host type identity and inheritance do not affect it.
 

@@ -59,5 +59,6 @@ internal enum ObjectTypeGraphReferenceKind
 internal sealed record ObjectTypeGraphProperty(
     string Name,
     ObjectTypeGraphReference Type,
-    bool IsOptional
+    bool IsOptional,
+    bool IsReadOnly
 );

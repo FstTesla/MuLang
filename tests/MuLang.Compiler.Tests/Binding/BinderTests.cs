@@ -447,6 +447,75 @@ public sealed class BinderTests
     }
 
     [Test]
+    public void BindsAbsentReadOnlyOptionalProperty()
+    {
+        BindingResult result = BindExpression(
+            "{ value$?: string }",
+            CreateEmptyEnvironment(LanguageVersion.Version1_2),
+            profile: LanguageProfiles.Version1_2
+        );
+        BoundExpression.Object value =
+            (BoundExpression.Object)((BoundRoot.Expression)result.Root).Value;
+        ObjectPropertySymbol property = value.ObjectType.Properties.Single();
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(value.Properties, Is.Empty);
+            Assert.That(property.Type, Is.SameAs(TypeSymbols.String));
+            Assert.That(property.IsOptional, Is.True);
+            Assert.That(property.IsReadOnly, Is.True);
+            Assert.That(result.Diagnostics, Is.Empty);
+        }
+    }
+
+    [Test]
+    public void RejectsInvalidUninitializedObjectProperties()
+    {
+        BindingResult required = BindExpression(
+            "{ value: string }",
+            CreateEmptyEnvironment(LanguageVersion.Version1_2),
+            profile: LanguageProfiles.Version1_2
+        );
+        BindingResult inferred = BindExpression(
+            "{ value? }",
+            CreateEmptyEnvironment(LanguageVersion.Version1_2),
+            profile: LanguageProfiles.Version1_2
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            AssertDiagnostic(
+                required,
+                DiagnosticCodes.MissingObjectPropertyInitializer
+            );
+            AssertDiagnostic(inferred, DiagnosticCodes.MissingObjectPropertyType);
+        }
+    }
+
+    [Test]
+    public void RejectsReadOnlyPropertyMutationAndRemoval()
+    {
+        BindingResult result = BindProgram(
+            """
+            var item = { value$ = 1, optional$?: int = 2 };
+            item.value = 2;
+            item.optional~;
+            """,
+            CreateEmptyEnvironment(LanguageVersion.Version1_2),
+            TypeSymbols.Void,
+            LanguageProfiles.Version1_2
+        );
+
+        Assert.That(
+            result.Diagnostics.Count(
+                static diagnostic => diagnostic.Code == DiagnosticCodes.ReadOnlyTarget ||
+                    diagnostic.Code == DiagnosticCodes.PropertyNotRemovable
+            ),
+            Is.EqualTo(2)
+        );
+    }
+
+    [Test]
     public void ExpectedObjectTypeDeterminesLiteralPropertyOptionality()
     {
         ObjectTypeSymbol itemType = new (
@@ -457,11 +526,12 @@ public sealed class BinderTests
         );
         EnvironmentSchema environment = new EnvironmentBuilder()
             .AddType(itemType)
-            .Build();
+            .Build(LanguageVersion.Version1_1);
         BindingResult result = BindProgram(
             "var item: Item = { value?: 1 };",
             environment,
-            TypeSymbols.Void
+            TypeSymbols.Void,
+            LanguageProfiles.Version1_1
         );
         BoundRoot.Program root = (BoundRoot.Program)result.Root;
         BoundStatement.VariableDeclaration declaration =
@@ -1269,6 +1339,184 @@ public sealed class BinderTests
             );
             Assert.That(result.Diagnostics, Is.Empty);
         }
+    }
+
+    [Test]
+    public void FullSyntaxRetainsConcreteContextualObjectType()
+    {
+        ObjectTypeSymbol itemType = new (
+            "type.item",
+            "Item",
+            false,
+            [
+                new ObjectPropertySymbol(
+                    "value",
+                    TypeSymbols.Number,
+                    true,
+                    true
+                ),
+            ]
+        );
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddType(itemType)
+            .Build(LanguageVersion.Version1_2);
+        BindingResult result = BindProgram(
+            "var item: Item = { value$ = 1 };",
+            environment,
+            TypeSymbols.Void,
+            LanguageProfiles.Version1_2
+        );
+        BoundRoot.Program root = (BoundRoot.Program)result.Root;
+        BoundStatement.VariableDeclaration declaration =
+            (BoundStatement.VariableDeclaration)root.Statements[0];
+        BoundExpression.Conversion conversion =
+            declaration.Initializer as BoundExpression.Conversion ??
+            throw new AssertionException("Expected an implicit conversion.");
+        BoundExpression.Object objectExpression =
+            conversion.Expression as BoundExpression.Object ??
+            throw new AssertionException("Expected an object literal.");
+        ObjectPropertySymbol property = objectExpression.ObjectType.Properties.Single();
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(conversion.Type, Is.SameAs(itemType));
+            Assert.That(objectExpression.ObjectType, Is.Not.SameAs(itemType));
+            Assert.That(property.Type, Is.SameAs(TypeSymbols.Number));
+            Assert.That(property.IsOptional, Is.False);
+            Assert.That(property.IsReadOnly, Is.True);
+            Assert.That(result.Diagnostics, Is.Empty);
+        }
+    }
+
+    [Test]
+    public void RejectsRequiredFullPropertyForOptionalMutableContext()
+    {
+        ObjectTypeSymbol itemType = new (
+            "type.item",
+            "Item",
+            false,
+            [ new ObjectPropertySymbol("value", TypeSymbols.Int, true) ]
+        );
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddType(itemType)
+            .Build(LanguageVersion.Version1_2);
+        BindingResult result = BindProgram(
+            "var item: Item = { value = 1 };",
+            environment,
+            TypeSymbols.Void,
+            LanguageProfiles.Version1_2
+        );
+
+        AssertDiagnostic(result, DiagnosticCodes.TypeMismatch);
+    }
+
+    [Test]
+    public void RejectsOptionalFullPropertyForRequiredContext()
+    {
+        ObjectTypeSymbol itemType = new (
+            "type.item",
+            "Item",
+            false,
+            [
+                new ObjectPropertySymbol(
+                    "value",
+                    TypeSymbols.Int,
+                    false,
+                    true
+                ),
+            ]
+        );
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddType(itemType)
+            .Build(LanguageVersion.Version1_2);
+        BindingResult result = BindProgram(
+            "var item: Item = { value$? = 1 };",
+            environment,
+            TypeSymbols.Void,
+            LanguageProfiles.Version1_2
+        );
+
+        AssertDiagnostic(result, DiagnosticCodes.TypeMismatch);
+    }
+
+    [Test]
+    public void AllowsReadCompatibleExplicitTypeForReadOnlyContextualProperty()
+    {
+        ObjectTypeSymbol itemType = new (
+            "type.item",
+            "Item",
+            false,
+            [
+                new ObjectPropertySymbol(
+                    "value",
+                    TypeSymbols.Number,
+                    false,
+                    true
+                ),
+            ]
+        );
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddType(itemType)
+            .Build(LanguageVersion.Version1_2);
+        BindingResult result = BindProgram(
+            "var item: Item = { value$: int = 1 };",
+            environment,
+            TypeSymbols.Void,
+            LanguageProfiles.Version1_2
+        );
+
+        Assert.That(result.Diagnostics, Is.Empty);
+    }
+
+    [Test]
+    public void RequiresEquivalentExplicitTypeForMutableContextualProperty()
+    {
+        ObjectTypeSymbol itemType = new (
+            "type.item",
+            "Item",
+            false,
+            [ new ObjectPropertySymbol("value", TypeSymbols.Number) ]
+        );
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddType(itemType)
+            .Build(LanguageVersion.Version1_2);
+        BindingResult result = BindProgram(
+            "var item: Item = { value: int = 1 };",
+            environment,
+            TypeSymbols.Void,
+            LanguageProfiles.Version1_2
+        );
+
+        AssertDiagnostic(result, DiagnosticCodes.TypeMismatch);
+    }
+
+    [Test]
+    public void RejectsRepresentationChangingExplicitReadOnlyPropertyType()
+    {
+        ObjectTypeSymbol itemType = new (
+            "type.item",
+            "Item",
+            false,
+            [
+                new ObjectPropertySymbol(
+                    "value",
+                    TypeSymbols.Float,
+                    false,
+                    true
+                ),
+            ]
+        );
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddType(itemType)
+            .Build(LanguageVersion.Version1_2);
+        BindingResult result = BindProgram(
+            "var item: Item = { value$: int = 1 };",
+            environment,
+            TypeSymbols.Void,
+            LanguageProfiles.Version1_2
+        );
+
+        AssertDiagnostic(result, DiagnosticCodes.TypeMismatch);
     }
 
     [Test]

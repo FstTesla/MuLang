@@ -543,6 +543,13 @@ internal sealed class Binder
                     UnderlyingType: ArrayTypeSymbol { IsReadOnly: true },
                 },
             };
+        ObjectPropertySymbol? assignedProperty = target switch
+        {
+            BoundExpression.MemberAccess member => member.Property,
+            BoundExpression.ElementAccess { IsObjectAccess: true } element =>
+                element.Property,
+            _ => null,
+        };
 
         if (
             isReadOnlyArrayElement
@@ -552,6 +559,14 @@ internal sealed class Binder
                 DiagnosticCodes.ReadOnlyTarget,
                 syntax.Target.Span,
                 "An element cannot be assigned through a read-only array view."
+            );
+        }
+        else if (assignedProperty?.IsReadOnly == true)
+        {
+            Report(
+                DiagnosticCodes.ReadOnlyTarget,
+                syntax.Target.Span,
+                $"Property '{assignedProperty.Name}' is read-only."
             );
         }
         else if (
@@ -644,10 +659,24 @@ internal sealed class Binder
         {
             BoundExpression.MemberAccess member =>
                 !member.IsArrayLength &&
-                (member.IsDynamic || member.Property?.IsOptional == true),
+                (
+                    member.IsDynamic ||
+                    member.Property is
+                    {
+                        IsOptional: true,
+                        IsReadOnly: false,
+                    }
+                ),
             BoundExpression.ElementAccess element =>
                 element.IsObjectAccess &&
-                (element.IsDynamic || element.Property?.IsOptional == true),
+                (
+                    element.IsDynamic ||
+                    element.Property is
+                    {
+                        IsOptional: true,
+                        IsReadOnly: false,
+                    }
+                ),
             _ => false,
         };
 
@@ -1469,11 +1498,18 @@ internal sealed class Binder
         }
 
         ObjectTypeSymbol? expectedObject = GetNonNullable(expectedType) as ObjectTypeSymbol;
+        bool isFullSyntax =
+            profile.LanguageVersion >= LanguageVersion.Version1_2 &&
+            profile.ObjectLiteralSyntax == ObjectLiteralSyntax.Full;
         IList<BoundExpression.ObjectProperty> properties = [ ];
         ICollection<ObjectPropertySymbol> propertySymbols = [ ];
         ISet<string> names = new HashSet<string>(StringComparer.Ordinal);
 
-        if (expectedObject is not null && syntax.IsOpen != expectedObject.IsOpen)
+        if (
+            !isFullSyntax &&
+            expectedObject is not null &&
+            syntax.IsOpen != expectedObject.IsOpen
+        )
         {
             Report(
                 DiagnosticCodes.TypeMismatch,
@@ -1491,17 +1527,22 @@ internal sealed class Binder
 
             _ = expectedObject?.TryGetProperty(name, out expectedProperty);
 
-            TypeSymbol? expectedPropertyType = expectedProperty?.Type;
+            TypeSymbol? declaredType = propertySyntax.Type is null
+                ? null
+                : BindType(propertySyntax.Type);
+            TypeSymbol? expectedPropertyType = declaredType ?? expectedProperty?.Type;
 
             if (
                 expectedPropertyType is null &&
-                expectedObject?.IsOpen == true
+                expectedObject?.IsOpen == true &&
+                !isFullSyntax
             )
             {
                 expectedPropertyType = TypeSymbols.Nullable(TypeSymbols.Unknown);
             }
 
             if (
+                !isFullSyntax &&
                 expectedObject is not null &&
                 expectedProperty is null &&
                 !expectedObject.IsOpen
@@ -1514,10 +1555,9 @@ internal sealed class Binder
                 );
             }
 
-            BoundExpression value = BindExpression(
-                propertySyntax.Value,
-                expectedPropertyType
-            );
+            BoundExpression? value = propertySyntax.Value is null
+                ? null
+                : BindExpression(propertySyntax.Value, expectedPropertyType);
             bool isFirstDeclaration = names.Add(name);
 
             if (!isFirstDeclaration)
@@ -1529,31 +1569,65 @@ internal sealed class Binder
                 );
             }
 
-            TypeSymbol propertyType = value.Type.Kind is
-                TypeKind.Null or
-                TypeKind.Void or
-                TypeKind.Error
-                ? TypeSymbols.Unknown
-                : value.Type;
+            bool isOptional = propertySyntax.IsLegacy && expectedProperty is not null
+                ? expectedProperty.IsOptional
+                : propertySyntax.IsOptional;
+            bool isReadOnly = propertySyntax.IsLegacy && expectedProperty is not null
+                ? expectedProperty.IsReadOnly
+                : propertySyntax.IsReadOnly;
 
-            if (value.Type.Kind == TypeKind.Null)
+            if (value is null && !isOptional)
+            {
+                Report(
+                    DiagnosticCodes.MissingObjectPropertyInitializer,
+                    propertySyntax.Span,
+                    $"Required object property '{name}' requires an initializer."
+                );
+            }
+
+            if (value is null && declaredType is null)
+            {
+                Report(
+                    DiagnosticCodes.MissingObjectPropertyType,
+                    propertySyntax.Span,
+                    $"Uninitialized optional object property '{name}' requires an explicit type."
+                );
+            }
+
+            TypeSymbol propertyType = declaredType?.Kind == TypeKind.Error
+                ? TypeSymbols.Unknown
+                : declaredType ??
+                (
+                    value?.Type.Kind is
+                        TypeKind.Null or
+                        TypeKind.Void or
+                        TypeKind.Error or
+                        null
+                        ? TypeSymbols.Unknown
+                        : value.Type
+                );
+
+            if (value?.Type.Kind == TypeKind.Null && declaredType is null)
             {
                 Report(
                     DiagnosticCodes.CannotInferType,
-                    propertySyntax.Value.Span,
+                    propertySyntax.Value!.Span,
                     $"The type of object property '{name}' cannot be inferred from null."
                 );
             }
-            else if (value.Type.Kind == TypeKind.Void)
+            else if (value?.Type.Kind == TypeKind.Void)
             {
                 Report(
                     DiagnosticCodes.InvalidVoidExpression,
-                    propertySyntax.Value.Span,
+                    propertySyntax.Value!.Span,
                     "A void expression cannot initialize an object property."
                 );
             }
 
-            properties.Add(new BoundExpression.ObjectProperty(name, value));
+            if (value is not null)
+            {
+                properties.Add(new BoundExpression.ObjectProperty(name, value));
+            }
 
             if (isFirstDeclaration)
             {
@@ -1561,13 +1635,14 @@ internal sealed class Binder
                     new ObjectPropertySymbol(
                         name,
                         propertyType,
-                        propertySyntax.IsOptional
+                        isOptional,
+                        isReadOnly
                     )
                 );
             }
         }
 
-        if (expectedObject is not null)
+        if (!isFullSyntax && expectedObject is not null)
         {
             foreach (ObjectPropertySymbol property in expectedObject.Properties)
             {
@@ -1582,8 +1657,9 @@ internal sealed class Binder
             }
         }
 
-        ObjectTypeSymbol objectType = expectedObject ??
-            ObjectTypeSymbol.CreateAnonymous(syntax.IsOpen, propertySymbols);
+        ObjectTypeSymbol objectType = !isFullSyntax && expectedObject is not null
+            ? expectedObject
+            : ObjectTypeSymbol.CreateAnonymous(syntax.IsOpen, propertySymbols);
 
         return new BoundExpression.Object(syntax, objectType, properties.AsReadOnly());
     }

@@ -35,6 +35,7 @@ internal static class EnvironmentFingerprintFactory
             {
                 AppendValue(canonical, property.Name);
                 AppendValue(canonical, property.IsOptional ? "optional" : "required");
+                AppendValue(canonical, property.IsReadOnly ? "readonly" : "mutable");
                 AppendType(canonical, property.Type);
             }
         }

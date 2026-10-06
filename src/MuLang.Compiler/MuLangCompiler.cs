@@ -326,7 +326,6 @@ public static class MuLangCompiler
                 TokenKind.QuestionQuestion or
                 TokenKind.OptionalDot or
                 TokenKind.OptionalOpenBracket or
-                TokenKind.OptionalPropertyColon or
                 TokenKind.Plus or
                 TokenKind.Minus or
                 TokenKind.Asterisk or

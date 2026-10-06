@@ -142,11 +142,13 @@ public sealed class ObjectTypeGraphBuilder
     /// <exception cref="ArgumentException">Thrown when a reference is invalid or the property is duplicated.</exception>
     /// <exception cref="ArgumentNullException">Thrown when an argument is <c>null</c>.</exception>
     /// <exception cref="InvalidOperationException">Thrown after the builder has been finalized.</exception>
+    /// <param name="isReadOnly">Whether the property value and presence are read-only.</param>
     public ObjectTypeGraphBuilder AddProperty(
         ObjectTypeGraphReference objectType,
         string name,
         ObjectTypeGraphReference propertyType,
-        bool isOptional = false
+        bool isOptional = false,
+        bool isReadOnly = false
     )
     {
         EnsureMutable();
@@ -179,7 +181,12 @@ public sealed class ObjectTypeGraphBuilder
         }
 
         objectType.Properties.Add(
-            new ObjectTypeGraphProperty(name, propertyType, isOptional)
+            new ObjectTypeGraphProperty(
+                name,
+                propertyType,
+                isOptional,
+                isReadOnly
+            )
         );
         return this;
     }
@@ -245,7 +252,8 @@ public sealed class ObjectTypeGraphBuilder
                     property => new ObjectPropertySymbol(
                         property.Name,
                         Materialize(property.Type),
-                        property.IsOptional
+                        property.IsOptional,
+                        property.IsReadOnly
                     )
                 )
             );

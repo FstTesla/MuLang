@@ -1,1 +1,5 @@
 #nullable enable
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.InvalidObjectPropertyModifier = "MUL3045" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.MissingObjectPropertyInitializer = "MUL3042" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.MissingObjectPropertyType = "MUL3043" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.ObjectLiteralSyntaxMismatch = "MUL3046" -> string!

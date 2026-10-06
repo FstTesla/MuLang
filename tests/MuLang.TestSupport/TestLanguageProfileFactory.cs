@@ -14,6 +14,7 @@ public static class TestLanguageProfileFactory
         MultiLevelLoopControlFeature? multiLevelLoopControl = null,
         TrailingCommasFeature? trailingCommas = null,
         ConstantFoldingFeature? constantFolding = null,
+        ObjectLiteralSyntax? objectLiteralSyntax = null,
         ConditionSemantics? conditionSemantics = null,
         ShadowingPolicy? shadowing = null
     )
@@ -63,6 +64,11 @@ public static class TestLanguageProfileFactory
         if (constantFolding is not null)
         {
             builder.WithConstantFolding(constantFolding.Value);
+        }
+
+        if (objectLiteralSyntax is not null)
+        {
+            builder.WithObjectLiteralSyntax(objectLiteralSyntax.Value);
         }
 
         if (conditionSemantics is not null)

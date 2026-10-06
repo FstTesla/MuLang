@@ -74,7 +74,8 @@ MuLang stores source spans in Unicode scalar offsets. The language server conver
 
 TextMate provides immediate lexical highlighting for keywords, including the
 language-version-1.2 `primitive` intrinsic type, literals, strings, operators,
-and punctuation. It remains active while the language server starts and acts
+and punctuation. Object-property `$`, `?`, `:`, and `=` tokens retain those
+ordinary classifications. It remains active while the language server starts and acts
 as a fallback if the server is unavailable.
 
 The compiler supplements TextMate with binding-based semantic classifications for:
@@ -84,6 +85,7 @@ The compiler supplements TextMate with binding-based semantic classifications fo
 - parameters;
 - local and global variables;
 - object properties;
+- explicit object-property types;
 - declarations;
 - read-only host symbols;
 - host-provided symbols.

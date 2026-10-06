@@ -20,6 +20,7 @@ public static class LanguageProfiles
         MultiLevelLoopControlFeature.Enabled,
         TrailingCommasFeature.Enabled,
         ConstantFoldingFeature.Enabled,
+        ObjectLiteralSyntax.Legacy,
         ConditionSemantics.StrictBoolean,
         ShadowingPolicy.None
     );
@@ -38,6 +39,7 @@ public static class LanguageProfiles
         MultiLevelLoopControlFeature.Enabled,
         TrailingCommasFeature.Enabled,
         ConstantFoldingFeature.Enabled,
+        ObjectLiteralSyntax.Legacy,
         ConditionSemantics.StrictBoolean,
         ShadowingPolicy.None
     );
@@ -56,6 +58,7 @@ public static class LanguageProfiles
         MultiLevelLoopControlFeature.Enabled,
         TrailingCommasFeature.Enabled,
         ConstantFoldingFeature.Enabled,
+        ObjectLiteralSyntax.Full,
         ConditionSemantics.StrictBoolean,
         ShadowingPolicy.None
     );

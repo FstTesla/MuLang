@@ -21,6 +21,11 @@ turns validated IR into a .NET delegate. Alternative exporters reference
 
 The .NET exporter exposes independent read-only and mutable array adapter contracts. Provider arrays that do not support writes implement `IDotNetReadOnlyArrayValue`; existing mutable arrays continue to implement the unchanged `IDotNetArrayValue` contract.
 
+Object adapters continue implementing `IDotNetObjectValue`. Hosts that expose
+per-property capability metadata may additionally implement
+`IDotNetObjectPropertyCapabilities`; built-in literal objects use it to preserve
+read-only declarations through checked casts and less-specific aliases.
+
 MuLang 1.2 `primitive` declarations use the existing scalar .NET
 representations (`bool`, `long`, `double`, and `string`) at provider and
 execution boundaries. The packages introduce no primitive wrapper type.

@@ -45,7 +45,8 @@ internal static class IrTypeProjector
                             reference,
                             property.Name,
                             Add(property.Type),
-                            property.IsOptional
+                            property.IsOptional,
+                            property.IsReadOnly
                         );
                     }
 

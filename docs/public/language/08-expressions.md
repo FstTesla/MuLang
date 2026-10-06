@@ -95,34 +95,65 @@ A non-empty object literal MAY contain one trailing comma after its final proper
 
 The availability of trailing commas depends on the language profile as defined in [Section 14.6](14-language-profiles.md#146-trailing-commas).
 
-Each property initializer consists of an identifier or string literal property name, either the `:` token or the optional-property `?:` token, and a required expression.
+Under the standard language-version-1.2 profile, each property declaration has:
 
-The `?:` token declares the property optional in the anonymous structured type inferred for an object literal. It is a single lexical token: whitespace is not permitted between `?` and `:`. It does not make the initializer expression optional: the property is always present in the newly created object.
+- an identifier or string-literal name;
+- an optional `$` read-only modifier;
+- an optional `?` presence modifier;
+- an optional `:` followed by an explicit type;
+- an optional `=` followed by an initializer.
 
-When an object literal is contextually typed by a host-declared structured type, the expected type determines property optionality and the literal marker does not alter it.
+The canonical order is `$`, `?`, explicit type, then initializer. Required
+properties require an initializer. An optional property may omit its initializer
+only when it has an explicit type; omission creates no runtime property.
+Optionality describes presence and remains independent from nullability.
+
+An explicit property type controls the declared property type. A present
+initializer must be implicitly assignable to it. Without an explicit type, the
+initializer supplies the inferred property type; `null`, `void`, and
+error-recovery values are insufficient for inference.
+
+When contextually typed by a known structured object type, full syntax retains
+the optional and read-only capabilities declared by the literal. The expected
+property type guides initializer binding when no explicit source type is
+present. The resulting concrete object type is then checked for ordinary
+structural assignability to the expected type. Mutable target properties
+therefore require matching capabilities and equivalent value types, while
+read-only target properties permit representation-safe read compatibility,
+including a required source property satisfying an optional target property.
+An enclosing implicit conversion exposes the expected static type without
+replacing the concrete capabilities of the literal.
+
+The `ObjectLiteralSyntax.Legacy` profile setting preserves the earlier grammar,
+where `:` introduces a required initializer and `?` followed by `:` introduces
+an optional initializer. Legacy syntax cannot declare read-only properties or
+explicit property types; contextual types continue supplying capabilities.
 
 Computed property names and property spread are not supported.
 
 Duplicate property names are a compile-time error.
 
-An object literal has an inferred anonymous structured type whose known required properties correspond to its initializers.
+An object literal has an inferred anonymous structured type whose known
+properties correspond to its declarations. Only declarations with initializers
+create present runtime properties.
 
 A closed object literal has a closed inferred type.
 
 An open object literal has an open inferred type and permits additional properties of type `unknown?`.
 
-Object literals create mutable objects.
+Object literals preserve the mutable or read-only capability declared for each
+known property.
 
 > This closed literal has required property `name` and optional property `score`:
 >
 > ```text
-> var item = { name: "MuLang", score?: 1 };
+> var item = { name = "MuLang", score? = 1 };
 > ```
 >
 > This open literal permits an additional property to be introduced:
 >
 > ```text
-> var item = @{ name: "MuLang" };
+> var item = @{ name = "MuLang" };
 > item.version = 1;
 > ```
 

@@ -91,7 +91,7 @@ public sealed class MuLangCompilerEditorTests
                                  }
                                  var result: Customer = calculate(load(customer));
                                  var property = customer.name;
-                                 var literal = { label: 1 };
+                                 var literal = { label = 1 };
                                  """;
         SourceText source = SourceText.From(sourceStr);
         SemanticClassificationResult result = MuLangCompiler.ClassifySemantically(

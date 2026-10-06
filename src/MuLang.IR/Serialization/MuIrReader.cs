@@ -339,11 +339,14 @@ public static class MuIrReader
                 string propertyName = ReadString();
                 int propertyType = ReadTypeReferenceId();
                 bool isOptional = ReadChoice("required", "optional") == "optional";
+                bool isReadOnly = formatVersion >= 2 &&
+                    ReadChoice("mutable", "readonly") == "readonly";
                 properties.Add(
                     new ObjectPropertyDescriptor(
                         propertyName,
                         propertyType,
-                        isOptional
+                        isOptional,
+                        isReadOnly
                     )
                 );
             }
@@ -431,7 +434,8 @@ public static class MuIrReader
                             references[index]!,
                             property.Name,
                             Resolve(property.Type),
-                            property.IsOptional
+                            property.IsOptional,
+                            property.IsReadOnly
                         );
                     }
                 }
@@ -1320,7 +1324,8 @@ public static class MuIrReader
     private sealed record ObjectPropertyDescriptor(
         string Name,
         int Type,
-        bool IsOptional
+        bool IsOptional,
+        bool IsReadOnly
     );
 
     private sealed class Lexer

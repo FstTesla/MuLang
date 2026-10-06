@@ -14,6 +14,7 @@ A language profile selects:
 - whether explicit multi-level loop control is enabled;
 - whether trailing commas are enabled;
 - whether compile-time constant evaluation is enabled;
+- the object-literal property grammar;
 - the condition semantics;
 - the permitted forms of variable shadowing.
 
@@ -24,8 +25,7 @@ The standard profile for language version 1 enables user-defined functions, recu
 The standard profile for language version 1.1 has the same settings and adds read-only array types and literals, binary, octal, and hexadecimal integer literals, and the `infty` and `nan` float literals. These additions are determined by the language version and are not independently configurable.
 
 The standard profile for language version 1.2 has the same settings and adds
-the `primitive` abstract type. Its availability is determined only by the
-language version and has no independent feature flag.
+the `primitive` abstract type and full object-literal property grammar.
 
 Language version 1 rejects `$`, `$[`, and prefixed integer literals and treats `infty` and `nan` as identifiers.
 
@@ -220,10 +220,24 @@ When enabled, compile-time constant evaluation follows [Section 8.11](08-express
 
 When disabled, the same expressions retain their ordinary execution-time behavior, and failures that occur while evaluating them are runtime errors.
 
-Both standard language profiles enable compile-time constant evaluation.
+All standard language profiles enable compile-time constant evaluation.
 
 > With constant evaluation enabled, `1 / 0` is a compile-time error. With it disabled, the same expression compiles and produces a runtime error when executed.
 
-## 14.10. Feature diagnostics
+## 14.10. Object literal syntax
+
+`ObjectLiteralSyntax.Legacy` selects the initializer-only `:` and `?:` grammar.
+`ObjectLiteralSyntax.Full` selects the language-version-1.2 declaration grammar
+with `$`, `?`, explicit types, and `=` initializers.
+
+The setting is dormant before language version 1.2, where parsing always uses
+the legacy grammar. The standard profiles for versions 1 and 1.1 use `Legacy`;
+the standard version-1.2 profile uses `Full`. Legacy mode is a migration option,
+not the standard version-1.2 grammar.
+
+The configured value contributes to the language-profile fingerprint even while
+dormant. Syntax from the unselected mode produces a targeted diagnostic.
+
+## 14.11. Feature diagnostics
 
 Use of syntax or behavior disabled by the selected profile is a compile-time error.

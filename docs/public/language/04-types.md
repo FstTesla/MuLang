@@ -110,7 +110,7 @@ Arrays and primitive values are not objects.
 > For example, an open object literal is assignable to `object`:
 >
 > ```text
-> var item: object = @{ name: "MuLang" };
+> var item: object = @{ name = "MuLang" };
 > return item has "name";
 > ```
 
@@ -124,6 +124,7 @@ A structured object type defines:
 - a set of known properties;
 - the type of each known property;
 - whether each known property is required or optional;
+- whether each known property is mutable or read-only;
 - whether the object is closed or open.
 
 Structured objects are closed by default.
@@ -142,6 +143,11 @@ An optional property and a nullable property are distinct:
 - a nullable property may be present with the value `null`.
 
 A known property remains a known property even when optional.
+
+Read-only property capability freezes both value and presence after object
+construction. A present read-only property cannot be assigned or removed, and
+an absent read-only optional property cannot be added later. The restriction is
+shallow and does not make a referenced object or array deeply immutable.
 
 ## 4.6. Array types
 

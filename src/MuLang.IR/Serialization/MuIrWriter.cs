@@ -171,6 +171,7 @@ public static class MuIrWriter
                 line.Append(' ');
                 line.Append(TypeReference(property.Type));
                 line.Append(property.IsOptional ? " optional" : " required");
+                line.Append(property.IsReadOnly ? " readonly" : " mutable");
             }
 
             line.Append(']');

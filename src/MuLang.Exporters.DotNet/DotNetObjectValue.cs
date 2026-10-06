@@ -1,11 +1,20 @@
+using MuLang.Core.Types;
+
 namespace MuLang.Exporters.DotNet;
 
-internal sealed class DotNetObjectValue : IDotNetObjectValue
+internal sealed class DotNetObjectValue :
+    IDotNetObjectValue,
+    IDotNetObjectPropertyCapabilities
 {
+    private readonly ObjectTypeSymbol type;
     private readonly Dictionary<string, object?> properties;
 
-    public DotNetObjectValue(IEnumerable<KeyValuePair<string, object?>> properties)
+    public DotNetObjectValue(
+        ObjectTypeSymbol type,
+        IEnumerable<KeyValuePair<string, object?>> properties
+    )
     {
+        this.type = type;
         this.properties = properties.ToDictionary(
             static pair => pair.Key,
             static pair => pair.Value,
@@ -24,12 +33,38 @@ internal sealed class DotNetObjectValue : IDotNetObjectValue
 
     public bool TrySetProperty(string name, object? value)
     {
+        if (type.TryGetProperty(name, out ObjectPropertySymbol? property))
+        {
+            if (property.IsReadOnly)
+            {
+                return false;
+            }
+        }
+        else if (!type.IsOpen)
+        {
+            return false;
+        }
+
         properties[name] = value;
         return true;
     }
 
     public bool TryRemoveProperty(string name)
     {
+        if (
+            type.TryGetProperty(name, out ObjectPropertySymbol? property) &&
+            (!property.IsOptional || property.IsReadOnly)
+        )
+        {
+            return false;
+        }
+
         return properties.Remove(name);
+    }
+
+    public bool IsPropertyReadOnly(string name)
+    {
+        return type.TryGetProperty(name, out ObjectPropertySymbol? property) &&
+            property.IsReadOnly;
     }
 }

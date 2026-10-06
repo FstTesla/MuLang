@@ -136,7 +136,8 @@ public sealed class LexerTests
                 [
                     TokenKind.OptionalDot,
                     TokenKind.OptionalOpenBracket,
-                    TokenKind.OptionalPropertyColon,
+                    TokenKind.Question,
+                    TokenKind.Colon,
                     TokenKind.QuestionQuestion,
                     TokenKind.OpenObjectBrace,
                     TokenKind.ReadOnlyOpenBracket,

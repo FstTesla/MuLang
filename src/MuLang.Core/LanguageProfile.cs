@@ -14,6 +14,7 @@ public sealed record LanguageProfile
     /// <param name="multiLevelLoopControl">The multi-level loop control feature setting.</param>
     /// <param name="trailingCommas">The trailing commas feature setting.</param>
     /// <param name="constantFolding">The compile-time constant folding feature setting.</param>
+    /// <param name="objectLiteralSyntax">The object-literal property grammar.</param>
     /// <param name="conditionSemantics">The condition semantics.</param>
     /// <param name="shadowing">The shadowing policy.</param>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when a feature setting or flags value is not defined.</exception>
@@ -29,6 +30,7 @@ public sealed record LanguageProfile
         MultiLevelLoopControlFeature multiLevelLoopControl,
         TrailingCommasFeature trailingCommas,
         ConstantFoldingFeature constantFolding,
+        ObjectLiteralSyntax objectLiteralSyntax,
         ConditionSemantics conditionSemantics,
         ShadowingPolicy shadowing
     )
@@ -49,6 +51,7 @@ public sealed record LanguageProfile
         ValidateDefined(multiLevelLoopControl, nameof(multiLevelLoopControl));
         ValidateDefined(trailingCommas, nameof(trailingCommas));
         ValidateDefined(constantFolding, nameof(constantFolding));
+        ValidateDefined(objectLiteralSyntax, nameof(objectLiteralSyntax));
         ValidateConditionSemantics(conditionSemantics, nameof(conditionSemantics));
         ValidateFlags(
             shadowing,
@@ -66,6 +69,7 @@ public sealed record LanguageProfile
         MultiLevelLoopControl = multiLevelLoopControl;
         TrailingCommas = trailingCommas;
         ConstantFolding = constantFolding;
+        ObjectLiteralSyntax = objectLiteralSyntax;
         ConditionSemantics = conditionSemantics;
         Shadowing = shadowing;
         Fingerprint = LanguageProfileFingerprintFactory.Create(this);
@@ -100,6 +104,9 @@ public sealed record LanguageProfile
 
     /// <summary>Gets the compile-time constant folding feature setting.</summary>
     public ConstantFoldingFeature ConstantFolding { get; }
+
+    /// <summary>Gets the object-literal property grammar.</summary>
+    public ObjectLiteralSyntax ObjectLiteralSyntax { get; }
 
     /// <summary>Gets the condition semantics.</summary>
     public ConditionSemantics ConditionSemantics { get; }

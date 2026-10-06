@@ -817,16 +817,14 @@ internal sealed class Parser
             SyntaxToken nameToken = Current.Kind is TokenKind.Identifier or TokenKind.StringLiteral
                 ? ParseToken()
                 : Match(TokenKind.Identifier);
-            SyntaxToken separatorToken = Current.Kind == TokenKind.OptionalPropertyColon
-                ? ParseToken()
-                : Match(TokenKind.Colon);
-            ExpressionSyntax value = ParseExpression();
+            ObjectLiteralSyntax objectLiteralSyntax =
+                profile.LanguageVersion >= LanguageVersion.Version1_2
+                    ? profile.ObjectLiteralSyntax
+                    : ObjectLiteralSyntax.Legacy;
             properties.Add(
-                new ObjectPropertyInitializerSyntax(
-                    nameToken,
-                    separatorToken,
-                    value
-                )
+                objectLiteralSyntax == ObjectLiteralSyntax.Full
+                    ? ParseFullObjectProperty(nameToken)
+                    : ParseLegacyObjectProperty(nameToken)
             );
 
             if (Current.Kind != TokenKind.Comma)
@@ -851,6 +849,147 @@ internal sealed class Parser
             commaTokens.AsReadOnly(),
             closeBraceToken
         );
+    }
+
+    private ObjectPropertyInitializerSyntax ParseLegacyObjectProperty(
+        SyntaxToken nameToken
+    )
+    {
+        if (Current.Kind is TokenKind.Dollar or TokenKind.Equal)
+        {
+            ReportObjectLiteralSyntaxMismatch(
+                Current,
+                "Full object-literal syntax is not enabled by the language profile."
+            );
+            return ParseFullObjectProperty(nameToken);
+        }
+
+        SyntaxToken? questionToken = Current.Kind == TokenKind.Question
+            ? ParseToken()
+            : null;
+        SyntaxToken colonToken = Match(TokenKind.Colon);
+
+        if (Current.Kind == TokenKind.Equal)
+        {
+            ReportObjectLiteralSyntaxMismatch(
+                Current,
+                "Full object-literal syntax is not enabled by the language profile."
+            );
+            SyntaxToken equalToken = ParseToken();
+            ExpressionSyntax fullValue = ParseExpression();
+            return new ObjectPropertyInitializerSyntax(
+                nameToken,
+                null,
+                questionToken,
+                colonToken,
+                null,
+                equalToken,
+                fullValue,
+                true
+            );
+        }
+
+        ExpressionSyntax value = ParseExpression();
+        return new ObjectPropertyInitializerSyntax(
+            nameToken,
+            null,
+            questionToken,
+            colonToken,
+            null,
+            null,
+            value,
+            true
+        );
+    }
+
+    private ObjectPropertyInitializerSyntax ParseFullObjectProperty(
+        SyntaxToken nameToken
+    )
+    {
+        SyntaxToken? dollarToken = Current.Kind == TokenKind.Dollar
+            ? ParseToken()
+            : null;
+        SyntaxToken? questionToken = Current.Kind == TokenKind.Question
+            ? ParseToken()
+            : null;
+
+        while (Current.Kind is TokenKind.Dollar or TokenKind.Question)
+        {
+            SyntaxToken modifierToken = ParseToken();
+            Report(
+                DiagnosticCodes.InvalidObjectPropertyModifier,
+                modifierToken.Span,
+                "Object property modifiers must appear once in '$?' order before the type and initializer."
+            );
+        }
+
+        SyntaxToken? colonToken = null;
+        TypeSyntax? type = null;
+        SyntaxToken? equalToken = null;
+        ExpressionSyntax? value = null;
+
+        if (Current.Kind == TokenKind.Colon)
+        {
+            colonToken = ParseToken();
+
+            if (SyntaxFacts.IsTypeName(Current.Kind))
+            {
+                type = ParseType();
+            }
+            else
+            {
+                ReportObjectLiteralSyntaxMismatch(
+                    colonToken,
+                    "Legacy ':' and '?:' object-property initializers are not enabled by the language profile; use '=' for an initializer."
+                );
+                value = ParseExpression();
+            }
+        }
+
+        while (Current.Kind is TokenKind.Dollar or TokenKind.Question)
+        {
+            SyntaxToken modifierToken = ParseToken();
+            Report(
+                DiagnosticCodes.InvalidObjectPropertyModifier,
+                modifierToken.Span,
+                "Object property modifiers must appear before the property type."
+            );
+        }
+
+        if (value is null && Current.Kind == TokenKind.Equal)
+        {
+            equalToken = ParseToken();
+
+            if (Current.Kind == TokenKind.Dollar)
+            {
+                Report(
+                    DiagnosticCodes.InvalidObjectPropertyModifier,
+                    Current.Span,
+                    "Object property modifiers cannot appear after the initializer."
+                );
+            }
+
+            value = ParseExpression();
+        }
+
+        return new ObjectPropertyInitializerSyntax(
+            nameToken,
+            dollarToken,
+            questionToken,
+            colonToken,
+            type,
+            equalToken,
+            value,
+            false
+        );
+    }
+
+    private void ReportObjectLiteralSyntaxMismatch(
+        SyntaxToken token,
+        string message
+    )
+    {
+        Report(DiagnosticCodes.ObjectLiteralSyntaxMismatch, token.Span, message);
     }
 
     private ExpressionSyntax ParsePostfixExpression(ExpressionSyntax expression)

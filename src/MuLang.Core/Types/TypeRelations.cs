@@ -134,7 +134,11 @@ public static class TypeRelations
 
         return source is ObjectTypeSymbol sourceObject &&
             target is ObjectTypeSymbol targetObject &&
-            IsObjectAssignable(sourceObject, targetObject);
+            IsObjectAssignable(
+                sourceObject,
+                targetObject,
+                new HashSet<TypePair>()
+            );
     }
 
     /// <summary>Classifies a value conversion from one type to another, independently of checked casts.</summary>
@@ -515,7 +519,15 @@ public static class TypeRelations
     internal static bool IsViewCompatible(TypeSymbol source, TypeSymbol target)
     {
         ValidateTypes(source, target);
+        return IsViewCompatible(source, target, new HashSet<TypePair>());
+    }
 
+    private static bool IsViewCompatible(
+        TypeSymbol source,
+        TypeSymbol target,
+        ISet<TypePair> active
+    )
+    {
         if (AreEquivalent(source, target))
         {
             return true;
@@ -531,7 +543,11 @@ public static class TypeRelations
             TypeSymbol innerSource = source is NullableTypeSymbol sourceNullable
                 ? sourceNullable.UnderlyingType
                 : source;
-            return IsViewCompatible(innerSource, targetNullable.UnderlyingType);
+            return IsViewCompatible(
+                innerSource,
+                targetNullable.UnderlyingType,
+                active
+            );
         }
 
         if (source is NullableTypeSymbol)
@@ -568,17 +584,69 @@ public static class TypeRelations
             return true;
         }
 
-        return source is ArrayTypeSymbol sourceArray &&
-            target is ArrayTypeSymbol { IsReadOnly: true } targetArray &&
-            IsViewCompatible(sourceArray.ElementType, targetArray.ElementType);
+        if (
+            source is ArrayTypeSymbol sourceArray &&
+            target is ArrayTypeSymbol { IsReadOnly: true } targetArray
+        )
+        {
+            return IsViewCompatible(
+                sourceArray.ElementType,
+                targetArray.ElementType,
+                active
+            );
+        }
+
+        return source is ObjectTypeSymbol sourceObject &&
+            target is ObjectTypeSymbol targetObject &&
+            IsObjectAssignable(
+                sourceObject,
+                targetObject,
+                active
+            );
     }
 
     private static bool IsObjectAssignable(
         ObjectTypeSymbol source,
-        ObjectTypeSymbol target
+        ObjectTypeSymbol target,
+        ISet<TypePair> active
     )
     {
-        return AreEquivalent(source, target);
+        TypePair pair = new (source, target);
+
+        if (!active.Add(pair))
+        {
+            return true;
+        }
+
+        bool assignable = IsObjectShapeCompatible(
+            source,
+            target,
+            static (sourceProperty, targetProperty, active) =>
+            {
+                if (targetProperty.IsReadOnly)
+                {
+                    return !targetProperty.IsOptional &&
+                            sourceProperty.IsOptional
+                        ? false
+                        : IsViewCompatible(
+                            sourceProperty.Type,
+                            targetProperty.Type,
+                            active
+                        );
+                }
+
+                return !sourceProperty.IsReadOnly &&
+                    sourceProperty.IsOptional == targetProperty.IsOptional &&
+                    AreEquivalent(
+                        sourceProperty.Type,
+                        targetProperty.Type,
+                        active
+                    );
+            },
+            active
+        );
+        active.Remove(pair);
+        return assignable;
     }
 
     private static bool IsObjectConformanceGuaranteed(
@@ -599,6 +667,14 @@ public static class TypeRelations
                 if (
                     !targetProperty.IsOptional &&
                     sourceProperty.IsOptional
+                )
+                {
+                    return false;
+                }
+
+                if (
+                    !targetProperty.IsReadOnly &&
+                    sourceProperty.IsReadOnly
                 )
                 {
                     return false;
@@ -775,7 +851,45 @@ public static class TypeRelations
 
             if (
                 leftProperty.IsOptional != rightProperty.IsOptional ||
+                leftProperty.IsReadOnly != rightProperty.IsReadOnly ||
                 !AreEquivalent(leftProperty.Type, rightProperty.Type, active)
+            )
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool IsObjectShapeCompatible(
+        ObjectTypeSymbol source,
+        ObjectTypeSymbol target,
+        Func<
+            ObjectPropertySymbol,
+            ObjectPropertySymbol,
+            ISet<TypePair>,
+            bool
+        > isPropertyCompatible,
+        ISet<TypePair> active
+    )
+    {
+        if (
+            source.IsOpen != target.IsOpen ||
+            source.Properties.Count != target.Properties.Count
+        )
+        {
+            return false;
+        }
+
+        foreach (ObjectPropertySymbol targetProperty in target.Properties)
+        {
+            if (
+                !source.TryGetProperty(
+                    targetProperty.Name,
+                    out ObjectPropertySymbol? sourceProperty
+                ) ||
+                !isPropertyCompatible(sourceProperty, targetProperty, active)
             )
             {
                 return false;

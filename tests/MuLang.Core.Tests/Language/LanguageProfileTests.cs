@@ -56,6 +56,10 @@ public sealed class LanguageProfileTests
                 Is.EqualTo(ConstantFoldingFeature.Enabled)
             );
             Assert.That(
+                profile.ObjectLiteralSyntax,
+                Is.EqualTo(ObjectLiteralSyntax.Legacy)
+            );
+            Assert.That(
                 profile.ConditionSemantics,
                 Is.EqualTo(ConditionSemantics.StrictBoolean)
             );
@@ -73,6 +77,25 @@ public sealed class LanguageProfileTests
             Assert.That(profile.LanguageVersion, Is.EqualTo(LanguageVersion.Version1_1));
             Assert.That(profile.Mutations, Is.EqualTo(LanguageProfiles.Version1.Mutations));
             Assert.That(profile.Fingerprint, Is.Not.EqualTo(LanguageProfiles.Version1.Fingerprint));
+        }
+    }
+
+    [Test]
+    public void VersionOneTwoUsesFullObjectLiteralSyntax()
+    {
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(
+                LanguageProfiles.Version1_2.ObjectLiteralSyntax,
+                Is.EqualTo(ObjectLiteralSyntax.Full)
+            );
+            Assert.That(
+                new LanguageProfileBuilder(LanguageProfiles.Version1)
+                    .WithObjectLiteralSyntax(ObjectLiteralSyntax.Full)
+                    .Build()
+                    .ObjectLiteralSyntax,
+                Is.EqualTo(ObjectLiteralSyntax.Full)
+            );
         }
     }
 
@@ -117,6 +140,8 @@ public sealed class LanguageProfileTests
             Assert.That((int)TrailingCommasFeature.Enabled, Is.EqualTo(1));
             Assert.That((int)ConstantFoldingFeature.Disabled, Is.Zero);
             Assert.That((int)ConstantFoldingFeature.Enabled, Is.EqualTo(1));
+            Assert.That((int)ObjectLiteralSyntax.Legacy, Is.Zero);
+            Assert.That((int)ObjectLiteralSyntax.Full, Is.EqualTo(1));
             Assert.That((int)ConditionSemantics.StrictBoolean, Is.Zero);
             Assert.That((int)ConditionSemantics.Truthiness, Is.EqualTo(1));
             Assert.That((int)LanguageVersion.Version1, Is.Zero);
@@ -235,7 +260,7 @@ public sealed class LanguageProfileTests
             Assert.That(
                 first.Fingerprint.Value,
                 Is.EqualTo(
-                    "b69de05cdff4ac08394d6da759d688b0233893cc155ae0c540fdc0befca4c9d0"
+                    "bbc09f3b373d3781d03cb480eedcae43618f0a056aa4cdff2a969d4cb97fa01e"
                 )
             );
         }
@@ -273,6 +298,7 @@ public sealed class LanguageProfileTests
     [TestCase("loopControl")]
     [TestCase("trailingCommas")]
     [TestCase("constantFolding")]
+    [TestCase("objectLiteralSyntax")]
     [TestCase("conditions")]
     [TestCase("shadowing")]
     public void FingerprintChangesForEveryConfigurableSupportedConcern(string concern)
@@ -303,6 +329,9 @@ public sealed class LanguageProfileTests
             ),
             "constantFolding" => TestLanguageProfileFactory.Create(
                 constantFolding: ConstantFoldingFeature.Disabled
+            ),
+            "objectLiteralSyntax" => TestLanguageProfileFactory.Create(
+                objectLiteralSyntax: ObjectLiteralSyntax.Full
             ),
             "conditions" => TestLanguageProfileFactory.Create(
                 conditionSemantics: ConditionSemantics.Truthiness
@@ -361,6 +390,7 @@ public sealed class LanguageProfileTests
             MultiLevelLoopControlFeature.Enabled,
             TrailingCommasFeature.Enabled,
             ConstantFoldingFeature.Enabled,
+            ObjectLiteralSyntax.Legacy,
             ConditionSemantics.Truthiness,
             ShadowingPolicy.None
         );
@@ -407,6 +437,7 @@ public sealed class LanguageProfileTests
             MultiLevelLoopControlFeature.Enabled,
             TrailingCommasFeature.Enabled,
             ConstantFoldingFeature.Enabled,
+            ObjectLiteralSyntax.Legacy,
             ConditionSemantics.StrictBoolean,
             ShadowingPolicy.None
         );
