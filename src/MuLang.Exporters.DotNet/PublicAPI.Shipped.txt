@@ -33,6 +33,8 @@ MuLang.Exporters.DotNet.IDotNetArrayValue.Count.get -> int
 MuLang.Exporters.DotNet.IDotNetArrayValue.Identity.get -> object!
 MuLang.Exporters.DotNet.IDotNetArrayValue.TryGetElement(int index, out object? value) -> bool
 MuLang.Exporters.DotNet.IDotNetArrayValue.TrySetElement(int index, object? value) -> bool
+MuLang.Exporters.DotNet.IDotNetObjectPropertyCapabilities
+MuLang.Exporters.DotNet.IDotNetObjectPropertyCapabilities.IsPropertyReadOnly(string! name) -> bool
 MuLang.Exporters.DotNet.IDotNetObjectValue
 MuLang.Exporters.DotNet.IDotNetObjectValue.Identity.get -> object!
 MuLang.Exporters.DotNet.IDotNetObjectValue.PropertyNames.get -> System.Collections.Generic.IReadOnlyCollection<string!>!

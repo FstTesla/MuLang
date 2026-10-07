@@ -1,11 +1,1 @@
 #nullable enable
-*REMOVED*MuLang.Core.Types.ObjectPropertySymbol.ObjectPropertySymbol(string! name, MuLang.Core.Types.TypeSymbol! type, bool isOptional = false) -> void
-*REMOVED*MuLang.Core.Types.ObjectTypeGraphBuilder.AddProperty(MuLang.Core.Types.ObjectTypeGraphReference! objectType, string! name, MuLang.Core.Types.ObjectTypeGraphReference! propertyType, bool isOptional = false) -> MuLang.Core.Types.ObjectTypeGraphBuilder!
-MuLang.Core.LanguageProfile.ObjectLiteralSyntax.get -> MuLang.Core.ObjectLiteralSyntax
-MuLang.Core.LanguageProfileBuilder.WithObjectLiteralSyntax(MuLang.Core.ObjectLiteralSyntax objectLiteralSyntax) -> MuLang.Core.LanguageProfileBuilder!
-MuLang.Core.ObjectLiteralSyntax
-MuLang.Core.ObjectLiteralSyntax.Full = 1 -> MuLang.Core.ObjectLiteralSyntax
-MuLang.Core.ObjectLiteralSyntax.Legacy = 0 -> MuLang.Core.ObjectLiteralSyntax
-MuLang.Core.Types.ObjectPropertySymbol.IsReadOnly.get -> bool
-MuLang.Core.Types.ObjectPropertySymbol.ObjectPropertySymbol(string! name, MuLang.Core.Types.TypeSymbol! type, bool isOptional = false, bool isReadOnly = false) -> void
-MuLang.Core.Types.ObjectTypeGraphBuilder.AddProperty(MuLang.Core.Types.ObjectTypeGraphReference! objectType, string! name, MuLang.Core.Types.ObjectTypeGraphReference! propertyType, bool isOptional = false, bool isReadOnly = false) -> MuLang.Core.Types.ObjectTypeGraphBuilder!

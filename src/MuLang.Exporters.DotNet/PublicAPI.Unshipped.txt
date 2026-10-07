@@ -1,3 +1,1 @@
 #nullable enable
-MuLang.Exporters.DotNet.IDotNetObjectPropertyCapabilities
-MuLang.Exporters.DotNet.IDotNetObjectPropertyCapabilities.IsPropertyReadOnly(string! name) -> bool

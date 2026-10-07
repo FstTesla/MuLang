@@ -65,6 +65,7 @@ MuLang.Core.LanguageProfile.LanguageVersion.get -> MuLang.Core.LanguageVersion
 MuLang.Core.LanguageProfile.Loops.get -> MuLang.Core.LoopFeatures
 MuLang.Core.LanguageProfile.MultiLevelLoopControl.get -> MuLang.Core.MultiLevelLoopControlFeature
 MuLang.Core.LanguageProfile.Mutations.get -> MuLang.Core.MutationFeatures
+MuLang.Core.LanguageProfile.ObjectLiteralSyntax.get -> MuLang.Core.ObjectLiteralSyntax
 MuLang.Core.LanguageProfile.OpenObjects.get -> MuLang.Core.OpenObjectsFeature
 MuLang.Core.LanguageProfile.ProviderFunctionCalls.get -> MuLang.Core.ProviderFunctionCallsFeature
 MuLang.Core.LanguageProfile.Recursion.get -> MuLang.Core.RecursionFeature
@@ -87,6 +88,7 @@ MuLang.Core.LanguageProfileBuilder.WithLanguageVersion(MuLang.Core.LanguageVersi
 MuLang.Core.LanguageProfileBuilder.WithLoops(MuLang.Core.LoopFeatures loops) -> MuLang.Core.LanguageProfileBuilder!
 MuLang.Core.LanguageProfileBuilder.WithMultiLevelLoopControl(MuLang.Core.MultiLevelLoopControlFeature multiLevelLoopControl) -> MuLang.Core.LanguageProfileBuilder!
 MuLang.Core.LanguageProfileBuilder.WithMutations(MuLang.Core.MutationFeatures mutations) -> MuLang.Core.LanguageProfileBuilder!
+MuLang.Core.LanguageProfileBuilder.WithObjectLiteralSyntax(MuLang.Core.ObjectLiteralSyntax objectLiteralSyntax) -> MuLang.Core.LanguageProfileBuilder!
 MuLang.Core.LanguageProfileBuilder.WithOpenObjects(MuLang.Core.OpenObjectsFeature openObjects) -> MuLang.Core.LanguageProfileBuilder!
 MuLang.Core.LanguageProfileBuilder.WithProviderFunctionCalls(MuLang.Core.ProviderFunctionCallsFeature providerFunctionCalls) -> MuLang.Core.LanguageProfileBuilder!
 MuLang.Core.LanguageProfileBuilder.WithRecursion(MuLang.Core.RecursionFeature recursion) -> MuLang.Core.LanguageProfileBuilder!
@@ -115,6 +117,9 @@ MuLang.Core.MutationFeatures.ArrayElements = 2 -> MuLang.Core.MutationFeatures
 MuLang.Core.MutationFeatures.None = 0 -> MuLang.Core.MutationFeatures
 MuLang.Core.MutationFeatures.ObjectProperties = 1 -> MuLang.Core.MutationFeatures
 MuLang.Core.MutationFeatures.PropertyRemoval = 4 -> MuLang.Core.MutationFeatures
+MuLang.Core.ObjectLiteralSyntax
+MuLang.Core.ObjectLiteralSyntax.Full = 1 -> MuLang.Core.ObjectLiteralSyntax
+MuLang.Core.ObjectLiteralSyntax.Legacy = 0 -> MuLang.Core.ObjectLiteralSyntax
 MuLang.Core.OpenObjectsFeature
 MuLang.Core.OpenObjectsFeature.Disabled = 0 -> MuLang.Core.OpenObjectsFeature
 MuLang.Core.OpenObjectsFeature.Enabled = 2 -> MuLang.Core.OpenObjectsFeature
@@ -217,9 +222,12 @@ MuLang.Core.Types.NullableTypeSymbol
 MuLang.Core.Types.NullableTypeSymbol.UnderlyingType.get -> MuLang.Core.Types.TypeSymbol!
 MuLang.Core.Types.ObjectPropertySymbol
 MuLang.Core.Types.ObjectPropertySymbol.IsOptional.get -> bool
+MuLang.Core.Types.ObjectPropertySymbol.IsReadOnly.get -> bool
 MuLang.Core.Types.ObjectPropertySymbol.Name.get -> string!
+MuLang.Core.Types.ObjectPropertySymbol.ObjectPropertySymbol(string! name, MuLang.Core.Types.TypeSymbol! type, bool isOptional = false, bool isReadOnly = false) -> void
 MuLang.Core.Types.ObjectPropertySymbol.Type.get -> MuLang.Core.Types.TypeSymbol!
 MuLang.Core.Types.ObjectTypeGraphBuilder
+MuLang.Core.Types.ObjectTypeGraphBuilder.AddProperty(MuLang.Core.Types.ObjectTypeGraphReference! objectType, string! name, MuLang.Core.Types.ObjectTypeGraphReference! propertyType, bool isOptional = false, bool isReadOnly = false) -> MuLang.Core.Types.ObjectTypeGraphBuilder!
 MuLang.Core.Types.ObjectTypeGraphBuilder.Array(MuLang.Core.Types.ObjectTypeGraphReference! elementType) -> MuLang.Core.Types.ObjectTypeGraphReference!
 MuLang.Core.Types.ObjectTypeGraphBuilder.Build() -> System.Collections.Generic.IReadOnlyDictionary<MuLang.Core.Types.ObjectTypeGraphReference!, MuLang.Core.Types.TypeSymbol!>!
 MuLang.Core.Types.ObjectTypeGraphBuilder.DeclareAnonymous(string! key, bool isOpen) -> MuLang.Core.Types.ObjectTypeGraphReference!
