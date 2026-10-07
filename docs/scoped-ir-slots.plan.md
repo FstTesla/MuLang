@@ -2,7 +2,9 @@
 
 ## Status
 
-Deferred. The current lowering continues to represent a source read-only local declared inside a loop with a mutable function-scoped IR slot.
+Planned for `0.3.0-alpha.3` together with the MuIR 2 exception-region model.
+The current lowering continues to represent a source read-only local declared
+inside a loop with a mutable function-scoped IR slot.
 
 ## Motivation
 
@@ -38,11 +40,31 @@ The IR therefore needs explicit lifetime regions rather than basic-block-local s
 
 ## Proposed model
 
+### Relationship to exception regions
+
+Lifetime regions and exception regions form distinct, coordinated hierarchies.
+Lifetime regions define slot visibility and activation. Exception regions
+define protected execution, handlers, cleanup, and exceptional control flow.
+
+Every basic block records exactly one lifetime-region owner. Exception regions
+instead list the blocks directly owned by each protected, handler, or cleanup
+part. A block has at most one direct exception-region owner; membership in
+outer exception regions follows the exception-region parent chain.
+
+The boundaries of the two hierarchies are independent. An exception-region
+part may cover part of a lifetime region and may contain nested lifetime
+regions. A handler has a dedicated lifetime region because it owns the caught
+error slot. A cleanup receives a dedicated lifetime region only when it owns
+local slots.
+
 ### Function root region
 
-Every function has an implicit root lifetime region. Parameters, temporaries, and existing function-scoped locals belong to this region.
+Every function has an explicit root lifetime region with ID `0`. Its entry is
+the function entry block. Parameters and function-lifetime locals belong to
+this region.
 
-MuIR version 1 documents map all slots to the implicit root region.
+MuIR version 1 documents map all slots and blocks to a synthesized root region
+with ID `0`.
 
 ### Nested lifetime regions
 
@@ -52,12 +74,20 @@ Each region records:
 
 - a function-unique region identifier;
 - its parent region identifier;
-- its entry block;
-- the basic blocks directly owned by the region.
+- its entry block.
 
-Every basic block belongs directly to one region. A region contains the blocks it owns and all blocks owned by its descendants.
+Lifetime-region IDs are contiguous and zero-based within each function.
+Exception-region IDs use a separate contiguous, zero-based namespace.
 
-Control may enter a non-root region only through its entry block from its parent region. An edge from inside a region back to its entry block is invalid because it would ambiguously mix re-entry with an intra-activation loop. Lowering must route re-entry through a block in the parent region.
+Every basic block records one lifetime-region ID. A region contains the blocks
+it owns and all blocks owned by its descendants.
+
+Control may enter a non-root region only through its entry block from its
+parent region. An edge from inside a region back to its entry block is invalid
+because it would ambiguously mix re-entry with an intra-activation loop.
+Lowering must exit to a block in the parent region before re-entering.
+Validated exceptional transfers may activate dedicated handler or cleanup
+regions through their declared entries.
 
 ### Scoped slots
 
@@ -85,17 +115,22 @@ A cycle contained within a region must therefore reject a repeated read-only def
 
 Exporters may allocate one physical location per function-global slot ID and reuse it across region activations. Scoped-slot semantics do not require per-iteration heap allocation because slots cannot escape their lifetime region.
 
-An exporter may clear reused physical storage on region entry for defensive isolation. Correctness must not depend on clearing because validation prohibits reads before definition in each activation.
+Exporters do not clear reused physical storage on region entry. Correctness
+depends exclusively on validation prohibiting reads before definition in each
+activation.
 
 ## Public IR API changes
 
 Introduce an `IrLifetimeRegion` public record in its own file.
 
-Extend `IrFunction` with a region collection. The root region must be identifiable without relying on collection order.
+Extend `IrFunction` with a lifetime-region collection. Existing constructors
+synthesize root region `0` and an empty exception-region collection.
 
-Extend `IrSlot` with its owning region identifier while retaining convenience construction for root-region slots.
+Extend `IrSlot` and `IrBasicBlock` with their owning lifetime-region identifier.
+Existing constructors continue assigning root region `0`.
 
-Keep block and slot IDs function-global and contiguous. Region IDs should follow the same contiguous, zero-based convention unless implementation constraints justify a different invariant.
+Keep block and slot IDs function-global and contiguous. Lifetime-region and
+exception-region IDs are independently contiguous and zero-based.
 
 Update public API baselines and XML documentation.
 
@@ -104,11 +139,17 @@ Update public API baselines and XML documentation.
 Extend `IrBuilder` to:
 
 - create lifetime regions;
+- maintain a lifetime-region stack independently from the exception-region
+  stack;
 - track the active region while creating blocks and slots;
 - assign each block and slot to its active region;
 - validate region-stack transitions during construction.
 
-Extend `Lowerer` to create a re-enterable region for a lexical scope whose declaration may execute more than once. The initial implementation should cover loop bodies and any nested block containing locals.
+Extend `Lowerer` to create a lifetime region for every lexical scope that owns
+at least one local slot. Lexical scopes without slots do not produce regions.
+
+Compiler temporaries belong to the active region or the nearest ancestor
+required by all their uses. Parameters belong to the root region.
 
 Lowering must shape loop control flow so:
 
@@ -140,27 +181,41 @@ Replace the current function-wide read-only definition analysis with region-awar
 
 Extend definite-assignment validation with the same activation semantics so stale physical values from an earlier activation cannot justify a read.
 
+Read-only validation is path-sensitive within one activation. Mutually
+exclusive definitions are valid, but no path may define a read-only slot twice
+or read it before definition. A read-only slot need not be defined on paths
+where it is never read.
+
 ## MuIR format changes
 
-Scoped slots require a new MuIR format version because the function and slot grammar changes.
+Scoped slots extend MuIR version 2 because that format has not entered a stable
+release. Existing prerelease MuIR 2 documents are intentionally incompatible
+and rejected. MuIR version 1 remains readable through root-region synthesis.
 
-The new version should serialize:
+Every MuIR 2 function serializes:
 
-- the region count in each function header;
-- each region's ID, parent, entry block, and directly owned blocks;
+- the lifetime-region and exception-region counts;
+- every lifetime region's ID, parent, and entry block;
+- every block's lifetime-region owner;
 - each slot's owning region.
 
-The writer must emit regions, slots, and blocks in deterministic identifier order.
+The writer always emits MuIR version 2, including root region `0` and zero
+counts for empty exception-region collections. It emits regions, slots, and
+blocks in deterministic identifier order.
 
-The reader should continue supporting MuIR version 1 by synthesizing one root region and assigning every slot and block to it. The writer may either always emit the new version or retain version 1 output when no nested region exists; this choice must be made before implementation.
+The reader continues supporting MuIR version 1 by synthesizing one root region
+and assigning every slot and block to it.
 
-Update reader limits to include a maximum region count and validate all references before constructing an accepted program.
+Update reader limits with separate positive maxima for lifetime regions and
+exception regions. Validate all references before constructing an accepted
+program.
 
 ## .NET exporter changes
 
 Continue creating one `ParameterExpression` per function-global slot ID.
 
-Add region-entry handling only if physical clearing is selected. No dynamic object array or heap cell is required for each activation.
+No region-entry clearing, dynamic object array, or per-activation heap cell is
+required.
 
 Ensure generated jumps follow the validated region transitions. The exporter must not independently reconstruct lexical scopes or repeat region validation.
 
@@ -204,21 +259,19 @@ Document the distinction between semantic slot instances and reusable physical e
 
 ## Implementation sequence
 
-1. Finalize region invariants and MuIR versioning.
-2. Add the public region model and root-region compatibility constructors.
-3. Extend structural validation without changing lowering.
-4. Add MuIR read/write support and compatibility tests.
-5. Add region construction to `IrBuilder`.
-6. Lower loop-contained lexical scopes into re-enterable regions.
-7. Implement region-aware definite-assignment and read-only validation.
+1. Add `IrLifetimeRegion`, root-region compatibility constructors, and lifetime
+   ownership to slots and blocks.
+2. Extend structural validation without changing lowering.
+3. Add the revised MuIR 2 read/write support, MuIR 1 compatibility, limits, and
+   round-trip tests.
+4. Add structured lifetime-region construction to `IrBuilder`.
+5. Lower every lexical scope with local slots into a lifetime region.
+6. Assign temporaries to the active or minimum required ancestor region.
+7. Implement region-aware definite-assignment and path-sensitive read-only
+   validation.
 8. Preserve read-only mutability for loop-local source variables.
-9. Update the .NET exporter and runtime tests.
-10. Update specifications, API baselines, and changelog.
-
-## Decisions required before implementation
-
-- Name the abstraction `scope`, `lifetime region`, or another term.
-- Decide whether every lexical block receives a region or only re-enterable scopes.
-- Decide whether MuIR writers always emit the new version.
-- Decide whether exporters clear physical storage on region entry.
-- Decide whether region ownership is stored on blocks, regions, or redundantly on both with validation.
+9. Update the .NET exporter and runtime tests without storage clearing.
+10. Implement the coordinated exception-region work after the lifetime model
+    is complete, without publishing an intermediate MuIR 2 contract.
+11. Update specifications, API baselines, roadmap, and changelog for
+    `0.3.0-alpha.3`.

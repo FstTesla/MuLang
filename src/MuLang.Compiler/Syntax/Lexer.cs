@@ -564,9 +564,21 @@ internal sealed class Lexer
             "as" => TokenKind.AsKeyword,
             "bool" => TokenKind.BoolKeyword,
             "break" => TokenKind.BreakKeyword,
+            "catch" => GetVersionedKeywordKind(
+                TokenKind.CatchKeyword,
+                LanguageVersion.Version1_2,
+                text,
+                span
+            ),
             "continue" => TokenKind.ContinueKeyword,
             "else" => TokenKind.ElseKeyword,
             "false" => TokenKind.FalseKeyword,
+            "finally" => GetVersionedKeywordKind(
+                TokenKind.FinallyKeyword,
+                LanguageVersion.Version1_2,
+                text,
+                span
+            ),
             "float" => TokenKind.FloatKeyword,
             "for" => TokenKind.ForKeyword,
             "func" => TokenKind.FuncKeyword,
@@ -597,7 +609,19 @@ internal sealed class Lexer
             ),
             "return" => TokenKind.ReturnKeyword,
             "string" => TokenKind.StringKeyword,
+            "throw" => GetVersionedKeywordKind(
+                TokenKind.ThrowKeyword,
+                LanguageVersion.Version1_2,
+                text,
+                span
+            ),
             "true" => TokenKind.TrueKeyword,
+            "try" => GetVersionedKeywordKind(
+                TokenKind.TryKeyword,
+                LanguageVersion.Version1_2,
+                text,
+                span
+            ),
             "unknown" => TokenKind.UnknownKeyword,
             "var" => TokenKind.VarKeyword,
             "void" => TokenKind.VoidKeyword,

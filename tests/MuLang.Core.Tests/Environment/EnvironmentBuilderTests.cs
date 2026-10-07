@@ -142,6 +142,28 @@ public sealed class EnvironmentBuilderTests
         }
     }
 
+    [TestCase("catch")]
+    [TestCase("finally")]
+    [TestCase("throw")]
+    [TestCase("try")]
+    public void ReservesExceptionHandlingNamesOnlyInVersionOneTwo(string name)
+    {
+        EnvironmentBuilder builder = new EnvironmentBuilder()
+            .AddGlobal($"global.{name}", name, TypeSymbols.Int);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(
+                () => builder.Build(LanguageVersion.Version1_1),
+                Throws.Nothing
+            );
+            Assert.That(
+                () => builder.Build(LanguageVersion.Version1_2),
+                Throws.InvalidOperationException
+            );
+        }
+    }
+
     [Test]
     public void ProducesOrderIndependentFingerprint()
     {

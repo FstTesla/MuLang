@@ -29,8 +29,9 @@ the `primitive` abstract type and full object-literal property grammar.
 
 Language version 1 rejects `$`, `$[`, and prefixed integer literals and treats `infty` and `nan` as identifiers.
 
-Language versions 1 and 1.1 treat `primitive` as an identifier and warn that
-the spelling becomes reserved in version 1.2.
+Language versions 1 and 1.1 treat `catch`, `finally`, `primitive`, `throw`, and
+`try` as identifiers and warn that the spellings become reserved in version
+1.2.
 
 > For example, this expression is valid in the standard language-version-1.1 profile and rejected as an unavailable feature in language version 1:
 >

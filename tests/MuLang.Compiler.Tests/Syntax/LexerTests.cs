@@ -123,6 +123,64 @@ public sealed class LexerTests
     }
 
     [Test]
+    public void VersionsExceptionHandlingKeywords()
+    {
+        LexResult earlier = Lexer.Lex(
+            SourceText.From("catch finally throw try"),
+            LanguageProfiles.Version1_1
+        );
+        LexResult current = Lexer.Lex(
+            SourceText.From("catch finally throw try"),
+            LanguageProfiles.Version1_2
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(
+                earlier.Tokens.Select(static token => token.Kind),
+                Is.EqualTo(
+                    [
+                        TokenKind.Identifier,
+                        TokenKind.Identifier,
+                        TokenKind.Identifier,
+                        TokenKind.Identifier,
+                        TokenKind.EndOfFile,
+                    ]
+                )
+            );
+            Assert.That(
+                earlier.Diagnostics.Select(static diagnostic => diagnostic.Code),
+                Is.EqualTo(
+                    [
+                        DiagnosticCodes.FutureReservedKeyword,
+                        DiagnosticCodes.FutureReservedKeyword,
+                        DiagnosticCodes.FutureReservedKeyword,
+                        DiagnosticCodes.FutureReservedKeyword,
+                    ]
+                )
+            );
+            Assert.That(
+                earlier.Diagnostics,
+                Has.All.Property("Severity").EqualTo(DiagnosticSeverity.Warning)
+            );
+            Assert.That(earlier.Diagnostics.HasErrors, Is.False);
+            Assert.That(
+                current.Tokens.Select(static token => token.Kind),
+                Is.EqualTo(
+                    [
+                        TokenKind.CatchKeyword,
+                        TokenKind.FinallyKeyword,
+                        TokenKind.ThrowKeyword,
+                        TokenKind.TryKeyword,
+                        TokenKind.EndOfFile,
+                    ]
+                )
+            );
+            Assert.That(current.Diagnostics, Is.Empty);
+        }
+    }
+
+    [Test]
     public void RecognizesOperatorsUsingLongestMatch()
     {
         LexResult result = Lexer.Lex(

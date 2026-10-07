@@ -52,6 +52,28 @@ public sealed class MuLangCompilerEditorTests
     }
 
     [Test]
+    public void ClassifiesExceptionHandlingKeywords()
+    {
+        ClassificationResult result = MuLangCompiler.Classify(
+            "catch finally throw try",
+            LanguageProfiles.Version1_2
+        );
+
+        Assert.That(
+            result.Classifications.Select(static classification => classification.Kind),
+            Is.EqualTo(
+                [
+                    SourceClassificationKind.Keyword,
+                    SourceClassificationKind.Keyword,
+                    SourceClassificationKind.Keyword,
+                    SourceClassificationKind.Keyword,
+                ]
+            )
+        );
+        Assert.That(result.Diagnostics, Is.Empty);
+    }
+
+    [Test]
     public void PreservesScalarClassificationSpans()
     {
         ClassificationResult result = MuLangCompiler.Classify("😀");

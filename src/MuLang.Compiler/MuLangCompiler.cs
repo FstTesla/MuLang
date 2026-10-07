@@ -351,9 +351,11 @@ public static class MuLangCompiler
                 TokenKind.Tilde => SourceClassificationKind.Operator,
             TokenKind.BoolKeyword or
                 TokenKind.BreakKeyword or
+                TokenKind.CatchKeyword or
                 TokenKind.ContinueKeyword or
                 TokenKind.ElseKeyword or
                 TokenKind.FalseKeyword or
+                TokenKind.FinallyKeyword or
                 TokenKind.FloatKeyword or
                 TokenKind.ForKeyword or
                 TokenKind.FuncKeyword or
@@ -365,7 +367,9 @@ public static class MuLangCompiler
                 TokenKind.PrimitiveKeyword or
                 TokenKind.ReturnKeyword or
                 TokenKind.StringKeyword or
+                TokenKind.ThrowKeyword or
                 TokenKind.TrueKeyword or
+                TokenKind.TryKeyword or
                 TokenKind.UnknownKeyword or
                 TokenKind.VarKeyword or
                 TokenKind.VoidKeyword or

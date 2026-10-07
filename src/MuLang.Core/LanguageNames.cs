@@ -43,7 +43,11 @@ internal static class LanguageNames
     private static readonly IReadOnlySet<string> versionOneTwoReservedKeywords =
         new HashSet<string>(StringComparer.Ordinal)
         {
+            "catch",
+            "finally",
             "primitive",
+            "throw",
+            "try",
         };
 
     public static void ValidateIdentifier(string value, string parameterName)
