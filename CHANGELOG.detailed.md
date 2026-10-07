@@ -12,22 +12,24 @@ Stable entries describe the incremental change since the preceding prerelease. T
 
 Each release heading identifies the incremental version range covered by the section, from the comparison version to the released version.
 
-## `0.3.0-alpha.1` → `0.3.0-alpha.2` - 2026-10-06
+## `0.3.0-alpha.1` → `0.3.0-alpha.2` - 2026-10-07
 
 ### Breaking changes
 
-- Changed the standard MuLang 1.2 object-literal grammar from `:` and `?:` initializers to declaration-oriented properties with ordered `$`, `?`, explicit `: Type`, and `= expression` components. MuLang 1 and 1.1 retain the legacy grammar, and MuLang 1.2 hosts can select `ObjectLiteralSyntax.Legacy` as a migration mode.
+- Changed the standard MuLang 1.2 [object-literal grammar](https://fsttesla.github.io/MuLang/language/08-expressions.html#84-object-literals) from `:` and `?:` initializers to declaration-oriented properties with ordered `$`, `?`, explicit `: Type`, and `= expression` components. MuLang 1 and 1.1 retain the legacy grammar, and MuLang 1.2 hosts can select `ObjectLiteralSyntax.Legacy` as a migration mode.
 - Extended MuIR format version 2 structured-object property entries with independent `required` or `optional` presence and `mutable` or `readonly` capability tokens. The reader continues accepting version 1 and interprets its properties as mutable.
 - Changed language-profile, environment, and structural type identity to include the object-literal grammar and per-property read-only capability. Persisted compilation artifacts, environment fingerprints, and structural schemas produced by `0.3.0-alpha.1` must be regenerated.
 - Extended `ObjectPropertySymbol` and `ObjectTypeGraphBuilder.AddProperty` with an optional trailing `isReadOnly` argument. Recompile hosts built against the earlier prerelease API.
 
 ### New features
 
-- Added read-only structured-object properties whose value and presence are frozen after construction, including static assignment and removal diagnostics, runtime enforcement through less-specific aliases, checked-conformance capability metadata, recursive structural compatibility, and covariant read views.
+- Added [read-only structured-object properties](https://fsttesla.github.io/MuLang/language/08-expressions.html#84-object-literals) whose value and presence are frozen after construction, including static assignment and removal diagnostics and runtime enforcement through less-specific aliases. Structural assignment and checked provider conformance permit compatible mutable properties to be observed through read-only views, while read-only properties cannot satisfy mutable requirements.
 - Added optional object-property declarations whose initializer may be omitted when an explicit type is present. Omitted properties remain absent rather than receiving `null`, while mutable optional properties may still be added, assigned, and removed.
 - Added explicit object-property types and structural contextual validation. Full-syntax literals retain their concrete property capabilities while expected property types guide initializer binding, after which ordinary structural assignability validates the result. Legacy contextual typing continues inheriting capabilities from the expected type.
-- Added `ObjectLiteralSyntax`, `LanguageProfile.ObjectLiteralSyntax`, and `LanguageProfileBuilder.WithObjectLiteralSyntax`, including dormant pre-1.2 behavior and profile fingerprinting.
-- Extended portable IR object creation and mutation validation, .NET literal-object adapters, provider-boundary conformance, semantic classification, TextMate highlighting, and public documentation for object-property presence and capability.
+- Added `ObjectLiteralSyntax`, `LanguageProfile.ObjectLiteralSyntax`, and `LanguageProfileBuilder.WithObjectLiteralSyntax` so hosts can select the Full or Legacy grammar. The setting contributes to profile fingerprints and has no effect before MuLang 1.2.
+- Added the optional `IDotNetObjectPropertyCapabilities` adapter contract so .NET providers can expose read-only property metadata without changing `IDotNetObjectValue`.
+- Extended portable IR validation to reject object creation that omits required properties, supplies undeclared properties to closed objects, writes read-only properties, or removes required or read-only properties. Provider conformance now rejects read-only provider properties where mutable properties are required.
+- Added semantic classification and TextMate highlighting for the new object-property syntax.
 
 ## `0.2.0` → `0.3.0-alpha.1` - 2026-10-02
 

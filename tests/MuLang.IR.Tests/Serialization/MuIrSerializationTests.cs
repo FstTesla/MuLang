@@ -54,6 +54,8 @@ public sealed class MuIrSerializationTests
 
     [TestCase("minimal.muir")]
     [TestCase("complete.muir")]
+    [TestCase("minimal-v2.muir")]
+    [TestCase("object-properties-v2.muir")]
     public void CanonicalFixtureRemainsStable(string fileName)
     {
         string path = Path.Combine(
@@ -65,31 +67,29 @@ public sealed class MuIrSerializationTests
         string text = File.ReadAllText(path);
 
         MuIrReadResult result = MuIrReader.Read(text);
+        string expected = text.StartsWith("muir 1\n", StringComparison.Ordinal)
+            ? text
+                .Replace(
+                    "muir 1\n",
+                    "muir 2\n",
+                    StringComparison.Ordinal
+                )
+                .Replace(
+                    " optional",
+                    " optional mutable",
+                    StringComparison.Ordinal
+                )
+                .Replace(
+                    " required",
+                    " required mutable",
+                    StringComparison.Ordinal
+                )
+            : text;
 
         using (Assert.EnterMultipleScope())
         {
             Assert.That(result.Success, Is.True);
-            Assert.That(
-                MuIrWriter.WriteToString(result.Program!),
-                Is.EqualTo(
-                    text
-                        .Replace(
-                            "muir 1\n",
-                            "muir 2\n",
-                            StringComparison.Ordinal
-                        )
-                        .Replace(
-                            " optional",
-                            " optional mutable",
-                            StringComparison.Ordinal
-                        )
-                        .Replace(
-                            " required",
-                            " required mutable",
-                            StringComparison.Ordinal
-                        )
-                )
-            );
+            Assert.That(MuIrWriter.WriteToString(result.Program!), Is.EqualTo(expected));
         }
     }
 

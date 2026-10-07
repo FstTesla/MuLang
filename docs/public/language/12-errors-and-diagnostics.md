@@ -10,7 +10,7 @@ A compile-time diagnostic MUST contain:
 
 An identifier that becomes a reserved keyword in a later supported language version produces a warning on every occurrence. Under the selected earlier version, the token remains an identifier.
 
-Syntax or capabilities disabled by the selected language profile produce compile-time errors as defined in [Section 14.10](14-language-profiles.md#1410-feature-diagnostics).
+Syntax or capabilities disabled by the selected language profile produce compile-time errors as defined in [Section 14.11](14-language-profiles.md#1411-feature-diagnostics).
 
 No executable result may be produced when an error diagnostic is present.
 
