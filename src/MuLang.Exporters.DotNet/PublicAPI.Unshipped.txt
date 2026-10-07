@@ -1,1 +1,3 @@
 #nullable enable
+MuLang.Exporters.DotNet.IDotNetErrorValue
+MuLang.Exporters.DotNet.IDotNetErrorValue.Error.get -> MuLang.Core.Runtime.RuntimeError!

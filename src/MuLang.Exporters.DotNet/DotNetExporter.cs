@@ -283,6 +283,15 @@ public static class DotNetExporter
         bool validateEnvironment
     )
     {
+        if (function.ExceptionRegions.Count > 0)
+        {
+            return new DotNetExceptionRegionInterpreter(
+                function,
+                environmentFingerprint,
+                validateEnvironment
+            ).Compile();
+        }
+
         ParameterExpression context = Expression.Parameter(
             typeof(DotNetRuntimeContext),
             "context"

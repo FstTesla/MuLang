@@ -65,7 +65,7 @@ public static class TypeRelations
     {
         ValidateTypes(source, target);
 
-        if (source.Kind == TypeKind.Error || target.Kind == TypeKind.Error)
+        if (source.Kind == TypeKind.ErrorRecovery || target.Kind == TypeKind.ErrorRecovery)
         {
             return true;
         }
@@ -126,10 +126,21 @@ public static class TypeRelations
 
         if (
             target.Kind == TypeKind.Object &&
-            source.Kind is TypeKind.Object or TypeKind.StructuredObject
+            source.Kind is
+                TypeKind.Object or
+                TypeKind.StructuredObject or
+                TypeKind.ErrorValue
         )
         {
             return true;
+        }
+
+        if (
+            source.Kind == TypeKind.ErrorValue &&
+            target is ObjectTypeSymbol errorTarget
+        )
+        {
+            return IsErrorValueAssignable(errorTarget);
         }
 
         return source is ObjectTypeSymbol sourceObject &&
@@ -168,7 +179,7 @@ public static class TypeRelations
     {
         ValidateTypes(source, target);
 
-        if (source.Kind == TypeKind.Error || target.Kind == TypeKind.Error)
+        if (source.Kind == TypeKind.ErrorRecovery || target.Kind == TypeKind.ErrorRecovery)
         {
             return true;
         }
@@ -269,8 +280,8 @@ public static class TypeRelations
     )
     {
         if (
-            source.Kind is TypeKind.Error or TypeKind.Void ||
-            target.Kind is TypeKind.Error or TypeKind.Void
+            source.Kind is TypeKind.ErrorRecovery or TypeKind.Void ||
+            target.Kind is TypeKind.ErrorRecovery or TypeKind.Void
         )
         {
             return false;
@@ -379,9 +390,9 @@ public static class TypeRelations
     {
         ValidateTypes(left, right);
 
-        if (left.Kind == TypeKind.Error || right.Kind == TypeKind.Error)
+        if (left.Kind == TypeKind.ErrorRecovery || right.Kind == TypeKind.ErrorRecovery)
         {
-            return TypeSymbols.Error;
+            return TypeSymbols.ErrorRecovery;
         }
 
         if (left.Kind == TypeKind.Void || right.Kind == TypeKind.Void)
@@ -478,7 +489,7 @@ public static class TypeRelations
 
     private static bool CanConvertChecked(TypeSymbol source, TypeSymbol target)
     {
-        if (source.Kind == TypeKind.Error || target.Kind == TypeKind.Error)
+        if (source.Kind == TypeKind.ErrorRecovery || target.Kind == TypeKind.ErrorRecovery)
         {
             return true;
         }
@@ -578,10 +589,21 @@ public static class TypeRelations
 
         if (
             target.Kind == TypeKind.Object &&
-            source.Kind is TypeKind.Object or TypeKind.StructuredObject
+            source.Kind is
+                TypeKind.Object or
+                TypeKind.StructuredObject or
+                TypeKind.ErrorValue
         )
         {
             return true;
+        }
+
+        if (
+            source.Kind == TypeKind.ErrorValue &&
+            target is ObjectTypeSymbol errorTarget
+        )
+        {
+            return IsErrorValueAssignable(errorTarget);
         }
 
         if (
@@ -626,13 +648,13 @@ public static class TypeRelations
                 if (targetProperty.IsReadOnly)
                 {
                     return !targetProperty.IsOptional &&
-                            sourceProperty.IsOptional
-                        ? false
-                        : IsViewCompatible(
-                            sourceProperty.Type,
-                            targetProperty.Type,
-                            active
-                        );
+                        sourceProperty.IsOptional
+                            ? false
+                            : IsViewCompatible(
+                                sourceProperty.Type,
+                                targetProperty.Type,
+                                active
+                            );
                 }
 
                 return !sourceProperty.IsReadOnly &&
@@ -736,7 +758,77 @@ public static class TypeRelations
 
     private static bool CanBeNullable(TypeSymbol type)
     {
-        return type.Kind is not TypeKind.Void and not TypeKind.Null and not TypeKind.Error;
+        return type.Kind is not TypeKind.Void and not TypeKind.Null and not TypeKind.ErrorRecovery;
+    }
+
+    private static bool IsErrorValueAssignable(ObjectTypeSymbol target)
+    {
+        foreach (ObjectPropertySymbol targetProperty in target.Properties)
+        {
+            if (
+                !TryGetErrorValueProperty(
+                    targetProperty.Name,
+                    out TypeSymbol? sourceType,
+                    out bool sourceOptional
+                ) ||
+                !targetProperty.IsReadOnly ||
+                (!targetProperty.IsOptional && sourceOptional) ||
+                !IsViewCompatible(sourceType, targetProperty.Type)
+            )
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool TryGetErrorValueProperty(
+        string name,
+        out TypeSymbol type,
+        out bool isOptional
+    )
+    {
+        switch (name)
+        {
+            case "code":
+            case "category":
+            case "message":
+            {
+                type = TypeSymbols.String;
+                isOptional = false;
+                return true;
+            }
+
+            case "cause":
+            {
+                type = TypeSymbols.ErrorValue;
+                isOptional = true;
+                return true;
+            }
+
+            case "data":
+            {
+                type = TypeSymbols.Nullable(TypeSymbols.Unknown);
+                isOptional = true;
+                return true;
+            }
+
+            case "spanStart":
+            case "spanLength":
+            {
+                type = TypeSymbols.Int;
+                isOptional = false;
+                return true;
+            }
+
+            default:
+            {
+                type = TypeSymbols.ErrorRecovery;
+                isOptional = false;
+                return false;
+            }
+        }
     }
 
     private static bool IsNumeric(TypeSymbol type)

@@ -61,17 +61,37 @@ function-header(kind) ::=
   kind string type-ref block-ref
   "slots" integer
   "blocks" integer
+  "lifetime-regions" integer
+  "exception-regions" integer
   "{"
+    lifetime-region*
+    exception-region*
     slot*
     block*
   "}"
 
-slot ::= "slot" slot-ref slot-kind type-ref slot-mutability (string | "none")
+ lifetime-region ::=
+  "lifetime-region" lifetime-region-ref
+  "parent" (lifetime-region-ref | "none")
+  "entry" block-ref
+
+exception-region ::=
+  "exception-region" exception-region-ref
+  "parent" (exception-region-ref | "none")
+  "parent-part" ("protected" | "handler" | "cleanup" | "none")
+  "protected" block-ref block-list
+  "handler" ("none" | block-ref slot-ref block-list)
+  "cleanup" ("none" | block-ref block-list)
+
+slot ::=
+  "slot" slot-ref slot-kind type-ref slot-mutability
+  (string | "none") "region" lifetime-region-ref
 slot-kind ::= "parameter" | "local" | "temporary"
 slot-mutability ::= "mutable" | "readonly"
 
 block ::=
-  "block" block-ref "instructions" integer "{"
+  "block" block-ref "region" lifetime-region-ref
+  "instructions" integer "{"
     instruction*
     terminator
   "}"
@@ -83,13 +103,25 @@ span        ::= integer integer
 type-ref  ::= "t" integer
 slot-ref  ::= "%" integer
 block-ref ::= "bb" integer
+lifetime-region-ref ::= "lr" integer
+exception-region-ref ::= "er" integer
+block-list ::= "[" (block-ref ("," block-ref)*)? "]"
 ```
 
 The two integers in a span are the source start and length. Both MUST fit in a signed 32-bit integer, and their checked sum MUST also fit.
 
 The document MUST contain exactly one entry function. User-function, slot, block, instruction, element, and argument order is preserved. Object properties are normalized by ordinal property name.
 
-Parameter slots MUST be `readonly`, are implicitly defined at function entry, and cannot be instruction destinations. Temporary slots MUST be `mutable`. A read-only local may have zero or more mutually exclusive defining instructions, but no reachable control-flow path may execute more than one definition. `IrValidator` enforces that constraint together with ordinary definite assignment.
+Lifetime-region and exception-region identifiers are independently contiguous
+and zero-based. Every function serializes lifetime root region `lr0`.
+Parameter slots MUST be `readonly`, belong to `lr0`, are implicitly defined at
+function entry, and cannot be instruction destinations. Temporary slots MUST
+be `mutable`. Read-only local validation is path-sensitive within each
+activation of its owning lifetime region.
+
+Exception component block lists have set semantics and canonical output sorts
+them by block identifier. A handler declaration includes its mandatory
+read-only `error` slot.
 
 ## 3. Type table
 
@@ -105,7 +137,7 @@ type-definition ::=
 
 intrinsic-type ::=
     "bool" | "int" | "float" | "number" | "string"
-  | "primitive" | "unknown" | "object" | "void" | "null"
+  | "primitive" | "error" | "unknown" | "object" | "void" | "null"
 
 array-capability ::= "mutable" | "readonly"
 openness         ::= "open" | "closed"
@@ -231,8 +263,13 @@ Terminator operands after the source span are:
 | `jump` | target block |
 | `branch` | condition slot, true block, false block |
 | `return` | value slot or `none` |
+| `throw` | error-value slot |
+| `resume` | no operands |
 
 Every block contains exactly one terminator after its declared instructions.
+
+`resume` is valid only in a cleanup component. A cleanup cannot return.
+Ordinary control-flow edges cannot enter handlers or cleanup components.
 
 ## 7. Canonical form
 

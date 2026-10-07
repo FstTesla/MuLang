@@ -1,4 +1,5 @@
 using MuLang.Core.Text;
+using System.Runtime.CompilerServices;
 
 namespace MuLang.Core.Runtime;
 
@@ -18,6 +19,8 @@ public sealed class RuntimeError
     /// <param name="data">The optional application payload.</param>
     /// <exception cref="ArgumentException">Thrown when <paramref name="code" /> is null, empty, or whitespace, or <paramref name="category" /> is invalid.</exception>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="message" /> or <paramref name="frames" /> is <c>null</c>, or a frame is <c>null</c>.</exception>
+#pragma warning disable RS0027
+    [Obsolete("Use RuntimeError(string, string, RuntimeErrorCategory, bool, TextSpan, IEnumerable<RuntimeStackFrame>, RuntimeError?, RuntimeErrorData) instead.")]
     public RuntimeError(
         string code,
         string message,
@@ -27,6 +30,42 @@ public sealed class RuntimeError
         IEnumerable<RuntimeStackFrame> frames,
         RuntimeError? cause = null,
         object? data = null
+    )
+        : this(
+            code,
+            message,
+            category,
+            isCatchable,
+            span,
+            frames,
+            cause,
+            data is null
+                ? RuntimeErrorData.Absent
+                : RuntimeErrorData.Present(data)
+        ) { }
+#pragma warning restore RS0027
+
+    /// <summary>Initializes a new instance of the <see cref="RuntimeError" /> class with an explicit optional payload.</summary>
+    /// <param name="code">The stable error code.</param>
+    /// <param name="message">The error message.</param>
+    /// <param name="category">The error category.</param>
+    /// <param name="isCatchable">A value indicating whether source-level recovery may catch the error.</param>
+    /// <param name="span">The source span associated with the failing operation.</param>
+    /// <param name="frames">The MuLang stack frames, ordered from innermost to outermost.</param>
+    /// <param name="cause">The optional public MuLang error cause.</param>
+    /// <param name="data">The optional application payload.</param>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="code" /> is null, empty, or whitespace, or <paramref name="category" /> is invalid.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="message" /> or <paramref name="frames" /> is <c>null</c>, or a frame is <c>null</c>.</exception>
+    [OverloadResolutionPriority(1)]
+    public RuntimeError(
+        string code,
+        string message,
+        RuntimeErrorCategory category,
+        bool isCatchable,
+        TextSpan span,
+        IEnumerable<RuntimeStackFrame> frames,
+        RuntimeError? cause,
+        RuntimeErrorData data
     )
     {
         if (string.IsNullOrWhiteSpace(code))
@@ -75,7 +114,8 @@ public sealed class RuntimeError
         this.frames = frameList;
         Frames = frameList.AsReadOnly();
         Cause = cause;
-        Data = data;
+        Data = data.Value;
+        ErrorData = data;
     }
 
     /// <summary>Gets the stable error code.</summary>
@@ -101,6 +141,9 @@ public sealed class RuntimeError
 
     /// <summary>Gets the optional application payload.</summary>
     public object? Data { get; }
+
+    /// <summary>Gets the optional application payload with explicit presence.</summary>
+    public RuntimeErrorData ErrorData { get; }
 
     internal void AddFrame(RuntimeStackFrame frame)
     {

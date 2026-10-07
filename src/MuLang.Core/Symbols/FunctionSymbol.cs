@@ -32,7 +32,7 @@ public sealed class FunctionSymbol
             throw new ArgumentNullException(nameof(returnType));
         }
 
-        if (returnType.Kind is TypeKind.Null or TypeKind.Error)
+        if (returnType.Kind is TypeKind.Null or TypeKind.ErrorRecovery)
         {
             throw new ArgumentException(
                 $"Type '{returnType.DisplayName}' cannot be used as a function return type.",

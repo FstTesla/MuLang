@@ -10,17 +10,16 @@
    **Completed for `0.3.0-alpha.2`.**
 3. Warn in earlier language versions when identifiers reserved by `1.2`, including `primitive`, `error`, `try`, `catch`, `finally`, and `throw`, are used.
 
-   The `error` migration warning remains to be added with the runtime error type
-   in `0.3.0-alpha.3`; the other warnings are complete.
+   **Completed for `0.3.0-alpha.3`.**
 4. Stabilize the host and provider error contracts before defining source-level exception handling.
 
    **Completed for `0.2.0-alpha.7`.**
 5. Implement [scoped IR slots](scoped-ir-slots.plan.md) through explicit lifetime regions, preserving read-only capability and definite-assignment semantics across re-entered lexical scopes.
+
+   **Completed for `0.3.0-alpha.3`.**
 6. Extend the unreleased MuIR version 2 with scoped slots and exception-handling regions without changing the `primitive` token introduced by `0.3.0-alpha.1` or the property capability tokens introduced by `0.3.0-alpha.2`.
 
-   Points 5 and 6 are coordinated for `0.3.0-alpha.3`: lifetime regions are
-   implemented first, followed by end-to-end exception-region support on the
-   same revised MuIR 2 contract.
+   **Completed for `0.3.0-alpha.3`.**
 7. Design source-level exception handling on top of the revised type and IR models.
 8. Keep language-version availability distinct from feature flags.
 

@@ -46,6 +46,20 @@ public sealed class TypeSymbolsTests
     }
 
     [Test]
+    public void ExposesErrorValueAndRecoveryAliases()
+    {
+#pragma warning disable CS0618
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(TypeSymbols.ErrorValue.Kind, Is.EqualTo(TypeKind.ErrorValue));
+            Assert.That(TypeSymbols.ErrorValue.DisplayName, Is.EqualTo("error"));
+            Assert.That(TypeSymbols.Error, Is.SameAs(TypeSymbols.ErrorRecovery));
+            Assert.That(TypeKind.Error, Is.EqualTo(TypeKind.ErrorRecovery));
+        }
+#pragma warning restore CS0618
+    }
+
+    [Test]
     public void RejectsInvalidTypeConstructions()
     {
         Assert.That(

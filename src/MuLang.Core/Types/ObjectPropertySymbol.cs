@@ -24,7 +24,7 @@ public sealed class ObjectPropertySymbol
             throw new ArgumentNullException(nameof(type));
         }
 
-        if (type.Kind is TypeKind.Void or TypeKind.Null or TypeKind.Error)
+        if (type.Kind is TypeKind.Void or TypeKind.Null or TypeKind.ErrorRecovery)
         {
             throw new ArgumentException(
                 $"Type '{type.DisplayName}' cannot be used for an object property.",

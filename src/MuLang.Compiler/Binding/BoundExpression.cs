@@ -10,7 +10,7 @@ internal abstract record BoundExpression(
 ) : BoundNode(Syntax)
 {
     internal sealed record Error(SyntaxNode Syntax)
-        : BoundExpression(Syntax, TypeSymbols.Error);
+        : BoundExpression(Syntax, TypeSymbols.ErrorRecovery);
 
     internal sealed record Literal(
         SyntaxNode Syntax,

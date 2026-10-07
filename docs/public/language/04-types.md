@@ -212,3 +212,40 @@ Mutable arrays and their read-only views preserve the same logical identity and 
 > }
 > doNothing();
 > ```
+
+## 4.8. The `error` type
+
+Language version 1.2 defines the intrinsic non-null `error` type. It represents
+a structured runtime error independently from the host exception used to
+propagate execution failure.
+
+An `error` value exposes exactly these read-only properties:
+
+- `code: string`;
+- `category: string`;
+- `message: string`;
+- optional `cause: error`;
+- optional `data: unknown?`;
+- `spanStart: int`;
+- `spanLength: int`.
+
+`error` is assignable to `object`, `unknown`, and structurally compatible
+object types whose required capabilities can be satisfied by this closed
+read-only shape. An arbitrary object is not implicitly assignable to `error`.
+
+> Given a host global `failure: error`, this expression reads stable diagnostic
+> information:
+>
+> ```text
+> return failure.code + ": " + failure.message;
+> ```
+
+> This assignment is invalid because error properties are read-only:
+>
+> ```text
+> failure.message = "replacement";
+> ```
+
+The source statements that create, catch, and rethrow errors are introduced by
+the exception-handling feature. The type itself is available independently so
+hosts and portable IR can describe error values before that syntax is enabled.

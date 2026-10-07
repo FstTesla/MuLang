@@ -112,6 +112,13 @@ An array representation defines:
 
 A value of type `T[]` MUST support element writes. A value of type `T[]$` requires only element reads. A mutable array MAY also be observed through a read-only view that preserves its logical identity.
 
+A value declared as `error` MUST implement the host error-value contract. The
+.NET contract is `IDotNetErrorValue`, which extends the object and
+per-property-capability adapters and exposes the underlying `RuntimeError`.
+The adapter MUST expose exactly the built-in error properties with read-only
+capability. Error identity is the identity of the underlying `RuntimeError`,
+not the adapter instance.
+
 Boundary validation and deep value operations are subject to the execution controls defined in [Section 13](13-execution-controls.md).
 
 Boundary representations do not define or customize truthiness. Determining truthiness MUST NOT enumerate properties or elements, read object members, or perform deep traversal.

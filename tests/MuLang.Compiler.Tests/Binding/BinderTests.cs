@@ -13,6 +13,22 @@ namespace MuLang.Compiler.Tests.Binding;
 public sealed class BinderTests
 {
     [Test]
+    public void BindsBuiltInErrorProperties()
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddGlobal("global.failure", "failure", TypeSymbols.ErrorValue)
+            .Build(LanguageVersion.Version1_2);
+        BindingResult result = BindExpression(
+            "failure.code + failure.message",
+            environment,
+            null,
+            LanguageProfiles.Version1_2
+        );
+
+        Assert.That(result.Diagnostics, Is.Empty);
+    }
+
+    [Test]
     public void ResolvesGlobalsAndNumericOperators()
     {
         EnvironmentSchema environment = new EnvironmentBuilder()

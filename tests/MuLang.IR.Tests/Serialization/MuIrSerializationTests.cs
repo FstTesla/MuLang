@@ -56,6 +56,7 @@ public sealed class MuIrSerializationTests
     [TestCase("complete.muir")]
     [TestCase("minimal-v2.muir")]
     [TestCase("object-properties-v2.muir")]
+    [TestCase("exception-regions-v2.muir")]
     public void CanonicalFixtureRemainsStable(string fileName)
     {
         string path = Path.Combine(
@@ -64,32 +65,26 @@ public sealed class MuIrSerializationTests
             "Fixtures",
             fileName
         );
-        string text = File.ReadAllText(path);
+        string text = File.ReadAllText(path)
+            .Replace("\r\n", "\n", StringComparison.Ordinal);
 
         MuIrReadResult result = MuIrReader.Read(text);
-        string expected = text.StartsWith("muir 1\n", StringComparison.Ordinal)
-            ? text
-                .Replace(
-                    "muir 1\n",
-                    "muir 2\n",
-                    StringComparison.Ordinal
-                )
-                .Replace(
-                    " optional",
-                    " optional mutable",
-                    StringComparison.Ordinal
-                )
-                .Replace(
-                    " required",
-                    " required mutable",
-                    StringComparison.Ordinal
-                )
-            : text;
+        string canonical = MuIrWriter.WriteToString(result.Program!);
 
         using (Assert.EnterMultipleScope())
         {
             Assert.That(result.Success, Is.True);
-            Assert.That(MuIrWriter.WriteToString(result.Program!), Is.EqualTo(expected));
+
+            if (text.StartsWith("muir 1\n", StringComparison.Ordinal))
+            {
+                Assert.That(canonical, Does.StartWith("muir 2\n"));
+                Assert.That(result.Program!.EntryFunction.LifetimeRegions, Has.Count.EqualTo(1));
+                Assert.That(result.Program.EntryFunction.LifetimeRegions[0].Id, Is.Zero);
+            }
+            else
+            {
+                Assert.That(canonical, Is.EqualTo(text));
+            }
         }
     }
 
@@ -284,7 +279,7 @@ public sealed class MuIrSerializationTests
             TypeSymbols.Unknown,
             new object()
         );
-        IrProgram errorType = CreateMinimalProgram(TypeSymbols.Error, null);
+        IrProgram errorType = CreateMinimalProgram(TypeSymbols.ErrorRecovery, null);
 
         using (Assert.EnterMultipleScope())
         {
@@ -304,6 +299,20 @@ public sealed class MuIrSerializationTests
     {
         Assert.That(
             static () => new MuIrReaderOptions(maximumTypes: 0),
+            Throws.TypeOf<ArgumentOutOfRangeException>()
+        );
+        Assert.That(
+            static () => new MuIrReaderOptions
+            {
+                MaximumLifetimeRegionsPerFunction = 0,
+            },
+            Throws.TypeOf<ArgumentOutOfRangeException>()
+        );
+        Assert.That(
+            static () => new MuIrReaderOptions
+            {
+                MaximumExceptionRegionsPerFunction = 0,
+            },
             Throws.TypeOf<ArgumentOutOfRangeException>()
         );
     }
@@ -475,6 +484,168 @@ public sealed class MuIrSerializationTests
             result.Program!.Slots.Single().Mutability,
             Is.EqualTo(IrSlotMutability.ReadOnly)
         );
+    }
+
+    [Test]
+    public void NestedLifetimeRegionsRoundTripCanonically()
+    {
+        IrFunction entry = new (
+            "$entry",
+            TypeSymbols.Void,
+            0,
+            [
+                new IrSlot(
+                    0,
+                    IrSlotKind.Local,
+                    TypeSymbols.Int,
+                    "value",
+                    IrSlotMutability.ReadOnly,
+                    1
+                ),
+            ],
+            [
+                new IrBasicBlock(
+                    0,
+                    [ ],
+                    new IrTerminator.Jump(default, 1),
+                    0
+                ),
+                new IrBasicBlock(
+                    1,
+                    [
+                        new IrInstruction.Constant(
+                            default,
+                            0,
+                            TypeSymbols.Int,
+                            1L
+                        ),
+                    ],
+                    new IrTerminator.Jump(default, 2),
+                    1
+                ),
+                new IrBasicBlock(
+                    2,
+                    [ ],
+                    new IrTerminator.Return(default, null),
+                    0
+                ),
+            ],
+            [
+                new IrLifetimeRegion(0, null, 0),
+                new IrLifetimeRegion(1, 0, 1),
+            ]
+        );
+        IrProgram program = new (
+            new EnvironmentFingerprint("env"),
+            CompilationMode.Program,
+            new LanguageProfileFingerprint("profile"),
+            entry,
+            [ ]
+        );
+
+        string text = MuIrWriter.WriteToString(program);
+        MuIrReadResult result = MuIrReader.Read(text);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.Success, Is.True);
+            Assert.That(result.Program!.EntryFunction.LifetimeRegions, Has.Count.EqualTo(2));
+            Assert.That(result.Program.EntryFunction.Slots[0].LifetimeRegion, Is.EqualTo(1));
+            Assert.That(MuIrWriter.WriteToString(result.Program), Is.EqualTo(text));
+        }
+    }
+
+    [Test]
+    public void ReaderRejectsEarlierPrereleaseVersionTwoGrammar()
+    {
+        const string text =
+            "muir 2 mode expression environment \"env\" profile \"profile\" " +
+            "types 1 type t0 intrinsic void " +
+            "entry \"$entry\" t0 bb0 slots 0 blocks 1 { " +
+            "block bb0 instructions 0 { term return 0 0 none } } users 0 end";
+
+        MuIrReadResult result = MuIrReader.Read(text);
+
+        Assert.That(result.Success, Is.False);
+    }
+
+    [Test]
+    public void ExceptionRegionsAndTerminatorsRoundTripCanonically()
+    {
+        IrFunction entry = new (
+            "$entry",
+            TypeSymbols.Void,
+            0,
+            [
+                new IrSlot(
+                    0,
+                    IrSlotKind.Local,
+                    TypeSymbols.ErrorValue,
+                    "error",
+                    IrSlotMutability.ReadOnly,
+                    1
+                ),
+            ],
+            [
+                new IrBasicBlock(
+                    0,
+                    [ ],
+                    new IrTerminator.Jump(default, 2),
+                    0
+                ),
+                new IrBasicBlock(
+                    1,
+                    [ ],
+                    new IrTerminator.Throw(default, 0),
+                    1
+                ),
+                new IrBasicBlock(
+                    2,
+                    [ ],
+                    new IrTerminator.Resume(default),
+                    0
+                ),
+            ],
+            [
+                new IrLifetimeRegion(0, null, 0),
+                new IrLifetimeRegion(1, 0, 1),
+            ],
+            [
+                new IrExceptionRegion(
+                    0,
+                    null,
+                    null,
+                    new IrExceptionProtectedRegion(0, [ 0 ]),
+                    new IrExceptionHandler(1, [ 1 ], 0),
+                    new IrExceptionCleanup(2, [ 2 ])
+                ),
+            ]
+        );
+        IrProgram program = new (
+            new EnvironmentFingerprint("env"),
+            CompilationMode.Program,
+            new LanguageProfileFingerprint("profile"),
+            entry,
+            [ ]
+        );
+
+        string text = MuIrWriter.WriteToString(program);
+        MuIrReadResult result = MuIrReader.Read(text);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.Success, Is.True);
+            Assert.That(result.Program!.EntryFunction.ExceptionRegions, Has.Count.EqualTo(1));
+            Assert.That(
+                result.Program.EntryFunction.Blocks[1].Terminator,
+                Is.TypeOf<IrTerminator.Throw>()
+            );
+            Assert.That(
+                result.Program.EntryFunction.Blocks[2].Terminator,
+                Is.TypeOf<IrTerminator.Resume>()
+            );
+            Assert.That(MuIrWriter.WriteToString(result.Program), Is.EqualTo(text));
+        }
     }
 
     [TestCase(IrUnaryOperator.Identity, "identity")]

@@ -67,6 +67,7 @@ internal static class SyntaxFacts
             TokenKind.NumberKeyword or
             TokenKind.StringKeyword or
             TokenKind.PrimitiveKeyword or
+            TokenKind.ErrorKeyword or
             TokenKind.UnknownKeyword or
             TokenKind.ObjectKeyword or
             TokenKind.Identifier;

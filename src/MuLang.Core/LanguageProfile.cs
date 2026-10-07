@@ -126,9 +126,9 @@ public sealed record LanguageProfile
 
         if (
             value is not
-                LanguageVersion.Version1 and not
-                LanguageVersion.Version1_1 and not
-                LanguageVersion.Version1_2
+            LanguageVersion.Version1 and not
+            LanguageVersion.Version1_1 and not
+            LanguageVersion.Version1_2
         )
         {
             throw new ArgumentException(

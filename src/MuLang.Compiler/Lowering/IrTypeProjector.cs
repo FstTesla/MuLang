@@ -155,7 +155,9 @@ internal static class IrTypeProjector
                             ],
                         }
                     ),
-                ]
+                ],
+                function.LifetimeRegions,
+                function.ExceptionRegions
             );
         }
 

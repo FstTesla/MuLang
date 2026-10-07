@@ -572,6 +572,12 @@ internal sealed class Lexer
             ),
             "continue" => TokenKind.ContinueKeyword,
             "else" => TokenKind.ElseKeyword,
+            "error" => GetVersionedKeywordKind(
+                TokenKind.ErrorKeyword,
+                LanguageVersion.Version1_2,
+                text,
+                span
+            ),
             "false" => TokenKind.FalseKeyword,
             "finally" => GetVersionedKeywordKind(
                 TokenKind.FinallyKeyword,

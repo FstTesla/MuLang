@@ -8,11 +8,14 @@ internal sealed class MutableIrBlock
 
     public int Id { get; }
 
+    public int LifetimeRegion { get; }
+
     public IReadOnlyCollection<IrInstruction> Instructions => instructions;
 
-    public MutableIrBlock(int id)
+    public MutableIrBlock(int id, int lifetimeRegion)
     {
         Id = id;
+        LifetimeRegion = lifetimeRegion;
     }
 
     public IrTerminator? Terminator { get; set; }
@@ -32,7 +35,8 @@ internal sealed class MutableIrBlock
         return new IrBasicBlock(
             Id,
             instructions.AsReadOnly(),
-            Terminator
+            Terminator,
+            LifetimeRegion
         );
     }
 }

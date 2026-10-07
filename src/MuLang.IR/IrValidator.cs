@@ -136,11 +136,20 @@ public static class IrValidator
             function,
             program.UserFunctions
         );
-        ValidateSlots(functionProgram, diagnostics);
         IReadOnlyDictionary<int, IrBasicBlock> blocksById = ValidateBlocks(
             functionProgram,
             diagnostics
         );
+        IReadOnlyDictionary<int, IrLifetimeRegion> lifetimeRegionsById =
+            ValidateLifetimeRegions(function, blocksById, diagnostics);
+        IReadOnlyDictionary<int, ExceptionBlockOwner> exceptionOwners =
+            ValidateExceptionRegions(
+                function,
+                blocksById,
+                lifetimeRegionsById,
+                diagnostics
+            );
+        ValidateSlots(functionProgram, lifetimeRegionsById, diagnostics);
 
         if (!blocksById.ContainsKey(functionProgram.EntryBlock))
         {
@@ -161,10 +170,38 @@ public static class IrValidator
         foreach (IrBasicBlock block in functionProgram.Blocks)
         {
             ValidateBlock(functionProgram, environment, blocksById, block, diagnostics);
+            ValidateSlotVisibility(
+                functionProgram,
+                lifetimeRegionsById,
+                block,
+                diagnostics
+            );
         }
 
-        ValidateReadOnlySlots(functionProgram, blocksById, diagnostics);
-        ValidateDefinitions(functionProgram, blocksById, diagnostics);
+        ValidateLifetimeRegionEdges(
+            function,
+            blocksById,
+            lifetimeRegionsById,
+            diagnostics
+        );
+        ValidateExceptionRegionControlFlow(
+            function,
+            blocksById,
+            exceptionOwners,
+            diagnostics
+        );
+        ValidateReadOnlySlots(
+            functionProgram,
+            blocksById,
+            lifetimeRegionsById,
+            diagnostics
+        );
+        ValidateDefinitions(
+            functionProgram,
+            blocksById,
+            lifetimeRegionsById,
+            diagnostics
+        );
     }
 
     private static void ValidateParameterSlots(
@@ -211,6 +248,7 @@ public static class IrValidator
 
     private static void ValidateSlots(
         IrProgram program,
+        IReadOnlyDictionary<int, IrLifetimeRegion> lifetimeRegionsById,
         ICollection<Diagnostic> diagnostics
     )
     {
@@ -228,7 +266,7 @@ public static class IrValidator
                 );
             }
 
-            if (slot.Type.Kind is TypeKind.Void or TypeKind.Null or TypeKind.Error)
+            if (slot.Type.Kind is TypeKind.Void or TypeKind.Null or TypeKind.ErrorRecovery)
             {
                 Report(
                     diagnostics,
@@ -268,12 +306,35 @@ public static class IrValidator
                     $"IR temporary slot {slot.Id} cannot be read-only."
                 );
             }
+
+            if (!lifetimeRegionsById.ContainsKey(slot.LifetimeRegion))
+            {
+                Report(
+                    diagnostics,
+                    IrDiagnosticCodes.InvalidSlot,
+                    default,
+                    $"IR slot {slot.Id} belongs to undefined lifetime region {slot.LifetimeRegion}."
+                );
+            }
+            else if (
+                slot.Kind == IrSlotKind.Parameter &&
+                slot.LifetimeRegion != 0
+            )
+            {
+                Report(
+                    diagnostics,
+                    IrDiagnosticCodes.InvalidSlot,
+                    default,
+                    $"IR parameter slot {slot.Id} must belong to lifetime root region 0."
+                );
+            }
         }
     }
 
     private static void ValidateReadOnlySlots(
         IrProgram program,
         IReadOnlyDictionary<int, IrBasicBlock> blocksById,
+        IReadOnlyDictionary<int, IrLifetimeRegion> lifetimeRegionsById,
         ICollection<Diagnostic> diagnostics
     )
     {
@@ -316,11 +377,14 @@ public static class IrValidator
             foreach (int blockId in reachable.Order())
             {
                 IReadOnlySet<int> incoming = GetIncomingPossibleDefinitions(
+                    program,
                     blockId,
                     program.EntryBlock,
                     predecessors,
                     outgoing,
-                    entryDefinitions
+                    entryDefinitions,
+                    blocksById,
+                    lifetimeRegionsById
                 );
                 HashSet<int> definitions = [ .. incoming ];
 
@@ -350,11 +414,14 @@ public static class IrValidator
         {
             ISet<int> defined = new HashSet<int>(
                 GetIncomingPossibleDefinitions(
+                    program,
                     blockId,
                     program.EntryBlock,
                     predecessors,
                     outgoing,
-                    entryDefinitions
+                    entryDefinitions,
+                    blocksById,
+                    lifetimeRegionsById
                 )
             );
 
@@ -401,11 +468,14 @@ public static class IrValidator
     }
 
     private static IReadOnlySet<int> GetIncomingPossibleDefinitions(
+        IrProgram program,
         int blockId,
         int entryBlock,
         IReadOnlyDictionary<int, IReadOnlyList<int>> predecessors,
         IReadOnlyDictionary<int, IReadOnlySet<int>> outgoing,
-        IReadOnlySet<int> entryDefinitions
+        IReadOnlySet<int> entryDefinitions,
+        IReadOnlyDictionary<int, IrBasicBlock> blocksById,
+        IReadOnlyDictionary<int, IrLifetimeRegion> lifetimeRegionsById
     )
     {
         HashSet<int> incoming =
@@ -415,10 +485,585 @@ public static class IrValidator
 
         foreach (int predecessor in predecessors[blockId])
         {
-            incoming.UnionWith(outgoing[predecessor]);
+            incoming.UnionWith(
+                FilterDefinitionsForRegion(
+                    program,
+                    outgoing[predecessor],
+                    blocksById[blockId].LifetimeRegion,
+                    lifetimeRegionsById
+                )
+            );
         }
 
         return incoming;
+    }
+
+    private static IReadOnlyDictionary<int, IrLifetimeRegion> ValidateLifetimeRegions(
+        IrFunction function,
+        IReadOnlyDictionary<int, IrBasicBlock> blocksById,
+        ICollection<Diagnostic> diagnostics
+    )
+    {
+        Dictionary<int, IrLifetimeRegion> regionsById = [ ];
+
+        for (int index = 0; index < function.LifetimeRegions.Count; index++)
+        {
+            IrLifetimeRegion region = function.LifetimeRegions[index];
+
+            if (region.Id != index)
+            {
+                Report(
+                    diagnostics,
+                    IrDiagnosticCodes.InvalidStructure,
+                    default,
+                    $"IR lifetime region at index {index} has identifier {region.Id}."
+                );
+            }
+
+            if (!regionsById.TryAdd(region.Id, region))
+            {
+                Report(
+                    diagnostics,
+                    IrDiagnosticCodes.InvalidStructure,
+                    default,
+                    $"IR lifetime region {region.Id} is declared more than once."
+                );
+            }
+
+            if (region.Id == 0)
+            {
+                if (region.ParentRegion is not null)
+                {
+                    Report(
+                        diagnostics,
+                        IrDiagnosticCodes.InvalidStructure,
+                        default,
+                        "IR lifetime root region 0 cannot have a parent."
+                    );
+                }
+
+                if (region.EntryBlock != function.EntryBlock)
+                {
+                    Report(
+                        diagnostics,
+                        IrDiagnosticCodes.InvalidStructure,
+                        default,
+                        $"IR lifetime root region 0 must enter at function entry block {function.EntryBlock}."
+                    );
+                }
+            }
+            else if (
+                region.ParentRegion is not int parentRegion ||
+                parentRegion < 0 ||
+                parentRegion >= region.Id
+            )
+            {
+                Report(
+                    diagnostics,
+                    IrDiagnosticCodes.InvalidStructure,
+                    default,
+                    $"IR lifetime region {region.Id} has an invalid parent."
+                );
+            }
+
+            if (!blocksById.ContainsKey(region.EntryBlock))
+            {
+                Report(
+                    diagnostics,
+                    IrDiagnosticCodes.InvalidStructure,
+                    default,
+                    $"IR lifetime region {region.Id} entry block {region.EntryBlock} does not exist."
+                );
+            }
+        }
+
+        if (!regionsById.ContainsKey(0))
+        {
+            Report(
+                diagnostics,
+                IrDiagnosticCodes.InvalidStructure,
+                default,
+                "IR function must declare lifetime root region 0."
+            );
+        }
+
+        foreach (IrBasicBlock block in function.Blocks)
+        {
+            if (!regionsById.TryGetValue(
+                    block.LifetimeRegion,
+                    out IrLifetimeRegion? owner
+                ))
+            {
+                Report(
+                    diagnostics,
+                    IrDiagnosticCodes.InvalidStructure,
+                    block.Terminator.Span,
+                    $"IR block {block.Id} belongs to undefined lifetime region {block.LifetimeRegion}."
+                );
+            }
+            else if (
+                owner.EntryBlock == block.Id &&
+                owner.Id != block.LifetimeRegion
+            )
+            {
+                Report(
+                    diagnostics,
+                    IrDiagnosticCodes.InvalidStructure,
+                    block.Terminator.Span,
+                    $"IR lifetime region {owner.Id} entry block {block.Id} has a different owner."
+                );
+            }
+        }
+
+        foreach (IrLifetimeRegion region in function.LifetimeRegions)
+        {
+            if (
+                blocksById.TryGetValue(
+                    region.EntryBlock,
+                    out IrBasicBlock? entry
+                ) &&
+                entry.LifetimeRegion != region.Id
+            )
+            {
+                Report(
+                    diagnostics,
+                    IrDiagnosticCodes.InvalidStructure,
+                    entry.Terminator.Span,
+                    $"IR lifetime region {region.Id} entry block {entry.Id} must be owned by that region."
+                );
+            }
+        }
+
+        return regionsById;
+    }
+
+    private static void ValidateLifetimeRegionEdges(
+        IrFunction function,
+        IReadOnlyDictionary<int, IrBasicBlock> blocksById,
+        IReadOnlyDictionary<int, IrLifetimeRegion> lifetimeRegionsById,
+        ICollection<Diagnostic> diagnostics
+    )
+    {
+        foreach (IrBasicBlock source in function.Blocks)
+        {
+            foreach (int successorId in GetSuccessors(source.Terminator))
+            {
+                if (
+                    !blocksById.TryGetValue(successorId, out IrBasicBlock? target) ||
+                    !lifetimeRegionsById.TryGetValue(
+                        source.LifetimeRegion,
+                        out IrLifetimeRegion? sourceRegion
+                    ) ||
+                    !lifetimeRegionsById.TryGetValue(
+                        target.LifetimeRegion,
+                        out IrLifetimeRegion? targetRegion
+                    )
+                )
+                {
+                    continue;
+                }
+
+                bool remainsActive = IsRegionAncestor(
+                    targetRegion.Id,
+                    sourceRegion.Id,
+                    lifetimeRegionsById
+                );
+                bool entersChild =
+                    targetRegion.ParentRegion == sourceRegion.Id &&
+                    targetRegion.EntryBlock == target.Id;
+
+                if (!remainsActive && !entersChild)
+                {
+                    Report(
+                        diagnostics,
+                        IrDiagnosticCodes.InvalidStructure,
+                        source.Terminator.Span,
+                        $"IR edge from block {source.Id} to block {target.Id} enters lifetime region {targetRegion.Id} illegally."
+                    );
+                }
+                else if (
+                    sourceRegion.Id == targetRegion.Id &&
+                    targetRegion.Id != 0 &&
+                    targetRegion.EntryBlock == target.Id
+                )
+                {
+                    Report(
+                        diagnostics,
+                        IrDiagnosticCodes.InvalidStructure,
+                        source.Terminator.Span,
+                        $"IR edge from block {source.Id} to lifetime region {targetRegion.Id} entry block {target.Id} would restart an active region."
+                    );
+                }
+            }
+        }
+    }
+
+    private static IReadOnlyDictionary<int, ExceptionBlockOwner>
+        ValidateExceptionRegions(
+            IrFunction function,
+            IReadOnlyDictionary<int, IrBasicBlock> blocksById,
+            IReadOnlyDictionary<int, IrLifetimeRegion> lifetimeRegionsById,
+            ICollection<Diagnostic> diagnostics
+        )
+    {
+        Dictionary<int, ExceptionBlockOwner> owners = [ ];
+
+        for (int index = 0; index < function.ExceptionRegions.Count; index++)
+        {
+            IrExceptionRegion region = function.ExceptionRegions[index];
+
+            if (region.Id != index)
+            {
+                Report(
+                    diagnostics,
+                    IrDiagnosticCodes.InvalidStructure,
+                    default,
+                    $"IR exception region at index {index} has identifier {region.Id}."
+                );
+            }
+
+            if (
+                region.Id == 0
+                    ? region.ParentRegion is not null || region.ParentPart is not null
+                    : region.ParentRegion is not int parentRegion ||
+                    parentRegion < 0 ||
+                    parentRegion >= region.Id ||
+                    region.ParentPart is null
+            )
+            {
+                Report(
+                    diagnostics,
+                    IrDiagnosticCodes.InvalidStructure,
+                    default,
+                    $"IR exception region {region.Id} has an invalid parent relationship."
+                );
+            }
+
+            if (region.Handler is null && region.Cleanup is null)
+            {
+                Report(
+                    diagnostics,
+                    IrDiagnosticCodes.InvalidStructure,
+                    default,
+                    $"IR exception region {region.Id} must declare a handler or cleanup."
+                );
+            }
+
+            AddComponent(
+                region,
+                IrExceptionRegionPart.Protected,
+                region.Protected.EntryBlock,
+                region.Protected.Blocks
+            );
+
+            if (region.Handler is IrExceptionHandler handler)
+            {
+                AddComponent(
+                    region,
+                    IrExceptionRegionPart.Handler,
+                    handler.EntryBlock,
+                    handler.Blocks
+                );
+
+                IrSlot? errorSlot = function.Slots.ElementAtOrDefault(
+                    handler.ErrorSlot
+                );
+
+                if (
+                    errorSlot is null ||
+                    errorSlot.Id != handler.ErrorSlot ||
+                    errorSlot.Kind != IrSlotKind.Local ||
+                    errorSlot.Mutability != IrSlotMutability.ReadOnly ||
+                    !TypeRelations.AreEquivalent(
+                        errorSlot.Type,
+                        TypeSymbols.ErrorValue
+                    )
+                )
+                {
+                    Report(
+                        diagnostics,
+                        IrDiagnosticCodes.InvalidSlot,
+                        default,
+                        $"IR exception region {region.Id} handler error slot is invalid."
+                    );
+                }
+                else if (
+                    blocksById.TryGetValue(
+                        handler.EntryBlock,
+                        out IrBasicBlock? handlerEntry
+                    ) &&
+                    (
+                        !lifetimeRegionsById.ContainsKey(
+                            errorSlot.LifetimeRegion
+                        ) ||
+                        handlerEntry.LifetimeRegion != errorSlot.LifetimeRegion ||
+                        errorSlot.LifetimeRegion == 0
+                    )
+                )
+                {
+                    Report(
+                        diagnostics,
+                        IrDiagnosticCodes.InvalidSlot,
+                        default,
+                        $"IR exception region {region.Id} handler error slot must belong to the dedicated handler lifetime region."
+                    );
+                }
+            }
+
+            if (region.Cleanup is IrExceptionCleanup cleanup)
+            {
+                AddComponent(
+                    region,
+                    IrExceptionRegionPart.Cleanup,
+                    cleanup.EntryBlock,
+                    cleanup.Blocks
+                );
+            }
+
+            if (
+                region.ParentRegion is int parentId &&
+                parentId < function.ExceptionRegions.Count &&
+                region.ParentPart is IrExceptionRegionPart parentPart &&
+                !HasComponent(function.ExceptionRegions[parentId], parentPart)
+            )
+            {
+                Report(
+                    diagnostics,
+                    IrDiagnosticCodes.InvalidStructure,
+                    default,
+                    $"IR exception region {region.Id} refers to a missing parent component."
+                );
+            }
+        }
+
+        return owners;
+
+        void AddComponent(
+            IrExceptionRegion region,
+            IrExceptionRegionPart part,
+            int entryBlock,
+            IReadOnlyCollection<int> componentBlocks
+        )
+        {
+            if (componentBlocks.Count == 0 || !componentBlocks.Contains(entryBlock))
+            {
+                Report(
+                    diagnostics,
+                    IrDiagnosticCodes.InvalidStructure,
+                    default,
+                    $"IR exception region {region.Id} {part.ToString().ToLowerInvariant()} component has an invalid entry or no blocks."
+                );
+            }
+
+            if (componentBlocks.Count != componentBlocks.Distinct().Count())
+            {
+                Report(
+                    diagnostics,
+                    IrDiagnosticCodes.InvalidStructure,
+                    default,
+                    $"IR exception region {region.Id} {part.ToString().ToLowerInvariant()} component contains duplicate blocks."
+                );
+            }
+
+            foreach (int blockId in componentBlocks)
+            {
+                if (!blocksById.ContainsKey(blockId))
+                {
+                    Report(
+                        diagnostics,
+                        IrDiagnosticCodes.InvalidStructure,
+                        default,
+                        $"IR exception region {region.Id} refers to undefined block {blockId}."
+                    );
+                }
+                else if (!owners.TryAdd(
+                        blockId,
+                        new ExceptionBlockOwner(region.Id, part)
+                    ))
+                {
+                    Report(
+                        diagnostics,
+                        IrDiagnosticCodes.InvalidStructure,
+                        blocksById[blockId].Terminator.Span,
+                        $"IR block {blockId} has more than one direct exception-region owner."
+                    );
+                }
+            }
+        }
+    }
+
+    private static void ValidateExceptionRegionControlFlow(
+        IrFunction function,
+        IReadOnlyDictionary<int, IrBasicBlock> blocksById,
+        IReadOnlyDictionary<int, ExceptionBlockOwner> owners,
+        ICollection<Diagnostic> diagnostics
+    )
+    {
+        foreach (IrBasicBlock source in function.Blocks)
+        {
+            owners.TryGetValue(source.Id, out ExceptionBlockOwner? sourceOwner);
+
+            if (
+                source.Terminator is IrTerminator.Return &&
+                sourceOwner?.Part == IrExceptionRegionPart.Cleanup
+            )
+            {
+                Report(
+                    diagnostics,
+                    IrDiagnosticCodes.InvalidStructure,
+                    source.Terminator.Span,
+                    $"IR cleanup block {source.Id} cannot return."
+                );
+            }
+
+            if (
+                source.Terminator is IrTerminator.Resume &&
+                sourceOwner?.Part != IrExceptionRegionPart.Cleanup
+            )
+            {
+                Report(
+                    diagnostics,
+                    IrDiagnosticCodes.InvalidStructure,
+                    source.Terminator.Span,
+                    $"IR resume terminator in block {source.Id} is outside cleanup."
+                );
+            }
+
+            foreach (int successorId in GetSuccessors(source.Terminator))
+            {
+                if (!blocksById.ContainsKey(successorId))
+                {
+                    continue;
+                }
+
+                owners.TryGetValue(
+                    successorId,
+                    out ExceptionBlockOwner? targetOwner
+                );
+
+                if (
+                    targetOwner?.Part is
+                        IrExceptionRegionPart.Handler or
+                        IrExceptionRegionPart.Cleanup &&
+                    !Equals(targetOwner, sourceOwner)
+                )
+                {
+                    Report(
+                        diagnostics,
+                        IrDiagnosticCodes.InvalidStructure,
+                        source.Terminator.Span,
+                        $"IR edge from block {source.Id} enters a handler or cleanup component directly."
+                    );
+                }
+
+                if (
+                    sourceOwner?.Part == IrExceptionRegionPart.Cleanup &&
+                    !Equals(targetOwner, sourceOwner)
+                )
+                {
+                    Report(
+                        diagnostics,
+                        IrDiagnosticCodes.InvalidStructure,
+                        source.Terminator.Span,
+                        $"IR cleanup block {source.Id} cannot transfer outside its cleanup component."
+                    );
+                }
+            }
+        }
+    }
+
+    private static bool HasComponent(
+        IrExceptionRegion region,
+        IrExceptionRegionPart part
+    )
+    {
+        return part switch
+        {
+            IrExceptionRegionPart.Protected => true,
+            IrExceptionRegionPart.Handler => region.Handler is not null,
+            IrExceptionRegionPart.Cleanup => region.Cleanup is not null,
+            _ => false,
+        };
+    }
+
+    private static void ValidateSlotVisibility(
+        IrProgram program,
+        IReadOnlyDictionary<int, IrLifetimeRegion> lifetimeRegionsById,
+        IrBasicBlock block,
+        ICollection<Diagnostic> diagnostics
+    )
+    {
+        foreach (IrInstruction instruction in block.Instructions)
+        {
+            int? destination = GetDestination(instruction);
+
+            if (destination is not null)
+            {
+                ValidateSlotVisibility(
+                    program,
+                    lifetimeRegionsById,
+                    block,
+                    destination.Value,
+                    instruction.Span,
+                    diagnostics
+                );
+            }
+
+            foreach (int operand in GetOperands(instruction))
+            {
+                ValidateSlotVisibility(
+                    program,
+                    lifetimeRegionsById,
+                    block,
+                    operand,
+                    instruction.Span,
+                    diagnostics
+                );
+            }
+        }
+
+        foreach (int operand in GetOperands(block.Terminator))
+        {
+            ValidateSlotVisibility(
+                program,
+                lifetimeRegionsById,
+                block,
+                operand,
+                block.Terminator.Span,
+                diagnostics
+            );
+        }
+    }
+
+    private static void ValidateSlotVisibility(
+        IrProgram program,
+        IReadOnlyDictionary<int, IrLifetimeRegion> lifetimeRegionsById,
+        IrBasicBlock block,
+        int slotId,
+        TextSpan span,
+        ICollection<Diagnostic> diagnostics
+    )
+    {
+        IrSlot? slot = GetSlot(program, slotId);
+
+        if (
+            slot is not null &&
+            lifetimeRegionsById.ContainsKey(slot.LifetimeRegion) &&
+            lifetimeRegionsById.ContainsKey(block.LifetimeRegion) &&
+            !IsRegionAncestor(
+                slot.LifetimeRegion,
+                block.LifetimeRegion,
+                lifetimeRegionsById
+            )
+        )
+        {
+            Report(
+                diagnostics,
+                IrDiagnosticCodes.InvalidSlot,
+                span,
+                $"IR slot {slot.Id} is not visible in block {block.Id}."
+            );
+        }
     }
 
     private static Dictionary<int, IrBasicBlock> ValidateBlocks(
@@ -525,6 +1170,23 @@ public static class IrValidator
                     );
                 }
 
+                break;
+            }
+
+            case IrTerminator.Throw error:
+            {
+                ValidateSlotType(
+                    program,
+                    error.Error,
+                    TypeSymbols.ErrorValue,
+                    error.Span,
+                    diagnostics
+                );
+                break;
+            }
+
+            case IrTerminator.Resume:
+            {
                 break;
             }
         }
@@ -1116,6 +1778,20 @@ public static class IrValidator
                     ? TypeSymbols.Nullable(TypeSymbols.Int)
                     : TypeSymbols.Int;
         }
+        else if (
+            targetType.Kind == TypeKind.ErrorValue &&
+            TryGetErrorPropertyType(
+                property.Name,
+                out TypeSymbol? errorPropertyType,
+                out bool isOptional
+            )
+        )
+        {
+            expectedType =
+                property.IsOptional && isOptional
+                    ? MakeNullable(errorPropertyType)
+                    : errorPropertyType;
+        }
         else if (targetType is ObjectTypeSymbol objectType)
         {
             if (objectType.TryGetProperty(property.Name, out ObjectPropertySymbol? symbol))
@@ -1178,6 +1854,15 @@ public static class IrValidator
             {
                 expectedType = symbol.Type;
             }
+            else if (targetType.Kind == TypeKind.ErrorValue)
+            {
+                Report(
+                    diagnostics,
+                    IrDiagnosticCodes.InvalidStructure,
+                    property.Span,
+                    $"IR cannot remove read-only error property '{property.Name}'."
+                );
+            }
         }
         else if (
             targetType.Kind == TypeKind.Object ||
@@ -1225,7 +1910,10 @@ public static class IrValidator
         if (element.IsObjectAccess)
         {
             isValid =
-                targetType.Kind is TypeKind.Object or TypeKind.StructuredObject &&
+                targetType.Kind is
+                    TypeKind.Object or
+                    TypeKind.StructuredObject or
+                    TypeKind.ErrorValue &&
                 AreType(index, TypeSymbols.String);
         }
         else
@@ -1411,6 +2099,54 @@ public static class IrValidator
             : TypeSymbols.Nullable(type);
     }
 
+    private static bool TryGetErrorPropertyType(
+        string name,
+        out TypeSymbol type,
+        out bool isOptional
+    )
+    {
+        switch (name)
+        {
+            case "code":
+            case "category":
+            case "message":
+            {
+                type = TypeSymbols.String;
+                isOptional = false;
+                return true;
+            }
+
+            case "cause":
+            {
+                type = TypeSymbols.ErrorValue;
+                isOptional = true;
+                return true;
+            }
+
+            case "data":
+            {
+                type = TypeSymbols.Nullable(TypeSymbols.Unknown);
+                isOptional = true;
+                return true;
+            }
+
+            case "spanStart":
+            case "spanLength":
+            {
+                type = TypeSymbols.Int;
+                isOptional = false;
+                return true;
+            }
+
+            default:
+            {
+                type = TypeSymbols.ErrorRecovery;
+                isOptional = false;
+                return false;
+            }
+        }
+    }
+
     private static void ValidateProviderCall(
         IrProgram program,
         EnvironmentSchema environment,
@@ -1584,6 +2320,7 @@ public static class IrValidator
     private static void ValidateDefinitions(
         IrProgram program,
         IReadOnlyDictionary<int, IrBasicBlock> blocksById,
+        IReadOnlyDictionary<int, IrLifetimeRegion> lifetimeRegionsById,
         ICollection<Diagnostic> diagnostics
     )
     {
@@ -1623,11 +2360,14 @@ public static class IrValidator
             foreach (int blockId in reachable.Order())
             {
                 IReadOnlySet<int> incoming = GetIncomingDefinitions(
+                    program,
                     blockId,
                     program.EntryBlock,
                     predecessors,
                     outgoing,
-                    parameterSlots
+                    parameterSlots,
+                    blocksById,
+                    lifetimeRegionsById
                 );
                 IReadOnlySet<int> definitions = ApplyDefinitions(
                     blocksById[blockId],
@@ -1646,13 +2386,121 @@ public static class IrValidator
         foreach (int blockId in reachable)
         {
             IReadOnlySet<int> defined = GetIncomingDefinitions(
+                program,
                 blockId,
                 program.EntryBlock,
                 predecessors,
                 outgoing,
-                parameterSlots
+                parameterSlots,
+                blocksById,
+                lifetimeRegionsById
             );
             ValidateUses(blocksById[blockId], defined, diagnostics);
+        }
+
+        foreach (IrExceptionRegion region in program.EntryFunction.ExceptionRegions)
+        {
+            IReadOnlySet<int> protectedDefinitions = reachable.Contains(
+                region.Protected.EntryBlock
+            )
+                ? GetIncomingDefinitions(
+                    program,
+                    region.Protected.EntryBlock,
+                    program.EntryBlock,
+                    predecessors,
+                    outgoing,
+                    parameterSlots,
+                    blocksById,
+                    lifetimeRegionsById
+                )
+                : parameterSlots;
+
+            if (region.Handler is IrExceptionHandler handler)
+            {
+                ValidateComponentDefinitions(
+                    handler.EntryBlock,
+                    handler.Blocks,
+                    protectedDefinitions.Append(handler.ErrorSlot)
+                );
+            }
+
+            if (region.Cleanup is IrExceptionCleanup cleanup)
+            {
+                ValidateComponentDefinitions(
+                    cleanup.EntryBlock,
+                    cleanup.Blocks,
+                    protectedDefinitions
+                );
+            }
+        }
+
+        void ValidateComponentDefinitions(
+            int componentEntry,
+            IReadOnlyCollection<int> componentBlocks,
+            IEnumerable<int> initialDefinitions
+        )
+        {
+            IReadOnlySet<int> allowedBlocks = componentBlocks.ToHashSet();
+            IReadOnlyCollection<int> componentReachable = GetReachableBlocks(
+                componentEntry,
+                blocksById
+            ).Where(allowedBlocks.Contains).ToArray();
+            IReadOnlyDictionary<int, IReadOnlyList<int>> componentPredecessors =
+                GetPredecessors(componentReachable, blocksById);
+            IReadOnlySet<int> entryDefinitions = new HashSet<int>(
+                initialDefinitions
+            );
+            Dictionary<int, IReadOnlySet<int>> componentOutgoing =
+                componentReachable.ToDictionary(
+                    static blockId => blockId,
+                    _ => allSlots
+                );
+            bool componentChanged;
+
+            do
+            {
+                componentChanged = false;
+
+                foreach (int blockId in componentReachable.Order())
+                {
+                    IReadOnlySet<int> incoming = GetIncomingDefinitions(
+                        program,
+                        blockId,
+                        componentEntry,
+                        componentPredecessors,
+                        componentOutgoing,
+                        entryDefinitions,
+                        blocksById,
+                        lifetimeRegionsById
+                    );
+                    IReadOnlySet<int> definitions = ApplyDefinitions(
+                        blocksById[blockId],
+                        incoming
+                    );
+
+                    if (!componentOutgoing[blockId].SetEquals(definitions))
+                    {
+                        componentOutgoing[blockId] = definitions;
+                        componentChanged = true;
+                    }
+                }
+            }
+            while (componentChanged);
+
+            foreach (int blockId in componentReachable)
+            {
+                IReadOnlySet<int> defined = GetIncomingDefinitions(
+                    program,
+                    blockId,
+                    componentEntry,
+                    componentPredecessors,
+                    componentOutgoing,
+                    entryDefinitions,
+                    blocksById,
+                    lifetimeRegionsById
+                );
+                ValidateUses(blocksById[blockId], defined, diagnostics);
+            }
         }
     }
 
@@ -1713,11 +2561,14 @@ public static class IrValidator
     }
 
     private static IReadOnlySet<int> GetIncomingDefinitions(
+        IrProgram program,
         int blockId,
         int entryBlock,
         IReadOnlyDictionary<int, IReadOnlyList<int>> predecessors,
         IReadOnlyDictionary<int, IReadOnlySet<int>> outgoing,
-        IReadOnlySet<int> entryDefinitions
+        IReadOnlySet<int> entryDefinitions,
+        IReadOnlyDictionary<int, IrBasicBlock> blocksById,
+        IReadOnlyDictionary<int, IrLifetimeRegion> lifetimeRegionsById
     )
     {
         if (blockId == entryBlock)
@@ -1730,14 +2581,82 @@ public static class IrValidator
             return ReadOnlySet<int>.Empty;
         }
 
-        HashSet<int> incoming = [ .. outgoing[predecessors[blockId][0]] ];
+        int targetRegion = blocksById[blockId].LifetimeRegion;
+        HashSet<int> incoming =
+        [
+            .. FilterDefinitionsForRegion(
+                program,
+                outgoing[predecessors[blockId][0]],
+                targetRegion,
+                lifetimeRegionsById
+            ),
+        ];
 
         foreach (int predecessor in predecessors[blockId].Skip(1))
         {
-            incoming.IntersectWith(outgoing[predecessor]);
+            incoming.IntersectWith(
+                FilterDefinitionsForRegion(
+                    program,
+                    outgoing[predecessor],
+                    targetRegion,
+                    lifetimeRegionsById
+                )
+            );
         }
 
         return incoming;
+    }
+
+    private static IReadOnlySet<int> FilterDefinitionsForRegion(
+        IrProgram program,
+        IEnumerable<int> definitions,
+        int targetRegion,
+        IReadOnlyDictionary<int, IrLifetimeRegion> lifetimeRegionsById
+    )
+    {
+        return new HashSet<int>(
+            definitions.Where(
+                slotId =>
+                {
+                    IrSlot? slot = GetSlot(program, slotId);
+
+                    return
+                        slot is not null &&
+                        IsRegionAncestor(
+                            slot.LifetimeRegion,
+                            targetRegion,
+                            lifetimeRegionsById
+                        );
+                }
+            )
+        );
+    }
+
+    private static bool IsRegionAncestor(
+        int possibleAncestor,
+        int region,
+        IReadOnlyDictionary<int, IrLifetimeRegion> lifetimeRegionsById
+    )
+    {
+        int? current = region;
+
+        while (
+            current is int currentId &&
+            lifetimeRegionsById.TryGetValue(
+                currentId,
+                out IrLifetimeRegion? currentRegion
+            )
+        )
+        {
+            if (currentId == possibleAncestor)
+            {
+                return true;
+            }
+
+            current = currentRegion.ParentRegion;
+        }
+
+        return false;
     }
 
     private static IReadOnlySet<int> ApplyDefinitions(
@@ -1865,6 +2784,7 @@ public static class IrValidator
         {
             IrTerminator.Branch branch => [ branch.Condition ],
             IrTerminator.Return { Value: { } value } => [ value ],
+            IrTerminator.Throw error => [ error.Error ],
             _ => [ ],
         };
     }
@@ -2030,4 +2950,9 @@ public static class IrValidator
             )
         );
     }
+
+    private sealed record ExceptionBlockOwner(
+        int RegionId,
+        IrExceptionRegionPart Part
+    );
 }

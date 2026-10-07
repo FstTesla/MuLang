@@ -1,0 +1,25 @@
+muir 2
+mode program
+environment "env"
+profile "profile"
+types 2
+type t0 intrinsic void
+type t1 intrinsic error
+
+entry "$entry" t0 bb0 slots 1 blocks 3 lifetime-regions 2 exception-regions 1 {
+  lifetime-region lr0 parent none entry bb0
+  lifetime-region lr1 parent lr0 entry bb1
+  exception-region er0 parent none parent-part none protected bb0 [bb0] handler bb1 %0 [bb1] cleanup bb2 [bb2]
+  slot %0 local t1 readonly "error" region lr1
+  block bb0 region lr0 instructions 0 {
+    term jump 0 0 bb2
+  }
+  block bb1 region lr1 instructions 0 {
+    term throw 0 0 %0
+  }
+  block bb2 region lr0 instructions 0 {
+    term resume 0 0
+  }
+}
+users 0
+end

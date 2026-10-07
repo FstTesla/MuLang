@@ -3,6 +3,9 @@ namespace MuLang.IR.Serialization;
 /// <summary>Represents resource limits applied while reading MuIR.</summary>
 public sealed class MuIrReaderOptions
 {
+    private int maximumExceptionRegionsPerFunction = 100_000;
+    private int maximumLifetimeRegionsPerFunction = 100_000;
+
     /// <summary>Initializes a new instance of the <see cref="MuIrReaderOptions" /> class.</summary>
     /// <param name="maximumDocumentLength">The maximum document length in characters.</param>
     /// <param name="maximumStringLength">The maximum decoded string length.</param>
@@ -66,6 +69,26 @@ public sealed class MuIrReaderOptions
 
     /// <summary>Gets the maximum number of functions.</summary>
     public int MaximumFunctions { get; }
+
+    /// <summary>Gets the maximum number of lifetime regions in one function.</summary>
+    public int MaximumLifetimeRegionsPerFunction
+    {
+        get => maximumLifetimeRegionsPerFunction;
+        init => maximumLifetimeRegionsPerFunction = Validate(
+            value,
+            nameof(MaximumLifetimeRegionsPerFunction)
+        );
+    }
+
+    /// <summary>Gets the maximum number of exception regions in one function.</summary>
+    public int MaximumExceptionRegionsPerFunction
+    {
+        get => maximumExceptionRegionsPerFunction;
+        init => maximumExceptionRegionsPerFunction = Validate(
+            value,
+            nameof(MaximumExceptionRegionsPerFunction)
+        );
+    }
 
     /// <summary>Gets the maximum number of slots in one function.</summary>
     public int MaximumSlotsPerFunction { get; }

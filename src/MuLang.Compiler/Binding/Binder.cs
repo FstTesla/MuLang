@@ -258,7 +258,7 @@ internal sealed class Binder
                         parameter.Type.Span,
                         "A function parameter cannot have type 'void'."
                     );
-                    parameterType = TypeSymbols.Error;
+                    parameterType = TypeSymbols.ErrorRecovery;
                 }
 
                 if (!parameterNames.Add(parameterName))
@@ -287,7 +287,7 @@ internal sealed class Binder
 
             TypeSymbol returnType = BindType(declaration.ReturnType);
 
-            if (returnType.Kind is TypeKind.Null or TypeKind.Error)
+            if (returnType.Kind is TypeKind.Null or TypeKind.ErrorRecovery)
             {
                 Report(
                     DiagnosticCodes.InvalidReturnType,
@@ -358,7 +358,7 @@ internal sealed class Binder
         BoundStatement body = functionBinder.BindStatement(function.Declaration.Body, state);
 
         if (
-            function.ReturnType.Kind is not TypeKind.Void and not TypeKind.Error &&
+            function.ReturnType.Kind is not TypeKind.Void and not TypeKind.ErrorRecovery &&
             state.CanCompleteNormally
         )
         {
@@ -513,7 +513,7 @@ internal sealed class Binder
         BoundExpression? initializer
     )
     {
-        if (initializer is not (null or { Type.Kind: TypeKind.Null or TypeKind.Error or TypeKind.Void }))
+        if (initializer is not (null or { Type.Kind: TypeKind.Null or TypeKind.ErrorRecovery or TypeKind.Void }))
         {
             return initializer.Type;
         }
@@ -523,7 +523,7 @@ internal sealed class Binder
             syntax.Span,
             "The local variable type cannot be inferred from its initializer."
         );
-        return TypeSymbols.Error;
+        return TypeSymbols.ErrorRecovery;
     }
 
     private BoundStatement BindAssignment(
@@ -612,7 +612,7 @@ internal sealed class Binder
             );
         }
 
-        if (target is BoundExpression.Local local && value.Type.Kind != TypeKind.Error)
+        if (target is BoundExpression.Local local && value.Type.Kind != TypeKind.ErrorRecovery)
         {
             if (
                 state.CanCompleteNormally &&
@@ -680,7 +680,7 @@ internal sealed class Binder
             _ => false,
         };
 
-        if (!isRemovable && target.Type.Kind != TypeKind.Error)
+        if (!isRemovable && target.Type.Kind != TypeKind.ErrorRecovery)
         {
             Report(
                 DiagnosticCodes.PropertyNotRemovable,
@@ -1164,7 +1164,7 @@ internal sealed class Binder
             _ => throw new InvalidOperationException("Unknown expression syntax."),
         };
 
-        if (expectedType is null || expression.Type.Kind == TypeKind.Error)
+        if (expectedType is null || expression.Type.Kind == TypeKind.ErrorRecovery)
         {
             return expression;
         }
@@ -1384,7 +1384,7 @@ internal sealed class Binder
             );
             elements.Add(element);
 
-            if (element.Type.Kind == TypeKind.Error)
+            if (element.Type.Kind == TypeKind.ErrorRecovery)
             {
                 hasInvalidElementType = true;
                 continue;
@@ -1594,14 +1594,14 @@ internal sealed class Binder
                 );
             }
 
-            TypeSymbol propertyType = declaredType?.Kind == TypeKind.Error
+            TypeSymbol propertyType = declaredType?.Kind == TypeKind.ErrorRecovery
                 ? TypeSymbols.Unknown
                 : declaredType ??
                 (
                     value?.Type.Kind is
                         TypeKind.Null or
                         TypeKind.Void or
-                        TypeKind.Error or
+                        TypeKind.ErrorRecovery or
                         null
                         ? TypeSymbols.Unknown
                         : value.Type
@@ -1673,7 +1673,7 @@ internal sealed class Binder
             profile.ConditionSemantics == ConditionSemantics.Truthiness
         )
         {
-            if (operand.Type.Kind == TypeKind.Error)
+            if (operand.Type.Kind == TypeKind.ErrorRecovery)
             {
                 return new BoundExpression.Error(syntax);
             }
@@ -1711,7 +1711,7 @@ internal sealed class Binder
             _ => null,
         };
 
-        if (operand.Type.Kind == TypeKind.Error)
+        if (operand.Type.Kind == TypeKind.ErrorRecovery)
         {
             return new BoundExpression.Error(syntax);
         }
@@ -1747,7 +1747,7 @@ internal sealed class Binder
         BoundExpression left = BindExpression(syntax.Left);
         BoundExpression right = BindExpression(syntax.Right);
 
-        if (left.Type.Kind == TypeKind.Error || right.Type.Kind == TypeKind.Error)
+        if (left.Type.Kind == TypeKind.ErrorRecovery || right.Type.Kind == TypeKind.ErrorRecovery)
         {
             return new BoundExpression.Error(syntax);
         }
@@ -1828,7 +1828,7 @@ internal sealed class Binder
         BoundExpression left = BindExpression(syntax.Left);
         BoundExpression right = BindExpression(syntax.Right, expectedType);
 
-        if (left.Type.Kind == TypeKind.Error || right.Type.Kind == TypeKind.Error)
+        if (left.Type.Kind == TypeKind.ErrorRecovery || right.Type.Kind == TypeKind.ErrorRecovery)
         {
             return new BoundExpression.Error(syntax);
         }
@@ -1837,10 +1837,10 @@ internal sealed class Binder
         {
             { Type: NullableTypeSymbol nullable } => nullable.UnderlyingType,
             BoundExpression.Literal { Type.Kind: TypeKind.Null } => null,
-            _ => TypeSymbols.Error,
+            _ => TypeSymbols.ErrorRecovery,
         };
 
-        if (ReferenceEquals(leftValueType, TypeSymbols.Error))
+        if (ReferenceEquals(leftValueType, TypeSymbols.ErrorRecovery))
         {
             ReportOperatorNotDefined(
                 syntax.OperatorToken,
@@ -2136,7 +2136,7 @@ internal sealed class Binder
         }
 
         if (
-            target.Type.Kind != TypeKind.Error &&
+            target.Type.Kind != TypeKind.ErrorRecovery &&
             targetType.Kind is not TypeKind.Object and not TypeKind.StructuredObject
         )
         {
@@ -2197,7 +2197,7 @@ internal sealed class Binder
 
         BoundExpression expression = BindExpression(syntax);
 
-        if (expression.Type.Kind == TypeKind.Error)
+        if (expression.Type.Kind == TypeKind.ErrorRecovery)
         {
             return expression;
         }
@@ -2367,6 +2367,37 @@ internal sealed class Binder
             );
         }
 
+        if (
+            targetType.Kind == TypeKind.ErrorValue &&
+            TryGetErrorProperty(name, out ObjectPropertySymbol? errorProperty)
+        )
+        {
+            ReportOptionalAccess(
+                target,
+                syntax.IsOptional,
+                errorProperty!.IsOptional,
+                syntax.OperatorToken.Span
+            );
+            TypeSymbol resultType = ShouldOptionalAccessReturnNullable(
+                syntax.IsOptional,
+                target.Type,
+                errorProperty.IsOptional
+            )
+                ? MakeNullable(errorProperty.Type)
+                : errorProperty.Type;
+
+            return new BoundExpression.MemberAccess(
+                syntax,
+                resultType,
+                target,
+                name,
+                errorProperty,
+                false,
+                syntax.IsOptional,
+                false
+            );
+        }
+
         if (targetType is ObjectTypeSymbol objectType)
         {
             if (objectType.TryGetProperty(name, out ObjectPropertySymbol? property))
@@ -2455,7 +2486,7 @@ internal sealed class Binder
             );
         }
 
-        if (target.Type.Kind != TypeKind.Error)
+        if (target.Type.Kind != TypeKind.ErrorRecovery)
         {
             Report(
                 DiagnosticCodes.PropertyNotFound,
@@ -2493,6 +2524,55 @@ internal sealed class Binder
                 index,
                 null,
                 false,
+                false,
+                syntax.IsOptional
+            );
+        }
+
+        if (targetType.Kind == TypeKind.ErrorValue)
+        {
+            BoundExpression index = BindExpression(syntax.Index, TypeSymbols.String);
+            ObjectPropertySymbol? property =
+                index is BoundExpression.Literal
+                {
+                    Type.Kind: TypeKind.String,
+                    Value: string propertyName,
+                } &&
+                TryGetErrorProperty(propertyName, out ObjectPropertySymbol? resolved)
+                    ? resolved
+                    : null;
+
+            if (property is null)
+            {
+                Report(
+                    DiagnosticCodes.PropertyNotFound,
+                    syntax.Index.Span,
+                    $"The selected property is not available on '{target.Type.DisplayName}'."
+                );
+                return new BoundExpression.Error(syntax);
+            }
+
+            ReportOptionalAccess(
+                target,
+                syntax.IsOptional,
+                property.IsOptional,
+                syntax.OpenBracketToken.Span
+            );
+            TypeSymbol resultType = ShouldOptionalAccessReturnNullable(
+                syntax.IsOptional,
+                target.Type,
+                property.IsOptional
+            )
+                ? MakeNullable(property.Type)
+                : property.Type;
+
+            return new BoundExpression.ElementAccess(
+                syntax,
+                resultType,
+                target,
+                index,
+                property,
+                true,
                 false,
                 syntax.IsOptional
             );
@@ -2587,7 +2667,7 @@ internal sealed class Binder
 
         BindExpression(syntax.Index);
 
-        if (target.Type.Kind != TypeKind.Error)
+        if (target.Type.Kind != TypeKind.ErrorRecovery)
         {
             Report(
                 DiagnosticCodes.InvalidIndex,
@@ -2673,16 +2753,17 @@ internal sealed class Binder
             TokenKind.NumberKeyword => TypeSymbols.Number,
             TokenKind.StringKeyword => TypeSymbols.String,
             TokenKind.PrimitiveKeyword => TypeSymbols.Primitive,
+            TokenKind.ErrorKeyword => TypeSymbols.ErrorValue,
             TokenKind.UnknownKeyword => TypeSymbols.Unknown,
             TokenKind.ObjectKeyword => TypeSymbols.Object,
             TokenKind.VoidKeyword => TypeSymbols.Void,
             TokenKind.Identifier
                 when environment.TryGetType(name, out ObjectTypeSymbol? objectType) =>
                 objectType,
-            _ => TypeSymbols.Error,
+            _ => TypeSymbols.ErrorRecovery,
         };
 
-        if (type.Kind == TypeKind.Error)
+        if (type.Kind == TypeKind.ErrorRecovery)
         {
             Report(
                 DiagnosticCodes.UndefinedType,
@@ -2703,7 +2784,7 @@ internal sealed class Binder
                     syntax.Span,
                     "Type 'void' cannot have nullable or array suffixes."
                 );
-                return TypeSymbols.Error;
+                return TypeSymbols.ErrorRecovery;
             }
 
             if (suffix.Kind == TokenKind.Question)
@@ -2756,6 +2837,47 @@ internal sealed class Binder
         }
 
         return null;
+    }
+
+    private static bool TryGetErrorProperty(
+        string name,
+        out ObjectPropertySymbol? property
+    )
+    {
+        property = name switch
+        {
+            "code" or "category" or "message" =>
+                new ObjectPropertySymbol(
+                    name,
+                    TypeSymbols.String,
+                    false,
+                    true
+                ),
+            "cause" =>
+                new ObjectPropertySymbol(
+                    name,
+                    TypeSymbols.ErrorValue,
+                    true,
+                    true
+                ),
+            "data" =>
+                new ObjectPropertySymbol(
+                    name,
+                    TypeSymbols.Nullable(TypeSymbols.Unknown),
+                    true,
+                    true
+                ),
+            "spanStart" or "spanLength" =>
+                new ObjectPropertySymbol(
+                    name,
+                    TypeSymbols.Int,
+                    false,
+                    true
+                ),
+            _ => null,
+        };
+
+        return property is not null;
     }
 
     private void MergeBranches(
@@ -3216,7 +3338,7 @@ internal sealed class Binder
     {
         return type is NullableTypeSymbol nullable
             ? nullable.UnderlyingType
-            : type ?? TypeSymbols.Error;
+            : type ?? TypeSymbols.ErrorRecovery;
     }
 
     private static bool IsNumeric(TypeSymbol type)
@@ -3347,7 +3469,7 @@ internal sealed class Binder
     )
     {
         if (
-            expression.Type.Kind == TypeKind.Error ||
+            expression.Type.Kind == TypeKind.ErrorRecovery ||
             !BoundExpressionFacts.TryGetTruthiness(expression, out bool value)
         )
         {

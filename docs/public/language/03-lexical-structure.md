@@ -62,6 +62,7 @@ Language version 1.1 additionally reserves:
 Language version 1.2 additionally reserves:
 
 - `catch`
+- `error`
 - `finally`
 - `primitive`
 - `throw`

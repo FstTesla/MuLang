@@ -2,9 +2,9 @@ using MuLang.Core.Types;
 
 namespace MuLang.Exporters.DotNet;
 
-internal sealed class DotNetObjectValue :
-    IDotNetObjectValue,
-    IDotNetObjectPropertyCapabilities
+internal sealed class DotNetObjectValue
+    : IDotNetObjectValue,
+        IDotNetObjectPropertyCapabilities
 {
     private readonly ObjectTypeSymbol type;
     private readonly Dictionary<string, object?> properties;

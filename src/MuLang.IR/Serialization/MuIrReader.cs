@@ -513,7 +513,121 @@ public static class MuIrReader
             int slotCount = ReadCount(options.MaximumSlotsPerFunction, "slot");
             Expect("blocks");
             int blockCount = ReadCount(options.MaximumBlocksPerFunction, "block");
+            int lifetimeRegionCount;
+            int exceptionRegionCount;
+
+            if (formatVersion >= 2)
+            {
+                Expect("lifetime-regions");
+                lifetimeRegionCount = ReadCount(
+                    options.MaximumLifetimeRegionsPerFunction,
+                    "lifetime region"
+                );
+                Expect("exception-regions");
+                exceptionRegionCount = ReadCount(
+                    options.MaximumExceptionRegionsPerFunction,
+                    "exception region"
+                );
+            }
+            else
+            {
+                lifetimeRegionCount = 1;
+                exceptionRegionCount = 0;
+            }
+
             Expect("{");
+            List<IrLifetimeRegion> lifetimeRegions = new (lifetimeRegionCount);
+
+            if (formatVersion >= 2)
+            {
+                for (int index = 0; index < lifetimeRegionCount; index++)
+                {
+                    Expect("lifetime-region", MuIrDiagnosticCodes.MissingSection);
+                    int regionId = ReadReference(
+                        "lr",
+                        MuIrDiagnosticCodes.UndefinedReference
+                    );
+                    Expect("parent");
+                    int? parentRegion = ReadOptionalLifetimeRegion();
+                    Expect("entry");
+                    int regionEntryBlock = ReadBlock();
+                    lifetimeRegions.Add(
+                        new IrLifetimeRegion(
+                            regionId,
+                            parentRegion,
+                            regionEntryBlock
+                        )
+                    );
+                }
+            }
+            else
+            {
+                lifetimeRegions.Add(new IrLifetimeRegion(0, null, entryBlock));
+            }
+
+            List<IrExceptionRegion> exceptionRegions = new (exceptionRegionCount);
+
+            for (int index = 0; index < exceptionRegionCount; index++)
+            {
+                Expect("exception-region", MuIrDiagnosticCodes.MissingSection);
+                int regionId = ReadReference(
+                    "er",
+                    MuIrDiagnosticCodes.UndefinedReference
+                );
+                Expect("parent");
+                int? parentRegion = ReadOptionalExceptionRegion();
+                Expect("parent-part");
+                IrExceptionRegionPart? parentPart = ReadOptionalExceptionRegionPart();
+                Expect("protected");
+                IrExceptionProtectedRegion protectedRegion = new (
+                    ReadBlock(),
+                    ReadBlockList()
+                );
+                Expect("handler");
+                IrExceptionHandler? handler = null;
+
+                if (!Is("none"))
+                {
+                    int handlerEntry = ReadBlock();
+                    int errorSlot = ReadSlot();
+                    handler = new IrExceptionHandler(
+                        handlerEntry,
+                        ReadBlockList(),
+                        errorSlot
+                    );
+                }
+                else
+                {
+                    Advance();
+                }
+
+                Expect("cleanup");
+                IrExceptionCleanup? cleanup = null;
+
+                if (!Is("none"))
+                {
+                    cleanup = new IrExceptionCleanup(
+                        ReadBlock(),
+                        ReadBlockList()
+                    );
+                }
+                else
+                {
+                    Advance();
+                }
+
+                exceptionRegions.Add(
+                    new IrExceptionRegion(
+                        regionId,
+                        parentRegion,
+                        parentPart,
+                        protectedRegion,
+                        handler,
+                        cleanup
+                    )
+                );
+            }
+
             List<IrSlot> slots = new (slotCount);
 
             for (int index = 0; index < slotCount; index++)
@@ -524,7 +638,24 @@ public static class MuIrReader
                 TypeSymbol type = ReadTypeReference();
                 IrSlotMutability mutability = ReadSlotMutability();
                 string? name = ReadOptionalString();
-                slots.Add(new IrSlot(slotId, kind, type, name, mutability));
+                int lifetimeRegion = 0;
+
+                if (formatVersion >= 2)
+                {
+                    Expect("region");
+                    lifetimeRegion = ReadLifetimeRegion();
+                }
+
+                slots.Add(
+                    new IrSlot(
+                        slotId,
+                        kind,
+                        type,
+                        name,
+                        mutability,
+                        lifetimeRegion
+                    )
+                );
             }
 
             List<IrBasicBlock> blocks = new (blockCount);
@@ -535,13 +666,29 @@ public static class MuIrReader
             }
 
             Expect("}");
-            return new IrFunction(id, returnType, entryBlock, slots, blocks);
+            return new IrFunction(
+                id,
+                returnType,
+                entryBlock,
+                slots,
+                blocks,
+                lifetimeRegions,
+                exceptionRegions
+            );
         }
 
         private IrBasicBlock ParseBlock()
         {
             Expect("block", MuIrDiagnosticCodes.MissingSection);
             int id = ReadReference("bb", MuIrDiagnosticCodes.InvalidInstruction);
+            int lifetimeRegion = 0;
+
+            if (formatVersion >= 2)
+            {
+                Expect("region");
+                lifetimeRegion = ReadLifetimeRegion();
+            }
+
             Expect("instructions");
             int instructionCount = ReadCount(
                 options.MaximumInstructionsPerBlock,
@@ -559,7 +706,7 @@ public static class MuIrReader
             Expect("term", MuIrDiagnosticCodes.InvalidTerminator);
             IrTerminator terminator = ParseTerminator();
             Expect("}");
-            return new IrBasicBlock(id, instructions, terminator);
+            return new IrBasicBlock(id, instructions, terminator, lifetimeRegion);
         }
 
         private IrInstruction ParseInstruction()
@@ -725,6 +872,8 @@ public static class MuIrReader
                     ReadBlock()
                 ),
                 "return" => new IrTerminator.Return(span, ReadOptionalSlot()),
+                "throw" => new IrTerminator.Throw(span, ReadSlot()),
+                "resume" => new IrTerminator.Resume(span),
                 _ => InvalidTerminator(kind),
             };
         }
@@ -811,6 +960,26 @@ public static class MuIrReader
             return slots;
         }
 
+        private IReadOnlyCollection<int> ReadBlockList()
+        {
+            Expect("[");
+            List<int> blocks = [ ];
+
+            while (!Is("]"))
+            {
+                if (blocks.Count > 0)
+                {
+                    Expect(",");
+                }
+
+                CheckListLimit(blocks.Count);
+                blocks.Add(ReadBlock());
+            }
+
+            Expect("]");
+            return blocks;
+        }
+
         private IReadOnlyCollection<IrInstruction.ObjectPropertyValue>
             ReadObjectValueList()
         {
@@ -874,6 +1043,7 @@ public static class MuIrReader
                 "number" => TypeSymbols.Number,
                 "string" => TypeSymbols.String,
                 "primitive" when formatVersion >= 2 => TypeSymbols.Primitive,
+                "error" when formatVersion >= 2 => TypeSymbols.ErrorValue,
                 "unknown" => TypeSymbols.Unknown,
                 "object" => TypeSymbols.Object,
                 "void" => TypeSymbols.Void,
@@ -1087,6 +1257,54 @@ public static class MuIrReader
 
         private int ReadBlock() =>
             ReadReference("bb", MuIrDiagnosticCodes.UndefinedReference);
+
+        private int ReadLifetimeRegion() =>
+            ReadReference("lr", MuIrDiagnosticCodes.UndefinedReference);
+
+        private int? ReadOptionalLifetimeRegion()
+        {
+            if (Is("none"))
+            {
+                Advance();
+                return null;
+            }
+
+            return ReadLifetimeRegion();
+        }
+
+        private int? ReadOptionalExceptionRegion()
+        {
+            if (Is("none"))
+            {
+                Advance();
+                return null;
+            }
+
+            return ReadReference("er", MuIrDiagnosticCodes.UndefinedReference);
+        }
+
+        private IrExceptionRegionPart? ReadOptionalExceptionRegionPart()
+        {
+            string value = ReadAtom();
+
+            return value switch
+            {
+                "none" => null,
+                "protected" => IrExceptionRegionPart.Protected,
+                "handler" => IrExceptionRegionPart.Handler,
+                "cleanup" => IrExceptionRegionPart.Cleanup,
+                _ => InvalidExceptionRegionPart(value),
+            };
+        }
+
+        private IrExceptionRegionPart InvalidExceptionRegionPart(string value)
+        {
+            Fail(
+                MuIrDiagnosticCodes.UnexpectedToken,
+                $"Unknown exception-region part '{value}'."
+            );
+            throw new UnreachableException();
+        }
 
         private int? ReadOptionalSlot()
         {

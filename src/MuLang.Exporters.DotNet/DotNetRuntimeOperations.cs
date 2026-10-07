@@ -234,6 +234,7 @@ internal static class DotNetRuntimeOperations
             TypeKind.Primitive => value is bool or long or double or string,
             TypeKind.Unknown => true,
             TypeKind.Object => IsObject(value),
+            TypeKind.ErrorValue => value is IDotNetErrorValue,
             TypeKind.StructuredObject => IsObject(value),
             TypeKind.Array => type is ArrayTypeSymbol arrayType &&
             (
@@ -680,6 +681,13 @@ internal static class DotNetRuntimeOperations
                 TypeKind.String => value is string,
                 TypeKind.Primitive => value is bool or long or double or string,
                 TypeKind.Unknown => true,
+                TypeKind.ErrorValue => IsErrorValue(
+                    context,
+                    value,
+                    activeTypes,
+                    span,
+                    depth + 1
+                ),
                 TypeKind.Object => IsGenericObject(
                     context,
                     value,
@@ -727,7 +735,98 @@ internal static class DotNetRuntimeOperations
             : type.Kind is
                 TypeKind.Object or
                 TypeKind.StructuredObject or
+                TypeKind.ErrorValue or
                 TypeKind.Array;
+    }
+
+    public static object WrapError(RuntimeError error)
+    {
+        return new DotNetErrorValue(error);
+    }
+
+    public static IDotNetErrorValue RequireErrorValue(
+        DotNetRuntimeContext context,
+        object? value,
+        TextSpan span
+    )
+    {
+        if (
+            value is IDotNetErrorValue errorValue &&
+            IsValueOfTypeDeep(context, value, TypeSymbols.ErrorValue, span)
+        )
+        {
+            return errorValue;
+        }
+
+        throw InvalidValue("Expected an error value.", span);
+    }
+
+    private static bool IsErrorValue(
+        DotNetRuntimeContext context,
+        object value,
+        IDictionary<object, ISet<TypeSymbol>> activeTypes,
+        TextSpan span,
+        int depth
+    )
+    {
+        if (
+            value is not IDotNetErrorValue errorValue ||
+            value is not IDotNetObjectPropertyCapabilities capabilities
+        )
+        {
+            return false;
+        }
+
+        IReadOnlySet<string> expectedNames = new HashSet<string>(
+            errorValue.Error.ErrorData.IsPresent
+                ? errorValue.Error.Cause is null
+                    ? [ "code", "category", "message", "data", "spanStart", "spanLength" ]
+                    : [ "code", "category", "message", "cause", "data", "spanStart", "spanLength" ]
+                : errorValue.Error.Cause is null
+                    ? [ "code", "category", "message", "spanStart", "spanLength" ]
+                    : [ "code", "category", "message", "cause", "spanStart", "spanLength" ],
+            StringComparer.Ordinal
+        );
+
+        if (
+            !errorValue.PropertyNames.ToHashSet(StringComparer.Ordinal)
+                .SetEquals(expectedNames) ||
+            expectedNames.Any(name => !capabilities.IsPropertyReadOnly(name))
+        )
+        {
+            return false;
+        }
+
+        foreach (string name in expectedNames)
+        {
+            if (!errorValue.TryGetProperty(name, out object? propertyValue))
+            {
+                return false;
+            }
+
+            TypeSymbol propertyType = name switch
+            {
+                "code" or "category" or "message" => TypeSymbols.String,
+                "cause" => TypeSymbols.ErrorValue,
+                "data" => TypeSymbols.Nullable(TypeSymbols.Unknown),
+                "spanStart" or "spanLength" => TypeSymbols.Int,
+                _ => TypeSymbols.ErrorRecovery,
+            };
+
+            if (!IsValueOfTypeDeep(
+                    context,
+                    propertyValue,
+                    propertyType,
+                    activeTypes,
+                    span,
+                    depth + 1
+                ))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private static bool IsStructuredObject(

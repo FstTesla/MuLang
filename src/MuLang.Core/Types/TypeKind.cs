@@ -37,11 +37,18 @@ public enum TypeKind
     Null = 11,
 
     /// <summary>Identifies a type used to recover from compilation errors.</summary>
-    Error = 12,
+    ErrorRecovery = 12,
+
+    /// <summary>Identifies a type used to recover from compilation errors.</summary>
+    [Obsolete("Use ErrorRecovery instead.")]
+    Error = ErrorRecovery,
 
     /// <summary>Identifies the floating-point type.</summary>
     Float = 13,
 
     /// <summary>Identifies the common non-null primitive type.</summary>
     Primitive = 14,
+
+    /// <summary>Identifies an executable structured error value.</summary>
+    ErrorValue = 15,
 }

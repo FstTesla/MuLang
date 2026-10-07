@@ -119,7 +119,7 @@ internal static class MuIrTypeTableBuilder
                 return existing;
             }
 
-            if (type.Kind == TypeKind.Error)
+            if (type.Kind == TypeKind.ErrorRecovery)
             {
                 throw new MuIrSerializationException(
                     "The compiler error-recovery type cannot be serialized."
@@ -339,6 +339,7 @@ internal static class MuIrTypeTableBuilder
                 TypeKind.Number => "number",
                 TypeKind.String => "string",
                 TypeKind.Primitive => "primitive",
+                TypeKind.ErrorValue => "error",
                 TypeKind.Unknown => "unknown",
                 TypeKind.Object => "object",
                 TypeKind.Void => "void",

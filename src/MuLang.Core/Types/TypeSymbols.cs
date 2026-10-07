@@ -43,7 +43,20 @@ public static class TypeSymbols
     public static TypeSymbol Null { get; } = new IntrinsicTypeSymbol(TypeKind.Null, "<null>");
 
     /// <summary>Gets the internal error-recovery type used in compiler contracts.</summary>
-    public static TypeSymbol Error { get; } = new IntrinsicTypeSymbol(TypeKind.Error, "<error>");
+    public static TypeSymbol ErrorRecovery { get; } = new IntrinsicTypeSymbol(
+        TypeKind.ErrorRecovery,
+        "<error>"
+    );
+
+    /// <summary>Gets the internal error-recovery type used in compiler contracts.</summary>
+    [Obsolete("Use ErrorRecovery instead.")]
+    public static TypeSymbol Error => ErrorRecovery;
+
+    /// <summary>Gets the built-in executable error-value type.</summary>
+    public static TypeSymbol ErrorValue { get; } = new IntrinsicTypeSymbol(
+        TypeKind.ErrorValue,
+        "error"
+    );
 
     /// <summary>Creates a nullable type.</summary>
     /// <param name="underlyingType">The underlying non-nullable type.</param>
@@ -58,7 +71,7 @@ public static class TypeSymbols
                 throw new ArgumentNullException(nameof(underlyingType)),
             NullableTypeSymbol =>
                 throw new ArgumentException("A nullable type cannot be nullable again.", nameof(underlyingType)),
-            { Kind: TypeKind.Void or TypeKind.Null or TypeKind.Error } =>
+            { Kind: TypeKind.Void or TypeKind.Null or TypeKind.ErrorRecovery } =>
                 throw new ArgumentException(
                     $"Type '{underlyingType.DisplayName}' cannot be nullable.",
                     nameof(underlyingType)
@@ -94,7 +107,7 @@ public static class TypeSymbols
             throw new ArgumentNullException(nameof(elementType));
         }
 
-        if (elementType.Kind is TypeKind.Void or TypeKind.Null or TypeKind.Error)
+        if (elementType.Kind is TypeKind.Void or TypeKind.Null or TypeKind.ErrorRecovery)
         {
             throw new ArgumentException(
                 $"Type '{elementType.DisplayName}' cannot be used as an array element.",

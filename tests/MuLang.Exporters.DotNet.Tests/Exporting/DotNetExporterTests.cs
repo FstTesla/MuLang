@@ -848,6 +848,321 @@ public sealed class DotNetExporterTests
     }
 
     [Test]
+    public void ReadsProviderErrorValueProperties()
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddGlobal("global.failure", "failure", TypeSymbols.ErrorValue)
+            .Build(LanguageVersion.Version1_2);
+        RuntimeError error = new (
+            "invalid-request",
+            "The request is invalid.",
+            RuntimeErrorCategory.Application,
+            true,
+            default,
+            [ ]
+        );
+        Func<DotNetRuntimeContext, object?> compiled = CompileExpression(
+            "failure.code + \": \" + failure.message",
+            environment,
+            TypeSymbols.String
+        );
+        DotNetRuntimeContext context = CreateContext(
+            environment,
+            [
+                new KeyValuePair<string, object?>(
+                    "global.failure",
+                    new ProviderErrorValue(error)
+                ),
+            ]
+        );
+
+        Assert.That(
+            compiled(context),
+            Is.EqualTo("invalid-request: The request is invalid.")
+        );
+    }
+
+    [Test]
+    public void ExceptionRegionHandlesCatchableProviderError()
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddFunction("function.fail", "fail", [ ], TypeSymbols.Void)
+            .Build();
+        IrFunction entry = new (
+            "$entry",
+            TypeSymbols.Int,
+            0,
+            [
+                new IrSlot(0, IrSlotKind.Temporary, TypeSymbols.Int, null),
+                new IrSlot(
+                    1,
+                    IrSlotKind.Local,
+                    TypeSymbols.ErrorValue,
+                    "error",
+                    IrSlotMutability.ReadOnly,
+                    1
+                ),
+            ],
+            [
+                new IrBasicBlock(
+                    0,
+                    [
+                        new IrInstruction.Constant(
+                            default,
+                            0,
+                            TypeSymbols.Int,
+                            0L
+                        ),
+                        new IrInstruction.ProviderCall(
+                            default,
+                            null,
+                            "function.fail",
+                            TypeSymbols.Void,
+                            [ ]
+                        ),
+                    ],
+                    new IrTerminator.Return(default, 0),
+                    0
+                ),
+                new IrBasicBlock(
+                    1,
+                    [
+                        new IrInstruction.Constant(
+                            default,
+                            0,
+                            TypeSymbols.Int,
+                            42L
+                        ),
+                    ],
+                    new IrTerminator.Return(default, 0),
+                    1
+                ),
+            ],
+            [
+                new IrLifetimeRegion(0, null, 0),
+                new IrLifetimeRegion(1, 0, 1),
+            ],
+            [
+                new IrExceptionRegion(
+                    0,
+                    null,
+                    null,
+                    new IrExceptionProtectedRegion(0, [ 0 ]),
+                    new IrExceptionHandler(1, [ 1 ], 1),
+                    null
+                ),
+            ]
+        );
+        IrProgram program = new (
+            environment.Fingerprint,
+            CompilationMode.Expression,
+            LanguageProfiles.Version1_2.Fingerprint,
+            entry,
+            [ ]
+        );
+        DotNetExportResult export = DotNetExporter.Export(program, environment);
+        DotNetRuntimeContext context = CreateContext(
+            environment,
+            functions:
+            [
+                new KeyValuePair<string, DotNetProviderFunction>(
+                    "function.fail",
+                    static (invocation, _) =>
+                    {
+                        invocation.ThrowApplicationError(
+                            "expected",
+                            "Expected failure."
+                        );
+                        return null;
+                    }
+                ),
+            ]
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(
+                export.Diagnostics.Select(
+                    static diagnostic => diagnostic.Message
+                ),
+                Is.Empty
+            );
+            Assert.That(export.Delegate!(context), Is.EqualTo(42L));
+        }
+    }
+
+    [Test]
+    public void ExceptionRegionRunsCleanupForReturn()
+    {
+        int cleanupCount = 0;
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddFunction("function.cleanup", "cleanup", [ ], TypeSymbols.Void)
+            .Build();
+        IrFunction entry = new (
+            "$entry",
+            TypeSymbols.Int,
+            0,
+            [ new IrSlot(0, IrSlotKind.Temporary, TypeSymbols.Int, null) ],
+            [
+                new IrBasicBlock(
+                    0,
+                    [
+                        new IrInstruction.Constant(
+                            default,
+                            0,
+                            TypeSymbols.Int,
+                            7L
+                        ),
+                    ],
+                    new IrTerminator.Return(default, 0)
+                ),
+                new IrBasicBlock(
+                    1,
+                    [
+                        new IrInstruction.ProviderCall(
+                            default,
+                            null,
+                            "function.cleanup",
+                            TypeSymbols.Void,
+                            [ ]
+                        ),
+                    ],
+                    new IrTerminator.Resume(default)
+                ),
+            ],
+            [ new IrLifetimeRegion(0, null, 0) ],
+            [
+                new IrExceptionRegion(
+                    0,
+                    null,
+                    null,
+                    new IrExceptionProtectedRegion(0, [ 0 ]),
+                    null,
+                    new IrExceptionCleanup(1, [ 1 ])
+                ),
+            ]
+        );
+        IrProgram program = new (
+            environment.Fingerprint,
+            CompilationMode.Expression,
+            LanguageProfiles.Version1_2.Fingerprint,
+            entry,
+            [ ]
+        );
+        DotNetExportResult export = DotNetExporter.Export(program, environment);
+        DotNetRuntimeContext context = CreateContext(
+            environment,
+            functions:
+            [
+                new KeyValuePair<string, DotNetProviderFunction>(
+                    "function.cleanup",
+                    (_, _) =>
+                    {
+                        cleanupCount++;
+                        return null;
+                    }
+                ),
+            ]
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(export.Delegate!(context), Is.EqualTo(7L));
+            Assert.That(cleanupCount, Is.EqualTo(1));
+        }
+    }
+
+    [Test]
+    public void ExceptionRegionBypassesCleanupForUncatchableError()
+    {
+        int cleanupCount = 0;
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddFunction("function.fail", "fail", [ ], TypeSymbols.Void)
+            .AddFunction("function.cleanup", "cleanup", [ ], TypeSymbols.Void)
+            .Build();
+        IrFunction entry = new (
+            "$entry",
+            TypeSymbols.Void,
+            0,
+            [ ],
+            [
+                new IrBasicBlock(
+                    0,
+                    [
+                        new IrInstruction.ProviderCall(
+                            default,
+                            null,
+                            "function.fail",
+                            TypeSymbols.Void,
+                            [ ]
+                        ),
+                    ],
+                    new IrTerminator.Return(default, null)
+                ),
+                new IrBasicBlock(
+                    1,
+                    [
+                        new IrInstruction.ProviderCall(
+                            default,
+                            null,
+                            "function.cleanup",
+                            TypeSymbols.Void,
+                            [ ]
+                        ),
+                    ],
+                    new IrTerminator.Resume(default)
+                ),
+            ],
+            [ new IrLifetimeRegion(0, null, 0) ],
+            [
+                new IrExceptionRegion(
+                    0,
+                    null,
+                    null,
+                    new IrExceptionProtectedRegion(0, [ 0 ]),
+                    null,
+                    new IrExceptionCleanup(1, [ 1 ])
+                ),
+            ]
+        );
+        IrProgram program = new (
+            environment.Fingerprint,
+            CompilationMode.Program,
+            LanguageProfiles.Version1_2.Fingerprint,
+            entry,
+            [ ]
+        );
+        DotNetExportResult export = DotNetExporter.Export(program, environment);
+        DotNetRuntimeContext context = CreateContext(
+            environment,
+            functions:
+            [
+                new KeyValuePair<string, DotNetProviderFunction>(
+                    "function.fail",
+                    static (_, _) => throw new InvalidOperationException("Failure.")
+                ),
+                new KeyValuePair<string, DotNetProviderFunction>(
+                    "function.cleanup",
+                    (_, _) =>
+                    {
+                        cleanupCount++;
+                        return null;
+                    }
+                ),
+            ]
+        );
+
+        ExecutionResult result = export.ExecutionDelegate!(context);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.IsSuccess, Is.False);
+            Assert.That(result.Error!.IsCatchable, Is.False);
+            Assert.That(cleanupCount, Is.Zero);
+        }
+    }
+
+    [Test]
     public void ProviderContextExposesCanonicalRuntimeServices()
     {
         EnvironmentSchema environment = new EnvironmentBuilder()
@@ -2700,6 +3015,84 @@ public sealed class DotNetExporterTests
         }
 
         return current;
+    }
+
+    private sealed class ProviderErrorValue : IDotNetErrorValue
+    {
+        public ProviderErrorValue(RuntimeError error)
+        {
+            Error = error;
+        }
+
+        public RuntimeError Error { get; }
+
+        public object Identity => Error;
+
+        public IReadOnlyCollection<string> PropertyNames =>
+        [
+            "code",
+            "category",
+            "message",
+            "spanStart",
+            "spanLength",
+        ];
+
+        public bool TryGetProperty(string name, out object? value)
+        {
+            switch (name)
+            {
+                case "code":
+                {
+                    value = Error.Code;
+                    return true;
+                }
+
+                case "category":
+                {
+                    value = "application";
+                    return true;
+                }
+
+                case "message":
+                {
+                    value = Error.Message;
+                    return true;
+                }
+
+                case "spanStart":
+                {
+                    value = (long)Error.Span.Start;
+                    return true;
+                }
+
+                case "spanLength":
+                {
+                    value = (long)Error.Span.Length;
+                    return true;
+                }
+
+                default:
+                {
+                    value = null;
+                    return false;
+                }
+            }
+        }
+
+        public bool TrySetProperty(string name, object? value)
+        {
+            return false;
+        }
+
+        public bool TryRemoveProperty(string name)
+        {
+            return false;
+        }
+
+        public bool IsPropertyReadOnly(string name)
+        {
+            return PropertyNames.Contains(name, StringComparer.Ordinal);
+        }
     }
 
     private sealed class MutableObjectValue : IDotNetObjectValue

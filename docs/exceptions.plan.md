@@ -35,10 +35,10 @@ Release `0.2.0-alpha.7` implements the host-facing foundation:
 Source-level `try`, `catch`, `throw`, and `finally` remain deferred to the
 MuLang 1.2 work.
 
-The built-in `error` type, exception-region execution model, MuIR 2
-representation, and .NET runtime support are planned for `0.3.0-alpha.3`,
-coordinated with scoped IR slots. Protected-statement syntax and binding follow
-after that foundation.
+Release `0.3.0-alpha.3` implements the built-in `error` type,
+exception-region execution model, revised MuIR 2 representation, and .NET
+runtime support, coordinated with scoped IR slots. Protected-statement syntax
+and binding follow after that foundation.
 
 ## Pre-`0.2.0-alpha.7` State
 

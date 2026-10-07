@@ -274,6 +274,113 @@ public sealed class IrValidatorTests
         Assert.That(IrValidator.Validate(program, environment), Is.Empty);
     }
 
+    [Test]
+    public void AcceptsHandlerErrorSlotAtExceptionalEntry()
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .Build(LanguageVersion.Version1_2);
+        IrFunction entry = new (
+            "$entry",
+            TypeSymbols.String,
+            0,
+            [
+                new IrSlot(
+                    0,
+                    IrSlotKind.Local,
+                    TypeSymbols.ErrorValue,
+                    "error",
+                    IrSlotMutability.ReadOnly,
+                    1
+                ),
+                new IrSlot(1, IrSlotKind.Temporary, TypeSymbols.String, null, IrSlotMutability.Mutable, 1),
+                new IrSlot(2, IrSlotKind.Temporary, TypeSymbols.String, null),
+            ],
+            [
+                new IrBasicBlock(
+                    0,
+                    [
+                        new IrInstruction.Constant(
+                            default,
+                            2,
+                            TypeSymbols.String,
+                            "ok"
+                        ),
+                    ],
+                    new IrTerminator.Return(default, 2)
+                ),
+                new IrBasicBlock(
+                    1,
+                    [
+                        new IrInstruction.GetProperty(
+                            default,
+                            1,
+                            0,
+                            "code",
+                            false,
+                            false
+                        ),
+                    ],
+                    new IrTerminator.Return(default, 1),
+                    1
+                ),
+            ],
+            [
+                new IrLifetimeRegion(0, null, 0),
+                new IrLifetimeRegion(1, 0, 1),
+            ],
+            [
+                new IrExceptionRegion(
+                    0,
+                    null,
+                    null,
+                    new IrExceptionProtectedRegion(0, [ 0 ]),
+                    new IrExceptionHandler(1, [ 1 ], 0),
+                    null
+                ),
+            ]
+        );
+        IrProgram program = new (
+            environment.Fingerprint,
+            CompilationMode.Expression,
+            LanguageProfiles.Version1_2.Fingerprint,
+            entry,
+            [ ]
+        );
+
+        Assert.That(IrValidator.Validate(program, environment), Is.Empty);
+    }
+
+    [Test]
+    public void RejectsResumeOutsideCleanup()
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder().Build();
+        IrProgram program = new (
+            environment.Fingerprint,
+            CompilationMode.Program,
+            LanguageProfiles.Version1_1.Fingerprint,
+            new IrFunction(
+                "$entry",
+                TypeSymbols.Void,
+                0,
+                [ ],
+                [
+                    new IrBasicBlock(
+                        0,
+                        [ ],
+                        new IrTerminator.Resume(default)
+                    ),
+                ]
+            ),
+            [ ]
+        );
+
+        Assert.That(
+            IrValidator.Validate(program, environment)
+                .Select(static diagnostic => diagnostic.Code),
+            Does.Contain(IrDiagnosticCodes.InvalidStructure)
+        );
+    }
+
     private static IrProgram CreateProgram(
         EnvironmentSchema environment,
         TypeSymbol resultType,

@@ -11,7 +11,9 @@ The portable IR compilation unit SHOULD contain:
 - the environment fingerprint;
 - a distinguished top-level entry function;
 - zero or more user-defined functions;
-- independent parameter, local, and temporary slot spaces for each function;
+- one function-global parameter, local, and temporary slot namespace per function;
+- an explicit hierarchy of slot lifetime regions;
+- an independent hierarchy of exception regions;
 
 - constants;
 - local slots;
@@ -29,15 +31,28 @@ The portable IR compilation unit SHOULD contain:
 - truthiness normalization from one non-void source slot to one `bool` destination slot;
 - branches and jumps;
 - returns;
+- explicit error propagation and cleanup resumption;
 - source-span associations.
 
 The IR MUST encode evaluation order and short-circuit behavior explicitly.
 
 The IR validator MUST require a truthiness-normalization destination to have type `bool`, its source to have a non-void type, both slots to exist, and the source to be definitely defined.
 
-Every slot records mutable or read-only capability. Parameter slots are read-only and implicitly defined at function entry; no instruction may define them. Temporary slots are mutable. A read-only local may have no defining instruction or multiple mutually exclusive defining instructions, but no reachable control-flow path may execute more than one definition. The ordinary definite-assignment rules still apply before every read.
+Every function has lifetime root region `0`. Every basic block and slot records
+one owning lifetime region. Entering a non-root region through its entry block
+creates a new semantic instance of every slot owned by that region. A slot is
+visible only in blocks owned by its region or descendants.
 
-Lowering MAY represent a source-level read-only local with a mutable IR slot when the storage is reused for distinct lexical instances, including a local declared inside a loop.
+Every slot records mutable or read-only capability. Parameter slots are
+read-only, belong to lifetime root region `0`, and are implicitly defined at
+function entry; no instruction may define them. Temporary slots are mutable.
+A read-only local may have no definition or mutually exclusive definitions,
+but no path within one lifetime-region activation may define it twice. Leaving
+and re-entering the owning region resets its definition state.
+
+Exporters MAY reuse one physical storage location for every activation of a
+scoped slot. They MUST NOT clear storage on region entry or use a value retained
+from an earlier activation to satisfy definite assignment.
 
 Array types transported through IR retain their read-only capability. Array creation records that capability, mutable-to-read-only conversions are representation-preserving, acquisition of mutable capability requires a checked conversion, and `SetElement` MUST be rejected when the target slot has a read-only array type.
 
@@ -65,6 +80,17 @@ Property write and removal instructions MUST reject statically known read-only
 properties. Required known properties MUST also be rejected by removal.
 
 Runtime exporters MUST NOT perform name resolution, type inference, overload resolution, or high-level control-flow interpretation.
+
+Exception regions are independent from lifetime regions. Each exception region
+contains one protected component, an optional handler, and an optional cleanup,
+and is either disjoint from or strictly nested within another exception region.
+Component block collections contain direct members only. Every handler owns a
+dedicated lifetime region and one read-only `error` slot.
+
+`Throw` consumes an `error` slot. `Resume` is valid only in cleanup. `Jump`,
+`Branch`, and `Return` derive the cleanup regions crossed by their selected
+transfer from the exception-region hierarchy. Catchable errors select the
+innermost applicable handler; uncatchable errors bypass handlers and cleanup.
 
 Portable IR MAY be persisted and exchanged as a MuIR document with the `.muir` extension. MuIR is versioned independently from the MuLang language and profile versions. A host that reads MuIR MUST validate the reconstructed program against its selected environment through the ordinary IR validator before export or execution.
 

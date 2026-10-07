@@ -33,4 +33,18 @@ public abstract record IrTerminator(TextSpan Span)
         TextSpan Span,
         int? Value
     ) : IrTerminator(Span);
+
+    /// <summary>Propagates an executable error value.</summary>
+    /// <param name="Span">The source span associated with the operation.</param>
+    /// <param name="Error">The slot containing the error value.</param>
+    public sealed record Throw(
+        TextSpan Span,
+        int Error
+    ) : IrTerminator(Span);
+
+    /// <summary>Resumes the completion pending for the active cleanup.</summary>
+    /// <param name="Span">The source span associated with the operation.</param>
+    public sealed record Resume(
+        TextSpan Span
+    ) : IrTerminator(Span);
 }

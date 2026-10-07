@@ -22,7 +22,7 @@ internal static class SymbolValidation
             throw new ArgumentNullException(parameterName);
         }
 
-        if (type.Kind is TypeKind.Void or TypeKind.Null or TypeKind.Error)
+        if (type.Kind is TypeKind.Void or TypeKind.Null or TypeKind.ErrorRecovery)
         {
             throw new ArgumentException(
                 $"Type '{type.DisplayName}' cannot be used as a value type.",

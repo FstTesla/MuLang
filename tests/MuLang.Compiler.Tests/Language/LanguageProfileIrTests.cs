@@ -217,7 +217,7 @@ public sealed class LanguageProfileIrTests
     }
 
     [Test]
-    public void LoweringUsesMutableStorageForReadOnlyLocalDeclaredInsideLoop()
+    public void LoweringPreservesReadOnlyLocalDeclaredInsideLoop()
     {
         EnvironmentSchema environment = new EnvironmentBuilder()
             .AddGlobal("global.condition", "condition", TypeSymbols.Bool)
@@ -231,11 +231,16 @@ public sealed class LanguageProfileIrTests
         IrSlot local = result.Program?.Slots.Single(
             static slot => slot is { Kind: IrSlotKind.Local, Name: "value" }
         ) ?? throw new AssertionException("Expected a local IR slot.");
+        IrLifetimeRegion region = result.Program.EntryFunction.LifetimeRegions.Single(
+            region => region.Id == local.LifetimeRegion
+        );
 
         using (Assert.EnterMultipleScope())
         {
             Assert.That(result.Diagnostics, Is.Empty);
-            Assert.That(local.Mutability, Is.EqualTo(IrSlotMutability.Mutable));
+            Assert.That(local.Mutability, Is.EqualTo(IrSlotMutability.ReadOnly));
+            Assert.That(local.LifetimeRegion, Is.Not.EqualTo(0));
+            Assert.That(region.ParentRegion, Is.EqualTo(0));
         }
     }
 

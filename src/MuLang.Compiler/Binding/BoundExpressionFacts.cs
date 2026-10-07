@@ -59,7 +59,7 @@ internal static class BoundExpressionFacts
 
         if (
             expression.Type is NullableTypeSymbol ||
-            expression.Type.Kind is TypeKind.Error or TypeKind.Void
+            expression.Type.Kind is TypeKind.ErrorRecovery or TypeKind.Void
         )
         {
             isNull = false;

@@ -186,24 +186,75 @@ public static class MuIrWriter
                 $"{kind} {Quote(function.Id)} {TypeReference(function.ReturnType)} " +
                 $"bb{function.EntryBlock.ToString(CultureInfo.InvariantCulture)} " +
                 $"slots {function.Slots.Count.ToString(CultureInfo.InvariantCulture)} " +
-                $"blocks {function.Blocks.Count.ToString(CultureInfo.InvariantCulture)} {{"
+                $"blocks {function.Blocks.Count.ToString(CultureInfo.InvariantCulture)} " +
+                $"lifetime-regions {function.LifetimeRegions.Count.ToString(CultureInfo.InvariantCulture)} " +
+                $"exception-regions {function.ExceptionRegions.Count.ToString(CultureInfo.InvariantCulture)} {{"
             );
 
-            foreach (IrSlot slot in function.Slots)
+            foreach (IrLifetimeRegion region in function.LifetimeRegions.OrderBy(
+                    static region => region.Id
+                ))
+            {
+                string parent = region.ParentRegion is int parentRegion
+                    ? $"lr{parentRegion.ToString(CultureInfo.InvariantCulture)}"
+                    : "none";
+                Line(
+                    $"  lifetime-region lr{region.Id.ToString(CultureInfo.InvariantCulture)} " +
+                    $"parent {parent} " +
+                    $"entry bb{region.EntryBlock.ToString(CultureInfo.InvariantCulture)}"
+                );
+            }
+
+            foreach (IrExceptionRegion region in function.ExceptionRegions.OrderBy(
+                    static region => region.Id
+                ))
+            {
+                string parent = region.ParentRegion is int parentRegion
+                    ? $"er{parentRegion.ToString(CultureInfo.InvariantCulture)}"
+                    : "none";
+                string parentPart = region.ParentPart switch
+                {
+                    IrExceptionRegionPart.Protected => "protected",
+                    IrExceptionRegionPart.Handler => "handler",
+                    IrExceptionRegionPart.Cleanup => "cleanup",
+                    null => "none",
+                    _ => throw Failure("Exception-region parent part is invalid."),
+                };
+                string handler = region.Handler is null
+                    ? "none"
+                    : $"bb{region.Handler.EntryBlock.ToString(CultureInfo.InvariantCulture)} " +
+                    $"%{region.Handler.ErrorSlot.ToString(CultureInfo.InvariantCulture)} " +
+                    WriteBlocks(region.Handler.Blocks);
+                string cleanup = region.Cleanup is null
+                    ? "none"
+                    : $"bb{region.Cleanup.EntryBlock.ToString(CultureInfo.InvariantCulture)} " +
+                    WriteBlocks(region.Cleanup.Blocks);
+                Line(
+                    $"  exception-region er{region.Id.ToString(CultureInfo.InvariantCulture)} " +
+                    $"parent {parent} parent-part {parentPart} " +
+                    $"protected bb{region.Protected.EntryBlock.ToString(CultureInfo.InvariantCulture)} " +
+                    $"{WriteBlocks(region.Protected.Blocks)} " +
+                    $"handler {handler} cleanup {cleanup}"
+                );
+            }
+
+            foreach (IrSlot slot in function.Slots.OrderBy(static slot => slot.Id))
             {
                 Line(
                     $"  slot %{slot.Id.ToString(CultureInfo.InvariantCulture)} " +
                     $"{GetSlotKind(slot.Kind)} {TypeReference(slot.Type)} " +
                     $"{GetSlotMutability(slot.Mutability)} " +
-                    (slot.Name is null ? "none" : Quote(slot.Name))
+                    $"{(slot.Name is null ? "none" : Quote(slot.Name))} " +
+                    $"region lr{slot.LifetimeRegion.ToString(CultureInfo.InvariantCulture)}"
                 );
             }
 
-            foreach (IrBasicBlock block in function.Blocks)
+            foreach (IrBasicBlock block in function.Blocks.OrderBy(static block => block.Id))
             {
                 currentBlockId = block.Id;
                 Line(
                     $"  block bb{block.Id.ToString(CultureInfo.InvariantCulture)} " +
+                    $"region lr{block.LifetimeRegion.ToString(CultureInfo.InvariantCulture)} " +
                     $"instructions {block.Instructions.Count.ToString(CultureInfo.InvariantCulture)} {{"
                 );
 
@@ -296,6 +347,10 @@ public static class MuIrWriter
                     $"bb{value.FalseBlock.ToString(CultureInfo.InvariantCulture)}",
                 IrTerminator.Return value =>
                     $"return {span} {OptionalSlot(value.Value)}",
+                IrTerminator.Throw value =>
+                    $"throw {span} {Slot(value.Error)}",
+                IrTerminator.Resume =>
+                    $"resume {span}",
                 _ => throw Failure($"Terminator '{terminator.GetType().Name}' is not supported."),
             };
         }
@@ -343,6 +398,16 @@ public static class MuIrWriter
         private static string WriteSlots(IEnumerable<int> slots)
         {
             return $"[{string.Join(", ", slots.Select(Slot))}]";
+        }
+
+        private static string WriteBlocks(IEnumerable<int> blocks)
+        {
+            return $"[{string.Join(
+                ", ",
+                blocks.Order().Select(
+                    static block => $"bb{block.ToString(CultureInfo.InvariantCulture)}"
+                )
+            )}]";
         }
 
         private static string WriteObjectValues(
@@ -402,6 +467,7 @@ public static class MuIrWriter
                 TypeKind.Number => "number",
                 TypeKind.String => "string",
                 TypeKind.Primitive => "primitive",
+                TypeKind.ErrorValue => "error",
                 TypeKind.Unknown => "unknown",
                 TypeKind.Object => "object",
                 TypeKind.Void => "void",

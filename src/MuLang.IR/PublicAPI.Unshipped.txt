@@ -1,1 +1,127 @@
 #nullable enable
+MuLang.IR.IrBasicBlock.IrBasicBlock(int id, System.Collections.Generic.IReadOnlyCollection<MuLang.IR.IrInstruction!>! instructions, MuLang.IR.IrTerminator! terminator, int lifetimeRegion) -> void
+MuLang.IR.IrBasicBlock.LifetimeRegion.get -> int
+MuLang.IR.IrBasicBlock.LifetimeRegion.init -> void
+MuLang.IR.IrExceptionCleanup
+MuLang.IR.IrExceptionCleanup.<Clone>$() -> MuLang.IR.IrExceptionCleanup!
+MuLang.IR.IrExceptionCleanup.Blocks.get -> System.Collections.Generic.IReadOnlyCollection<int>!
+MuLang.IR.IrExceptionCleanup.Blocks.init -> void
+MuLang.IR.IrExceptionCleanup.Deconstruct(out int EntryBlock, out System.Collections.Generic.IReadOnlyCollection<int>! Blocks) -> void
+MuLang.IR.IrExceptionCleanup.EntryBlock.get -> int
+MuLang.IR.IrExceptionCleanup.EntryBlock.init -> void
+MuLang.IR.IrExceptionCleanup.Equals(MuLang.IR.IrExceptionCleanup? other) -> bool
+MuLang.IR.IrExceptionCleanup.IrExceptionCleanup(int EntryBlock, System.Collections.Generic.IReadOnlyCollection<int>! Blocks) -> void
+MuLang.IR.IrExceptionHandler
+MuLang.IR.IrExceptionHandler.<Clone>$() -> MuLang.IR.IrExceptionHandler!
+MuLang.IR.IrExceptionHandler.Blocks.get -> System.Collections.Generic.IReadOnlyCollection<int>!
+MuLang.IR.IrExceptionHandler.Blocks.init -> void
+MuLang.IR.IrExceptionHandler.Deconstruct(out int EntryBlock, out System.Collections.Generic.IReadOnlyCollection<int>! Blocks, out int ErrorSlot) -> void
+MuLang.IR.IrExceptionHandler.EntryBlock.get -> int
+MuLang.IR.IrExceptionHandler.EntryBlock.init -> void
+MuLang.IR.IrExceptionHandler.Equals(MuLang.IR.IrExceptionHandler? other) -> bool
+MuLang.IR.IrExceptionHandler.ErrorSlot.get -> int
+MuLang.IR.IrExceptionHandler.ErrorSlot.init -> void
+MuLang.IR.IrExceptionHandler.IrExceptionHandler(int EntryBlock, System.Collections.Generic.IReadOnlyCollection<int>! Blocks, int ErrorSlot) -> void
+MuLang.IR.IrExceptionProtectedRegion
+MuLang.IR.IrExceptionProtectedRegion.<Clone>$() -> MuLang.IR.IrExceptionProtectedRegion!
+MuLang.IR.IrExceptionProtectedRegion.Blocks.get -> System.Collections.Generic.IReadOnlyCollection<int>!
+MuLang.IR.IrExceptionProtectedRegion.Blocks.init -> void
+MuLang.IR.IrExceptionProtectedRegion.Deconstruct(out int EntryBlock, out System.Collections.Generic.IReadOnlyCollection<int>! Blocks) -> void
+MuLang.IR.IrExceptionProtectedRegion.EntryBlock.get -> int
+MuLang.IR.IrExceptionProtectedRegion.EntryBlock.init -> void
+MuLang.IR.IrExceptionProtectedRegion.Equals(MuLang.IR.IrExceptionProtectedRegion? other) -> bool
+MuLang.IR.IrExceptionProtectedRegion.IrExceptionProtectedRegion(int EntryBlock, System.Collections.Generic.IReadOnlyCollection<int>! Blocks) -> void
+MuLang.IR.IrExceptionRegion
+MuLang.IR.IrExceptionRegion.<Clone>$() -> MuLang.IR.IrExceptionRegion!
+MuLang.IR.IrExceptionRegion.Cleanup.get -> MuLang.IR.IrExceptionCleanup?
+MuLang.IR.IrExceptionRegion.Cleanup.init -> void
+MuLang.IR.IrExceptionRegion.Deconstruct(out int Id, out int? ParentRegion, out MuLang.IR.IrExceptionRegionPart? ParentPart, out MuLang.IR.IrExceptionProtectedRegion! Protected, out MuLang.IR.IrExceptionHandler? Handler, out MuLang.IR.IrExceptionCleanup? Cleanup) -> void
+MuLang.IR.IrExceptionRegion.Equals(MuLang.IR.IrExceptionRegion? other) -> bool
+MuLang.IR.IrExceptionRegion.Handler.get -> MuLang.IR.IrExceptionHandler?
+MuLang.IR.IrExceptionRegion.Handler.init -> void
+MuLang.IR.IrExceptionRegion.Id.get -> int
+MuLang.IR.IrExceptionRegion.Id.init -> void
+MuLang.IR.IrExceptionRegion.IrExceptionRegion(int Id, int? ParentRegion, MuLang.IR.IrExceptionRegionPart? ParentPart, MuLang.IR.IrExceptionProtectedRegion! Protected, MuLang.IR.IrExceptionHandler? Handler, MuLang.IR.IrExceptionCleanup? Cleanup) -> void
+MuLang.IR.IrExceptionRegion.ParentPart.get -> MuLang.IR.IrExceptionRegionPart?
+MuLang.IR.IrExceptionRegion.ParentPart.init -> void
+MuLang.IR.IrExceptionRegion.ParentRegion.get -> int?
+MuLang.IR.IrExceptionRegion.ParentRegion.init -> void
+MuLang.IR.IrExceptionRegion.Protected.get -> MuLang.IR.IrExceptionProtectedRegion!
+MuLang.IR.IrExceptionRegion.Protected.init -> void
+MuLang.IR.IrExceptionRegionPart
+MuLang.IR.IrExceptionRegionPart.Cleanup = 2 -> MuLang.IR.IrExceptionRegionPart
+MuLang.IR.IrExceptionRegionPart.Handler = 1 -> MuLang.IR.IrExceptionRegionPart
+MuLang.IR.IrExceptionRegionPart.Protected = 0 -> MuLang.IR.IrExceptionRegionPart
+MuLang.IR.IrFunction.ExceptionRegions.get -> System.Collections.Generic.IReadOnlyList<MuLang.IR.IrExceptionRegion!>!
+MuLang.IR.IrFunction.ExceptionRegions.init -> void
+MuLang.IR.IrFunction.IrFunction(string! id, MuLang.Core.Types.TypeSymbol! returnType, int entryBlock, System.Collections.Generic.IReadOnlyList<MuLang.IR.IrSlot!>! slots, System.Collections.Generic.IReadOnlyList<MuLang.IR.IrBasicBlock!>! blocks, System.Collections.Generic.IReadOnlyList<MuLang.IR.IrLifetimeRegion!>! lifetimeRegions, System.Collections.Generic.IReadOnlyList<MuLang.IR.IrExceptionRegion!>! exceptionRegions) -> void
+MuLang.IR.IrFunction.IrFunction(string! id, MuLang.Core.Types.TypeSymbol! returnType, int entryBlock, System.Collections.Generic.IReadOnlyList<MuLang.IR.IrSlot!>! slots, System.Collections.Generic.IReadOnlyList<MuLang.IR.IrBasicBlock!>! blocks, System.Collections.Generic.IReadOnlyList<MuLang.IR.IrLifetimeRegion!>! lifetimeRegions) -> void
+MuLang.IR.IrFunction.LifetimeRegions.get -> System.Collections.Generic.IReadOnlyList<MuLang.IR.IrLifetimeRegion!>!
+MuLang.IR.IrFunction.LifetimeRegions.init -> void
+MuLang.IR.IrLifetimeRegion
+MuLang.IR.IrLifetimeRegion.<Clone>$() -> MuLang.IR.IrLifetimeRegion!
+MuLang.IR.IrLifetimeRegion.Deconstruct(out int Id, out int? ParentRegion, out int EntryBlock) -> void
+MuLang.IR.IrLifetimeRegion.EntryBlock.get -> int
+MuLang.IR.IrLifetimeRegion.EntryBlock.init -> void
+MuLang.IR.IrLifetimeRegion.Equals(MuLang.IR.IrLifetimeRegion? other) -> bool
+MuLang.IR.IrLifetimeRegion.Id.get -> int
+MuLang.IR.IrLifetimeRegion.Id.init -> void
+MuLang.IR.IrLifetimeRegion.IrLifetimeRegion(int Id, int? ParentRegion, int EntryBlock) -> void
+MuLang.IR.IrLifetimeRegion.ParentRegion.get -> int?
+MuLang.IR.IrLifetimeRegion.ParentRegion.init -> void
+MuLang.IR.IrSlot.IrSlot(int id, MuLang.IR.IrSlotKind kind, MuLang.Core.Types.TypeSymbol! type, string? name, MuLang.IR.IrSlotMutability mutability, int lifetimeRegion) -> void
+MuLang.IR.IrSlot.LifetimeRegion.get -> int
+MuLang.IR.IrSlot.LifetimeRegion.init -> void
+MuLang.IR.IrTerminator.Resume
+MuLang.IR.IrTerminator.Resume.Deconstruct(out MuLang.Core.Text.TextSpan Span) -> void
+MuLang.IR.IrTerminator.Resume.Equals(MuLang.IR.IrTerminator.Resume? other) -> bool
+MuLang.IR.IrTerminator.Resume.Resume(MuLang.Core.Text.TextSpan Span) -> void
+MuLang.IR.IrTerminator.Throw
+MuLang.IR.IrTerminator.Throw.Deconstruct(out MuLang.Core.Text.TextSpan Span, out int Error) -> void
+MuLang.IR.IrTerminator.Throw.Equals(MuLang.IR.IrTerminator.Throw? other) -> bool
+MuLang.IR.IrTerminator.Throw.Error.get -> int
+MuLang.IR.IrTerminator.Throw.Error.init -> void
+MuLang.IR.IrTerminator.Throw.Throw(MuLang.Core.Text.TextSpan Span, int Error) -> void
+MuLang.IR.Serialization.MuIrReaderOptions.MaximumExceptionRegionsPerFunction.get -> int
+MuLang.IR.Serialization.MuIrReaderOptions.MaximumExceptionRegionsPerFunction.init -> void
+MuLang.IR.Serialization.MuIrReaderOptions.MaximumLifetimeRegionsPerFunction.get -> int
+MuLang.IR.Serialization.MuIrReaderOptions.MaximumLifetimeRegionsPerFunction.init -> void
+override MuLang.IR.IrLifetimeRegion.Equals(object? obj) -> bool
+override MuLang.IR.IrLifetimeRegion.GetHashCode() -> int
+override MuLang.IR.IrLifetimeRegion.ToString() -> string!
+override MuLang.IR.IrExceptionCleanup.Equals(object? obj) -> bool
+override MuLang.IR.IrExceptionCleanup.GetHashCode() -> int
+override MuLang.IR.IrExceptionCleanup.ToString() -> string!
+override MuLang.IR.IrExceptionHandler.Equals(object? obj) -> bool
+override MuLang.IR.IrExceptionHandler.GetHashCode() -> int
+override MuLang.IR.IrExceptionHandler.ToString() -> string!
+override MuLang.IR.IrExceptionProtectedRegion.Equals(object? obj) -> bool
+override MuLang.IR.IrExceptionProtectedRegion.GetHashCode() -> int
+override MuLang.IR.IrExceptionProtectedRegion.ToString() -> string!
+override MuLang.IR.IrExceptionRegion.Equals(object? obj) -> bool
+override MuLang.IR.IrExceptionRegion.GetHashCode() -> int
+override MuLang.IR.IrExceptionRegion.ToString() -> string!
+override MuLang.IR.IrTerminator.Resume.<Clone>$() -> MuLang.IR.IrTerminator.Resume!
+override MuLang.IR.IrTerminator.Resume.Equals(object? obj) -> bool
+override MuLang.IR.IrTerminator.Resume.GetHashCode() -> int
+override MuLang.IR.IrTerminator.Resume.ToString() -> string!
+override MuLang.IR.IrTerminator.Throw.<Clone>$() -> MuLang.IR.IrTerminator.Throw!
+override MuLang.IR.IrTerminator.Throw.Equals(object? obj) -> bool
+override MuLang.IR.IrTerminator.Throw.GetHashCode() -> int
+override MuLang.IR.IrTerminator.Throw.ToString() -> string!
+override sealed MuLang.IR.IrTerminator.Resume.Equals(MuLang.IR.IrTerminator? other) -> bool
+override sealed MuLang.IR.IrTerminator.Throw.Equals(MuLang.IR.IrTerminator? other) -> bool
+static MuLang.IR.IrExceptionCleanup.operator !=(MuLang.IR.IrExceptionCleanup? left, MuLang.IR.IrExceptionCleanup? right) -> bool
+static MuLang.IR.IrExceptionCleanup.operator ==(MuLang.IR.IrExceptionCleanup? left, MuLang.IR.IrExceptionCleanup? right) -> bool
+static MuLang.IR.IrExceptionHandler.operator !=(MuLang.IR.IrExceptionHandler? left, MuLang.IR.IrExceptionHandler? right) -> bool
+static MuLang.IR.IrExceptionHandler.operator ==(MuLang.IR.IrExceptionHandler? left, MuLang.IR.IrExceptionHandler? right) -> bool
+static MuLang.IR.IrExceptionProtectedRegion.operator !=(MuLang.IR.IrExceptionProtectedRegion? left, MuLang.IR.IrExceptionProtectedRegion? right) -> bool
+static MuLang.IR.IrExceptionProtectedRegion.operator ==(MuLang.IR.IrExceptionProtectedRegion? left, MuLang.IR.IrExceptionProtectedRegion? right) -> bool
+static MuLang.IR.IrExceptionRegion.operator !=(MuLang.IR.IrExceptionRegion? left, MuLang.IR.IrExceptionRegion? right) -> bool
+static MuLang.IR.IrExceptionRegion.operator ==(MuLang.IR.IrExceptionRegion? left, MuLang.IR.IrExceptionRegion? right) -> bool
+static MuLang.IR.IrLifetimeRegion.operator !=(MuLang.IR.IrLifetimeRegion? left, MuLang.IR.IrLifetimeRegion? right) -> bool
+static MuLang.IR.IrLifetimeRegion.operator ==(MuLang.IR.IrLifetimeRegion? left, MuLang.IR.IrLifetimeRegion? right) -> bool
+static MuLang.IR.IrTerminator.Resume.operator !=(MuLang.IR.IrTerminator.Resume? left, MuLang.IR.IrTerminator.Resume? right) -> bool
+static MuLang.IR.IrTerminator.Resume.operator ==(MuLang.IR.IrTerminator.Resume? left, MuLang.IR.IrTerminator.Resume? right) -> bool
+static MuLang.IR.IrTerminator.Throw.operator !=(MuLang.IR.IrTerminator.Throw? left, MuLang.IR.IrTerminator.Throw? right) -> bool
+static MuLang.IR.IrTerminator.Throw.operator ==(MuLang.IR.IrTerminator.Throw? left, MuLang.IR.IrTerminator.Throw? right) -> bool

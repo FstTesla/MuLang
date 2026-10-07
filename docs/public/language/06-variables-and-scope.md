@@ -115,6 +115,21 @@ The `$` is a declaration modifier and is not part of the variable name.
 >
 > This program is valid.
 
+> This program is invalid because the same read-only instance is assigned twice
+> before its loop-body activation exits:
+>
+> ```text
+> while (condition) {
+>     var value$: int;
+>     value = 1;
+>     value = 2;
+> }
+> ```
+>
+> The second assignment produces a compile-time error. A later iteration would
+> create a new instance, but it does not reset the instance during the current
+> iteration.
+
 > Given a host global `condition: bool`, this program is invalid because `result` is not definitely assigned on every path:
 >
 > ```text

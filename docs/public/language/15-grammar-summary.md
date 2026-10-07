@@ -102,6 +102,7 @@ primary-type
     | "float"
     | "number"
     | "primitive"
+    | "error"
     | "string"
     | "unknown"
     | "object"

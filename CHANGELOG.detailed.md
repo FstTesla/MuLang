@@ -12,6 +12,23 @@ Stable entries describe the incremental change since the preceding prerelease. T
 
 Each release heading identifies the incremental version range covered by the section, from the comparison version to the released version.
 
+## `0.3.0-alpha.2` → `0.3.0-alpha.3` - 2026-10-07
+
+### Breaking changes
+
+- Replaced the prerelease MuIR version 2 function grammar with explicit lifetime-region and exception-region counts, declarations, slot and block lifetime ownership, and deterministic exception-component block sets. Earlier prerelease MuIR 2 documents are rejected; MuIR version 1 remains readable through synthesized lifetime root region `0`.
+- Extended portable IR functions, slots, and blocks with lifetime and exception-region metadata. Custom IR producers targeting the prerelease APIs must provide structurally valid ownership and control-flow relationships.
+- Renamed the canonical compiler recovery symbols to `TypeKind.ErrorRecovery` and `TypeSymbols.ErrorRecovery`. The existing `Error` names remain obsolete compatibility aliases.
+
+### New features
+
+- Added scoped IR slots through explicit lifetime regions. A lexical scope with local slots receives a new activation on every entry, so read-only locals declared inside loops remain read-only in portable IR while exporters may reuse physical storage without clearing it.
+- Added region-aware slot visibility, definite-assignment, and path-sensitive read-only validation, including rejection of illegal region entry, active-region restart, use outside ownership, repeated definition within one activation, and stale values after re-entry.
+- Added the intrinsic `error` type to MuLang 1.2 and MuIR 2, together with `RuntimeErrorData`, explicit absent-versus-present-null payloads, and the public `IDotNetErrorValue` provider contract.
+- Added portable exception regions with protected, handler, and cleanup components, mandatory handler error slots, `Throw` and `Resume` terminators, and context-sensitive cleanup dispatch for jumps, branches, returns, and errors.
+- Added .NET execution of programmatically constructed exception-region IR. Catchable errors select handlers and run applicable cleanup, while cancellation, resource, provider, environment, runtime-contract, and other uncatchable failures bypass MuLang cleanup.
+- Added the MuLang 1.2 `error` keyword and migration warning when the spelling is used as an identifier in earlier language versions.
+
 ## `0.3.0-alpha.1` → `0.3.0-alpha.2` - 2026-10-07
 
 ### Breaking changes

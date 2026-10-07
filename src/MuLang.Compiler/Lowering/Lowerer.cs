@@ -179,7 +179,22 @@ internal sealed class Lowerer
         {
             case BoundStatement.Block block:
             {
+                bool hasLocalSlots = block.Statements.Any(
+                    static child => child is BoundStatement.VariableDeclaration
+                );
+
+                if (hasLocalSlots)
+                {
+                    builder.EnterLifetimeRegion(block.Span);
+                }
+
                 LowerStatements(block.Statements);
+
+                if (hasLocalSlots)
+                {
+                    builder.ExitLifetimeRegion(block.Span);
+                }
+
                 break;
             }
 
@@ -474,6 +489,13 @@ internal sealed class Lowerer
 
     private void LowerFor(BoundStatement.For loop)
     {
+        bool hasLoopScopeSlot = loop.Initializer is BoundStatement.VariableDeclaration;
+
+        if (hasLoopScopeSlot)
+        {
+            builder.EnterLifetimeRegion(loop.Span);
+        }
+
         if (loop.Initializer is not null)
         {
             LowerStatement(loop.Initializer);
@@ -550,6 +572,11 @@ internal sealed class Lowerer
         else
         {
             builder.SwitchTo(context.BreakBlock);
+        }
+
+        if (hasLoopScopeSlot)
+        {
+            builder.ExitLifetimeRegion(loop.Span);
         }
     }
 
@@ -1123,10 +1150,9 @@ internal sealed class Lowerer
             return slot;
         }
 
-        IrSlotMutability mutability =
-            local is { IsReadOnly: true, DeclarationLoopDepth: 0 }
-                ? IrSlotMutability.ReadOnly
-                : IrSlotMutability.Mutable;
+        IrSlotMutability mutability = local.IsReadOnly
+            ? IrSlotMutability.ReadOnly
+            : IrSlotMutability.Mutable;
         slot = builder.CreateSlot(
             IrSlotKind.Local,
             local.Type,

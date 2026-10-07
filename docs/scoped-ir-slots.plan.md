@@ -2,9 +2,8 @@
 
 ## Status
 
-Planned for `0.3.0-alpha.3` together with the MuIR 2 exception-region model.
-The current lowering continues to represent a source read-only local declared
-inside a loop with a mutable function-scoped IR slot.
+Implemented for `0.3.0-alpha.3` together with the MuIR 2 exception-region
+model.
 
 ## Motivation
 

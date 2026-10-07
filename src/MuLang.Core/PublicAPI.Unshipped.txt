@@ -1,1 +1,23 @@
 #nullable enable
+MuLang.Core.Runtime.RuntimeError.ErrorData.get -> MuLang.Core.Runtime.RuntimeErrorData
+MuLang.Core.Runtime.RuntimeError.RuntimeError(string! code, string! message, MuLang.Core.Runtime.RuntimeErrorCategory category, bool isCatchable, MuLang.Core.Text.TextSpan span, System.Collections.Generic.IEnumerable<MuLang.Core.Runtime.RuntimeStackFrame!>! frames, MuLang.Core.Runtime.RuntimeError? cause, MuLang.Core.Runtime.RuntimeErrorData data) -> void
+MuLang.Core.Runtime.RuntimeErrorData
+MuLang.Core.Runtime.RuntimeErrorData.Deconstruct(out bool IsPresent, out object? Value) -> void
+MuLang.Core.Runtime.RuntimeErrorData.Equals(MuLang.Core.Runtime.RuntimeErrorData other) -> bool
+MuLang.Core.Runtime.RuntimeErrorData.IsPresent.get -> bool
+MuLang.Core.Runtime.RuntimeErrorData.IsPresent.init -> void
+MuLang.Core.Runtime.RuntimeErrorData.RuntimeErrorData() -> void
+MuLang.Core.Runtime.RuntimeErrorData.RuntimeErrorData(bool IsPresent, object? Value) -> void
+MuLang.Core.Runtime.RuntimeErrorData.Value.get -> object?
+MuLang.Core.Runtime.RuntimeErrorData.Value.init -> void
+MuLang.Core.Types.TypeKind.ErrorRecovery = 12 -> MuLang.Core.Types.TypeKind
+MuLang.Core.Types.TypeKind.ErrorValue = 15 -> MuLang.Core.Types.TypeKind
+override MuLang.Core.Runtime.RuntimeErrorData.GetHashCode() -> int
+static MuLang.Core.Runtime.RuntimeErrorData.Absent.get -> MuLang.Core.Runtime.RuntimeErrorData
+static MuLang.Core.Runtime.RuntimeErrorData.Present(object? value) -> MuLang.Core.Runtime.RuntimeErrorData
+static MuLang.Core.Runtime.RuntimeErrorData.operator !=(MuLang.Core.Runtime.RuntimeErrorData left, MuLang.Core.Runtime.RuntimeErrorData right) -> bool
+static MuLang.Core.Runtime.RuntimeErrorData.operator ==(MuLang.Core.Runtime.RuntimeErrorData left, MuLang.Core.Runtime.RuntimeErrorData right) -> bool
+static MuLang.Core.Types.TypeSymbols.ErrorRecovery.get -> MuLang.Core.Types.TypeSymbol!
+static MuLang.Core.Types.TypeSymbols.ErrorValue.get -> MuLang.Core.Types.TypeSymbol!
+~override MuLang.Core.Runtime.RuntimeErrorData.Equals(object obj) -> bool
+~override MuLang.Core.Runtime.RuntimeErrorData.ToString() -> string

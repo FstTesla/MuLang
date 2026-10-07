@@ -6,10 +6,11 @@ types 2
 type t0 intrinsic int
 type t1 object closed 2 ["optional" t0 optional mutable, "required" t0 required readonly]
 
-entry "$entry" t1 bb0 slots 2 blocks 1 {
-  slot %0 temporary t0 mutable none
-  slot %1 temporary t1 mutable none
-  block bb0 instructions 2 {
+entry "$entry" t1 bb0 slots 2 blocks 1 lifetime-regions 1 exception-regions 0 {
+  lifetime-region lr0 parent none entry bb0
+  slot %0 temporary t0 mutable none region lr0
+  slot %1 temporary t1 mutable none region lr0
+  block bb0 region lr0 instructions 2 {
     ins constant 0 1 %0 t0 int 42
     ins create-object 1 1 %1 t1 ["required": %0]
     term return 2 1 %1

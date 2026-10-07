@@ -126,11 +126,11 @@ public sealed class LexerTests
     public void VersionsExceptionHandlingKeywords()
     {
         LexResult earlier = Lexer.Lex(
-            SourceText.From("catch finally throw try"),
+            SourceText.From("catch error finally throw try"),
             LanguageProfiles.Version1_1
         );
         LexResult current = Lexer.Lex(
-            SourceText.From("catch finally throw try"),
+            SourceText.From("catch error finally throw try"),
             LanguageProfiles.Version1_2
         );
 
@@ -144,6 +144,7 @@ public sealed class LexerTests
                         TokenKind.Identifier,
                         TokenKind.Identifier,
                         TokenKind.Identifier,
+                        TokenKind.Identifier,
                         TokenKind.EndOfFile,
                     ]
                 )
@@ -152,6 +153,7 @@ public sealed class LexerTests
                 earlier.Diagnostics.Select(static diagnostic => diagnostic.Code),
                 Is.EqualTo(
                     [
+                        DiagnosticCodes.FutureReservedKeyword,
                         DiagnosticCodes.FutureReservedKeyword,
                         DiagnosticCodes.FutureReservedKeyword,
                         DiagnosticCodes.FutureReservedKeyword,
@@ -169,6 +171,7 @@ public sealed class LexerTests
                 Is.EqualTo(
                     [
                         TokenKind.CatchKeyword,
+                        TokenKind.ErrorKeyword,
                         TokenKind.FinallyKeyword,
                         TokenKind.ThrowKeyword,
                         TokenKind.TryKeyword,
