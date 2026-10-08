@@ -582,8 +582,8 @@ internal static class DotNetRuntimeOperations
     )
     {
         if (
-            left is long && right is double ||
-            left is double && right is long
+            (left is long && right is double) ||
+            (left is double && right is long)
         )
         {
             return false;
@@ -769,10 +769,9 @@ internal static class DotNetRuntimeOperations
         int depth
     )
     {
-        if (
-            value is not IDotNetErrorValue errorValue ||
-            value is not IDotNetObjectPropertyCapabilities capabilities
-        )
+        if (value is not (
+            IDotNetErrorValue errorValue and IDotNetObjectPropertyCapabilities capabilities
+            ))
         {
             return false;
         }

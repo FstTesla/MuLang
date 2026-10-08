@@ -50,15 +50,15 @@ internal sealed class MutableIrExceptionRegion
                 ProtectedEntry,
                 protectedBlocks.AsReadOnly()
             ),
-            HandlerEntry is int handlerEntry &&
-            HandlerErrorSlot is int handlerErrorSlot
+            HandlerEntry is { } handlerEntry &&
+            HandlerErrorSlot is { } handlerErrorSlot
                 ? new IrExceptionHandler(
                     handlerEntry,
                     handlerBlocks.AsReadOnly(),
                     handlerErrorSlot
                 )
                 : null,
-            CleanupEntry is int cleanupEntry
+            CleanupEntry is { } cleanupEntry
                 ? new IrExceptionCleanup(
                     cleanupEntry,
                     cleanupBlocks.AsReadOnly()

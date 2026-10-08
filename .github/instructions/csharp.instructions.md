@@ -41,6 +41,10 @@ Prefer explicit types over `var` for local variables, except for lengthy types o
 
 ---
 
+Use `{ } someVar` instead of `SomeType someVar` when pattern-matching against the nullable counterpart, i.e. `SomeType?`.
+
+---
+
 Prefer interface collections over concrete collections, unless the concrete collection is required for some reason.
 
 Among the interface collections, choose the most appropriate one for the use case.

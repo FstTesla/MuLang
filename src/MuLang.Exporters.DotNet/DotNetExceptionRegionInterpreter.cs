@@ -126,7 +126,7 @@ internal sealed class DotNetExceptionRegionInterpreter
                     case IrTerminator.Return result:
                     {
                         PendingCompletion completion = PendingCompletion.Return(
-                            result.Value is int valueSlot
+                            result.Value is { } valueSlot
                                 ? slots[valueSlot]
                                 : null
                         );
@@ -445,12 +445,12 @@ internal sealed class DotNetExceptionRegionInterpreter
                 object? result = DotNetRuntimeOperations.Invoke(
                     context,
                     call.FunctionId,
-                    call.Arguments.Select(argument => slots[argument]).ToArray(),
+                    [ .. call.Arguments.Select(argument => slots[argument]) ],
                     call.ReturnType,
                     call.Span
                 );
 
-                if (call.Destination is int destination)
+                if (call.Destination is { } destination)
                 {
                     slots[destination] = result;
                 }
@@ -463,11 +463,11 @@ internal sealed class DotNetExceptionRegionInterpreter
                 object? result = execution.Invoke(
                     context,
                     call.FunctionId,
-                    call.Arguments.Select(argument => slots[argument]).ToArray(),
+                    [ .. call.Arguments.Select(argument => slots[argument]) ],
                     call.Span
                 );
 
-                if (call.Destination is int destination)
+                if (call.Destination is { } destination)
                 {
                     slots[destination] = result;
                 }
@@ -602,7 +602,7 @@ internal sealed class DotNetExceptionRegionInterpreter
             }
         }
 
-        return handlerRegion is int regionId
+        return handlerRegion is { } regionId
             ? PendingCompletion.Handler(
                 function.ExceptionRegions[regionId].Handler!.EntryBlock,
                 regionId,
@@ -617,7 +617,7 @@ internal sealed class DotNetExceptionRegionInterpreter
     )
     {
         IReadOnlyList<BlockOwner> sourceMembership = GetMembership(sourceBlock);
-        IReadOnlySet<int> targetRegions = targetBlock is int target
+        IReadOnlySet<int> targetRegions = targetBlock is { } target
             ? GetMembership(target)
                 .Select(static membership => membership.RegionId)
                 .ToHashSet()
@@ -637,7 +637,7 @@ internal sealed class DotNetExceptionRegionInterpreter
 
             if (
                 membership.Part != IrExceptionRegionPart.Cleanup &&
-                region.Cleanup is IrExceptionCleanup cleanup
+                region.Cleanup is { } cleanup
             )
             {
                 cleanups.Add(cleanup.EntryBlock);
@@ -657,10 +657,7 @@ internal sealed class DotNetExceptionRegionInterpreter
         IList<BlockOwner> membership = [ owner ];
         IrExceptionRegion region = function.ExceptionRegions[owner.RegionId];
 
-        while (
-            region.ParentRegion is int parentRegion &&
-            region.ParentPart is IrExceptionRegionPart parentPart
-        )
+        while (region is { ParentRegion: { } parentRegion, ParentPart: { } parentPart })
         {
             membership.Add(new BlockOwner(parentRegion, parentPart));
             region = function.ExceptionRegions[parentRegion];
@@ -679,12 +676,12 @@ internal sealed class DotNetExceptionRegionInterpreter
         {
             Add(region.Protected.Blocks, IrExceptionRegionPart.Protected);
 
-            if (region.Handler is IrExceptionHandler handler)
+            if (region.Handler is { } handler)
             {
                 Add(handler.Blocks, IrExceptionRegionPart.Handler);
             }
 
-            if (region.Cleanup is IrExceptionCleanup cleanup)
+            if (region.Cleanup is { } cleanup)
             {
                 Add(cleanup.Blocks, IrExceptionRegionPart.Cleanup);
             }

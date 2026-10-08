@@ -13,7 +13,9 @@ public sealed class RuntimeErrorTests
             RuntimeErrorCategory.Application,
             true,
             default,
-            [ ]
+            [ ],
+            null,
+            RuntimeErrorData.Absent
         );
         RuntimeError presentNull = new (
             "present",
@@ -30,7 +32,7 @@ public sealed class RuntimeErrorTests
         {
             Assert.That(absent.ErrorData.IsPresent, Is.False);
             Assert.That(presentNull.ErrorData.IsPresent, Is.True);
-            Assert.That(presentNull.Data, Is.Null);
+            Assert.That(presentNull.ErrorData.Value, Is.Null);
         }
     }
 }

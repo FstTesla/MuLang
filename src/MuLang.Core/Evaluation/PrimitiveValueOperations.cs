@@ -203,24 +203,24 @@ internal static class PrimitiveValueOperations
 
     private static object Add(object? left, object? right)
     {
-        if (left is string leftString && right is string rightString)
+        switch (left, right)
         {
-            return $"{leftString}{rightString}";
-        }
+            case (string leftString, string rightString):
+                return $"{leftString}{rightString}";
 
-        if (left is long leftInt && right is long rightInt)
-        {
-            try
-            {
-                return checked(leftInt + rightInt);
-            }
-            catch (OverflowException exception)
-            {
-                throw IntegerOverflow(exception);
-            }
-        }
+            case (long leftInt, long rightInt):
+                try
+                {
+                    return checked(leftInt + rightInt);
+                }
+                catch (OverflowException exception)
+                {
+                    throw IntegerOverflow(exception);
+                }
 
-        return RequireFloatCompatible(left) + RequireFloatCompatible(right);
+            default:
+                return RequireFloatCompatible(left) + RequireFloatCompatible(right);
+        }
     }
 
     private static object Subtract(object? left, object? right)
@@ -259,42 +259,38 @@ internal static class PrimitiveValueOperations
 
     private static object Divide(object? left, object? right)
     {
-        if (left is long leftInt && right is long rightInt)
+        switch (left, right)
         {
-            if (rightInt == 0)
-            {
+            case (long, 0L):
                 throw DivisionByZero();
-            }
 
-            if (leftInt == long.MinValue && rightInt == -1)
-            {
+            case (long.MinValue, -1L):
                 throw IntegerOverflow();
-            }
 
-            return leftInt / rightInt;
+            case (long leftInt, long rightInt):
+                return leftInt / rightInt;
+
+            default:
+                return RequireFloatCompatible(left) / RequireFloatCompatible(right);
         }
-
-        return RequireFloatCompatible(left) / RequireFloatCompatible(right);
     }
 
     private static object Remainder(object? left, object? right)
     {
-        if (left is long leftInt && right is long rightInt)
+        switch (left, right)
         {
-            if (rightInt == 0)
-            {
+            case (long, 0L):
                 throw DivisionByZero();
-            }
 
-            if (leftInt == long.MinValue && rightInt == -1)
-            {
+            case (long.MinValue, -1L):
                 throw IntegerOverflow();
-            }
 
-            return leftInt % rightInt;
+            case (long leftInt, long rightInt):
+                return leftInt % rightInt;
+
+            default:
+                return RequireFloatCompatible(left) % RequireFloatCompatible(right);
         }
-
-        return RequireFloatCompatible(left) % RequireFloatCompatible(right);
     }
 
     private static long LeftShift(object? left, object? right)
@@ -343,36 +339,36 @@ internal static class PrimitiveValueOperations
         Func<int, bool> evaluateComparison
     )
     {
-        if (left is long leftInt && right is long rightInt)
+        switch (left, right)
         {
-            return evaluateComparison(leftInt.CompareTo(rightInt));
+            case (long leftInt, long rightInt):
+                return evaluateComparison(leftInt.CompareTo(rightInt));
+
+            case (double leftNumber, double rightNumber):
+                return !double.IsNaN(leftNumber) &&
+                    !double.IsNaN(rightNumber) &&
+                    evaluateComparison(leftNumber.CompareTo(rightNumber));
+
+            case (long or double, long or double):
+            {
+                double promotedLeft = RequireFloatCompatible(left);
+                double promotedRight = RequireFloatCompatible(right);
+
+                return !double.IsNaN(promotedLeft) &&
+                    !double.IsNaN(promotedRight) &&
+                    evaluateComparison(promotedLeft.CompareTo(promotedRight));
+            }
+
+            case (string leftString, string rightString):
+            {
+                return evaluateComparison(
+                    StringComparer.Ordinal.Compare(leftString, rightString)
+                );
+            }
+
+            default:
+                throw InvalidValue("Values cannot be ordered.");
         }
-
-        if (left is double leftNumber && right is double rightNumber)
-        {
-            return !double.IsNaN(leftNumber) &&
-                !double.IsNaN(rightNumber) &&
-                evaluateComparison(leftNumber.CompareTo(rightNumber));
-        }
-
-        if (left is long or double && right is long or double)
-        {
-            double promotedLeft = RequireFloatCompatible(left);
-            double promotedRight = RequireFloatCompatible(right);
-
-            return !double.IsNaN(promotedLeft) &&
-                !double.IsNaN(promotedRight) &&
-                evaluateComparison(promotedLeft.CompareTo(promotedRight));
-        }
-
-        if (left is string leftString && right is string rightString)
-        {
-            return evaluateComparison(
-                StringComparer.Ordinal.Compare(leftString, rightString)
-            );
-        }
-
-        throw InvalidValue("Values cannot be ordered.");
     }
 
     private static bool StructuralEquals(object? left, object? right)

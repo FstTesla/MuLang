@@ -36,13 +36,13 @@ public sealed class TypeRelationsTests
             Assert.That(
                 concreteTypes,
                 Has.All.Matches<TypeSymbol>(
-                    type => TypeRelations.IsAssignable(type, TypeSymbols.Primitive)
+                    static type => TypeRelations.IsAssignable(type, TypeSymbols.Primitive)
                 )
             );
             Assert.That(
                 concreteTypes,
                 Has.All.Matches<TypeSymbol>(
-                    type => TypeRelations.IsCastable(TypeSymbols.Primitive, type)
+                    static type => TypeRelations.IsCastable(TypeSymbols.Primitive, type)
                 )
             );
             Assert.That(

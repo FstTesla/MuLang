@@ -461,13 +461,18 @@ internal sealed class Parser
         ExpressionSyntax condition = ParseExpression();
         SyntaxToken closeParenthesisToken = Match(TokenKind.CloseParenthesis);
         StatementSyntax thenStatement = ParseStatement();
-        SyntaxToken? elseKeyword = null;
-        StatementSyntax? elseStatement = null;
 
+        SyntaxToken? elseKeyword;
+        StatementSyntax? elseStatement;
         if (Current.Kind == TokenKind.ElseKeyword)
         {
             elseKeyword = ParseToken();
             elseStatement = ParseStatement();
+        }
+        else
+        {
+            elseKeyword = null;
+            elseStatement = null;
         }
 
         return new IfStatementSyntax(

@@ -1,6 +1,6 @@
 #nullable enable
 MuLang.Core.Runtime.RuntimeError.ErrorData.get -> MuLang.Core.Runtime.RuntimeErrorData
-MuLang.Core.Runtime.RuntimeError.RuntimeError(string! code, string! message, MuLang.Core.Runtime.RuntimeErrorCategory category, bool isCatchable, MuLang.Core.Text.TextSpan span, System.Collections.Generic.IEnumerable<MuLang.Core.Runtime.RuntimeStackFrame!>! frames, MuLang.Core.Runtime.RuntimeError? cause, MuLang.Core.Runtime.RuntimeErrorData data) -> void
+MuLang.Core.Runtime.RuntimeError.RuntimeError(string! code, string! message, MuLang.Core.Runtime.RuntimeErrorCategory category, bool isCatchable, MuLang.Core.Text.TextSpan span, System.Collections.Generic.IEnumerable<MuLang.Core.Runtime.RuntimeStackFrame!>! frames, MuLang.Core.Runtime.RuntimeError? cause, MuLang.Core.Runtime.RuntimeErrorData errorData) -> void
 MuLang.Core.Runtime.RuntimeErrorData
 MuLang.Core.Runtime.RuntimeErrorData.Deconstruct(out bool IsPresent, out object? Value) -> void
 MuLang.Core.Runtime.RuntimeErrorData.Equals(MuLang.Core.Runtime.RuntimeErrorData other) -> bool

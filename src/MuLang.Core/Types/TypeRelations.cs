@@ -509,8 +509,7 @@ public static class TypeRelations
             return CanConvertChecked(sourceNullable.UnderlyingType, target);
         }
 
-        if (
-            target.Kind == TypeKind.String &&
+        return target.Kind == TypeKind.String &&
             source.Kind is
                 TypeKind.Bool or
                 TypeKind.Int or
@@ -518,13 +517,7 @@ public static class TypeRelations
                 TypeKind.Number or
                 TypeKind.String or
                 TypeKind.Primitive or
-                TypeKind.Null
-        )
-        {
-            return true;
-        }
-
-        return false;
+                TypeKind.Null;
     }
 
     internal static bool IsViewCompatible(TypeSymbol source, TypeSymbol target)
@@ -647,14 +640,12 @@ public static class TypeRelations
             {
                 if (targetProperty.IsReadOnly)
                 {
-                    return !targetProperty.IsOptional &&
-                        sourceProperty.IsOptional
-                            ? false
-                            : IsViewCompatible(
-                                sourceProperty.Type,
-                                targetProperty.Type,
-                                active
-                            );
+                    return (targetProperty.IsOptional || !sourceProperty.IsOptional) &&
+                        IsViewCompatible(
+                            sourceProperty.Type,
+                            targetProperty.Type,
+                            active
+                        );
                 }
 
                 return !sourceProperty.IsReadOnly &&
@@ -768,7 +759,7 @@ public static class TypeRelations
             if (
                 !TryGetErrorValueProperty(
                     targetProperty.Name,
-                    out TypeSymbol? sourceType,
+                    out TypeSymbol sourceType,
                     out bool sourceOptional
                 ) ||
                 !targetProperty.IsReadOnly ||

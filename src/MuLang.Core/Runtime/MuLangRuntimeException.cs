@@ -25,7 +25,9 @@ public sealed class MuLangRuntimeException : Exception
                 RuntimeErrorCategory.Operation,
                 true,
                 span,
-                [ ]
+                [ ],
+                null,
+                RuntimeErrorData.Absent
             ),
             innerException
         ) { }

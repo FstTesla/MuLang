@@ -260,10 +260,7 @@ internal sealed class IrBuilder
     )
     {
         if (
-            !exceptionRegionStack.TryPeek(
-                out ExceptionRegionContext? context
-            ) ||
-            context is null ||
+            !exceptionRegionStack.TryPeek(out ExceptionRegionContext? context) ||
             context.Part != expectedPart
         )
         {

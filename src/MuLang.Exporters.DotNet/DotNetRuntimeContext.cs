@@ -255,7 +255,7 @@ public sealed class DotNetRuntimeContext
                 span,
                 exception,
                 exception.Cause,
-                exception.Payload
+                exception.ErrorData
             );
         }
         catch (OperationCanceledException exception)

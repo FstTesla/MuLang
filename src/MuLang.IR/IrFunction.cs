@@ -61,7 +61,7 @@ public sealed record IrFunction(
     /// <summary>Gets the function lifetime regions.</summary>
     public IReadOnlyList<IrLifetimeRegion> LifetimeRegions { get; init; } =
     [
-        new IrLifetimeRegion(0, null, EntryBlock),
+        new (0, null, EntryBlock),
     ];
 
     /// <summary>Gets the function exception regions.</summary>

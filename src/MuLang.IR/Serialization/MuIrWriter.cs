@@ -195,7 +195,7 @@ public static class MuIrWriter
                     static region => region.Id
                 ))
             {
-                string parent = region.ParentRegion is int parentRegion
+                string parent = region.ParentRegion is { } parentRegion
                     ? $"lr{parentRegion.ToString(CultureInfo.InvariantCulture)}"
                     : "none";
                 Line(
@@ -209,7 +209,7 @@ public static class MuIrWriter
                     static region => region.Id
                 ))
             {
-                string parent = region.ParentRegion is int parentRegion
+                string parent = region.ParentRegion is { } parentRegion
                     ? $"er{parentRegion.ToString(CultureInfo.InvariantCulture)}"
                     : "none";
                 string parentPart = region.ParentPart switch

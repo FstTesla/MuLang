@@ -553,7 +553,7 @@ public static class IrValidator
                 }
             }
             else if (
-                region.ParentRegion is not int parentRegion ||
+                region.ParentRegion is not { } parentRegion ||
                 parentRegion < 0 ||
                 parentRegion >= region.Id
             )
@@ -725,7 +725,7 @@ public static class IrValidator
             if (
                 region.Id == 0
                     ? region.ParentRegion is not null || region.ParentPart is not null
-                    : region.ParentRegion is not int parentRegion ||
+                    : region.ParentRegion is not { } parentRegion ||
                     parentRegion < 0 ||
                     parentRegion >= region.Id ||
                     region.ParentPart is null
@@ -756,7 +756,7 @@ public static class IrValidator
                 region.Protected.Blocks
             );
 
-            if (region.Handler is IrExceptionHandler handler)
+            if (region.Handler is { } handler)
             {
                 AddComponent(
                     region,
@@ -810,7 +810,7 @@ public static class IrValidator
                 }
             }
 
-            if (region.Cleanup is IrExceptionCleanup cleanup)
+            if (region.Cleanup is { } cleanup)
             {
                 AddComponent(
                     region,
@@ -821,9 +821,9 @@ public static class IrValidator
             }
 
             if (
-                region.ParentRegion is int parentId &&
+                region.ParentRegion is { } parentId &&
                 parentId < function.ExceptionRegions.Count &&
-                region.ParentPart is IrExceptionRegionPart parentPart &&
+                region.ParentPart is { } parentPart &&
                 !HasComponent(function.ExceptionRegions[parentId], parentPart)
             )
             {
@@ -867,7 +867,7 @@ public static class IrValidator
 
             foreach (int blockId in componentBlocks)
             {
-                if (!blocksById.ContainsKey(blockId))
+                if (!blocksById.TryGetValue(blockId, out IrBasicBlock? block))
                 {
                     Report(
                         diagnostics,
@@ -876,15 +876,12 @@ public static class IrValidator
                         $"IR exception region {region.Id} refers to undefined block {blockId}."
                     );
                 }
-                else if (!owners.TryAdd(
-                        blockId,
-                        new ExceptionBlockOwner(region.Id, part)
-                    ))
+                else if (!owners.TryAdd(blockId, new ExceptionBlockOwner(region.Id, part)))
                 {
                     Report(
                         diagnostics,
                         IrDiagnosticCodes.InvalidStructure,
-                        blocksById[blockId].Terminator.Span,
+                        block.Terminator.Span,
                         $"IR block {blockId} has more than one direct exception-region owner."
                     );
                 }
@@ -1782,7 +1779,7 @@ public static class IrValidator
             targetType.Kind == TypeKind.ErrorValue &&
             TryGetErrorPropertyType(
                 property.Name,
-                out TypeSymbol? errorPropertyType,
+                out TypeSymbol errorPropertyType,
                 out bool isOptional
             )
         )
@@ -2037,10 +2034,7 @@ public static class IrValidator
                 .Where(constant => constant.Destination == slotId),
         ];
 
-        if (
-            definitions.Count == 1 &&
-            definitions[0].Value is string stringValue
-        )
+        if (definitions is [ { Value: string stringValue } ])
         {
             value = stringValue;
             return true;
@@ -2415,7 +2409,7 @@ public static class IrValidator
                 )
                 : parameterSlots;
 
-            if (region.Handler is IrExceptionHandler handler)
+            if (region.Handler is { } handler)
             {
                 ValidateComponentDefinitions(
                     handler.EntryBlock,
@@ -2424,7 +2418,7 @@ public static class IrValidator
                 );
             }
 
-            if (region.Cleanup is IrExceptionCleanup cleanup)
+            if (region.Cleanup is { } cleanup)
             {
                 ValidateComponentDefinitions(
                     cleanup.EntryBlock,
@@ -2441,10 +2435,11 @@ public static class IrValidator
         )
         {
             IReadOnlySet<int> allowedBlocks = componentBlocks.ToHashSet();
-            IReadOnlyCollection<int> componentReachable = GetReachableBlocks(
-                componentEntry,
-                blocksById
-            ).Where(allowedBlocks.Contains).ToArray();
+            IReadOnlyCollection<int> componentReachable =
+            [
+                .. GetReachableBlocks(componentEntry, blocksById)
+                    .Where(allowedBlocks.Contains),
+            ];
             IReadOnlyDictionary<int, IReadOnlyList<int>> componentPredecessors =
                 GetPredecessors(componentReachable, blocksById);
             IReadOnlySet<int> entryDefinitions = new HashSet<int>(
@@ -2641,7 +2636,7 @@ public static class IrValidator
         int? current = region;
 
         while (
-            current is int currentId &&
+            current is { } currentId &&
             lifetimeRegionsById.TryGetValue(
                 currentId,
                 out IrLifetimeRegion? currentRegion

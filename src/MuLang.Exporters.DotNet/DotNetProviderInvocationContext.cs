@@ -186,11 +186,53 @@ public sealed class DotNetProviderInvocationContext
     /// <summary>Reports an expected application failure.</summary>
     /// <param name="code">The stable application error code.</param>
     /// <param name="message">The application error message.</param>
+    /// <exception cref="InvalidOperationException">Thrown when the invocation has completed.</exception>
+    /// <exception cref="MuLangProviderException">Always thrown for an active invocation.</exception>
+    [DoesNotReturn]
+    public void ThrowApplicationError(
+        string code,
+        string message
+    )
+    {
+        ThrowApplicationError(
+            code,
+            message,
+            null,
+            RuntimeErrorData.Absent
+        );
+    }
+
+    /// <summary>Reports an expected application failure.</summary>
+    /// <param name="code">The stable application error code.</param>
+    /// <param name="message">The application error message.</param>
+    /// <param name="cause">The optional public MuLang error cause.</param>
+    /// <exception cref="InvalidOperationException">Thrown when the invocation has completed.</exception>
+    /// <exception cref="MuLangProviderException">Always thrown for an active invocation.</exception>
+    [DoesNotReturn]
+    public void ThrowApplicationError(
+        string code,
+        string message,
+        RuntimeError? cause
+    )
+    {
+        ThrowApplicationError(
+            code,
+            message,
+            cause,
+            RuntimeErrorData.Absent
+        );
+    }
+
+    /// <summary>Reports an expected application failure.</summary>
+    /// <param name="code">The stable application error code.</param>
+    /// <param name="message">The application error message.</param>
     /// <param name="cause">The optional public MuLang error cause.</param>
     /// <param name="data">The optional application payload.</param>
     /// <exception cref="InvalidOperationException">Thrown when the invocation has completed.</exception>
     /// <exception cref="MuLangProviderException">Always thrown for an active invocation.</exception>
+#pragma warning disable RS0027
     [DoesNotReturn]
+    [Obsolete("Use ThrowApplicationError(string, string, RuntimeError?, RuntimeErrorData) instead.")]
     public void ThrowApplicationError(
         string code,
         string message,
@@ -198,8 +240,34 @@ public sealed class DotNetProviderInvocationContext
         object? data = null
     )
     {
+        ThrowApplicationError(
+            code,
+            message,
+            cause,
+            data is null
+                ? RuntimeErrorData.Absent
+                : RuntimeErrorData.Present(data)
+        );
+    }
+#pragma warning restore RS0027
+
+    /// <summary>Reports an expected application failure with an explicit optional payload.</summary>
+    /// <param name="code">The stable application error code.</param>
+    /// <param name="message">The application error message.</param>
+    /// <param name="cause">The optional public MuLang error cause.</param>
+    /// <param name="errorData">The optional application payload.</param>
+    /// <exception cref="InvalidOperationException">Thrown when the invocation has completed.</exception>
+    /// <exception cref="MuLangProviderException">Always thrown for an active invocation.</exception>
+    [DoesNotReturn]
+    public void ThrowApplicationError(
+        string code,
+        string message,
+        RuntimeError? cause,
+        RuntimeErrorData errorData
+    )
+    {
         EnsureActive();
-        throw new MuLangProviderException(code, message, cause, data);
+        throw new MuLangProviderException(code, message, cause, errorData);
     }
 
     internal void Complete()

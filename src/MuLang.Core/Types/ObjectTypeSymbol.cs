@@ -36,13 +36,13 @@ public sealed class ObjectTypeSymbol : TypeSymbol
     )
         : base(TypeKind.StructuredObject)
     {
-        if (validateProviderIdentity && string.IsNullOrWhiteSpace(id))
-        {
-            throw new ArgumentException("Type identifier cannot be null or whitespace.", nameof(id));
-        }
-
         if (validateProviderIdentity)
         {
+            if (string.IsNullOrWhiteSpace(id))
+            {
+                throw new ArgumentException("Type identifier cannot be null or whitespace.", nameof(id));
+            }
+
             LanguageNames.ValidateIdentifier(name, nameof(name));
         }
 
@@ -108,7 +108,9 @@ public sealed class ObjectTypeSymbol : TypeSymbol
         return new ObjectTypeSymbol(id, name, isOpen, id is not null);
     }
 
-    internal void Complete(IEnumerable<ObjectPropertySymbol> properties)
+    internal void Complete(
+        [SuppressMessage("ReSharper", "ParameterHidesMember")] IEnumerable<ObjectPropertySymbol> properties
+    )
     {
         if (isComplete)
         {

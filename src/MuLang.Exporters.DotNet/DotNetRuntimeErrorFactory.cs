@@ -13,7 +13,7 @@ internal static class DotNetRuntimeErrorFactory
         TextSpan span,
         Exception? innerException = null,
         RuntimeError? cause = null,
-        object? data = null
+        RuntimeErrorData errorData = default
     )
     {
         RuntimeError error = new (
@@ -24,7 +24,7 @@ internal static class DotNetRuntimeErrorFactory
             span,
             [ ],
             cause,
-            data
+            errorData
         );
         return new MuLangRuntimeException(error, innerException, true);
     }

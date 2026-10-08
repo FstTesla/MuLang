@@ -524,8 +524,8 @@ public sealed class BinderTests
 
         Assert.That(
             result.Diagnostics.Count(
-                static diagnostic => diagnostic.Code == DiagnosticCodes.ReadOnlyTarget ||
-                    diagnostic.Code == DiagnosticCodes.PropertyNotRemovable
+                static diagnostic => diagnostic.Code is
+                    DiagnosticCodes.ReadOnlyTarget or DiagnosticCodes.PropertyNotRemovable
             ),
             Is.EqualTo(2)
         );

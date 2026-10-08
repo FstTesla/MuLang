@@ -1498,9 +1498,11 @@ internal sealed class Binder
         }
 
         ObjectTypeSymbol? expectedObject = GetNonNullable(expectedType) as ObjectTypeSymbol;
-        bool isFullSyntax =
-            profile.LanguageVersion >= LanguageVersion.Version1_2 &&
-            profile.ObjectLiteralSyntax == ObjectLiteralSyntax.Full;
+        bool isFullSyntax = profile is
+        {
+            LanguageVersion: >= LanguageVersion.Version1_2,
+            ObjectLiteralSyntax: ObjectLiteralSyntax.Full,
+        };
         IList<BoundExpression.ObjectProperty> properties = [ ];
         ICollection<ObjectPropertySymbol> propertySymbols = [ ];
         ISet<string> names = new HashSet<string>(StringComparer.Ordinal);

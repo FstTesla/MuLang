@@ -136,7 +136,7 @@ public sealed class DotNetStandardLibrary
         {
             throw new ArgumentException(
                 $"Standard-library symbol '{symbol.Id}' is not supported by the .NET implementation.",
-                "selection"
+                nameof(symbol)
             );
         }
 
@@ -144,7 +144,7 @@ public sealed class DotNetStandardLibrary
         {
             throw new ArgumentException(
                 $"Standard-library symbol '{symbol.Id}' is not the canonical catalog declaration.",
-                "selection"
+                nameof(symbol)
             );
         }
     }

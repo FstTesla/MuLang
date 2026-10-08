@@ -53,7 +53,7 @@ public sealed class RuntimeError
     /// <param name="span">The source span associated with the failing operation.</param>
     /// <param name="frames">The MuLang stack frames, ordered from innermost to outermost.</param>
     /// <param name="cause">The optional public MuLang error cause.</param>
-    /// <param name="data">The optional application payload.</param>
+    /// <param name="errorData">The optional application payload.</param>
     /// <exception cref="ArgumentException">Thrown when <paramref name="code" /> is null, empty, or whitespace, or <paramref name="category" /> is invalid.</exception>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="message" /> or <paramref name="frames" /> is <c>null</c>, or a frame is <c>null</c>.</exception>
     [OverloadResolutionPriority(1)]
@@ -65,7 +65,7 @@ public sealed class RuntimeError
         TextSpan span,
         IEnumerable<RuntimeStackFrame> frames,
         RuntimeError? cause,
-        RuntimeErrorData data
+        RuntimeErrorData errorData
     )
     {
         if (string.IsNullOrWhiteSpace(code))
@@ -114,8 +114,7 @@ public sealed class RuntimeError
         this.frames = frameList;
         Frames = frameList.AsReadOnly();
         Cause = cause;
-        Data = data.Value;
-        ErrorData = data;
+        ErrorData = errorData;
     }
 
     /// <summary>Gets the stable error code.</summary>
@@ -140,7 +139,8 @@ public sealed class RuntimeError
     public RuntimeError? Cause { get; }
 
     /// <summary>Gets the optional application payload.</summary>
-    public object? Data { get; }
+    [Obsolete("Use ErrorData instead.")]
+    public object? Data => ErrorData.Value;
 
     /// <summary>Gets the optional application payload with explicit presence.</summary>
     public RuntimeErrorData ErrorData { get; }

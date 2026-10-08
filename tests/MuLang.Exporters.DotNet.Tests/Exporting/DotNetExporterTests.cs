@@ -12,6 +12,47 @@ namespace MuLang.Exporters.DotNet.Tests.Exporting;
 public sealed class DotNetExporterTests
 {
     [Test]
+    public void RuntimeErrorFactoryDefaultsToAbsentPayload()
+    {
+        MuLangRuntimeException exception = DotNetRuntimeErrorFactory.Create(
+            "failure",
+            "Failure.",
+            RuntimeErrorCategory.Application,
+            true,
+            default
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(exception.InnerException, Is.Null);
+            Assert.That(exception.Error.Cause, Is.Null);
+            Assert.That(exception.Error.ErrorData, Is.EqualTo(RuntimeErrorData.Absent));
+        }
+    }
+
+    [Test]
+    public void RuntimeErrorFactoryPreservesPresentNullPayload()
+    {
+        Exception innerException = new InvalidOperationException("Host failure.");
+        MuLangRuntimeException exception = DotNetRuntimeErrorFactory.Create(
+            "failure",
+            "Failure.",
+            RuntimeErrorCategory.Application,
+            true,
+            default,
+            innerException,
+            errorData: RuntimeErrorData.Present(null)
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(exception.Error.ErrorData.IsPresent, Is.True);
+            Assert.That(exception.Error.ErrorData.Value, Is.Null);
+            Assert.That(exception.InnerException, Is.SameAs(innerException));
+        }
+    }
+
+    [Test]
     public void ExecutesArithmeticExpression()
     {
         EnvironmentSchema environment = CreateEmptyEnvironment();
@@ -802,7 +843,9 @@ public sealed class DotNetExporterTests
             RuntimeErrorCategory.Application,
             true,
             default,
-            [ ]
+            [ ],
+            null,
+            RuntimeErrorData.Absent
         );
         Func<DotNetRuntimeContext, object?> compiled = CompileExpression(
             "fail()",
@@ -821,7 +864,7 @@ public sealed class DotNetExporterTests
                             "invalid-request",
                             "The request is invalid.",
                             cause,
-                            data
+                            RuntimeErrorData.Present(data)
                         );
                         return null;
                     }
@@ -842,8 +885,54 @@ public sealed class DotNetExporterTests
             );
             Assert.That(exception.Error.IsCatchable, Is.True);
             Assert.That(exception.Error.Cause, Is.SameAs(cause));
-            Assert.That(exception.Error.Data, Is.SameAs(data));
+            Assert.That(exception.Error.ErrorData.Value, Is.SameAs(data));
             Assert.That(exception.InnerException, Is.TypeOf<MuLangProviderException>());
+        }
+    }
+
+    [Test]
+    public void ProviderContextPreservesPresentNullApplicationErrorData()
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddFunction("function.fail", "fail", [ ], TypeSymbols.Int)
+            .Build();
+        Func<DotNetRuntimeContext, object?> compiled = CompileExpression(
+            "fail()",
+            environment,
+            TypeSymbols.Int
+        );
+        DotNetRuntimeContext context = CreateContext(
+            environment,
+            functions:
+            [
+                new KeyValuePair<string, DotNetProviderFunction>(
+                    "function.fail",
+                    static (invocation, _) =>
+                    {
+                        invocation.ThrowApplicationError(
+                            "invalid-request",
+                            "The request is invalid.",
+                            null,
+                            RuntimeErrorData.Present(null)
+                        );
+                        return null;
+                    }
+                ),
+            ]
+        );
+
+        MuLangRuntimeException exception = RequireRuntimeException(
+            () => compiled(context)
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(exception.Error.ErrorData.IsPresent, Is.True);
+            Assert.That(exception.Error.ErrorData.Value, Is.Null);
+            Assert.That(
+                exception.InnerException,
+                Is.TypeOf<MuLangProviderException>()
+            );
         }
     }
 
@@ -859,7 +948,9 @@ public sealed class DotNetExporterTests
             RuntimeErrorCategory.Application,
             true,
             default,
-            [ ]
+            [ ],
+            null,
+            RuntimeErrorData.Absent
         );
         Func<DotNetRuntimeContext, object?> compiled = CompileExpression(
             "failure.code + \": \" + failure.message",
@@ -1426,7 +1517,9 @@ public sealed class DotNetExporterTests
                             RuntimeErrorCategory.Application,
                             true,
                             default,
-                            [ ]
+                            [ ],
+                            null,
+                            RuntimeErrorData.Absent
                         )
                     )
                 ),
@@ -1785,10 +1878,7 @@ public sealed class DotNetExporterTests
         DotNetRuntimeContext context = CreateContext(
             environment,
             [
-                new KeyValuePair<string, object?>(
-                    "global.left",
-                    long.MinValue
-                ),
+                new KeyValuePair<string, object?>("global.left", long.MinValue),
                 new KeyValuePair<string, object?>("global.right", -1L),
             ]
         );

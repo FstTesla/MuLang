@@ -44,12 +44,9 @@ public static class StandardLibraryComposer
         StandardLibrarySelection selection
     )
     {
-        if (host is null)
-        {
-            throw new ArgumentNullException(nameof(host));
-        }
-
-        return ComposeCore(host, selection, host.LanguageVersion);
+        return host is null
+            ? throw new ArgumentNullException(nameof(host))
+            : ComposeCore(host, selection, host.LanguageVersion);
     }
 
     private static EnvironmentSchema ComposeCore(
