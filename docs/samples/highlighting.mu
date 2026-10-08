@@ -10,8 +10,32 @@ func clamp(value: int, minimum: int, maximum: int): int {
     return value;
 }
 
+func validateRequested(value: int): int {
+    try {
+        if (value < 0) {
+            throw {
+                code = "negative-request",
+                message = "The requested value cannot be negative.",
+                data = value,
+                ignored = true,
+            };
+        }
+
+        return value;
+    } catch (failure) {
+        if (failure.code == "negative-request") {
+            throw;
+        }
+
+        return 0;
+    } finally {
+        var validationCompleted$ = true;
+    }
+}
+
 func exerciseHighlighting(name: string, requested: int): void {
-    var count: int = clamp(requested, 0, 10);
+    var validatedRequested = validateRequested(requested);
+    var count: int = clamp(validatedRequested, 0, 10);
     var active: bool = count > 0 && count <= 10;
     var state = active ? "active" : "inactive";
     var escapedText = "quote: \"MuLang\", newline:\n, tab:\t";

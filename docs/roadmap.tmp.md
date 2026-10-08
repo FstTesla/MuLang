@@ -20,14 +20,16 @@
 6. Extend the unreleased MuIR version 2 with scoped slots and exception-handling regions without changing the `primitive` token introduced by `0.3.0-alpha.1` or the property capability tokens introduced by `0.3.0-alpha.2`.
 
    **Completed for `0.3.0-alpha.3`.**
-7. Design source-level exception handling on top of the revised type and IR models.
-8. Keep language-version availability distinct from feature flags.
+7. Implement source-level exception handling on top of the revised type and IR models.
+
+   **Completed for `0.3.0-alpha.4`.**
 
 ## Future steps
 
 1. Add language-server workspace configuration for the language profile, host environment, and expected result type.
 2. Implement [well-known IR attributes](ir-attributes.plan.md) in MuIR version 3 to preserve standardized source-level diagnostic names without changing executable semantics.
+3. Add [user-defined object types](user-defined-object-types.plan.md) in a dedicated release.
 
-Comments remain low priority. User-defined types, first-class functions, and function types should be deferred to later dedicated releases.
+Comments remain low priority. First-class functions and function types should be deferred to later dedicated releases.
 
 Language-server workspace configuration, completion, hover, navigation, rename, and formatting are not release blockers.

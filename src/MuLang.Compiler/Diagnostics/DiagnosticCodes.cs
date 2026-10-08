@@ -51,6 +51,15 @@ public static class DiagnosticCodes
     /// <summary>Gets the code for a function declaration following a statement.</summary>
     public const string FunctionDeclarationAfterStatement = "MUL2011";
 
+    /// <summary>Gets the code for a try statement without a catch or finally clause.</summary>
+    public const string MissingExceptionClause = "MUL2012";
+
+    /// <summary>Gets the code for a repeated catch or finally clause.</summary>
+    public const string RepeatedExceptionClause = "MUL2013";
+
+    /// <summary>Gets the code for an incorrectly ordered exception clause.</summary>
+    public const string InvalidExceptionClauseOrder = "MUL2014";
+
     /// <summary>Gets the code for an undefined name.</summary>
     public const string UndefinedName = "MUL3001";
 
@@ -128,6 +137,15 @@ public static class DiagnosticCodes
 
     /// <summary>Gets the code for an invalid multi-level loop-control depth.</summary>
     public const string InvalidLoopLevel = "MUL4008";
+
+    /// <summary>Gets the code for a rethrow outside a catch clause.</summary>
+    public const string RethrowOutsideCatch = "MUL4009";
+
+    /// <summary>Gets the code for a return statement inside a finally clause.</summary>
+    public const string ReturnInsideFinally = "MUL4010";
+
+    /// <summary>Gets the code for a loop transfer that exits a finally clause.</summary>
+    public const string LoopTransferOutsideFinally = "MUL4011";
 
     /// <summary>Gets the code for mutation of a read-only target.</summary>
     public const string ReadOnlyTarget = "MUL3019";
@@ -210,6 +228,12 @@ public static class DiagnosticCodes
     /// <summary>Gets the code for object-literal syntax that conflicts with the selected grammar.</summary>
     public const string ObjectLiteralSyntaxMismatch = "MUL3046";
 
+    /// <summary>Gets the code for an invalid throw operand.</summary>
+    public const string InvalidThrowOperand = "MUL3047";
+
+    /// <summary>Gets the code for an unrecognized inline error-prototype property.</summary>
+    public const string UnrecognizedErrorProperty = "MUL3048";
+
     /// <summary>Gets the code for disabled user-defined functions.</summary>
     public const string DisabledUserDefinedFunctions = "MUL7001";
 
@@ -245,4 +269,7 @@ public static class DiagnosticCodes
 
     /// <summary>Gets the code for syntax unavailable in the selected language version.</summary>
     public const string UnsupportedLanguageVersionFeature = "MUL7013";
+
+    /// <summary>Gets the code for disabled source-level exception handling.</summary>
+    public const string DisabledExceptionHandling = "MUL7014";
 }

@@ -15,6 +15,7 @@ public sealed class LanguageProfileBuilder
     private MultiLevelLoopControlFeature multiLevelLoopControl;
     private TrailingCommasFeature trailingCommas;
     private ConstantFoldingFeature constantFolding;
+    private ExceptionHandlingFeature exceptionHandling;
     private ObjectLiteralSyntax objectLiteralSyntax;
     private ConditionSemantics conditionSemantics;
     private ShadowingPolicy shadowing;
@@ -43,6 +44,7 @@ public sealed class LanguageProfileBuilder
         multiLevelLoopControl = profile.MultiLevelLoopControl;
         trailingCommas = profile.TrailingCommas;
         constantFolding = profile.ConstantFolding;
+        exceptionHandling = profile.ExceptionHandling;
         objectLiteralSyntax = profile.ObjectLiteralSyntax;
         conditionSemantics = profile.ConditionSemantics;
         shadowing = profile.Shadowing;
@@ -257,6 +259,23 @@ public sealed class LanguageProfileBuilder
         return this;
     }
 
+    /// <summary>Sets the source-level exception-handling feature setting.</summary>
+    /// <param name="exceptionHandling">The source-level exception-handling feature setting.</param>
+    /// <returns>The same <see cref="LanguageProfileBuilder" /> instance, for chaining.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="exceptionHandling" /> is not defined.</exception>
+    public LanguageProfileBuilder WithExceptionHandling(
+        [SuppressMessage("ReSharper", "ParameterHidesMember")] ExceptionHandlingFeature exceptionHandling
+    )
+    {
+        LanguageProfile.ValidateDefined(
+            exceptionHandling,
+            nameof(exceptionHandling)
+        );
+        this.exceptionHandling = exceptionHandling;
+
+        return this;
+    }
+
     /// <summary>Sets the object-literal property grammar.</summary>
     /// <param name="objectLiteralSyntax">The object-literal property grammar.</param>
     /// <returns>The same <see cref="LanguageProfileBuilder" /> instance, for chaining.</returns>
@@ -348,6 +367,7 @@ public sealed class LanguageProfileBuilder
             multiLevelLoopControl,
             trailingCommas,
             constantFolding,
+            exceptionHandling,
             objectLiteralSyntax,
             conditionSemantics,
             shadowing

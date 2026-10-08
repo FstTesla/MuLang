@@ -19,6 +19,7 @@ internal static class LanguageProfileFingerprintFactory
         Append(canonical, "MultiLevelLoopControl", profile.MultiLevelLoopControl);
         Append(canonical, "TrailingCommas", profile.TrailingCommas);
         Append(canonical, "ConstantFolding", profile.ConstantFolding);
+        Append(canonical, "ExceptionHandling", profile.ExceptionHandling);
         Append(canonical, "ObjectLiteralSyntax", profile.ObjectLiteralSyntax);
         Append(canonical, "ConditionSemantics", profile.ConditionSemantics);
         Append(canonical, "Shadowing", profile.Shadowing);

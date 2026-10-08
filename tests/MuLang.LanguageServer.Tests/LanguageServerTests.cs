@@ -448,6 +448,7 @@ public sealed class LanguageServerTests
                         "MUL3038",
                         "MUL3039",
                         "MUL3040",
+                        "MUL3048",
                     ]
                 )
             );

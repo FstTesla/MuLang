@@ -7,6 +7,53 @@ namespace MuLang.Compiler.Tests.Syntax;
 
 public sealed class ParserTests
 {
+    [TestCase("try { } catch { }")]
+    [TestCase("try { } catch (failure) { }")]
+    [TestCase("try { } finally { }")]
+    [TestCase("try { } catch { } finally { }")]
+    [TestCase("throw { code = \"failure\", message = \"Failure.\" };")]
+    [TestCase("throw;")]
+    public void ParsesExceptionHandlingStatements(string source)
+    {
+        SyntaxTree tree = Parser.Parse(
+            SourceText.From(source),
+            CompilationMode.Program,
+            LanguageProfiles.Version1_2
+        );
+
+        Assert.That(tree.Diagnostics, Is.Empty);
+    }
+
+    [TestCase("try { }", DiagnosticCodes.MissingExceptionClause)]
+    [TestCase(
+        "try { } catch { } catch { }",
+        DiagnosticCodes.RepeatedExceptionClause
+    )]
+    [TestCase(
+        "try { } finally { } catch { }",
+        DiagnosticCodes.InvalidExceptionClauseOrder
+    )]
+    [TestCase(
+        "try { } finally { } finally { }",
+        DiagnosticCodes.RepeatedExceptionClause
+    )]
+    public void ReportsMalformedExceptionHandlingStatements(
+        string source,
+        string diagnosticCode
+    )
+    {
+        SyntaxTree tree = Parser.Parse(
+            SourceText.From(source),
+            CompilationMode.Program,
+            LanguageProfiles.Version1_2
+        );
+
+        Assert.That(
+            tree.Diagnostics.Select(static diagnostic => diagnostic.Code),
+            Does.Contain(diagnosticCode)
+        );
+    }
+
     [Test]
     public void AppliesBinaryOperatorPrecedence()
     {

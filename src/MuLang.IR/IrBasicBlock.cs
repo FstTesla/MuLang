@@ -22,9 +22,7 @@ public sealed record IrBasicBlock(
         IReadOnlyCollection<IrInstruction> Instructions,
         IrTerminator Terminator
     )
-        : this(Id, Instructions, Terminator, 0)
-    {
-    }
+        : this(Id, Instructions, Terminator, 0) { }
 
     /// <summary>Deconstructs the block using the legacy component shape.</summary>
     /// <param name="Id">The block identifier within the function.</param>

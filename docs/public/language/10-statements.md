@@ -17,6 +17,8 @@ Program mode supports:
 - `break`;
 - `continue`;
 - `return`;
+- protected statements;
+- `throw`;
 - empty statements.
 
 An explicit empty statement produces a redundant-empty-statement warning unless it is used directly as the body of an `if`, `else`, `while`, or `for` statement. Empty statements synthesized during syntax-error recovery do not produce this warning.
@@ -268,4 +270,160 @@ Every reachable path of a non-void function or program MUST return a value.
 >     return 1;
 > }
 > return 0;
+> ```
+
+## 10.13. Protected statements
+
+Language version 1.2 provides protected statements when source-level exception
+handling is enabled by the selected language profile.
+
+A protected statement consists of a `try` block followed by one `catch` clause,
+one `finally` clause, or both. When both are present, `catch` MUST precede
+`finally`. Multiple handlers, filters, and multiple cleanup clauses are not
+supported.
+
+> This function handles a catchable runtime error and returns its stable code:
+>
+> ```text
+> func readFirst(values: int[]): string {
+>     try {
+>         var value = values[0];
+>         return "ok";
+>     } catch (failure) {
+>         return failure.code;
+>     }
+> }
+> ```
+
+The catch parameter is optional. When present, it is a read-only local with
+type `error` and is in scope only within the handler.
+
+> Given a host function `update(): void`, this handler intentionally ignores
+> the error value:
+>
+> ```text
+> try {
+>     update();
+> } catch {
+>     return;
+> }
+> ```
+
+Only runtime errors explicitly marked as catchable enter a handler.
+Cancellation, resource exhaustion, incompatible environments, runtime-contract
+failures, unexpected provider failures, and internal failures bypass both
+`catch` and `finally`.
+
+Completed side effects are not rolled back when an error is caught.
+
+A `finally` block executes after normal or catchable abrupt completion of the
+protected block and, when present, its handler. It executes before a pending
+return or loop transfer leaves the protected statement. A catchable error from
+a handler also executes the associated cleanup before propagating.
+
+If `finally` completes normally, the pending completion continues. An error
+raised by `finally` replaces any pending normal completion, return, loop
+transfer, or error. The replaced completion does not become the public
+`cause` automatically.
+
+> Given a host function `recordCompletion(): void`, this function always
+> records completion before returning:
+>
+> ```text
+> func readFirst(values: int[]): int {
+>     try {
+>         return values[0];
+>     } finally {
+>         recordCompletion();
+>     }
+> }
+> ```
+
+`return` is invalid anywhere within a `finally` block, including nested blocks
+and loops owned by that cleanup. `break` and `continue` may target a loop
+declared within the same `finally`, but MUST NOT target a loop outside it.
+
+> Given a host function `update(): void`, the following cleanup is invalid
+> because its return would replace the pending completion through ordinary
+> control flow:
+>
+> ```text
+> try {
+>     update();
+> } finally {
+>     return;
+> }
+> ```
+
+> Given a host global `condition: bool` and host function `update(): void`, the
+> following transfer is also invalid because it leaves a loop declared outside
+> the cleanup:
+>
+> ```text
+> while (condition) {
+>     try {
+>         update();
+>     } finally {
+>         break;
+>     }
+> }
+> ```
+
+The catch parameter and the current error available to rethrow are not visible
+in a sibling `finally` block.
+
+## 10.14. Throw
+
+`throw` with an expression raises a new catchable application error. Its
+operand MUST be structurally compatible with an error prototype containing:
+
+- required `code: string`;
+- required `message: string`;
+- optional `cause`, whose value is `null`, an `error`, or another compatible
+  error prototype;
+- optional `data: unknown?`.
+
+The operand may be an object literal or another expression with a compatible
+structured-object type. Additional properties do not make the prototype
+incompatible. An additional property written directly in an object literal
+produces a warning because the runtime ignores it without evaluating, reading,
+or copying it.
+
+> Given a local `value: unknown?`, this statement raises an application error
+> with preserved data:
+>
+> ```text
+> throw {
+>     code = "invalid-value",
+>     message = "The value is invalid.",
+>     data = value,
+> };
+> ```
+
+The runtime copies `code` and `message`, assigns category `application`, adds
+the throw span and MuLang stack, recursively normalizes a prototype cause, and
+preserves the identity and mutability of a present `data` value. The resulting
+`error` is not a mutable alias of the prototype.
+
+> This prototype is invalid because `message` is missing:
+>
+> ```text
+> throw {
+>     code = "invalid-value",
+> };
+> ```
+
+Within a `catch`, `throw;` rethrows the same current error. It is invalid
+outside a handler, including in the associated `finally`.
+
+> Given host functions `update(): void` and `record(error): void`, this handler
+> observes and then rethrows the original error:
+>
+> ```text
+> try {
+>     update();
+> } catch (failure) {
+>     record(failure);
+>     throw;
+> }
 > ```

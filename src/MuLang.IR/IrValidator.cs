@@ -723,12 +723,12 @@ public static class IrValidator
             }
 
             if (
-                region.Id == 0
-                    ? region.ParentRegion is not null || region.ParentPart is not null
-                    : region.ParentRegion is not { } parentRegion ||
+                region.ParentRegion is null != region.ParentPart is null ||
+                region.ParentRegion is { } parentRegion &&
+                (
                     parentRegion < 0 ||
-                    parentRegion >= region.Id ||
-                    region.ParentPart is null
+                    parentRegion >= region.Id
+                )
             )
             {
                 Report(
@@ -1288,6 +1288,9 @@ public static class IrValidator
                 bool isValid = conversion.Kind switch
                 {
                     IrConversionKind.CheckedCast =>
+                        conversion.TargetType.Kind == TypeKind.ErrorValue &&
+                        sourceSlot.Type.Kind is
+                            TypeKind.Object or TypeKind.StructuredObject ||
                         TypeRelations.IsCastable(
                             sourceSlot.Type,
                             conversion.TargetType

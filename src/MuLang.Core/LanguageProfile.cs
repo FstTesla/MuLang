@@ -14,6 +14,7 @@ public sealed record LanguageProfile
     /// <param name="multiLevelLoopControl">The multi-level loop control feature setting.</param>
     /// <param name="trailingCommas">The trailing commas feature setting.</param>
     /// <param name="constantFolding">The compile-time constant folding feature setting.</param>
+    /// <param name="exceptionHandling">The source-level exception-handling feature setting.</param>
     /// <param name="objectLiteralSyntax">The object-literal property grammar.</param>
     /// <param name="conditionSemantics">The condition semantics.</param>
     /// <param name="shadowing">The shadowing policy.</param>
@@ -30,6 +31,7 @@ public sealed record LanguageProfile
         MultiLevelLoopControlFeature multiLevelLoopControl,
         TrailingCommasFeature trailingCommas,
         ConstantFoldingFeature constantFolding,
+        ExceptionHandlingFeature exceptionHandling,
         ObjectLiteralSyntax objectLiteralSyntax,
         ConditionSemantics conditionSemantics,
         ShadowingPolicy shadowing
@@ -51,6 +53,7 @@ public sealed record LanguageProfile
         ValidateDefined(multiLevelLoopControl, nameof(multiLevelLoopControl));
         ValidateDefined(trailingCommas, nameof(trailingCommas));
         ValidateDefined(constantFolding, nameof(constantFolding));
+        ValidateDefined(exceptionHandling, nameof(exceptionHandling));
         ValidateDefined(objectLiteralSyntax, nameof(objectLiteralSyntax));
         ValidateConditionSemantics(conditionSemantics, nameof(conditionSemantics));
         ValidateFlags(
@@ -69,6 +72,7 @@ public sealed record LanguageProfile
         MultiLevelLoopControl = multiLevelLoopControl;
         TrailingCommas = trailingCommas;
         ConstantFolding = constantFolding;
+        ExceptionHandling = exceptionHandling;
         ObjectLiteralSyntax = objectLiteralSyntax;
         ConditionSemantics = conditionSemantics;
         Shadowing = shadowing;
@@ -104,6 +108,9 @@ public sealed record LanguageProfile
 
     /// <summary>Gets the compile-time constant folding feature setting.</summary>
     public ConstantFoldingFeature ConstantFolding { get; }
+
+    /// <summary>Gets the source-level exception-handling feature setting.</summary>
+    public ExceptionHandlingFeature ExceptionHandling { get; }
 
     /// <summary>Gets the object-literal property grammar.</summary>
     public ObjectLiteralSyntax ObjectLiteralSyntax { get; }

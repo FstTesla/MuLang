@@ -14,6 +14,7 @@ A language profile selects:
 - whether explicit multi-level loop control is enabled;
 - whether trailing commas are enabled;
 - whether compile-time constant evaluation is enabled;
+- whether source-level exception handling is enabled;
 - the object-literal property grammar;
 - the condition semantics;
 - the permitted forms of variable shadowing.
@@ -24,8 +25,9 @@ The standard profile for language version 1 enables user-defined functions, recu
 
 The standard profile for language version 1.1 has the same settings and adds read-only array types and literals, binary, octal, and hexadecimal integer literals, and the `infty` and `nan` float literals. These additions are determined by the language version and are not independently configurable.
 
-The standard profile for language version 1.2 has the same settings and adds
-the `primitive` abstract type and full object-literal property grammar.
+The standard profile for language version 1.2 has the same settings, enables
+source-level exception handling, and adds the `primitive` abstract type and
+full object-literal property grammar.
 
 Language version 1 rejects `$`, `$[`, and prefixed integer literals and treats `infty` and `nan` as identifiers.
 
@@ -239,6 +241,36 @@ not the standard version-1.2 grammar.
 The configured value contributes to the language-profile fingerprint even while
 dormant. Syntax from the unselected mode produces a targeted diagnostic.
 
-## 14.11. Feature diagnostics
+## 14.11. Exception handling
+
+The exception-handling setting controls protected statements, explicit
+throwing, and rethrow. It is dormant before language version 1.2 because those
+versions do not define the syntax.
+
+The standard version-1.2 profile enables exception handling. A customized
+version-1.2 profile may disable it while retaining the built-in `error` type,
+which remains available for host values and portable IR contracts.
+
+> Given host functions `update(): void` and `recover(): void`, this statement is
+> valid when exception handling is enabled:
+>
+> ```text
+> try {
+>     update();
+> } catch {
+>     recover();
+> }
+> ```
+
+> The same statement produces an unavailable-feature diagnostic when exception
+> handling is disabled. The following declaration remains valid in that
+> profile because the `error` type is independently available. Given a host
+> global `currentFailure: error`:
+>
+> ```text
+> var failure: error = currentFailure;
+> ```
+
+## 14.12. Feature diagnostics
 
 Use of syntax or behavior disabled by the selected profile is a compile-time error.

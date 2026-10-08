@@ -134,15 +134,14 @@ internal static class IrTypeProjector
 
         IrFunction ProjectFunction(IrFunction function)
         {
-            return new IrFunction(
-                function.Id,
-                Get(function.ReturnType),
-                function.EntryBlock,
+            return function with
+            {
+                ReturnType = Get(function.ReturnType),
+                Slots =
                 [
-                    .. function.Slots.Select(
-                        slot => slot with { Type = Get(slot.Type) }
-                    ),
+                    .. function.Slots.Select(slot => slot with { Type = Get(slot.Type) }),
                 ],
+                Blocks =
                 [
                     .. function.Blocks.Select(
                         block => block with
@@ -155,10 +154,8 @@ internal static class IrTypeProjector
                             ],
                         }
                     ),
-                ],
-                function.LifetimeRegions,
-                function.ExceptionRegions
-            );
+                ]
+            };
         }
 
         IrInstruction ProjectInstruction(IrInstruction instruction)

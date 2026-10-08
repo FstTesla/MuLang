@@ -40,11 +40,9 @@ public sealed record IrFunction(
             EntryBlock,
             Slots,
             Blocks,
-            [ new (0, null, EntryBlock) ],
+            [ new IrLifetimeRegion(0, null, EntryBlock) ],
             [ ]
-        )
-    {
-    }
+        ) { }
 
     /// <summary>Initializes a new instance of the <see cref="IrFunction" /> class without exception regions.</summary>
     /// <param name="id">The function identifier.</param>
@@ -62,9 +60,7 @@ public sealed record IrFunction(
         IReadOnlyList<IrBasicBlock> blocks,
         IReadOnlyList<IrLifetimeRegion> lifetimeRegions
     )
-        : this(id, returnType, entryBlock, slots, blocks, lifetimeRegions, [ ])
-    {
-    }
+        : this(id, returnType, entryBlock, slots, blocks, lifetimeRegions, [ ]) { }
 
     /// <summary>Deconstructs the function using the legacy component shape.</summary>
     /// <param name="Id">The function identifier.</param>

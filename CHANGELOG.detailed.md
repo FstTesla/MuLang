@@ -12,6 +12,20 @@ Stable entries describe the incremental change since the preceding prerelease. T
 
 Each release heading identifies the incremental version range covered by the section, from the comparison version to the released version.
 
+## `0.3.0-alpha.3` → `0.3.0-alpha.4` - 2026-10-08
+
+### Breaking changes
+
+- Extended language-profile identity with the source-level exception-handling setting. Every standard profile fingerprint changes, so persisted compilation artifacts and caches produced by earlier prereleases must be regenerated.
+
+### New features
+
+- Added MuLang 1.2 source-level exception handling with `try`, optional `catch`, optional `finally`, explicit application-error throwing, and handler-scoped rethrow.
+- Added the `ExceptionHandlingFeature` profile option, `LanguageProfile.ExceptionHandling`, and `LanguageProfileBuilder.WithExceptionHandling`. The standard MuLang 1.2 profile enables the feature, while the built-in `error` type remains independently available when the feature is disabled.
+- Added read-only optional catch parameters of type `error`, catchable-error selection, nested protected statements, and cleanup-aware normal completion, returns, and loop transfers.
+- Added recursive error-prototype normalization for explicit `throw`, including optional causes and identity-preserving application data. Extra inline object-literal properties produce warnings and are ignored by the runtime.
+- Added source diagnostics for malformed protected statements, unavailable exception syntax, invalid throw prototypes, rethrow outside a handler, returns from cleanup, and loop transfers escaping cleanup.
+
 ## `0.3.0-alpha.2` → `0.3.0-alpha.3` - 2026-10-07
 
 ### Breaking changes

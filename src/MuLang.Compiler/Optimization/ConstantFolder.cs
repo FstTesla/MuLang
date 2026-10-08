@@ -92,6 +92,21 @@ internal sealed class ConstantFolder
                     ? null
                     : FoldExpression(result.Value)
             ),
+            BoundStatement.Throw error => new BoundStatement.Throw(
+                error.Syntax,
+                FoldExpression(error.Error)
+            ),
+            BoundStatement.Try protectedStatement => new BoundStatement.Try(
+                protectedStatement.Syntax,
+                FoldStatement(protectedStatement.Protected),
+                protectedStatement.ErrorLocal,
+                protectedStatement.Handler is null
+                    ? null
+                    : FoldStatement(protectedStatement.Handler),
+                protectedStatement.Cleanup is null
+                    ? null
+                    : FoldStatement(protectedStatement.Cleanup)
+            ),
             BoundStatement.Break or
                 BoundStatement.Continue or
                 BoundStatement.Empty => statement,

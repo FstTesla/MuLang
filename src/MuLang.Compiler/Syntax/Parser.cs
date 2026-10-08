@@ -247,6 +247,8 @@ internal sealed class Parser
             TokenKind.BreakKeyword => ParseBreakStatement(),
             TokenKind.ContinueKeyword => ParseContinueStatement(),
             TokenKind.ReturnKeyword => ParseReturnStatement(),
+            TokenKind.ThrowKeyword => ParseThrowStatement(),
+            TokenKind.TryKeyword => ParseTryStatement(),
             TokenKind.FuncKeyword => ParseInvalidNestedFunctionDeclaration(),
             TokenKind.Semicolon => new EmptyStatementSyntax(ParseToken()),
             _ => ParseSimpleStatement(true),
@@ -616,6 +618,104 @@ internal sealed class Parser
         SyntaxToken semicolonToken = Match(TokenKind.Semicolon);
 
         return new ReturnStatementSyntax(returnKeyword, expression, semicolonToken);
+    }
+
+    private ThrowStatementSyntax ParseThrowStatement()
+    {
+        SyntaxToken throwKeyword = Match(TokenKind.ThrowKeyword);
+        ExpressionSyntax? expression = Current.Kind == TokenKind.Semicolon
+            ? null
+            : ParseExpression();
+        SyntaxToken semicolonToken = Match(TokenKind.Semicolon);
+
+        return new ThrowStatementSyntax(throwKeyword, expression, semicolonToken);
+    }
+
+    private TryStatementSyntax ParseTryStatement()
+    {
+        SyntaxToken tryKeyword = Match(TokenKind.TryKeyword);
+        BlockStatementSyntax body = ParseBlockStatement();
+        CatchClauseSyntax? catchClause = Current.Kind == TokenKind.CatchKeyword
+            ? ParseCatchClause()
+            : null;
+        FinallyClauseSyntax? finallyClause = Current.Kind == TokenKind.FinallyKeyword
+            ? ParseFinallyClause()
+            : null;
+
+        if (catchClause is null && finallyClause is null)
+        {
+            Report(
+                DiagnosticCodes.MissingExceptionClause,
+                body.CloseBraceToken.Span,
+                "A try statement requires a catch or finally clause."
+            );
+        }
+
+        while (Current.Kind is TokenKind.CatchKeyword or TokenKind.FinallyKeyword)
+        {
+            if (Current.Kind == TokenKind.CatchKeyword)
+            {
+                CatchClauseSyntax repeatedCatch = ParseCatchClause();
+                Report(
+                    finallyClause is null
+                        ? DiagnosticCodes.RepeatedExceptionClause
+                        : DiagnosticCodes.InvalidExceptionClauseOrder,
+                    repeatedCatch.CatchKeyword.Span,
+                    finallyClause is null
+                        ? "A try statement cannot have more than one catch clause."
+                        : "A catch clause cannot follow a finally clause."
+                );
+            }
+            else
+            {
+                FinallyClauseSyntax repeatedFinally = ParseFinallyClause();
+                Report(
+                    DiagnosticCodes.RepeatedExceptionClause,
+                    repeatedFinally.FinallyKeyword.Span,
+                    "A try statement cannot have more than one finally clause."
+                );
+            }
+        }
+
+        return new TryStatementSyntax(
+            tryKeyword,
+            body,
+            catchClause,
+            finallyClause
+        );
+    }
+
+    private CatchClauseSyntax ParseCatchClause()
+    {
+        SyntaxToken catchKeyword = Match(TokenKind.CatchKeyword);
+        SyntaxToken? openParenthesisToken = null;
+        SyntaxToken? identifierToken = null;
+        SyntaxToken? closeParenthesisToken = null;
+
+        if (Current.Kind == TokenKind.OpenParenthesis)
+        {
+            openParenthesisToken = ParseToken();
+            identifierToken = Match(TokenKind.Identifier);
+            closeParenthesisToken = Match(TokenKind.CloseParenthesis);
+        }
+
+        BlockStatementSyntax body = ParseBlockStatement();
+
+        return new CatchClauseSyntax(
+            catchKeyword,
+            openParenthesisToken,
+            identifierToken,
+            closeParenthesisToken,
+            body
+        );
+    }
+
+    private FinallyClauseSyntax ParseFinallyClause()
+    {
+        SyntaxToken finallyKeyword = Match(TokenKind.FinallyKeyword);
+        BlockStatementSyntax body = ParseBlockStatement();
+
+        return new FinallyClauseSyntax(finallyKeyword, body);
     }
 
     private ExpressionSyntax ParseExpression(int parentPrecedence = 0)

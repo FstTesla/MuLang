@@ -27,6 +27,8 @@ internal sealed class Binder
     private BindingScope scope = new (null);
     private FlowState currentFlowState = new ([ ]);
     private readonly Stack<LoopFlowContext> loopContexts = [ ];
+    private readonly Stack<int> finallyLoopDepths = [ ];
+    private LocalSymbol? currentCatchError;
     private int loopDepth;
     private int nextLocalSlot;
 
@@ -414,6 +416,9 @@ internal sealed class Binder
             BreakStatementSyntax loopExit => BindBreakStatement(loopExit, state),
             ContinueStatementSyntax iteration => BindContinueStatement(iteration, state),
             ReturnStatementSyntax result => BindReturnStatement(result, state),
+            ThrowStatementSyntax error => BindThrowStatement(error, state),
+            TryStatementSyntax protectedStatement =>
+                BindTryStatement(protectedStatement, state),
             EmptyStatementSyntax empty => BindEmptyStatement(empty),
             _ => throw new InvalidOperationException("Unknown statement syntax."),
         };
@@ -959,6 +964,18 @@ internal sealed class Binder
         {
             ReportInvalidLoopLevel(level, loopContexts.Count, syntax.Span);
         }
+        else if (
+            finallyLoopDepths.TryPeek(out int finallyLoopDepth) &&
+            loopDepth - level + 1 <= finallyLoopDepth
+        )
+        {
+            Report(
+                DiagnosticCodes.LoopTransferOutsideFinally,
+                syntax.Span,
+                "A break statement cannot target a loop outside the active finally clause.",
+                DiagnosticCategory.ControlFlow
+            );
+        }
         else if (state.CanCompleteNormally)
         {
             GetLoopContext(level).AddBreakState(state);
@@ -992,6 +1009,18 @@ internal sealed class Binder
         else if (level > loopContexts.Count)
         {
             ReportInvalidLoopLevel(level, loopContexts.Count, syntax.Span);
+        }
+        else if (
+            finallyLoopDepths.TryPeek(out int finallyLoopDepth) &&
+            loopDepth - level + 1 <= finallyLoopDepth
+        )
+        {
+            Report(
+                DiagnosticCodes.LoopTransferOutsideFinally,
+                syntax.Span,
+                "A continue statement cannot target a loop outside the active finally clause.",
+                DiagnosticCategory.ControlFlow
+            );
         }
         else if (state.CanCompleteNormally)
         {
@@ -1096,6 +1125,16 @@ internal sealed class Binder
         FlowState state
     )
     {
+        if (finallyLoopDepths.Count > 0)
+        {
+            Report(
+                DiagnosticCodes.ReturnInsideFinally,
+                syntax.ReturnKeyword.Span,
+                "A return statement is not permitted inside a finally clause.",
+                DiagnosticCategory.ControlFlow
+            );
+        }
+
         BoundExpression? expression = syntax.Expression is null
             ? null
             : BindExpression(
@@ -1127,6 +1166,328 @@ internal sealed class Binder
         state.CanCompleteNormally = false;
 
         return new BoundStatement.Return(syntax, expression);
+    }
+
+    private BoundStatement BindThrowStatement(
+        ThrowStatementSyntax syntax,
+        FlowState state
+    )
+    {
+        ReportExceptionHandlingFeature(syntax.ThrowKeyword);
+        BoundExpression error;
+
+        if (syntax.Expression is null)
+        {
+            if (currentCatchError is null)
+            {
+                Report(
+                    DiagnosticCodes.RethrowOutsideCatch,
+                    syntax.ThrowKeyword.Span,
+                    "A rethrow statement is only valid inside a catch clause.",
+                    DiagnosticCategory.ControlFlow
+                );
+                error = new BoundExpression.Error(syntax);
+            }
+            else
+            {
+                error = new BoundExpression.Local(syntax, currentCatchError);
+            }
+        }
+        else
+        {
+            error = syntax.Expression is ObjectLiteralExpressionSyntax objectLiteral
+                ? BindObjectExpression(
+                    objectLiteral,
+                    null,
+                    isErrorPrototypeContext: true
+                )
+                : BindExpression(syntax.Expression);
+
+            if (
+                error.Type.Kind is not TypeKind.ErrorRecovery and not TypeKind.ErrorValue &&
+                !IsErrorPrototype(
+                    error.Type, new HashSet<TypeSymbol>(
+                        ReferenceEqualityComparer.Instance
+                    )
+                )
+            )
+            {
+                Report(
+                    DiagnosticCodes.InvalidThrowOperand,
+                    syntax.Expression.Span,
+                    "A throw operand must be an error value or a compatible error prototype."
+                );
+            }
+
+            if (syntax.Expression is ObjectLiteralExpressionSyntax inlineObject)
+            {
+                ReportUnrecognizedErrorProperties(inlineObject);
+            }
+        }
+
+        state.CanCompleteNormally = false;
+        return new BoundStatement.Throw(syntax, error);
+    }
+
+    private BoundStatement BindTryStatement(
+        TryStatementSyntax syntax,
+        FlowState state
+    )
+    {
+        ReportExceptionHandlingFeature(syntax.TryKeyword);
+
+        if (syntax.CatchClause is { } catchClause)
+        {
+            ReportExceptionHandlingFeature(catchClause.CatchKeyword);
+        }
+
+        if (syntax.FinallyClause is { } finallyClause)
+        {
+            ReportExceptionHandlingFeature(finallyClause.FinallyKeyword);
+        }
+
+        FlowState entryState = state.Clone();
+        FlowState protectedState = entryState.Clone();
+        BoundStatement protectedStatement = BindStatement(
+            syntax.Body,
+            protectedState
+        );
+        BoundStatement? handler = null;
+        LocalSymbol? errorLocal = null;
+        FlowState? handlerState = null;
+
+        if (syntax.CatchClause is { } handlerSyntax)
+        {
+            BindingScope parentScope = scope;
+            BindingScope handlerScope = new (parentScope);
+            scope = handlerScope;
+            handlerState = entryState.Clone();
+            string errorName = handlerSyntax.IdentifierToken is null
+                ? $"$error{nextLocalSlot.ToString(CultureInfo.InvariantCulture)}"
+                : GetText(handlerSyntax.IdentifierToken);
+            errorLocal = new LocalSymbol(
+                errorName,
+                TypeSymbols.ErrorValue,
+                nextLocalSlot++,
+                true,
+                loopDepth
+            );
+            handlerState.Assigned.Add(errorLocal);
+            handlerState.PossiblyAssigned.Add(errorLocal);
+
+            if (handlerSyntax.IdentifierToken is not null)
+            {
+                bool shadowsLocal = parentScope.TryLookup(errorName, out _);
+                bool shadowsGlobal = environment.TryGetGlobal(errorName, out _);
+
+                if (
+                    shadowsLocal &&
+                    !profile.Shadowing.HasFlag(ShadowingPolicy.NestedScopes) ||
+                    shadowsGlobal &&
+                    !profile.Shadowing.HasFlag(ShadowingPolicy.Globals)
+                )
+                {
+                    Report(
+                        DiagnosticCodes.ShadowedVariable,
+                        handlerSyntax.IdentifierToken.Span,
+                        $"Catch parameter '{errorName}' cannot shadow another visible variable."
+                    );
+                }
+
+                if (!handlerScope.TryDeclare(errorLocal))
+                {
+                    throw new InvalidOperationException(
+                        "A new catch scope unexpectedly contains the catch parameter."
+                    );
+                }
+            }
+
+            LocalSymbol? previousCatchError = currentCatchError;
+            currentCatchError = errorLocal;
+            handler = BindStatement(handlerSyntax.Body, handlerState);
+            currentCatchError = previousCatchError;
+            RemoveVariablesFromFlowState(handlerState, handlerScope.Variables);
+            handlerState.Assigned.Remove(errorLocal);
+            handlerState.PossiblyAssigned.Remove(errorLocal);
+            scope = parentScope;
+        }
+
+        List<FlowState> normalStates = [ ];
+
+        if (protectedState.CanCompleteNormally)
+        {
+            normalStates.Add(protectedState);
+        }
+
+        if (handlerState?.CanCompleteNormally == true)
+        {
+            normalStates.Add(handlerState);
+        }
+
+        BoundStatement? cleanup = null;
+
+        if (syntax.FinallyClause is { } cleanupSyntax)
+        {
+            List<FlowState> cleanupEntryStates = [ entryState, .. normalStates ];
+            FlowState cleanupState = CreateIntersectionState(cleanupEntryStates);
+            FlowState cleanupEntryState = cleanupState.Clone();
+            finallyLoopDepths.Push(loopDepth);
+            cleanup = BindStatement(cleanupSyntax.Body, cleanupState);
+            finallyLoopDepths.Pop();
+
+            if (cleanupState.CanCompleteNormally && normalStates.Count > 0)
+            {
+                FlowState normalState = CreateIntersectionState(normalStates);
+                ApplyFlowEffects(cleanupEntryState, cleanupState, normalState);
+                ReplaceWithIntersection(state, [ normalState ]);
+            }
+            else
+            {
+                state.CanCompleteNormally = false;
+            }
+        }
+        else if (normalStates.Count > 0)
+        {
+            ReplaceWithIntersection(
+                state,
+                [ CreateIntersectionState(normalStates) ]
+            );
+        }
+        else
+        {
+            state.CanCompleteNormally = false;
+        }
+
+        return new BoundStatement.Try(
+            syntax,
+            protectedStatement,
+            errorLocal,
+            handler,
+            cleanup
+        );
+    }
+
+    private static void ApplyFlowEffects(
+        FlowState before,
+        FlowState after,
+        FlowState target
+    )
+    {
+        target.Assigned.UnionWith(after.Assigned.Except(before.Assigned));
+        target.PossiblyAssigned.UnionWith(
+            after.PossiblyAssigned.Except(before.PossiblyAssigned)
+        );
+        target.ReadOnlyAssignments.UnionWith(after.ReadOnlyAssignments);
+    }
+
+    private static bool IsErrorPrototype(
+        TypeSymbol type,
+        ISet<TypeSymbol> active
+    )
+    {
+        TypeSymbol nonNullable = GetNonNullable(type);
+
+        if (nonNullable.Kind == TypeKind.ErrorValue)
+        {
+            return true;
+        }
+
+        if (nonNullable is not ObjectTypeSymbol objectType)
+        {
+            return false;
+        }
+
+        if (!active.Add(objectType))
+        {
+            return true;
+        }
+
+        bool valid =
+            objectType.TryGetProperty("code", out ObjectPropertySymbol? code) &&
+            !code.IsOptional &&
+            TypeRelations.IsAssignable(code.Type, TypeSymbols.String) &&
+            objectType.TryGetProperty(
+                "message",
+                out ObjectPropertySymbol? message
+            ) &&
+            !message.IsOptional &&
+            TypeRelations.IsAssignable(message.Type, TypeSymbols.String);
+
+        if (
+            valid &&
+            objectType.TryGetProperty("cause", out ObjectPropertySymbol? cause)
+        )
+        {
+            valid =
+                cause.Type.Kind == TypeKind.Null ||
+                IsErrorPrototype(cause.Type, active);
+        }
+
+        if (
+            valid &&
+            objectType.TryGetProperty("data", out ObjectPropertySymbol? data)
+        )
+        {
+            valid = data.Type.Kind != TypeKind.Void;
+        }
+
+        active.Remove(objectType);
+        return valid;
+    }
+
+    private void ReportUnrecognizedErrorProperties(
+        ObjectLiteralExpressionSyntax syntax
+    )
+    {
+        foreach (ObjectPropertyInitializerSyntax property in syntax.Properties)
+        {
+            string name = property.NameToken.Kind == TokenKind.StringLiteral
+                ? property.NameToken.Value ?? ""
+                : GetText(property.NameToken);
+
+            if (name is "code" or "message" or "cause" or "data")
+            {
+                if (
+                    name == "cause" &&
+                    property.Value is ObjectLiteralExpressionSyntax cause
+                )
+                {
+                    ReportUnrecognizedErrorProperties(cause);
+                }
+
+                continue;
+            }
+
+            ReportWarning(
+                DiagnosticCodes.UnrecognizedErrorProperty,
+                property.NameToken.Span,
+                $"Property '{name}' is ignored when the error is thrown."
+            );
+        }
+    }
+
+    private void ReportExceptionHandlingFeature(SyntaxToken token)
+    {
+        if (
+            profile is
+            {
+                LanguageVersion: >= LanguageVersion.Version1_2,
+                ExceptionHandling: ExceptionHandlingFeature.Enabled,
+            }
+        )
+        {
+            return;
+        }
+
+        ReportFeature(
+            profile.LanguageVersion < LanguageVersion.Version1_2
+                ? DiagnosticCodes.UnsupportedLanguageVersionFeature
+                : DiagnosticCodes.DisabledExceptionHandling,
+            token.Span,
+            profile.LanguageVersion < LanguageVersion.Version1_2
+                ? "Exception-handling syntax requires language version 1.2."
+                : "Exception handling is disabled by the language profile."
+        );
     }
 
     private BoundExpression BindExpression(
@@ -1477,7 +1838,8 @@ internal sealed class Binder
 
     private BoundExpression BindObjectExpression(
         ObjectLiteralExpressionSyntax syntax,
-        TypeSymbol? expectedType
+        TypeSymbol? expectedType,
+        bool isErrorPrototypeContext = false
     )
     {
         ReportDisabledTrailingComma(
@@ -1532,7 +1894,16 @@ internal sealed class Binder
             TypeSymbol? declaredType = propertySyntax.Type is null
                 ? null
                 : BindType(propertySyntax.Type);
-            TypeSymbol? expectedPropertyType = declaredType ?? expectedProperty?.Type;
+            TypeSymbol? errorPrototypePropertyType =
+                isErrorPrototypeContext
+                    ? GetErrorPrototypePropertyType(name, propertySyntax.Value)
+                    : null;
+            bool includeProperty =
+                !isErrorPrototypeContext ||
+                IsRecognizedErrorPrototypeProperty(name);
+            TypeSymbol? expectedPropertyType = declaredType ??
+                errorPrototypePropertyType ??
+                expectedProperty?.Type;
 
             if (
                 expectedPropertyType is null &&
@@ -1557,9 +1928,21 @@ internal sealed class Binder
                 );
             }
 
-            BoundExpression? value = propertySyntax.Value is null
-                ? null
-                : BindExpression(propertySyntax.Value, expectedPropertyType);
+            BoundExpression? value = propertySyntax.Value switch
+            {
+                null => null,
+                ObjectLiteralExpressionSyntax nestedPrototype
+                    when isErrorPrototypeContext && name == "cause" =>
+                    BindObjectExpression(
+                        nestedPrototype,
+                        null,
+                        isErrorPrototypeContext: true
+                    ),
+                _ => BindExpression(
+                    propertySyntax.Value,
+                    expectedPropertyType
+                ),
+            };
             bool isFirstDeclaration = names.Add(name);
 
             if (!isFirstDeclaration)
@@ -1626,12 +2009,12 @@ internal sealed class Binder
                 );
             }
 
-            if (value is not null)
+            if (value is not null && includeProperty)
             {
                 properties.Add(new BoundExpression.ObjectProperty(name, value));
             }
 
-            if (isFirstDeclaration)
+            if (isFirstDeclaration && includeProperty)
             {
                 propertySymbols.Add(
                     new ObjectPropertySymbol(
@@ -1664,6 +2047,28 @@ internal sealed class Binder
             : ObjectTypeSymbol.CreateAnonymous(syntax.IsOpen, propertySymbols);
 
         return new BoundExpression.Object(syntax, objectType, properties.AsReadOnly());
+    }
+
+    private static TypeSymbol? GetErrorPrototypePropertyType(
+        string name,
+        ExpressionSyntax? value
+    )
+    {
+        return name switch
+        {
+            "code" or "message" => TypeSymbols.String,
+            "cause" when value is LiteralExpressionSyntax
+            {
+                LiteralToken.Kind: TokenKind.NullKeyword,
+            } => TypeSymbols.Nullable(TypeSymbols.ErrorValue),
+            "data" => TypeSymbols.Nullable(TypeSymbols.Unknown),
+            _ => null,
+        };
+    }
+
+    private static bool IsRecognizedErrorPrototypeProperty(string name)
+    {
+        return name is "code" or "message" or "cause" or "data";
     }
 
     private BoundExpression BindUnaryExpression(UnaryExpressionSyntax syntax)

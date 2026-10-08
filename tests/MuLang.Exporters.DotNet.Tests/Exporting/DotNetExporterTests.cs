@@ -12,6 +12,370 @@ namespace MuLang.Exporters.DotNet.Tests.Exporting;
 public sealed class DotNetExporterTests
 {
     [Test]
+    public void ExecutesSourceCatchAndFinally()
+    {
+        const string source = """
+                              var result = 0;
+                              try {
+                                  throw { code = "failure", message = "Failure." };
+                              } catch (failure) {
+                                  result = failure.code == "failure" ? 1 : 0;
+                              } finally {
+                                  result = result + 1;
+                              }
+                              return result;
+                              """;
+        EnvironmentSchema environment = CreateEmptyEnvironment(
+            LanguageVersion.Version1_2
+        );
+        Func<DotNetRuntimeContext, object?> compiled = CompileProgram(
+            source,
+            environment,
+            TypeSymbols.Int
+        );
+
+        Assert.That(compiled(CreateContext(environment)), Is.EqualTo(2L));
+    }
+
+    [Test]
+    public void NormalizesNullErrorPrototypeProperties()
+    {
+        const string source = """
+                              try {
+                                  throw {
+                                      code = "failure",
+                                      message = "Failure.",
+                                      cause = null,
+                                      data = null
+                                  };
+                              } finally {
+                              }
+                              """;
+        EnvironmentSchema environment = CreateEmptyEnvironment(
+            LanguageVersion.Version1_2
+        );
+        Func<DotNetRuntimeContext, object?> compiled = CompileProgram(
+            source,
+            environment,
+            TypeSymbols.Void
+        );
+        MuLangRuntimeException exception = RequireRuntimeException(
+            () => compiled(CreateContext(environment))
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(exception.Error.Cause, Is.Null);
+            Assert.That(exception.Error.ErrorData.IsPresent, Is.True);
+            Assert.That(exception.Error.ErrorData.Value, Is.Null);
+        }
+    }
+
+    [Test]
+    public void DoesNotEvaluateUnrecognizedErrorPrototypeProperty()
+    {
+        const string source = """
+                              try {
+                                  throw {
+                                      code = "failure",
+                                      message = "Failure.",
+                                      ignored = touch()
+                                  };
+                              } catch (failure) {
+                                  return failure.code;
+                              }
+                              """;
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddFunction("function.touch", "touch", [ ], TypeSymbols.Int)
+            .Build(LanguageVersion.Version1_2);
+        int calls = 0;
+        Func<DotNetRuntimeContext, object?> compiled = CompileProgram(
+            source,
+            environment,
+            TypeSymbols.String
+        );
+        DotNetRuntimeContext context = CreateContext(
+            environment,
+            functions:
+            [
+                new KeyValuePair<string, DotNetProviderFunction>(
+                    "function.touch",
+                    (_, _) =>
+                    {
+                        calls++;
+                        return 1L;
+                    }
+                ),
+            ]
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(compiled(context), Is.EqualTo("failure"));
+            Assert.That(calls, Is.Zero);
+        }
+    }
+
+    [Test]
+    public void ExecutesSourceRethrowIntoOuterCatch()
+    {
+        const string source = """
+                              try {
+                                  try {
+                                      throw { code = "failure", message = "Failure." };
+                                  } catch {
+                                      throw;
+                                  }
+                              } catch (failure) {
+                                  return failure.message;
+                              }
+                              """;
+        EnvironmentSchema environment = CreateEmptyEnvironment(
+            LanguageVersion.Version1_2
+        );
+        Func<DotNetRuntimeContext, object?> compiled = CompileProgram(
+            source,
+            environment,
+            TypeSymbols.String
+        );
+
+        Assert.That(
+            compiled(CreateContext(environment)),
+            Is.EqualTo("Failure.")
+        );
+    }
+
+    [Test]
+    public void ExecutesFinallyForReturnAndOutwardLoopTransfer()
+    {
+        const string source = """
+                              var count = 0;
+                              while (true) {
+                                  try {
+                                      break;
+                                  } finally {
+                                      count = count + 1;
+                                  }
+                              }
+                              try {
+                                  return count;
+                              } finally {
+                                  record();
+                              }
+                              """;
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddFunction("function.record", "record", [ ], TypeSymbols.Void)
+            .Build(LanguageVersion.Version1_2);
+        int calls = 0;
+        Func<DotNetRuntimeContext, object?> compiled = CompileProgram(
+            source,
+            environment,
+            TypeSymbols.Int
+        );
+        DotNetRuntimeContext context = CreateContext(
+            environment,
+            functions:
+            [
+                new KeyValuePair<string, DotNetProviderFunction>(
+                    "function.record",
+                    (_, _) =>
+                    {
+                        calls++;
+                        return null;
+                    }
+                ),
+            ]
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(compiled(context), Is.EqualTo(1L));
+            Assert.That(calls, Is.EqualTo(1));
+        }
+    }
+
+    [Test]
+    public void UncatchableProviderErrorBypassesSourceFinally()
+    {
+        const string source = """
+                              try {
+                                  fail();
+                              } finally {
+                                  record();
+                              }
+                              """;
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddFunction("function.fail", "fail", [ ], TypeSymbols.Void)
+            .AddFunction("function.record", "record", [ ], TypeSymbols.Void)
+            .Build(LanguageVersion.Version1_2);
+        int calls = 0;
+        Func<DotNetRuntimeContext, object?> compiled = CompileProgram(
+            source,
+            environment,
+            TypeSymbols.Void
+        );
+        DotNetRuntimeContext context = CreateContext(
+            environment,
+            functions:
+            [
+                new KeyValuePair<string, DotNetProviderFunction>(
+                    "function.fail",
+                    static (_, _) => throw new InvalidOperationException()
+                ),
+                new KeyValuePair<string, DotNetProviderFunction>(
+                    "function.record",
+                    (_, _) =>
+                    {
+                        calls++;
+                        return null;
+                    }
+                ),
+            ]
+        );
+
+        Assert.That(
+            () => compiled(context),
+            Throws.TypeOf<MuLangRuntimeException>()
+        );
+        Assert.That(calls, Is.Zero);
+    }
+
+    [Test]
+    public void CatchableProviderErrorRunsSourceCatchAndFinally()
+    {
+        const string source = """
+                              var result = "";
+                              try {
+                                  fail();
+                              } catch (failure) {
+                                  result = failure.code;
+                              } finally {
+                                  record();
+                              }
+                              return result;
+                              """;
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddFunction("function.fail", "fail", [ ], TypeSymbols.Void)
+            .AddFunction("function.record", "record", [ ], TypeSymbols.Void)
+            .Build(LanguageVersion.Version1_2);
+        int calls = 0;
+        Func<DotNetRuntimeContext, object?> compiled = CompileProgram(
+            source,
+            environment,
+            TypeSymbols.String
+        );
+        DotNetRuntimeContext context = CreateContext(
+            environment,
+            functions:
+            [
+                new KeyValuePair<string, DotNetProviderFunction>(
+                    "function.fail",
+                    static (invocation, _) =>
+                    {
+                        invocation.ThrowApplicationError(
+                            "provider-failure",
+                            "Failure."
+                        );
+                        throw new AssertionException(
+                            "Application error did not terminate provider execution."
+                        );
+                    }
+                ),
+                new KeyValuePair<string, DotNetProviderFunction>(
+                    "function.record",
+                    (_, _) =>
+                    {
+                        calls++;
+                        return null;
+                    }
+                ),
+            ]
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(compiled(context), Is.EqualTo("provider-failure"));
+            Assert.That(calls, Is.EqualTo(1));
+        }
+    }
+
+    [Test]
+    public void SourceFinallyErrorReplacesPendingReturn()
+    {
+        const string source = """
+                              try {
+                                  return 1;
+                              } finally {
+                                  throw {
+                                      code = "cleanup-failure",
+                                      message = "Cleanup failed."
+                                  };
+                              }
+                              """;
+        EnvironmentSchema environment = CreateEmptyEnvironment(
+            LanguageVersion.Version1_2
+        );
+        Func<DotNetRuntimeContext, object?> compiled = CompileProgram(
+            source,
+            environment,
+            TypeSymbols.Int
+        );
+        MuLangRuntimeException exception = RequireRuntimeException(
+            () => compiled(CreateContext(environment))
+        );
+
+        Assert.That(exception.Error.Code, Is.EqualTo("cleanup-failure"));
+    }
+
+    [Test]
+    public void ThrowsExistingErrorValueWithoutRenormalizingIt()
+    {
+        const string source = """
+                              try {
+                                  throw failure();
+                              } catch (caught) {
+                                  return caught.code;
+                              }
+                              """;
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddFunction(
+                "function.failure",
+                "failure",
+                [ ],
+                TypeSymbols.ErrorValue
+            )
+            .Build(LanguageVersion.Version1_2);
+        RuntimeError error = new (
+            "existing",
+            "Existing.",
+            RuntimeErrorCategory.Application,
+            true,
+            default,
+            [ ],
+            null,
+            RuntimeErrorData.Absent
+        );
+        ProviderErrorValue value = new (error);
+        Func<DotNetRuntimeContext, object?> compiled = CompileProgram(
+            source,
+            environment,
+            TypeSymbols.String
+        );
+        DotNetRuntimeContext context = CreateContext(
+            environment,
+            functions:
+            [
+                new KeyValuePair<string, DotNetProviderFunction>(
+                    "function.failure",
+                    (_, _) => value
+                ),
+            ]
+        );
+
+        Assert.That(compiled(context), Is.EqualTo("existing"));
+    }
+
+    [Test]
     public void RuntimeErrorFactoryDefaultsToAbsentPayload()
     {
         MuLangRuntimeException exception = DotNetRuntimeErrorFactory.Create(
@@ -3056,7 +3420,17 @@ public sealed class DotNetExporterTests
             expectedType,
             GetProfile(environment)
         );
-        Assert.That(result.Diagnostics.HasErrors, Is.False);
+        Assert.That(
+            result.Diagnostics.HasErrors,
+            Is.False,
+            string.Join(
+                Environment.NewLine,
+                result.Diagnostics.Select(
+                    static diagnostic =>
+                        $"{diagnostic.Code}: {diagnostic.Message}"
+                )
+            )
+        );
 
         return result.Program ??
             throw new AssertionException("Expected compilation to produce an IR program.");
@@ -3075,7 +3449,17 @@ public sealed class DotNetExporterTests
             resultType,
             GetProfile(environment)
         );
-        Assert.That(result.Diagnostics.HasErrors, Is.False);
+        Assert.That(
+            result.Diagnostics.HasErrors,
+            Is.False,
+            string.Join(
+                Environment.NewLine,
+                result.Diagnostics.Select(
+                    static diagnostic =>
+                        $"{diagnostic.Code}: {diagnostic.Message}"
+                )
+            )
+        );
 
         return result.Program ??
             throw new AssertionException("Expected compilation to produce an IR program.");

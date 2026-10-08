@@ -13,11 +13,16 @@ internal sealed class IrBuilder
     private readonly Stack<int> lifetimeRegionStack = [ ];
     private readonly Stack<ExceptionRegionContext> exceptionRegionStack = [ ];
 
+    private readonly IDictionary<int, ExceptionRegionContext> blockExceptionOwners =
+        new Dictionary<int, ExceptionRegionContext>();
+
     public int EntryBlock { get; }
 
     public MutableIrBlock? CurrentBlock { get; private set; }
 
     public bool IsCurrentTerminated => CurrentBlock?.Terminator is not null;
+
+    public int ExceptionRegionDepth => exceptionRegionStack.Count;
 
     public IrBuilder()
     {
@@ -39,9 +44,41 @@ internal sealed class IrBuilder
         )
         {
             exceptionRegions[context.RegionId].AddBlock(context.Part, id);
+            blockExceptionOwners.Add(id, context);
         }
 
         return id;
+    }
+
+    public int CreateBlockOutsideCurrentExceptionRegion()
+    {
+        return CreateBlockAtExceptionDepth(
+            Math.Max(0, exceptionRegionStack.Count - 1)
+        );
+    }
+
+    public int CreateBlockAtExceptionDepth(int depth)
+    {
+        if (depth < 0 || depth > exceptionRegionStack.Count)
+        {
+            throw new ArgumentOutOfRangeException(nameof(depth));
+        }
+
+        Stack<ExceptionRegionContext> suspendedContexts = [ ];
+
+        while (exceptionRegionStack.Count > depth)
+        {
+            suspendedContexts.Push(exceptionRegionStack.Pop());
+        }
+
+        int blockId = CreateBlock();
+
+        while (suspendedContexts.TryPop(out ExceptionRegionContext? context))
+        {
+            exceptionRegionStack.Push(context);
+        }
+
+        return blockId;
     }
 
     public int BeginExceptionRegion(int protectedEntry)
@@ -62,11 +99,14 @@ internal sealed class IrBuilder
         exceptionRegionStack.Push(
             new ExceptionRegionContext(id, IrExceptionRegionPart.Protected)
         );
-        region.AddBlock(IrExceptionRegionPart.Protected, protectedEntry);
+        AssignExceptionOwner(
+            protectedEntry,
+            new ExceptionRegionContext(id, IrExceptionRegionPart.Protected)
+        );
         return id;
     }
 
-    public void BeginExceptionHandler(int entryBlock, int errorSlot)
+    public (int EntryBlock, int ErrorSlot) BeginExceptionHandler(string? errorName)
     {
         ExceptionRegionContext context = GetExceptionRegionContext(
             IrExceptionRegionPart.Protected
@@ -75,13 +115,44 @@ internal sealed class IrBuilder
         exceptionRegionStack.Push(
             context with { Part = IrExceptionRegionPart.Handler }
         );
+        int parentLifetimeRegion = lifetimeRegionStack.Peek();
+        int handlerLifetimeRegion = lifetimeRegions.Count;
+        lifetimeRegionStack.Push(handlerLifetimeRegion);
+        int entryBlock = CreateBlock();
+        lifetimeRegions.Add(
+            new IrLifetimeRegion(
+                handlerLifetimeRegion,
+                parentLifetimeRegion,
+                entryBlock
+            )
+        );
+        int errorSlot = CreateSlot(
+            IrSlotKind.Local,
+            TypeSymbols.ErrorValue,
+            errorName,
+            IrSlotMutability.ReadOnly
+        );
         MutableIrExceptionRegion region = exceptionRegions[context.RegionId];
         region.HandlerEntry = entryBlock;
         region.HandlerErrorSlot = errorSlot;
-        region.AddBlock(IrExceptionRegionPart.Handler, entryBlock);
+        return (entryBlock, errorSlot);
     }
 
-    public void BeginExceptionCleanup(int entryBlock)
+    public void EndExceptionHandler()
+    {
+        _ = GetExceptionRegionContext(IrExceptionRegionPart.Handler);
+
+        if (lifetimeRegionStack.Count == 1)
+        {
+            throw new InvalidOperationException(
+                "The active exception handler has no lifetime region."
+            );
+        }
+
+        lifetimeRegionStack.Pop();
+    }
+
+    public int BeginExceptionCleanup()
     {
         if (
             !exceptionRegionStack.TryPeek(
@@ -96,9 +167,10 @@ internal sealed class IrBuilder
         exceptionRegionStack.Push(
             context with { Part = IrExceptionRegionPart.Cleanup }
         );
+        int entryBlock = CreateBlock();
         MutableIrExceptionRegion region = exceptionRegions[context.RegionId];
         region.CleanupEntry = entryBlock;
-        region.AddBlock(IrExceptionRegionPart.Cleanup, entryBlock);
+        return entryBlock;
     }
 
     public void EndExceptionRegion()
@@ -165,11 +237,11 @@ internal sealed class IrBuilder
     {
         int id = slots.Count;
         IrSlotMutability effectiveMutability = mutability ??
-            (
-                kind == IrSlotKind.Parameter
-                    ? IrSlotMutability.ReadOnly
-                    : IrSlotMutability.Mutable
-            );
+        (
+            kind == IrSlotKind.Parameter
+                ? IrSlotMutability.ReadOnly
+                : IrSlotMutability.Mutable
+        );
         slots.Add(
             new IrSlot(
                 id,
@@ -271,6 +343,28 @@ internal sealed class IrBuilder
         }
 
         return context;
+    }
+
+    private void AssignExceptionOwner(
+        int blockId,
+        ExceptionRegionContext owner
+    )
+    {
+        if (
+            blockExceptionOwners.TryGetValue(
+                blockId,
+                out ExceptionRegionContext? previousOwner
+            )
+        )
+        {
+            exceptionRegions[previousOwner.RegionId].RemoveBlock(
+                previousOwner.Part,
+                blockId
+            );
+        }
+
+        exceptionRegions[owner.RegionId].AddBlock(owner.Part, blockId);
+        blockExceptionOwners[blockId] = owner;
     }
 
     private sealed record ExceptionRegionContext(

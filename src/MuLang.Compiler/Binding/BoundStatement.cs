@@ -67,5 +67,18 @@ internal abstract record BoundStatement(SyntaxNode Syntax) : BoundNode(Syntax)
         BoundExpression? Value
     ) : BoundStatement(Syntax);
 
+    internal sealed record Throw(
+        SyntaxNode Syntax,
+        BoundExpression Error
+    ) : BoundStatement(Syntax);
+
+    internal sealed record Try(
+        SyntaxNode Syntax,
+        BoundStatement Protected,
+        LocalSymbol? ErrorLocal,
+        BoundStatement? Handler,
+        BoundStatement? Cleanup
+    ) : BoundStatement(Syntax);
+
     internal sealed record Empty(SyntaxNode Syntax) : BoundStatement(Syntax);
 }

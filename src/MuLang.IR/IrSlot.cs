@@ -39,9 +39,7 @@ public sealed record IrSlot(
                 ? IrSlotMutability.ReadOnly
                 : IrSlotMutability.Mutable,
             0
-        )
-    {
-    }
+        ) { }
 
     /// <summary>Initializes a new instance of the <see cref="IrSlot" /> class with explicit mutability.</summary>
     /// <param name="id">The slot identifier within the function.</param>
@@ -58,9 +56,7 @@ public sealed record IrSlot(
         string? name,
         IrSlotMutability mutability
     )
-        : this(id, kind, type, name, mutability, 0)
-    {
-    }
+        : this(id, kind, type, name, mutability, 0) { }
 
     /// <summary>Deconstructs the slot using the legacy component shape.</summary>
     /// <param name="Id">The slot identifier within the function.</param>

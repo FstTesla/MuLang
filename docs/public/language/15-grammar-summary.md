@@ -4,8 +4,8 @@ This grammar describes the complete syntax for language version 1.2. Language
 version 1.1 treats `catch`, `finally`, `primitive`, `throw`, and `try` as
 identifiers, and language version 1 also rejects the read-only array additions.
 A selected language profile may reject otherwise recognized function, loop,
-mutation, open-object, or trailing-comma constructs as defined in
-[Sections 14.1 through 14.6](14-language-profiles.md#141-user-defined-functions-and-recursion).
+mutation, open-object, trailing-comma, or exception-handling constructs as
+defined in [Section 14](14-language-profiles.md).
 
 ```ebnf
 expression-root
@@ -39,6 +39,8 @@ statement
     | if-statement
     | while-statement
     | for-statement
+    | try-statement
+    | throw-statement ";"
     | "break" integer-literal? ";"
     | "continue" integer-literal? ";"
     | return-statement ";"
@@ -91,6 +93,20 @@ for-iterator
 
 return-statement
     = "return" expression? ;
+
+try-statement
+    = "try" block
+      (catch-clause finally-clause?
+      | finally-clause) ;
+
+catch-clause
+    = "catch" ("(" identifier ")")? block ;
+
+finally-clause
+    = "finally" block ;
+
+throw-statement
+    = "throw" expression? ;
 
 type
     = primary-type nullable-suffix?

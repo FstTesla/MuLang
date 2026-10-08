@@ -275,6 +275,20 @@ internal sealed class Lowerer
                 break;
             }
 
+            case BoundStatement.Throw error:
+            {
+                int errorSlot = LowerThrownError(error.Error);
+                builder.Terminate(new IrTerminator.Throw(error.Span, errorSlot));
+                builder.SetUnreachable();
+                break;
+            }
+
+            case BoundStatement.Try protectedStatement:
+            {
+                LowerTry(protectedStatement);
+                break;
+            }
+
             case BoundStatement.Empty:
             {
                 break;
@@ -285,6 +299,116 @@ internal sealed class Lowerer
                 throw new InvalidOperationException("Unknown bound statement.");
             }
         }
+    }
+
+    private void LowerTry(BoundStatement.Try statement)
+    {
+        int protectedEntry = builder.CreateBlock();
+        int? continuation = null;
+        builder.Terminate(new IrTerminator.Jump(statement.Span, protectedEntry));
+        _ = builder.BeginExceptionRegion(protectedEntry);
+        builder.SwitchTo(protectedEntry);
+        LowerStatement(statement.Protected);
+        bool protectedCompletesNormally = builder.CurrentBlock is not null;
+
+        if (protectedCompletesNormally)
+        {
+            continuation = builder.CreateBlockOutsideCurrentExceptionRegion();
+            builder.Terminate(
+                new IrTerminator.Jump(
+                    statement.Protected.Span,
+                    continuation.Value
+                )
+            );
+        }
+
+        if (statement.Handler is { } handler)
+        {
+            (int handlerEntry, int errorSlot) = builder.BeginExceptionHandler(
+                statement.ErrorLocal?.Name
+            );
+
+            if (statement.ErrorLocal is { } errorLocal)
+            {
+                localSlots.Add(errorLocal, errorSlot);
+            }
+
+            builder.SwitchTo(handlerEntry);
+            LowerStatement(handler);
+
+            if (builder.CurrentBlock is not null)
+            {
+                continuation ??=
+                    builder.CreateBlockOutsideCurrentExceptionRegion();
+                builder.Terminate(
+                    new IrTerminator.Jump(handler.Span, continuation.Value)
+                );
+            }
+
+            builder.EndExceptionHandler();
+        }
+
+        bool cleanupCompletesNormally = true;
+
+        if (statement.Cleanup is { } cleanup)
+        {
+            int cleanupEntry = builder.BeginExceptionCleanup();
+            builder.SwitchTo(cleanupEntry);
+            LowerStatement(cleanup);
+            cleanupCompletesNormally = builder.CurrentBlock is not null;
+
+            if (cleanupCompletesNormally)
+            {
+                builder.Terminate(new IrTerminator.Resume(cleanup.Span));
+            }
+        }
+
+        builder.EndExceptionRegion();
+
+        if (
+            cleanupCompletesNormally &&
+            continuation is { } continuationBlock
+        )
+        {
+            builder.SwitchTo(continuationBlock);
+        }
+        else
+        {
+            if (continuation is { } unreachableContinuation)
+            {
+                builder.SwitchTo(unreachableContinuation);
+                builder.Terminate(
+                    new IrTerminator.Jump(
+                        statement.Span,
+                        unreachableContinuation
+                    )
+                );
+            }
+
+            builder.SetUnreachable();
+        }
+    }
+
+    private int LowerThrownError(BoundExpression expression)
+    {
+        int source = LowerExpression(expression);
+
+        if (expression.Type.Kind == TypeKind.ErrorValue)
+        {
+            return source;
+        }
+
+        int destination = CreateTemporary(TypeSymbols.ErrorValue);
+        builder.Emit(
+            new IrInstruction.Convert(
+                expression.Span,
+                destination,
+                source,
+                TypeSymbols.ErrorValue,
+                IrConversionKind.CheckedCast
+            )
+        );
+        return destination;
     }
 
     private void LowerAssignment(BoundStatement.Assignment assignment)
@@ -461,10 +585,11 @@ internal sealed class Lowerer
             );
         }
 
+        int exceptionRegionDepth = builder.ExceptionRegionDepth;
         LoweringLoopContext context = new (
             conditionBlock,
             exitBlock,
-            builder.CreateBlock
+            () => builder.CreateBlockAtExceptionDepth(exceptionRegionDepth)
         );
         loopContexts.Push(context);
         builder.SwitchTo(bodyBlock);
@@ -537,10 +662,11 @@ internal sealed class Lowerer
             );
         }
 
+        int exceptionRegionDepth = builder.ExceptionRegionDepth;
         LoweringLoopContext context = new (
             iteratorBlock,
             exitBlock,
-            builder.CreateBlock
+            () => builder.CreateBlockAtExceptionDepth(exceptionRegionDepth)
         );
         loopContexts.Push(context);
         builder.SwitchTo(bodyBlock);

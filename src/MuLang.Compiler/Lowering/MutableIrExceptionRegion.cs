@@ -40,6 +40,11 @@ internal sealed class MutableIrExceptionRegion
         GetBlocks(part).Add(blockId);
     }
 
+    public void RemoveBlock(IrExceptionRegionPart part, int blockId)
+    {
+        _ = GetBlocks(part).Remove(blockId);
+    }
+
     public IrExceptionRegion Build()
     {
         return new IrExceptionRegion(

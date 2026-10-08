@@ -13,6 +13,296 @@ namespace MuLang.Compiler.Tests.Binding;
 public sealed class BinderTests
 {
     [Test]
+    public void BindsCatchParameterAndRethrowWithinHandler()
+    {
+        BindingResult result = BindProgram(
+            """
+            try {
+                throw { code = "failure", message = "Failure." };
+            } catch (failure) {
+                var code = failure.code;
+                throw;
+            }
+            """,
+            CreateEmptyEnvironment(LanguageVersion.Version1_2),
+            TypeSymbols.Void,
+            LanguageProfiles.Version1_2
+        );
+
+        Assert.That(result.Diagnostics.HasErrors, Is.False);
+    }
+
+    [TestCase("throw;", DiagnosticCodes.RethrowOutsideCatch)]
+    [TestCase(
+        "try { } catch (failure) { } finally { throw; }",
+        DiagnosticCodes.RethrowOutsideCatch
+    )]
+    [TestCase(
+        "try { } finally { return; }",
+        DiagnosticCodes.ReturnInsideFinally
+    )]
+    [TestCase(
+        "while (true) { try { } finally { break; } }",
+        DiagnosticCodes.LoopTransferOutsideFinally
+    )]
+    public void ReportsInvalidExceptionControlFlow(
+        string source,
+        string diagnosticCode
+    )
+    {
+        BindingResult result = BindProgram(
+            source,
+            CreateEmptyEnvironment(LanguageVersion.Version1_2),
+            TypeSymbols.Void,
+            LanguageProfiles.Version1_2
+        );
+
+        AssertDiagnostic(result, diagnosticCode);
+    }
+
+    [Test]
+    public void AllowsLoopTransfersTargetingLoopInsideFinally()
+    {
+        BindingResult result = BindProgram(
+            "try { } finally { while (true) { break; } }",
+            CreateEmptyEnvironment(LanguageVersion.Version1_2),
+            TypeSymbols.Void,
+            LanguageProfiles.Version1_2
+        );
+
+        Assert.That(result.Diagnostics.HasErrors, Is.False);
+    }
+
+    [Test]
+    public void PreservesDefiniteAssignmentOnNormalTryContinuation()
+    {
+        BindingResult result = BindProgram(
+            """
+            var value: int;
+            try {
+                value = 1;
+            } finally {
+            }
+            return value;
+            """,
+            CreateEmptyEnvironment(LanguageVersion.Version1_2),
+            TypeSymbols.Int,
+            LanguageProfiles.Version1_2
+        );
+
+        Assert.That(result.Diagnostics.HasErrors, Is.False);
+    }
+
+    [Test]
+    public void PreservesOuterRethrowContextInsideNestedFinally()
+    {
+        BindingResult result = BindProgram(
+            """
+            try {
+                throw { code = "failure", message = "Failure." };
+            } catch {
+                try {
+                } finally {
+                    throw;
+                }
+            }
+            """,
+            CreateEmptyEnvironment(LanguageVersion.Version1_2),
+            TypeSymbols.Void,
+            LanguageProfiles.Version1_2
+        );
+
+        Assert.That(result.Diagnostics.HasErrors, Is.False);
+    }
+
+    [Test]
+    public void ValidatesRecursiveErrorPrototypeAndWarnsForInlineExtras()
+    {
+        BindingResult result = BindProgram(
+            """
+            throw {
+                code = "outer",
+                message = "Outer.",
+                cause = {
+                    code = "inner",
+                    message = "Inner.",
+                    ignored = 1
+                },
+                ignored = 2
+            };
+            """,
+            CreateEmptyEnvironment(LanguageVersion.Version1_2),
+            TypeSymbols.Void,
+            LanguageProfiles.Version1_2
+        );
+
+        Assert.That(
+            result.Diagnostics.Select(static diagnostic => diagnostic.Code),
+            Is.EqualTo(
+                [
+                    DiagnosticCodes.UnrecognizedErrorProperty,
+                    DiagnosticCodes.UnrecognizedErrorProperty,
+                ]
+            )
+        );
+    }
+
+    [Test]
+    public void ContextuallyBindsNullErrorPrototypeProperties()
+    {
+        BindingResult result = BindProgram(
+            """
+            throw {
+                code = "failure",
+                message = "Failure.",
+                cause = null,
+                data = null
+            };
+            """,
+            CreateEmptyEnvironment(LanguageVersion.Version1_2),
+            TypeSymbols.Void,
+            LanguageProfiles.Version1_2
+        );
+
+        Assert.That(result.Diagnostics, Is.Empty);
+    }
+
+    [Test]
+    public void ContextuallyBindsNullPropertiesInNestedCausePrototype()
+    {
+        BindingResult result = BindProgram(
+            """
+            throw {
+                code = "outer",
+                message = "Outer.",
+                cause = {
+                    code = "inner",
+                    message = "Inner.",
+                    cause = null,
+                    data = null
+                }
+            };
+            """,
+            CreateEmptyEnvironment(LanguageVersion.Version1_2),
+            TypeSymbols.Void,
+            LanguageProfiles.Version1_2
+        );
+
+        Assert.That(result.Diagnostics, Is.Empty);
+    }
+
+    [Test]
+    public void PrunesUnrecognizedInlinePrototypePropertiesExceptInsideData()
+    {
+        BindingResult result = BindProgram(
+            """
+            throw {
+                code = "outer",
+                message = "Outer.",
+                ignored = 1,
+                cause = {
+                    code = "inner",
+                    message = "Inner.",
+                    ignored = 2
+                },
+                data = {
+                    kept = 3
+                }
+            };
+            """,
+            CreateEmptyEnvironment(LanguageVersion.Version1_2),
+            TypeSymbols.Void,
+            LanguageProfiles.Version1_2
+        );
+        BoundRoot.Program root = (BoundRoot.Program)result.Root;
+        BoundStatement.Throw statement = (BoundStatement.Throw)root.Statements.Single();
+        BoundExpression.Object prototype = (BoundExpression.Object)statement.Error;
+        BoundExpression.Object cause = (BoundExpression.Object)prototype.Properties
+            .Single(static property => property.Name == "cause")
+            .Value;
+        BoundExpression.Conversion dataConversion =
+            (BoundExpression.Conversion)prototype.Properties
+                .Single(static property => property.Name == "data")
+                .Value;
+        BoundExpression.Object data = (BoundExpression.Object)dataConversion.Expression;
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(
+                prototype.Properties.Select(static property => property.Name),
+                Is.EqualTo([ "code", "message", "cause", "data" ])
+            );
+            Assert.That(
+                cause.Properties.Select(static property => property.Name),
+                Is.EqualTo([ "code", "message" ])
+            );
+            Assert.That(
+                data.Properties.Select(static property => property.Name),
+                Is.EqualTo([ "kept" ])
+            );
+            Assert.That(result.Diagnostics.HasErrors, Is.False);
+        }
+    }
+
+    [Test]
+    public void RejectsInvalidErrorPrototype()
+    {
+        BindingResult result = BindProgram(
+            "throw { code = 1, message = \"Failure.\" };",
+            CreateEmptyEnvironment(LanguageVersion.Version1_2),
+            TypeSymbols.Void,
+            LanguageProfiles.Version1_2
+        );
+
+        AssertDiagnostic(result, DiagnosticCodes.InvalidThrowOperand);
+    }
+
+    [Test]
+    public void ReportsDisabledExceptionHandling()
+    {
+        LanguageProfile profile = new LanguageProfileBuilder(
+                LanguageProfiles.Version1_2
+            )
+            .WithExceptionHandling(ExceptionHandlingFeature.Disabled)
+            .Build();
+        BindingResult result = BindProgram(
+            "try { } catch { }",
+            CreateEmptyEnvironment(LanguageVersion.Version1_2),
+            TypeSymbols.Void,
+            profile
+        );
+
+        AssertDiagnostic(result, DiagnosticCodes.DisabledExceptionHandling);
+    }
+
+    [TestCase(
+        "try { } catch (failure) { failure = failure; }",
+        DiagnosticCodes.CannotReassignReadOnlyLocal
+    )]
+    [TestCase(
+        "try { } catch (failure) { } finally { var copy = failure; }",
+        DiagnosticCodes.UndefinedName
+    )]
+    [TestCase(
+        "var failure = 1; try { } catch (failure) { }",
+        DiagnosticCodes.ShadowedVariable
+    )]
+    public void EnforcesCatchParameterScope(
+        string source,
+        string diagnosticCode
+    )
+    {
+        BindingResult result = BindProgram(
+            source,
+            CreateEmptyEnvironment(LanguageVersion.Version1_2),
+            TypeSymbols.Void,
+            LanguageProfiles.Version1_2
+        );
+
+        AssertDiagnostic(result, diagnosticCode);
+    }
+
+    [Test]
     public void BindsBuiltInErrorProperties()
     {
         EnvironmentSchema environment = new EnvironmentBuilder()

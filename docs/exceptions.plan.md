@@ -32,13 +32,14 @@ Release `0.2.0-alpha.7` implements the host-facing foundation:
 - the canonical context-aware `DotNetProviderFunction` and
   `DotNetProviderInvocationContext` APIs.
 
-Source-level `try`, `catch`, `throw`, and `finally` remain deferred to the
-MuLang 1.2 work.
-
 Release `0.3.0-alpha.3` implements the built-in `error` type,
 exception-region execution model, revised MuIR 2 representation, and .NET
-runtime support, coordinated with scoped IR slots. Protected-statement syntax
-and binding follow after that foundation.
+runtime support, coordinated with scoped IR slots.
+
+Release `0.3.0-alpha.4` implements source-level protected statements, explicit
+throwing and rethrow, cleanup-aware control flow, and the language-profile
+feature option. The standard MuLang 1.2 profile enables the feature while the
+built-in `error` type remains independently available.
 
 ## Pre-`0.2.0-alpha.7` State
 
@@ -366,9 +367,8 @@ provider function before an error remain observable.
 
 ### `finally` Semantics
 
-`finally` is reserved in MuLang 1.2 but may be implemented after the initial
-`try` and `catch` milestone. Its syntax and semantics are defined in advance so
-that the later addition does not require another language version.
+`finally` is implemented with the initial source-level exception-handling
+delivery in MuLang 1.2.
 
 A `finally` block executes after the protected block and, when present, after
 the matching handler. It executes when either preceding block completes:
@@ -563,9 +563,10 @@ Exception handling therefore belongs to a new language version, most likely
 MuLang 1.2. Versions 1 and 1.1 continue to tokenize these names according to
 their existing rules, preserving source compatibility.
 
-An exception-handling language-profile option may additionally control feature
-availability. Such an option remains subordinate to a language version that
-defines the syntax.
+The `ExceptionHandlingFeature` language-profile option additionally controls
+feature availability. It remains subordinate to a language version that
+defines the syntax. Standard MuLang 1.2 enables it; versions 1 and 1.1 disable
+it.
 
 ## MuIR Compatibility
 

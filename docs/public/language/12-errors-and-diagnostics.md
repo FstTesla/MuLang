@@ -10,7 +10,7 @@ A compile-time diagnostic MUST contain:
 
 An identifier that becomes a reserved keyword in a later supported language version produces a warning on every occurrence. Under the selected earlier version, the token remains an identifier.
 
-Syntax or capabilities disabled by the selected language profile produce compile-time errors as defined in [Section 14.11](14-language-profiles.md#1411-feature-diagnostics).
+Syntax or capabilities disabled by the selected language profile produce compile-time errors as defined in [Section 14.12](14-language-profiles.md#1412-feature-diagnostics).
 
 No executable result may be produced when an error diagnostic is present.
 
@@ -88,7 +88,10 @@ MUST use category `Provider` and be uncatchable. The underlying host failure
 SHOULD remain available to the host when the execution environment can preserve
 it.
 
-The language provides no source-level mechanism for catching runtime errors.
+When enabled by the selected language profile, source-level protected
+statements catch only errors whose explicit catchability is `Catchable`.
+Uncatchable errors abort execution without entering a MuLang handler or cleanup
+block.
 
 > Given `value: unknown`, this expression compiles but produces a failed-cast runtime error when the runtime value is not an `int`:
 >
@@ -100,6 +103,34 @@ The language provides no source-level mechanism for catching runtime errors.
 >
 > ```text
 > values[0]
+> ```
+
+> Given a host global `value: unknown` and host functions
+> `consume(int): void` and `report(string, string): void`, this protected
+> statement handles the failed cast when the resulting runtime error is
+> catchable:
+>
+> ```text
+> try {
+>     var integer = value as int;
+>     consume(integer);
+> } catch (failure) {
+>     report(failure.code, failure.message);
+> }
+> ```
+
+> Given host functions `faultyProvider(): void` and `report(string): void`, an
+> unexpected provider implementation failure is uncatchable, so this handler
+> and cleanup are both bypassed:
+>
+> ```text
+> try {
+>     faultyProvider();
+> } catch {
+>     report("caught");
+> } finally {
+>     report("cleanup");
+> }
 > ```
 
 ## 12.3. Intentionally non-preventable runtime errors

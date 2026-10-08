@@ -139,6 +139,14 @@ internal static class DotNetRuntimeOperations
     {
         if (conversionKind == IrConversionKind.CheckedCast)
         {
+            if (
+                targetType.Kind == TypeKind.ErrorValue &&
+                value is not IDotNetErrorValue
+            )
+            {
+                return NormalizeErrorPrototype(context, value, span, 0);
+            }
+
             if (IsValueOfTypeDeep(context, value, targetType, span))
             {
                 return value;
@@ -200,6 +208,71 @@ internal static class DotNetRuntimeOperations
                 span
             ),
         };
+    }
+
+    private static IDotNetErrorValue NormalizeErrorPrototype(
+        DotNetRuntimeContext context,
+        object? value,
+        TextSpan span,
+        int depth
+    )
+    {
+        if (value is IDotNetErrorValue errorValue)
+        {
+            return errorValue;
+        }
+
+        if (
+            value is not IDotNetObjectValue ||
+            depth > context.MaximumTraversalDepth ||
+            !TryGetProperty(value, "code", out object? codeValue) ||
+            codeValue is not string code ||
+            !TryGetProperty(value, "message", out object? messageValue) ||
+            messageValue is not string message
+        )
+        {
+            throw DotNetRuntimeErrorFactory.Create(
+                DotNetRuntimeErrorCodes.InvalidConversion,
+                "Runtime value is not a valid error prototype.",
+                RuntimeErrorCategory.Operation,
+                true,
+                span
+            );
+        }
+
+        RuntimeError? cause = null;
+
+        if (
+            TryGetProperty(value, "cause", out object? causeValue) &&
+            causeValue is not null
+        )
+        {
+            cause = NormalizeErrorPrototype(
+                context,
+                causeValue,
+                span,
+                depth + 1
+            ).Error;
+        }
+
+        RuntimeErrorData data = TryGetProperty(
+            value,
+            "data",
+            out object? dataValue
+        )
+            ? RuntimeErrorData.Present(dataValue)
+            : RuntimeErrorData.Absent;
+        RuntimeError error = new (
+            code,
+            message,
+            RuntimeErrorCategory.Application,
+            true,
+            span,
+            [ ],
+            cause,
+            data
+        );
+        return new DotNetErrorValue(error);
     }
 
     public static bool TypeTest(

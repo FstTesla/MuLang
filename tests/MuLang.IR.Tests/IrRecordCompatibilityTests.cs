@@ -1,4 +1,5 @@
 using MuLang.Core.Types;
+using System.Reflection;
 
 namespace MuLang.IR.Tests;
 
@@ -133,7 +134,7 @@ public sealed class IrRecordCompatibilityTests
         IReadOnlyCollection<int> obsoleteDeconstructorParameterCounts
     )
     {
-        foreach (System.Reflection.ConstructorInfo constructor in typeof(T).GetConstructors())
+        foreach (ConstructorInfo constructor in typeof(T).GetConstructors())
         {
             bool expected = obsoleteConstructorParameterCounts.Contains(
                 constructor.GetParameters().Length
@@ -145,7 +146,7 @@ public sealed class IrRecordCompatibilityTests
         }
 
         foreach (
-            System.Reflection.MethodInfo deconstructor in typeof(T)
+            MethodInfo deconstructor in typeof(T)
                 .GetMethods()
                 .Where(static method => method.Name == "Deconstruct")
         )

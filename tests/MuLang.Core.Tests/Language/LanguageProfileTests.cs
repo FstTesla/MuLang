@@ -56,6 +56,10 @@ public sealed class LanguageProfileTests
                 Is.EqualTo(ConstantFoldingFeature.Enabled)
             );
             Assert.That(
+                profile.ExceptionHandling,
+                Is.EqualTo(ExceptionHandlingFeature.Disabled)
+            );
+            Assert.That(
                 profile.ObjectLiteralSyntax,
                 Is.EqualTo(ObjectLiteralSyntax.Legacy)
             );
@@ -85,6 +89,10 @@ public sealed class LanguageProfileTests
     {
         using (Assert.EnterMultipleScope())
         {
+            Assert.That(
+                LanguageProfiles.Version1_2.ExceptionHandling,
+                Is.EqualTo(ExceptionHandlingFeature.Enabled)
+            );
             Assert.That(
                 LanguageProfiles.Version1_2.ObjectLiteralSyntax,
                 Is.EqualTo(ObjectLiteralSyntax.Full)
@@ -140,6 +148,8 @@ public sealed class LanguageProfileTests
             Assert.That((int)TrailingCommasFeature.Enabled, Is.EqualTo(1));
             Assert.That((int)ConstantFoldingFeature.Disabled, Is.Zero);
             Assert.That((int)ConstantFoldingFeature.Enabled, Is.EqualTo(1));
+            Assert.That((int)ExceptionHandlingFeature.Disabled, Is.Zero);
+            Assert.That((int)ExceptionHandlingFeature.Enabled, Is.EqualTo(1));
             Assert.That((int)ObjectLiteralSyntax.Legacy, Is.Zero);
             Assert.That((int)ObjectLiteralSyntax.Full, Is.EqualTo(1));
             Assert.That((int)ConditionSemantics.StrictBoolean, Is.Zero);
@@ -180,6 +190,7 @@ public sealed class LanguageProfileTests
             .WithLoops(LoopFeatures.While)
             .WithMutations(MutationFeatures.ArrayElements)
             .WithConstantFolding(ConstantFoldingFeature.Disabled)
+            .WithExceptionHandling(ExceptionHandlingFeature.Disabled)
             .WithShadowing(ShadowingPolicy.Globals)
             .Build();
         LanguageProfile copy = new LanguageProfileBuilder(source).Build();
@@ -260,7 +271,7 @@ public sealed class LanguageProfileTests
             Assert.That(
                 first.Fingerprint.Value,
                 Is.EqualTo(
-                    "bbc09f3b373d3781d03cb480eedcae43618f0a056aa4cdff2a969d4cb97fa01e"
+                    "d379033707a5d30fd262583c0cad9d74e8ef99ba27a8a498cd0466bcef7a4df1"
                 )
             );
         }
@@ -298,6 +309,7 @@ public sealed class LanguageProfileTests
     [TestCase("loopControl")]
     [TestCase("trailingCommas")]
     [TestCase("constantFolding")]
+    [TestCase("exceptionHandling")]
     [TestCase("objectLiteralSyntax")]
     [TestCase("conditions")]
     [TestCase("shadowing")]
@@ -329,6 +341,9 @@ public sealed class LanguageProfileTests
             ),
             "constantFolding" => TestLanguageProfileFactory.Create(
                 constantFolding: ConstantFoldingFeature.Disabled
+            ),
+            "exceptionHandling" => TestLanguageProfileFactory.Create(
+                exceptionHandling: ExceptionHandlingFeature.Enabled
             ),
             "objectLiteralSyntax" => TestLanguageProfileFactory.Create(
                 objectLiteralSyntax: ObjectLiteralSyntax.Full
@@ -390,6 +405,7 @@ public sealed class LanguageProfileTests
             MultiLevelLoopControlFeature.Enabled,
             TrailingCommasFeature.Enabled,
             ConstantFoldingFeature.Enabled,
+            ExceptionHandlingFeature.Disabled,
             ObjectLiteralSyntax.Legacy,
             ConditionSemantics.Truthiness,
             ShadowingPolicy.None
@@ -437,6 +453,7 @@ public sealed class LanguageProfileTests
             MultiLevelLoopControlFeature.Enabled,
             TrailingCommasFeature.Enabled,
             ConstantFoldingFeature.Enabled,
+            ExceptionHandlingFeature.Disabled,
             ObjectLiteralSyntax.Legacy,
             ConditionSemantics.StrictBoolean,
             ShadowingPolicy.None
@@ -467,6 +484,9 @@ public sealed class LanguageProfileTests
         );
         yield return static () => TestLanguageProfileFactory.Create(
             constantFolding: (ConstantFoldingFeature)99
+        );
+        yield return static () => TestLanguageProfileFactory.Create(
+            exceptionHandling: (ExceptionHandlingFeature)99
         );
         yield return static () => TestLanguageProfileFactory.Create(
             conditionSemantics: (ConditionSemantics)99
@@ -503,6 +523,8 @@ public sealed class LanguageProfileTests
             builder.WithTrailingCommas((TrailingCommasFeature)99);
         yield return static builder =>
             builder.WithConstantFolding((ConstantFoldingFeature)99);
+        yield return static builder =>
+            builder.WithExceptionHandling((ExceptionHandlingFeature)99);
         yield return static builder =>
             builder.WithConditionSemantics((ConditionSemantics)99);
         yield return static builder =>
