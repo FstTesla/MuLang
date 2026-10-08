@@ -658,23 +658,58 @@ public sealed class TruthinessTests
         EnvironmentSchema environment = CreateEmptyEnvironment();
         IrProgram missingSlots = CreateIrProgram(
             [
-                new IrSlot(0, IrSlotKind.Temporary, TypeSymbols.Bool, null),
+                new IrSlot(
+                    0,
+                    IrSlotKind.Temporary,
+                    TypeSymbols.Bool,
+                    null,
+                    IrSlotMutability.Mutable,
+                    0
+                ),
             ],
             [ new IrInstruction.Truthiness(default, 2, 1) ],
             new IrTerminator.Return(default, null)
         );
         IrProgram invalidTypes = CreateIrProgram(
             [
-                new IrSlot(0, IrSlotKind.Temporary, TypeSymbols.Void, null),
-                new IrSlot(1, IrSlotKind.Temporary, TypeSymbols.Int, null),
+                new IrSlot(
+                    0,
+                    IrSlotKind.Temporary,
+                    TypeSymbols.Void,
+                    null,
+                    IrSlotMutability.Mutable,
+                    0
+                ),
+                new IrSlot(
+                    1,
+                    IrSlotKind.Temporary,
+                    TypeSymbols.Int,
+                    null,
+                    IrSlotMutability.Mutable,
+                    0
+                ),
             ],
             [ new IrInstruction.Truthiness(default, 1, 0) ],
             new IrTerminator.Return(default, null)
         );
         IrProgram undefinedSource = CreateIrProgram(
             [
-                new IrSlot(0, IrSlotKind.Temporary, TypeSymbols.Int, null),
-                new IrSlot(1, IrSlotKind.Temporary, TypeSymbols.Bool, null),
+                new IrSlot(
+                    0,
+                    IrSlotKind.Temporary,
+                    TypeSymbols.Int,
+                    null,
+                    IrSlotMutability.Mutable,
+                    0
+                ),
+                new IrSlot(
+                    1,
+                    IrSlotKind.Temporary,
+                    TypeSymbols.Bool,
+                    null,
+                    IrSlotMutability.Mutable,
+                    0
+                ),
             ],
             [ new IrInstruction.Truthiness(default, 1, 0) ],
             new IrTerminator.Return(default, 1)
@@ -865,7 +900,9 @@ public sealed class TruthinessTests
             TypeSymbols.Void,
             0,
             slots,
-            [ new IrBasicBlock(0, instructions, terminator) ]
+            [ new IrBasicBlock(0, instructions, terminator, 0) ],
+            [ new IrLifetimeRegion(0, null, 0) ],
+            [ ]
         );
 
         return new IrProgram(

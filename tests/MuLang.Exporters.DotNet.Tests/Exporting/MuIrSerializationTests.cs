@@ -72,14 +72,26 @@ public sealed class MuIrSerializationTests
                 "$entry",
                 TypeSymbols.Void,
                 0,
-                [ new IrSlot(0, IrSlotKind.Temporary, type, null) ],
+                [
+                    new IrSlot(
+                        0,
+                        IrSlotKind.Temporary,
+                        type,
+                        null,
+                        IrSlotMutability.Mutable,
+                        0
+                    ),
+                ],
                 [
                     new IrBasicBlock(
                         0,
                         [ ],
-                        new IrTerminator.Return(default, null)
+                        new IrTerminator.Return(default, null),
+                        0
                     ),
-                ]
+                ],
+                [ new IrLifetimeRegion(0, null, 0) ],
+                [ ]
             ),
             [ ]
         );

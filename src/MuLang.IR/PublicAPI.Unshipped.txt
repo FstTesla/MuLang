@@ -1,5 +1,6 @@
 #nullable enable
-MuLang.IR.IrBasicBlock.IrBasicBlock(int id, System.Collections.Generic.IReadOnlyCollection<MuLang.IR.IrInstruction!>! instructions, MuLang.IR.IrTerminator! terminator, int lifetimeRegion) -> void
+MuLang.IR.IrBasicBlock.Deconstruct(out int Id, out System.Collections.Generic.IReadOnlyCollection<MuLang.IR.IrInstruction!>! Instructions, out MuLang.IR.IrTerminator! Terminator, out int LifetimeRegion) -> void
+MuLang.IR.IrBasicBlock.IrBasicBlock(int Id, System.Collections.Generic.IReadOnlyCollection<MuLang.IR.IrInstruction!>! Instructions, MuLang.IR.IrTerminator! Terminator, int LifetimeRegion) -> void
 MuLang.IR.IrBasicBlock.LifetimeRegion.get -> int
 MuLang.IR.IrBasicBlock.LifetimeRegion.init -> void
 MuLang.IR.IrExceptionCleanup
@@ -54,7 +55,8 @@ MuLang.IR.IrExceptionRegionPart.Handler = 1 -> MuLang.IR.IrExceptionRegionPart
 MuLang.IR.IrExceptionRegionPart.Protected = 0 -> MuLang.IR.IrExceptionRegionPart
 MuLang.IR.IrFunction.ExceptionRegions.get -> System.Collections.Generic.IReadOnlyList<MuLang.IR.IrExceptionRegion!>!
 MuLang.IR.IrFunction.ExceptionRegions.init -> void
-MuLang.IR.IrFunction.IrFunction(string! id, MuLang.Core.Types.TypeSymbol! returnType, int entryBlock, System.Collections.Generic.IReadOnlyList<MuLang.IR.IrSlot!>! slots, System.Collections.Generic.IReadOnlyList<MuLang.IR.IrBasicBlock!>! blocks, System.Collections.Generic.IReadOnlyList<MuLang.IR.IrLifetimeRegion!>! lifetimeRegions, System.Collections.Generic.IReadOnlyList<MuLang.IR.IrExceptionRegion!>! exceptionRegions) -> void
+MuLang.IR.IrFunction.Deconstruct(out string! Id, out MuLang.Core.Types.TypeSymbol! ReturnType, out int EntryBlock, out System.Collections.Generic.IReadOnlyList<MuLang.IR.IrSlot!>! Slots, out System.Collections.Generic.IReadOnlyList<MuLang.IR.IrBasicBlock!>! Blocks, out System.Collections.Generic.IReadOnlyList<MuLang.IR.IrLifetimeRegion!>! LifetimeRegions, out System.Collections.Generic.IReadOnlyList<MuLang.IR.IrExceptionRegion!>! ExceptionRegions) -> void
+MuLang.IR.IrFunction.IrFunction(string! Id, MuLang.Core.Types.TypeSymbol! ReturnType, int EntryBlock, System.Collections.Generic.IReadOnlyList<MuLang.IR.IrSlot!>! Slots, System.Collections.Generic.IReadOnlyList<MuLang.IR.IrBasicBlock!>! Blocks, System.Collections.Generic.IReadOnlyList<MuLang.IR.IrLifetimeRegion!>! LifetimeRegions, System.Collections.Generic.IReadOnlyList<MuLang.IR.IrExceptionRegion!>! ExceptionRegions) -> void
 MuLang.IR.IrFunction.IrFunction(string! id, MuLang.Core.Types.TypeSymbol! returnType, int entryBlock, System.Collections.Generic.IReadOnlyList<MuLang.IR.IrSlot!>! slots, System.Collections.Generic.IReadOnlyList<MuLang.IR.IrBasicBlock!>! blocks, System.Collections.Generic.IReadOnlyList<MuLang.IR.IrLifetimeRegion!>! lifetimeRegions) -> void
 MuLang.IR.IrFunction.LifetimeRegions.get -> System.Collections.Generic.IReadOnlyList<MuLang.IR.IrLifetimeRegion!>!
 MuLang.IR.IrFunction.LifetimeRegions.init -> void
@@ -69,7 +71,8 @@ MuLang.IR.IrLifetimeRegion.Id.init -> void
 MuLang.IR.IrLifetimeRegion.IrLifetimeRegion(int Id, int? ParentRegion, int EntryBlock) -> void
 MuLang.IR.IrLifetimeRegion.ParentRegion.get -> int?
 MuLang.IR.IrLifetimeRegion.ParentRegion.init -> void
-MuLang.IR.IrSlot.IrSlot(int id, MuLang.IR.IrSlotKind kind, MuLang.Core.Types.TypeSymbol! type, string? name, MuLang.IR.IrSlotMutability mutability, int lifetimeRegion) -> void
+MuLang.IR.IrSlot.Deconstruct(out int Id, out MuLang.IR.IrSlotKind Kind, out MuLang.Core.Types.TypeSymbol! Type, out string? Name, out MuLang.IR.IrSlotMutability Mutability, out int LifetimeRegion) -> void
+MuLang.IR.IrSlot.IrSlot(int Id, MuLang.IR.IrSlotKind Kind, MuLang.Core.Types.TypeSymbol! Type, string? Name, MuLang.IR.IrSlotMutability Mutability, int LifetimeRegion) -> void
 MuLang.IR.IrSlot.LifetimeRegion.get -> int
 MuLang.IR.IrSlot.LifetimeRegion.init -> void
 MuLang.IR.IrTerminator.Resume

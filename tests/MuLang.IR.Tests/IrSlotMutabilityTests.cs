@@ -12,7 +12,7 @@ public sealed class IrSlotMutabilityTests
     {
         IrProgram program = CreateProgram(
             [
-                new IrSlot(
+                CreateSlot(
                     0,
                     IrSlotKind.Local,
                     TypeSymbols.Int,
@@ -35,7 +35,7 @@ public sealed class IrSlotMutabilityTests
     {
         IrProgram program = CreateProgram(
             [
-                new IrSlot(
+                CreateSlot(
                     0,
                     IrSlotKind.Local,
                     TypeSymbols.Int,
@@ -56,7 +56,7 @@ public sealed class IrSlotMutabilityTests
     {
         IrProgram program = CreateProgram(
             [
-                new IrSlot(
+                CreateSlot(
                     0,
                     IrSlotKind.Local,
                     TypeSymbols.Int,
@@ -83,7 +83,7 @@ public sealed class IrSlotMutabilityTests
     {
         IrProgram program = CreateProgram(
             [
-                new IrSlot(
+                CreateSlot(
                     0,
                     IrSlotKind.Temporary,
                     TypeSymbols.Int,
@@ -105,14 +105,16 @@ public sealed class IrSlotMutabilityTests
     }
 
     [Test]
-    public void ParametersDefaultToReadOnly()
+    public void LegacyConstructorDefaultsParametersToReadOnly()
     {
+#pragma warning disable CS0618
         IrSlot parameter = new (
             0,
             IrSlotKind.Parameter,
             TypeSymbols.Int,
             "value"
         );
+#pragma warning restore CS0618
 
         Assert.That(parameter.Mutability, Is.EqualTo(IrSlotMutability.ReadOnly));
     }
@@ -120,11 +122,12 @@ public sealed class IrSlotMutabilityTests
     [Test]
     public void AcceptsReadOnlyParameterWithoutDefinitionSite()
     {
-        IrSlot parameter = new (
+        IrSlot parameter = CreateSlot(
             0,
             IrSlotKind.Parameter,
             TypeSymbols.Int,
-            "value"
+            "value",
+            IrSlotMutability.ReadOnly
         );
 
         Assert.That(
@@ -136,7 +139,7 @@ public sealed class IrSlotMutabilityTests
     [Test]
     public void RejectsMutableParameter()
     {
-        IrSlot parameter = new (
+        IrSlot parameter = CreateSlot(
             0,
             IrSlotKind.Parameter,
             TypeSymbols.Int,
@@ -154,11 +157,12 @@ public sealed class IrSlotMutabilityTests
     [Test]
     public void RejectsParameterDefinitionSite()
     {
-        IrSlot parameter = new (
+        IrSlot parameter = CreateSlot(
             0,
             IrSlotKind.Parameter,
             TypeSymbols.Int,
-            "value"
+            "value",
+            IrSlotMutability.ReadOnly
         );
 
         Assert.That(
@@ -187,22 +191,28 @@ public sealed class IrSlotMutabilityTests
             environment.Fingerprint,
             CompilationMode.Program,
             LanguageProfiles.Version1_1.Fingerprint,
-            new IrFunction(
+            CreateRootFunction(
                 "$entry",
                 TypeSymbols.Void,
                 0,
                 [
-                    new IrSlot(
+                    CreateSlot(
                         0,
                         IrSlotKind.Local,
                         TypeSymbols.Int,
                         "value",
                         IrSlotMutability.ReadOnly
                     ),
-                    new IrSlot(1, IrSlotKind.Temporary, TypeSymbols.Bool, null),
+                    CreateSlot(
+                        1,
+                        IrSlotKind.Temporary,
+                        TypeSymbols.Bool,
+                        null,
+                        IrSlotMutability.Mutable
+                    ),
                 ],
                 [
-                    new IrBasicBlock(
+                    CreateRootBlock(
                         0,
                         [
                             new IrInstruction.Constant(
@@ -214,7 +224,7 @@ public sealed class IrSlotMutabilityTests
                         ],
                         new IrTerminator.Jump(default, 1)
                     ),
-                    new IrBasicBlock(
+                    CreateRootBlock(
                         1,
                         [
                             new IrInstruction.Constant(
@@ -226,7 +236,7 @@ public sealed class IrSlotMutabilityTests
                         ],
                         new IrTerminator.Branch(default, 1, 1, 2)
                     ),
-                    new IrBasicBlock(
+                    CreateRootBlock(
                         2,
                         [ ],
                         new IrTerminator.Return(default, null)
@@ -251,22 +261,28 @@ public sealed class IrSlotMutabilityTests
             environment.Fingerprint,
             CompilationMode.Program,
             LanguageProfiles.Version1_1.Fingerprint,
-            new IrFunction(
+            CreateRootFunction(
                 "$entry",
                 TypeSymbols.Void,
                 0,
                 [
-                    new IrSlot(
+                    CreateSlot(
                         0,
                         IrSlotKind.Local,
                         TypeSymbols.Int,
                         "value",
                         IrSlotMutability.ReadOnly
                     ),
-                    new IrSlot(1, IrSlotKind.Temporary, TypeSymbols.Bool, null),
+                    CreateSlot(
+                        1,
+                        IrSlotKind.Temporary,
+                        TypeSymbols.Bool,
+                        null,
+                        IrSlotMutability.Mutable
+                    ),
                 ],
                 [
-                    new IrBasicBlock(
+                    CreateRootBlock(
                         0,
                         [
                             new IrInstruction.Constant(
@@ -278,7 +294,7 @@ public sealed class IrSlotMutabilityTests
                         ],
                         new IrTerminator.Branch(default, 1, 1, 2)
                     ),
-                    new IrBasicBlock(
+                    CreateRootBlock(
                         1,
                         [
                             new IrInstruction.Constant(
@@ -290,7 +306,7 @@ public sealed class IrSlotMutabilityTests
                         ],
                         new IrTerminator.Jump(default, 3)
                     ),
-                    new IrBasicBlock(
+                    CreateRootBlock(
                         2,
                         [
                             new IrInstruction.Constant(
@@ -302,7 +318,7 @@ public sealed class IrSlotMutabilityTests
                         ],
                         new IrTerminator.Jump(default, 3)
                     ),
-                    new IrBasicBlock(
+                    CreateRootBlock(
                         3,
                         [ ],
                         new IrTerminator.Return(default, null)
@@ -334,13 +350,13 @@ public sealed class IrSlotMutabilityTests
             environment.Fingerprint,
             CompilationMode.Expression,
             LanguageProfiles.Version1_1.Fingerprint,
-            new IrFunction(
+            CreateRootFunction(
                 "$entry",
                 resultType,
                 0,
                 slots,
                 [
-                    new IrBasicBlock(
+                    CreateRootBlock(
                         0,
                         instructions,
                         new IrTerminator.Return(default, result)
@@ -361,13 +377,13 @@ public sealed class IrSlotMutabilityTests
             environment.Fingerprint,
             CompilationMode.Program,
             LanguageProfiles.Version1_1.Fingerprint,
-            new IrFunction(
+            CreateRootFunction(
                 "$entry",
                 TypeSymbols.Void,
                 0,
                 [ ],
                 [
-                    new IrBasicBlock(
+                    CreateRootBlock(
                         0,
                         [ ],
                         new IrTerminator.Return(default, null)
@@ -375,13 +391,13 @@ public sealed class IrSlotMutabilityTests
                 ]
             ),
             [
-                new IrFunction(
+                CreateRootFunction(
                     "user",
                     TypeSymbols.Void,
                     0,
                     [ parameter ],
                     [
-                        new IrBasicBlock(
+                        CreateRootBlock(
                             0,
                             instructions,
                             new IrTerminator.Return(default, null)
@@ -391,4 +407,37 @@ public sealed class IrSlotMutabilityTests
             ]
         );
     }
+
+    private static IrSlot CreateSlot(
+        int id,
+        IrSlotKind kind,
+        TypeSymbol type,
+        string? name,
+        IrSlotMutability mutability
+    ) =>
+        new (id, kind, type, name, mutability, 0);
+
+    private static IrBasicBlock CreateRootBlock(
+        int id,
+        IReadOnlyCollection<IrInstruction> instructions,
+        IrTerminator terminator
+    ) =>
+        new (id, instructions, terminator, 0);
+
+    private static IrFunction CreateRootFunction(
+        string id,
+        TypeSymbol returnType,
+        int entryBlock,
+        IReadOnlyList<IrSlot> slots,
+        IReadOnlyList<IrBasicBlock> blocks
+    ) =>
+        new (
+            id,
+            returnType,
+            entryBlock,
+            slots,
+            blocks,
+            [ new IrLifetimeRegion(0, null, entryBlock) ],
+            [ ]
+        );
 }

@@ -502,14 +502,26 @@ public sealed class UserFunctionTests
                 "$entry",
                 TypeSymbols.Int,
                 0,
-                [ new IrSlot(0, IrSlotKind.Parameter, TypeSymbols.Int, "value") ],
+                [
+                    new IrSlot(
+                        0,
+                        IrSlotKind.Parameter,
+                        TypeSymbols.Int,
+                        "value",
+                        IrSlotMutability.ReadOnly,
+                        0
+                    ),
+                ],
                 [
                     new IrBasicBlock(
                         0,
                         [ ],
-                        new IrTerminator.Return(default, 0)
+                        new IrTerminator.Return(default, 0),
+                        0
                     ),
-                ]
+                ],
+                [ new IrLifetimeRegion(0, null, 0) ],
+                [ ]
             ),
             [ ]
         );

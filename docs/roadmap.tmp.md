@@ -14,7 +14,7 @@
 4. Stabilize the host and provider error contracts before defining source-level exception handling.
 
    **Completed for `0.2.0-alpha.7`.**
-5. Implement [scoped IR slots](scoped-ir-slots.plan.md) through explicit lifetime regions, preserving read-only capability and definite-assignment semantics across re-entered lexical scopes.
+5. Implement scoped IR slots through explicit lifetime regions, preserving read-only capability and definite-assignment semantics across re-entered lexical scopes.
 
    **Completed for `0.3.0-alpha.3`.**
 6. Extend the unreleased MuIR version 2 with scoped slots and exception-handling regions without changing the `primitive` token introduced by `0.3.0-alpha.1` or the property capability tokens introduced by `0.3.0-alpha.2`.
@@ -26,6 +26,7 @@
 ## Future steps
 
 1. Add language-server workspace configuration for the language profile, host environment, and expected result type.
+2. Implement [well-known IR attributes](ir-attributes.plan.md) in MuIR version 3 to preserve standardized source-level diagnostic names without changing executable semantics.
 
 Comments remain low priority. User-defined types, first-class functions, and function types should be deferred to later dedicated releases.
 

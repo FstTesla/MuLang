@@ -16,9 +16,8 @@ enabled by the standard profile for the selected language version.
 
 ## Prerequisite
 
-Implement and stabilize
-[`readonly-and-optional-object-properties.plan.md`](readonly-and-optional-object-properties.plan.md)
-before this plan.
+Implement and stabilize read-only and optional object properties before this
+plan.
 
 User-defined object declarations use that plan's complete property model:
 
@@ -27,10 +26,6 @@ User-defined object declarations use that plan's complete property model:
 - explicit property types;
 - recursive structural compatibility;
 - portable-IR and runtime preservation of property capabilities.
-
-The decisions still listed as open in the prerequisite plan must be resolved
-before implementing this plan. This plan does not duplicate or override those
-decisions.
 
 ## Goal
 

@@ -4,28 +4,41 @@ namespace MuLang.IR;
 /// <param name="Id">The block identifier within the function.</param>
 /// <param name="Instructions">The instructions executed by the block.</param>
 /// <param name="Terminator">The control-flow terminator.</param>
+/// <param name="LifetimeRegion">The owning lifetime-region identifier.</param>
 public sealed record IrBasicBlock(
     int Id,
     IReadOnlyCollection<IrInstruction> Instructions,
-    IrTerminator Terminator
+    IrTerminator Terminator,
+    int LifetimeRegion
 )
 {
-    /// <summary>Initializes a new instance of the <see cref="IrBasicBlock" /> class with explicit lifetime ownership.</summary>
-    /// <param name="id">The block identifier within the function.</param>
-    /// <param name="instructions">The instructions executed by the block.</param>
-    /// <param name="terminator">The control-flow terminator.</param>
-    /// <param name="lifetimeRegion">The owning lifetime-region identifier.</param>
+    /// <summary>Initializes a new instance of the <see cref="IrBasicBlock" /> class using root lifetime ownership.</summary>
+    /// <param name="Id">The block identifier within the function.</param>
+    /// <param name="Instructions">The instructions executed by the block.</param>
+    /// <param name="Terminator">The control-flow terminator.</param>
+    [Obsolete("Use the constructor that includes lifetime ownership.")]
     public IrBasicBlock(
-        int id,
-        IReadOnlyCollection<IrInstruction> instructions,
-        IrTerminator terminator,
-        int lifetimeRegion
+        int Id,
+        IReadOnlyCollection<IrInstruction> Instructions,
+        IrTerminator Terminator
     )
-        : this(id, instructions, terminator)
+        : this(Id, Instructions, Terminator, 0)
     {
-        LifetimeRegion = lifetimeRegion;
     }
 
-    /// <summary>Gets the identifier of the lifetime region that owns the block.</summary>
-    public int LifetimeRegion { get; init; }
+    /// <summary>Deconstructs the block using the legacy component shape.</summary>
+    /// <param name="Id">The block identifier within the function.</param>
+    /// <param name="Instructions">The instructions executed by the block.</param>
+    /// <param name="Terminator">The control-flow terminator.</param>
+    [Obsolete("Use the deconstruction shape that includes lifetime ownership.")]
+    public void Deconstruct(
+        out int Id,
+        out IReadOnlyCollection<IrInstruction> Instructions,
+        out IrTerminator Terminator
+    )
+    {
+        Id = this.Id;
+        Instructions = this.Instructions;
+        Terminator = this.Terminator;
+    }
 }

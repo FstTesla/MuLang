@@ -19,7 +19,7 @@ public sealed class IrValidatorTests
                 "$entry",
                 TypeSymbols.Int,
                 0,
-                [ new IrSlot(0, IrSlotKind.Temporary, TypeSymbols.Int, null) ],
+                [ CreateTemporarySlot(0, TypeSymbols.Int) ],
                 [
                     new IrBasicBlock(
                         0,
@@ -31,9 +31,12 @@ public sealed class IrValidatorTests
                                 1L
                             ),
                         ],
-                        new IrTerminator.Return(default, 0)
+                        new IrTerminator.Return(default, 0),
+                        0
                     ),
-                ]
+                ],
+                [ new IrLifetimeRegion(0, null, 0) ],
+                [ ]
             ),
             [ ]
         );
@@ -60,8 +63,8 @@ public sealed class IrValidatorTests
             environment,
             mutableType,
             [
-                new IrSlot(0, IrSlotKind.Temporary, readOnlyType, null),
-                new IrSlot(1, IrSlotKind.Temporary, mutableType, null),
+                CreateTemporarySlot(0, readOnlyType),
+                CreateTemporarySlot(1, mutableType),
             ],
             [
                 new IrInstruction.CreateArray(default, 0, readOnlyType, [ ]),
@@ -94,8 +97,8 @@ public sealed class IrValidatorTests
             environment,
             mutableType,
             [
-                new IrSlot(0, IrSlotKind.Temporary, readOnlyType, null),
-                new IrSlot(1, IrSlotKind.Temporary, mutableType, null),
+                CreateTemporarySlot(0, readOnlyType),
+                CreateTemporarySlot(1, mutableType),
             ],
             [
                 new IrInstruction.CreateArray(default, 0, readOnlyType, [ ]),
@@ -121,8 +124,8 @@ public sealed class IrValidatorTests
             environment,
             TypeSymbols.Float,
             [
-                new IrSlot(0, IrSlotKind.Temporary, TypeSymbols.Int, null),
-                new IrSlot(1, IrSlotKind.Temporary, TypeSymbols.Float, null),
+                CreateTemporarySlot(0, TypeSymbols.Int),
+                CreateTemporarySlot(1, TypeSymbols.Float),
             ],
             [
                 new IrInstruction.Constant(default, 0, TypeSymbols.Int, 1L),
@@ -152,8 +155,8 @@ public sealed class IrValidatorTests
             environment,
             TypeSymbols.Float,
             [
-                new IrSlot(0, IrSlotKind.Temporary, TypeSymbols.Number, null),
-                new IrSlot(1, IrSlotKind.Temporary, TypeSymbols.Float, null),
+                CreateTemporarySlot(0, TypeSymbols.Number),
+                CreateTemporarySlot(1, TypeSymbols.Float),
             ],
             [
                 new IrInstruction.Constant(default, 0, TypeSymbols.Number, 1.0),
@@ -179,8 +182,8 @@ public sealed class IrValidatorTests
             environment,
             TypeSymbols.Int,
             [
-                new IrSlot(0, IrSlotKind.Temporary, TypeSymbols.Number, null),
-                new IrSlot(1, IrSlotKind.Temporary, TypeSymbols.Int, null),
+                CreateTemporarySlot(0, TypeSymbols.Number),
+                CreateTemporarySlot(1, TypeSymbols.Int),
             ],
             [
                 new IrInstruction.Constant(default, 0, TypeSymbols.Number, 1L),
@@ -212,9 +215,9 @@ public sealed class IrValidatorTests
             environment,
             TypeSymbols.Void,
             [
-                new IrSlot(0, IrSlotKind.Temporary, readOnlyType, null),
-                new IrSlot(1, IrSlotKind.Temporary, TypeSymbols.Int, null),
-                new IrSlot(2, IrSlotKind.Temporary, TypeSymbols.Int, null),
+                CreateTemporarySlot(0, readOnlyType),
+                CreateTemporarySlot(1, TypeSymbols.Int),
+                CreateTemporarySlot(2, TypeSymbols.Int),
             ],
             [
                 new IrInstruction.CreateArray(default, 0, readOnlyType, [ ]),
@@ -253,9 +256,9 @@ public sealed class IrValidatorTests
             environment,
             TypeSymbols.Bool,
             [
-                new IrSlot(0, IrSlotKind.Temporary, TypeSymbols.Int, null),
-                new IrSlot(1, IrSlotKind.Temporary, mutableType, null),
-                new IrSlot(2, IrSlotKind.Temporary, TypeSymbols.Bool, null),
+                CreateTemporarySlot(0, TypeSymbols.Int),
+                CreateTemporarySlot(1, mutableType),
+                CreateTemporarySlot(2, TypeSymbols.Bool),
             ],
             [
                 new IrInstruction.Constant(default, 0, TypeSymbols.Int, 1L),
@@ -293,7 +296,7 @@ public sealed class IrValidatorTests
                     1
                 ),
                 new IrSlot(1, IrSlotKind.Temporary, TypeSymbols.String, null, IrSlotMutability.Mutable, 1),
-                new IrSlot(2, IrSlotKind.Temporary, TypeSymbols.String, null),
+                CreateTemporarySlot(2, TypeSymbols.String),
             ],
             [
                 new IrBasicBlock(
@@ -306,7 +309,8 @@ public sealed class IrValidatorTests
                             "ok"
                         ),
                     ],
-                    new IrTerminator.Return(default, 2)
+                    new IrTerminator.Return(default, 2),
+                    0
                 ),
                 new IrBasicBlock(
                     1,
@@ -367,9 +371,12 @@ public sealed class IrValidatorTests
                     new IrBasicBlock(
                         0,
                         [ ],
-                        new IrTerminator.Resume(default)
+                        new IrTerminator.Resume(default),
+                        0
                     ),
-                ]
+                ],
+                [ new IrLifetimeRegion(0, null, 0) ],
+                [ ]
             ),
             [ ]
         );
@@ -402,11 +409,24 @@ public sealed class IrValidatorTests
                     new IrBasicBlock(
                         0,
                         instructions,
-                        new IrTerminator.Return(default, resultSlot)
+                        new IrTerminator.Return(default, resultSlot),
+                        0
                     ),
-                ]
+                ],
+                [ new IrLifetimeRegion(0, null, 0) ],
+                [ ]
             ),
             [ ]
         );
     }
+
+    private static IrSlot CreateTemporarySlot(int id, TypeSymbol type) =>
+        new (
+            id,
+            IrSlotKind.Temporary,
+            type,
+            null,
+            IrSlotMutability.Mutable,
+            0
+        );
 }

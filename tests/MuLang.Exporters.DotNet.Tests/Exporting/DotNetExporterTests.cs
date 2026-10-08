@@ -984,7 +984,14 @@ public sealed class DotNetExporterTests
             TypeSymbols.Int,
             0,
             [
-                new IrSlot(0, IrSlotKind.Temporary, TypeSymbols.Int, null),
+                new IrSlot(
+                    0,
+                    IrSlotKind.Temporary,
+                    TypeSymbols.Int,
+                    null,
+                    IrSlotMutability.Mutable,
+                    0
+                ),
                 new IrSlot(
                     1,
                     IrSlotKind.Local,
@@ -1093,7 +1100,16 @@ public sealed class DotNetExporterTests
             "$entry",
             TypeSymbols.Int,
             0,
-            [ new IrSlot(0, IrSlotKind.Temporary, TypeSymbols.Int, null) ],
+            [
+                new IrSlot(
+                    0,
+                    IrSlotKind.Temporary,
+                    TypeSymbols.Int,
+                    null,
+                    IrSlotMutability.Mutable,
+                    0
+                ),
+            ],
             [
                 new IrBasicBlock(
                     0,
@@ -1105,7 +1121,8 @@ public sealed class DotNetExporterTests
                             7L
                         ),
                     ],
-                    new IrTerminator.Return(default, 0)
+                    new IrTerminator.Return(default, 0),
+                    0
                 ),
                 new IrBasicBlock(
                     1,
@@ -1118,7 +1135,8 @@ public sealed class DotNetExporterTests
                             [ ]
                         ),
                     ],
-                    new IrTerminator.Resume(default)
+                    new IrTerminator.Resume(default),
+                    0
                 ),
             ],
             [ new IrLifetimeRegion(0, null, 0) ],
@@ -1188,7 +1206,8 @@ public sealed class DotNetExporterTests
                             [ ]
                         ),
                     ],
-                    new IrTerminator.Return(default, null)
+                    new IrTerminator.Return(default, null),
+                    0
                 ),
                 new IrBasicBlock(
                     1,
@@ -1201,7 +1220,8 @@ public sealed class DotNetExporterTests
                             [ ]
                         ),
                     ],
-                    new IrTerminator.Resume(default)
+                    new IrTerminator.Resume(default),
+                    0
                 ),
             ],
             [ new IrLifetimeRegion(0, null, 0) ],
@@ -2856,16 +2876,33 @@ public sealed class DotNetExporterTests
                 TypeSymbols.Int,
                 0,
                 [
-                    new IrSlot(0, IrSlotKind.Temporary, TypeSymbols.Int, null),
-                    new IrSlot(1, IrSlotKind.Temporary, TypeSymbols.Int, null),
+                    new IrSlot(
+                        0,
+                        IrSlotKind.Temporary,
+                        TypeSymbols.Int,
+                        null,
+                        IrSlotMutability.Mutable,
+                        0
+                    ),
+                    new IrSlot(
+                        1,
+                        IrSlotKind.Temporary,
+                        TypeSymbols.Int,
+                        null,
+                        IrSlotMutability.Mutable,
+                        0
+                    ),
                 ],
                 [
                     new IrBasicBlock(
                         0,
                         [ new IrInstruction.Copy(default, 1, 0) ],
-                        new IrTerminator.Return(default, 1)
+                        new IrTerminator.Return(default, 1),
+                        0
                     ),
-                ]
+                ],
+                [ new IrLifetimeRegion(0, null, 0) ],
+                [ ]
             ),
             [ ]
         );
@@ -2895,9 +2932,12 @@ public sealed class DotNetExporterTests
                     new IrBasicBlock(
                         0,
                         [ ],
-                        new IrTerminator.Jump(default, 1)
+                        new IrTerminator.Jump(default, 1),
+                        0
                     ),
-                ]
+                ],
+                [ new IrLifetimeRegion(0, null, 0) ],
+                [ ]
             ),
             [ ]
         );
@@ -2926,8 +2966,22 @@ public sealed class DotNetExporterTests
                 objectType,
                 0,
                 [
-                    new IrSlot(0, IrSlotKind.Temporary, TypeSymbols.Int, null),
-                    new IrSlot(1, IrSlotKind.Temporary, objectType, null),
+                    new IrSlot(
+                        0,
+                        IrSlotKind.Temporary,
+                        TypeSymbols.Int,
+                        null,
+                        IrSlotMutability.Mutable,
+                        0
+                    ),
+                    new IrSlot(
+                        1,
+                        IrSlotKind.Temporary,
+                        objectType,
+                        null,
+                        IrSlotMutability.Mutable,
+                        0
+                    ),
                 ],
                 [
                     new IrBasicBlock(
@@ -2949,9 +3003,12 @@ public sealed class DotNetExporterTests
                                 ]
                             ),
                         ],
-                        new IrTerminator.Return(default, 1)
+                        new IrTerminator.Return(default, 1),
+                        0
                     ),
-                ]
+                ],
+                [ new IrLifetimeRegion(0, null, 0) ],
+                [ ]
             ),
             [ ]
         );

@@ -1,8 +1,6 @@
 - New features:
   - Comments
-  - User-defined types
   - First-class functions and function types
 - Feature flags:
   - Comments
-  - User-defined types
   - First-class functions and function types

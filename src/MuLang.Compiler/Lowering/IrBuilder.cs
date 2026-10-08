@@ -164,20 +164,21 @@ internal sealed class IrBuilder
     )
     {
         int id = slots.Count;
+        IrSlotMutability effectiveMutability = mutability ??
+            (
+                kind == IrSlotKind.Parameter
+                    ? IrSlotMutability.ReadOnly
+                    : IrSlotMutability.Mutable
+            );
         slots.Add(
-            mutability is null
-                ? new IrSlot(id, kind, type, name)
-                {
-                    LifetimeRegion = lifetimeRegionStack.Peek(),
-                }
-                : new IrSlot(
-                    id,
-                    kind,
-                    type,
-                    name,
-                    mutability.Value,
-                    lifetimeRegionStack.Peek()
-                )
+            new IrSlot(
+                id,
+                kind,
+                type,
+                name,
+                effectiveMutability,
+                lifetimeRegionStack.Peek()
+            )
         );
 
         return id;

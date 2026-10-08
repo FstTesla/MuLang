@@ -468,7 +468,8 @@ public sealed class MuIrSerializationTests
             IrSlotKind.Local,
             source.Type,
             "value",
-            IrSlotMutability.ReadOnly
+            IrSlotMutability.ReadOnly,
+            source.LifetimeRegion
         );
         program = program with
         {
@@ -533,7 +534,8 @@ public sealed class MuIrSerializationTests
             [
                 new IrLifetimeRegion(0, null, 0),
                 new IrLifetimeRegion(1, 0, 1),
-            ]
+            ],
+            [ ]
         );
         IrProgram program = new (
             new EnvironmentFingerprint("env"),
@@ -761,17 +763,17 @@ public sealed class MuIrSerializationTests
         );
         IReadOnlyList<IrSlot> slots =
         [
-            new (0, IrSlotKind.Local, TypeSymbols.Int, "input"),
-            new (1, IrSlotKind.Local, TypeSymbols.Bool, "flag"),
-            new (2, IrSlotKind.Temporary, nullableInt, null),
-            new (3, IrSlotKind.Temporary, TypeSymbols.Float, null),
-            new (4, IrSlotKind.Temporary, TypeSymbols.String, null),
-            new (5, IrSlotKind.Temporary, mutableArray, null),
-            new (6, IrSlotKind.Temporary, namedObject, null),
-            new (7, IrSlotKind.Temporary, anonymousObject, null),
-            new (8, IrSlotKind.Temporary, TypeSymbols.Unknown, null),
-            new (9, IrSlotKind.Temporary, TypeSymbols.Number, null),
-            new (10, IrSlotKind.Temporary, TypeSymbols.Object, null),
+            CreateRootSlot(0, IrSlotKind.Local, TypeSymbols.Int, "input"),
+            CreateRootSlot(1, IrSlotKind.Local, TypeSymbols.Bool, "flag"),
+            CreateRootSlot(2, IrSlotKind.Temporary, nullableInt, null),
+            CreateRootSlot(3, IrSlotKind.Temporary, TypeSymbols.Float, null),
+            CreateRootSlot(4, IrSlotKind.Temporary, TypeSymbols.String, null),
+            CreateRootSlot(5, IrSlotKind.Temporary, mutableArray, null),
+            CreateRootSlot(6, IrSlotKind.Temporary, namedObject, null),
+            CreateRootSlot(7, IrSlotKind.Temporary, anonymousObject, null),
+            CreateRootSlot(8, IrSlotKind.Temporary, TypeSymbols.Unknown, null),
+            CreateRootSlot(9, IrSlotKind.Temporary, TypeSymbols.Number, null),
+            CreateRootSlot(10, IrSlotKind.Temporary, TypeSymbols.Object, null),
         ];
         IReadOnlyCollection<IrInstruction> instructions =
         [
@@ -809,36 +811,43 @@ public sealed class MuIrSerializationTests
             new IrInstruction.ProviderCall(new TextSpan(25, 1), 0, "provider.call", TypeSymbols.Int, [ 0 ]),
             new IrInstruction.UserCall(new TextSpan(26, 1), null, "user.call", TypeSymbols.Void, [ 0 ]),
         ];
-        IrFunction entry = new (
+        IrFunction entry = CreateRootFunction(
             "$entry",
             TypeSymbols.Int,
             0,
             slots,
             [
-                new IrBasicBlock(
+                CreateRootBlock(
                     0,
                     instructions,
                     new IrTerminator.Branch(new TextSpan(27, 1), 1, 1, 2)
                 ),
-                new IrBasicBlock(
+                CreateRootBlock(
                     1,
                     [ ],
                     new IrTerminator.Jump(new TextSpan(28, 1), 2)
                 ),
-                new IrBasicBlock(
+                CreateRootBlock(
                     2,
                     [ ],
                     new IrTerminator.Return(new TextSpan(29, 1), 0)
                 ),
             ]
         );
-        IrFunction user = new (
+        IrFunction user = CreateRootFunction(
             "user.call",
             TypeSymbols.Void,
             0,
-            [ new IrSlot(0, IrSlotKind.Parameter, TypeSymbols.Int, "value") ],
             [
-                new IrBasicBlock(
+                CreateRootSlot(
+                    0,
+                    IrSlotKind.Parameter,
+                    TypeSymbols.Int,
+                    "value"
+                ),
+            ],
+            [
+                CreateRootBlock(
                     0,
                     [ ],
                     new IrTerminator.Return(new TextSpan(30, 0), null)
@@ -865,13 +874,13 @@ public sealed class MuIrSerializationTests
         object? value
     )
     {
-        IrFunction entry = new (
+        IrFunction entry = CreateRootFunction(
             "$entry",
             type,
             0,
-            [ new IrSlot(0, IrSlotKind.Temporary, type, null) ],
+            [ CreateRootSlot(0, IrSlotKind.Temporary, type, null) ],
             [
-                new IrBasicBlock(
+                CreateRootBlock(
                     0,
                     [
                         new IrInstruction.Constant(
@@ -897,13 +906,13 @@ public sealed class MuIrSerializationTests
 
     private static IrProgram CreateInstructionProgram(IrInstruction instruction)
     {
-        IrFunction entry = new (
+        IrFunction entry = CreateRootFunction(
             "$entry",
             TypeSymbols.Int,
             0,
-            [ new IrSlot(0, IrSlotKind.Temporary, TypeSymbols.Int, null) ],
+            [ CreateRootSlot(0, IrSlotKind.Temporary, TypeSymbols.Int, null) ],
             [
-                new IrBasicBlock(
+                CreateRootBlock(
                     0,
                     [ instruction ],
                     new IrTerminator.Return(default, 0)
@@ -924,13 +933,13 @@ public sealed class MuIrSerializationTests
         IReadOnlyList<TypeSymbol> slotTypes
     )
     {
-        IrFunction entry = new (
+        IrFunction entry = CreateRootFunction(
             "$entry",
             TypeSymbols.Void,
             0,
             [
                 .. slotTypes.Select(
-                    static (type, id) => new IrSlot(
+                    static (type, id) => CreateRootSlot(
                         id,
                         IrSlotKind.Temporary,
                         type,
@@ -939,7 +948,7 @@ public sealed class MuIrSerializationTests
                 ),
             ],
             [
-                new IrBasicBlock(
+                CreateRootBlock(
                     0,
                     [ ],
                     new IrTerminator.Return(default, null)
@@ -976,4 +985,45 @@ public sealed class MuIrSerializationTests
 
         return (ObjectTypeSymbol)builder.Build()[nodes[0]];
     }
+
+    private static IrSlot CreateRootSlot(
+        int id,
+        IrSlotKind kind,
+        TypeSymbol type,
+        string? name
+    ) =>
+        new (
+            id,
+            kind,
+            type,
+            name,
+            kind == IrSlotKind.Parameter
+                ? IrSlotMutability.ReadOnly
+                : IrSlotMutability.Mutable,
+            0
+        );
+
+    private static IrBasicBlock CreateRootBlock(
+        int id,
+        IReadOnlyCollection<IrInstruction> instructions,
+        IrTerminator terminator
+    ) =>
+        new (id, instructions, terminator, 0);
+
+    private static IrFunction CreateRootFunction(
+        string id,
+        TypeSymbol returnType,
+        int entryBlock,
+        IReadOnlyList<IrSlot> slots,
+        IReadOnlyList<IrBasicBlock> blocks
+    ) =>
+        new (
+            id,
+            returnType,
+            entryBlock,
+            slots,
+            blocks,
+            [ new IrLifetimeRegion(0, null, entryBlock) ],
+            [ ]
+        );
 }
