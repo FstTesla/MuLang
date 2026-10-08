@@ -20,11 +20,15 @@ Each release heading identifies the incremental version range covered by the sec
 
 ### New features
 
-- Added MuLang 1.2 source-level exception handling with `try`, optional `catch`, optional `finally`, explicit application-error throwing, and handler-scoped rethrow.
-- Added the `ExceptionHandlingFeature` profile option, `LanguageProfile.ExceptionHandling`, and `LanguageProfileBuilder.WithExceptionHandling`. The standard MuLang 1.2 profile enables the feature, while the built-in `error` type remains independently available when the feature is disabled.
+- Added MuLang 1.2 [protected statements](https://fsttesla.github.io/MuLang/language/10-statements.html#1013-protected-statements) with `try`, optional `catch`, optional `finally`, and [explicit application-error throwing and handler-scoped rethrow](https://fsttesla.github.io/MuLang/language/10-statements.html#1014-throw).
+- Added the [`ExceptionHandlingFeature` profile option](https://fsttesla.github.io/MuLang/language/14-language-profiles.html#1411-exception-handling), `LanguageProfile.ExceptionHandling`, and `LanguageProfileBuilder.WithExceptionHandling`. The standard MuLang 1.2 profile enables the feature, while the built-in `error` type remains independently available when the feature is disabled.
 - Added read-only optional catch parameters of type `error`, catchable-error selection, nested protected statements, and cleanup-aware normal completion, returns, and loop transfers.
 - Added recursive error-prototype normalization for explicit `throw`, including optional causes and identity-preserving application data. Extra inline object-literal properties produce warnings and are ignored by the runtime.
 - Added source diagnostics for malformed protected statements, unavailable exception syntax, invalid throw prototypes, rethrow outside a handler, returns from cleanup, and loop transfers escaping cleanup.
+
+### Fixes
+
+- Fixed portable IR validation to accept multiple disjoint top-level exception regions in one function, as permitted by the exception-region contract.
 
 ## `0.3.0-alpha.2` → `0.3.0-alpha.3` - 2026-10-07
 

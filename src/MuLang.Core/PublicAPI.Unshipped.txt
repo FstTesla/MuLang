@@ -1,6 +1,1 @@
 #nullable enable
-MuLang.Core.ExceptionHandlingFeature
-MuLang.Core.ExceptionHandlingFeature.Disabled = 0 -> MuLang.Core.ExceptionHandlingFeature
-MuLang.Core.ExceptionHandlingFeature.Enabled = 1 -> MuLang.Core.ExceptionHandlingFeature
-MuLang.Core.LanguageProfile.ExceptionHandling.get -> MuLang.Core.ExceptionHandlingFeature
-MuLang.Core.LanguageProfileBuilder.WithExceptionHandling(MuLang.Core.ExceptionHandlingFeature exceptionHandling) -> MuLang.Core.LanguageProfileBuilder!

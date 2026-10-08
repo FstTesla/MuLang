@@ -55,11 +55,15 @@ MuLang.Core.Environment.EnvironmentSchema.TryGetGlobal(string! name, out MuLang.
 MuLang.Core.Environment.EnvironmentSchema.TryGetGlobalById(string! id, out MuLang.Core.Symbols.GlobalSymbol? global) -> bool
 MuLang.Core.Environment.EnvironmentSchema.TryGetType(string! name, out MuLang.Core.Types.ObjectTypeSymbol? type) -> bool
 MuLang.Core.Environment.EnvironmentSchema.Types.get -> System.Collections.Generic.IReadOnlyCollection<MuLang.Core.Types.ObjectTypeSymbol!>!
+MuLang.Core.ExceptionHandlingFeature
+MuLang.Core.ExceptionHandlingFeature.Disabled = 0 -> MuLang.Core.ExceptionHandlingFeature
+MuLang.Core.ExceptionHandlingFeature.Enabled = 1 -> MuLang.Core.ExceptionHandlingFeature
 MuLang.Core.LanguageProfile
 MuLang.Core.LanguageProfile.<Clone>$() -> MuLang.Core.LanguageProfile!
 MuLang.Core.LanguageProfile.ConditionSemantics.get -> MuLang.Core.ConditionSemantics
 MuLang.Core.LanguageProfile.ConstantFolding.get -> MuLang.Core.ConstantFoldingFeature
 MuLang.Core.LanguageProfile.Equals(MuLang.Core.LanguageProfile? other) -> bool
+MuLang.Core.LanguageProfile.ExceptionHandling.get -> MuLang.Core.ExceptionHandlingFeature
 MuLang.Core.LanguageProfile.Fingerprint.get -> MuLang.Core.LanguageProfileFingerprint!
 MuLang.Core.LanguageProfile.LanguageVersion.get -> MuLang.Core.LanguageVersion
 MuLang.Core.LanguageProfile.Loops.get -> MuLang.Core.LoopFeatures
@@ -84,6 +88,7 @@ MuLang.Core.LanguageProfileBuilder.LanguageProfileBuilder() -> void
 MuLang.Core.LanguageProfileBuilder.LanguageProfileBuilder(MuLang.Core.LanguageProfile! profile) -> void
 MuLang.Core.LanguageProfileBuilder.WithConditionSemantics(MuLang.Core.ConditionSemantics conditionSemantics) -> MuLang.Core.LanguageProfileBuilder!
 MuLang.Core.LanguageProfileBuilder.WithConstantFolding(MuLang.Core.ConstantFoldingFeature constantFolding) -> MuLang.Core.LanguageProfileBuilder!
+MuLang.Core.LanguageProfileBuilder.WithExceptionHandling(MuLang.Core.ExceptionHandlingFeature exceptionHandling) -> MuLang.Core.LanguageProfileBuilder!
 MuLang.Core.LanguageProfileBuilder.WithLanguageVersion(MuLang.Core.LanguageVersion languageVersion) -> MuLang.Core.LanguageProfileBuilder!
 MuLang.Core.LanguageProfileBuilder.WithLoops(MuLang.Core.LoopFeatures loops) -> MuLang.Core.LanguageProfileBuilder!
 MuLang.Core.LanguageProfileBuilder.WithMultiLevelLoopControl(MuLang.Core.MultiLevelLoopControlFeature multiLevelLoopControl) -> MuLang.Core.LanguageProfileBuilder!

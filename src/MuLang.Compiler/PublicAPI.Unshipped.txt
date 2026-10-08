@@ -1,10 +1,1 @@
 #nullable enable
-const MuLang.Compiler.Diagnostics.DiagnosticCodes.DisabledExceptionHandling = "MUL7014" -> string!
-const MuLang.Compiler.Diagnostics.DiagnosticCodes.InvalidExceptionClauseOrder = "MUL2014" -> string!
-const MuLang.Compiler.Diagnostics.DiagnosticCodes.InvalidThrowOperand = "MUL3047" -> string!
-const MuLang.Compiler.Diagnostics.DiagnosticCodes.LoopTransferOutsideFinally = "MUL4011" -> string!
-const MuLang.Compiler.Diagnostics.DiagnosticCodes.MissingExceptionClause = "MUL2012" -> string!
-const MuLang.Compiler.Diagnostics.DiagnosticCodes.RepeatedExceptionClause = "MUL2013" -> string!
-const MuLang.Compiler.Diagnostics.DiagnosticCodes.RethrowOutsideCatch = "MUL4009" -> string!
-const MuLang.Compiler.Diagnostics.DiagnosticCodes.ReturnInsideFinally = "MUL4010" -> string!
-const MuLang.Compiler.Diagnostics.DiagnosticCodes.UnrecognizedErrorProperty = "MUL3048" -> string!
