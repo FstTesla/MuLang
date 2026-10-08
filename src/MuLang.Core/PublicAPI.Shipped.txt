@@ -147,10 +147,12 @@ MuLang.Core.Runtime.RuntimeError.Category.get -> MuLang.Core.Runtime.RuntimeErro
 MuLang.Core.Runtime.RuntimeError.Cause.get -> MuLang.Core.Runtime.RuntimeError?
 MuLang.Core.Runtime.RuntimeError.Code.get -> string!
 MuLang.Core.Runtime.RuntimeError.Data.get -> object?
+MuLang.Core.Runtime.RuntimeError.ErrorData.get -> MuLang.Core.Runtime.RuntimeErrorData
 MuLang.Core.Runtime.RuntimeError.Frames.get -> System.Collections.Generic.IReadOnlyList<MuLang.Core.Runtime.RuntimeStackFrame!>!
 MuLang.Core.Runtime.RuntimeError.IsCatchable.get -> bool
 MuLang.Core.Runtime.RuntimeError.Message.get -> string!
 MuLang.Core.Runtime.RuntimeError.RuntimeError(string! code, string! message, MuLang.Core.Runtime.RuntimeErrorCategory category, bool isCatchable, MuLang.Core.Text.TextSpan span, System.Collections.Generic.IEnumerable<MuLang.Core.Runtime.RuntimeStackFrame!>! frames, MuLang.Core.Runtime.RuntimeError? cause = null, object? data = null) -> void
+MuLang.Core.Runtime.RuntimeError.RuntimeError(string! code, string! message, MuLang.Core.Runtime.RuntimeErrorCategory category, bool isCatchable, MuLang.Core.Text.TextSpan span, System.Collections.Generic.IEnumerable<MuLang.Core.Runtime.RuntimeStackFrame!>! frames, MuLang.Core.Runtime.RuntimeError? cause, MuLang.Core.Runtime.RuntimeErrorData errorData) -> void
 MuLang.Core.Runtime.RuntimeError.Span.get -> MuLang.Core.Text.TextSpan
 MuLang.Core.Runtime.RuntimeErrorCategory
 MuLang.Core.Runtime.RuntimeErrorCategory.Application = 2 -> MuLang.Core.Runtime.RuntimeErrorCategory
@@ -161,6 +163,15 @@ MuLang.Core.Runtime.RuntimeErrorCategory.Operation = 0 -> MuLang.Core.Runtime.Ru
 MuLang.Core.Runtime.RuntimeErrorCategory.Provider = 3 -> MuLang.Core.Runtime.RuntimeErrorCategory
 MuLang.Core.Runtime.RuntimeErrorCategory.Resource = 4 -> MuLang.Core.Runtime.RuntimeErrorCategory
 MuLang.Core.Runtime.RuntimeErrorCategory.RuntimeContract = 7 -> MuLang.Core.Runtime.RuntimeErrorCategory
+MuLang.Core.Runtime.RuntimeErrorData
+MuLang.Core.Runtime.RuntimeErrorData.Deconstruct(out bool IsPresent, out object? Value) -> void
+MuLang.Core.Runtime.RuntimeErrorData.Equals(MuLang.Core.Runtime.RuntimeErrorData other) -> bool
+MuLang.Core.Runtime.RuntimeErrorData.IsPresent.get -> bool
+MuLang.Core.Runtime.RuntimeErrorData.IsPresent.init -> void
+MuLang.Core.Runtime.RuntimeErrorData.RuntimeErrorData() -> void
+MuLang.Core.Runtime.RuntimeErrorData.RuntimeErrorData(bool IsPresent, object? Value) -> void
+MuLang.Core.Runtime.RuntimeErrorData.Value.get -> object?
+MuLang.Core.Runtime.RuntimeErrorData.Value.init -> void
 MuLang.Core.Runtime.RuntimeStackFrame
 MuLang.Core.Runtime.RuntimeStackFrame.CallSpan.get -> MuLang.Core.Text.TextSpan
 MuLang.Core.Runtime.RuntimeStackFrame.FunctionId.get -> string!
@@ -248,6 +259,8 @@ MuLang.Core.Types.TypeKind
 MuLang.Core.Types.TypeKind.Array = 8 -> MuLang.Core.Types.TypeKind
 MuLang.Core.Types.TypeKind.Bool = 1 -> MuLang.Core.Types.TypeKind
 MuLang.Core.Types.TypeKind.Error = 12 -> MuLang.Core.Types.TypeKind
+MuLang.Core.Types.TypeKind.ErrorRecovery = 12 -> MuLang.Core.Types.TypeKind
+MuLang.Core.Types.TypeKind.ErrorValue = 15 -> MuLang.Core.Types.TypeKind
 MuLang.Core.Types.TypeKind.Float = 13 -> MuLang.Core.Types.TypeKind
 MuLang.Core.Types.TypeKind.Int = 2 -> MuLang.Core.Types.TypeKind
 MuLang.Core.Types.TypeKind.Null = 11 -> MuLang.Core.Types.TypeKind
@@ -279,6 +292,7 @@ override MuLang.Core.LanguageProfile.ToString() -> string!
 override MuLang.Core.LanguageProfileFingerprint.Equals(object? obj) -> bool
 override MuLang.Core.LanguageProfileFingerprint.GetHashCode() -> int
 override MuLang.Core.LanguageProfileFingerprint.ToString() -> string!
+override MuLang.Core.Runtime.RuntimeErrorData.GetHashCode() -> int
 override MuLang.Core.Text.TextPosition.GetHashCode() -> int
 override MuLang.Core.Text.TextSpan.GetHashCode() -> int
 override MuLang.Core.Types.ArrayTypeSymbol.DisplayName.get -> string!
@@ -299,6 +313,10 @@ static MuLang.Core.LanguageProfiles.Latest.get -> MuLang.Core.LanguageProfile!
 static MuLang.Core.LanguageProfiles.Version1.get -> MuLang.Core.LanguageProfile!
 static MuLang.Core.LanguageProfiles.Version1_1.get -> MuLang.Core.LanguageProfile!
 static MuLang.Core.LanguageProfiles.Version1_2.get -> MuLang.Core.LanguageProfile!
+static MuLang.Core.Runtime.RuntimeErrorData.Absent.get -> MuLang.Core.Runtime.RuntimeErrorData
+static MuLang.Core.Runtime.RuntimeErrorData.Present(object? value) -> MuLang.Core.Runtime.RuntimeErrorData
+static MuLang.Core.Runtime.RuntimeErrorData.operator !=(MuLang.Core.Runtime.RuntimeErrorData left, MuLang.Core.Runtime.RuntimeErrorData right) -> bool
+static MuLang.Core.Runtime.RuntimeErrorData.operator ==(MuLang.Core.Runtime.RuntimeErrorData left, MuLang.Core.Runtime.RuntimeErrorData right) -> bool
 static MuLang.Core.Text.SourceText.From(string! text) -> MuLang.Core.Text.SourceText!
 static MuLang.Core.Text.TextPosition.operator !=(MuLang.Core.Text.TextPosition left, MuLang.Core.Text.TextPosition right) -> bool
 static MuLang.Core.Text.TextPosition.operator ==(MuLang.Core.Text.TextPosition left, MuLang.Core.Text.TextPosition right) -> bool
@@ -314,6 +332,8 @@ static MuLang.Core.Types.TypeRelations.IsCastable(MuLang.Core.Types.TypeSymbol! 
 static MuLang.Core.Types.TypeSymbols.Array(MuLang.Core.Types.TypeSymbol! elementType) -> MuLang.Core.Types.ArrayTypeSymbol!
 static MuLang.Core.Types.TypeSymbols.Bool.get -> MuLang.Core.Types.TypeSymbol!
 static MuLang.Core.Types.TypeSymbols.Error.get -> MuLang.Core.Types.TypeSymbol!
+static MuLang.Core.Types.TypeSymbols.ErrorRecovery.get -> MuLang.Core.Types.TypeSymbol!
+static MuLang.Core.Types.TypeSymbols.ErrorValue.get -> MuLang.Core.Types.TypeSymbol!
 static MuLang.Core.Types.TypeSymbols.Float.get -> MuLang.Core.Types.TypeSymbol!
 static MuLang.Core.Types.TypeSymbols.Int.get -> MuLang.Core.Types.TypeSymbol!
 static MuLang.Core.Types.TypeSymbols.Null.get -> MuLang.Core.Types.TypeSymbol!
@@ -325,6 +345,8 @@ static MuLang.Core.Types.TypeSymbols.ReadOnlyArray(MuLang.Core.Types.TypeSymbol!
 static MuLang.Core.Types.TypeSymbols.String.get -> MuLang.Core.Types.TypeSymbol!
 static MuLang.Core.Types.TypeSymbols.Unknown.get -> MuLang.Core.Types.TypeSymbol!
 static MuLang.Core.Types.TypeSymbols.Void.get -> MuLang.Core.Types.TypeSymbol!
+~override MuLang.Core.Runtime.RuntimeErrorData.Equals(object obj) -> bool
+~override MuLang.Core.Runtime.RuntimeErrorData.ToString() -> string
 ~override MuLang.Core.Text.TextPosition.Equals(object obj) -> bool
 ~override MuLang.Core.Text.TextPosition.ToString() -> string
 ~override MuLang.Core.Text.TextSpan.Equals(object obj) -> bool

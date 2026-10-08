@@ -1,10 +1,1 @@
 #nullable enable
-MuLang.Exporters.DotNet.DotNetProviderInvocationContext.ThrowApplicationError(string! code, string! message) -> void
-MuLang.Exporters.DotNet.DotNetProviderInvocationContext.ThrowApplicationError(string! code, string! message, MuLang.Core.Runtime.RuntimeError? cause) -> void
-MuLang.Exporters.DotNet.DotNetProviderInvocationContext.ThrowApplicationError(string! code, string! message, MuLang.Core.Runtime.RuntimeError? cause, MuLang.Core.Runtime.RuntimeErrorData errorData) -> void
-MuLang.Exporters.DotNet.IDotNetErrorValue
-MuLang.Exporters.DotNet.IDotNetErrorValue.Error.get -> MuLang.Core.Runtime.RuntimeError!
-MuLang.Exporters.DotNet.MuLangProviderException.ErrorData.get -> MuLang.Core.Runtime.RuntimeErrorData
-MuLang.Exporters.DotNet.MuLangProviderException.MuLangProviderException(string! code, string! message) -> void
-MuLang.Exporters.DotNet.MuLangProviderException.MuLangProviderException(string! code, string! message, MuLang.Core.Runtime.RuntimeError? cause) -> void
-MuLang.Exporters.DotNet.MuLangProviderException.MuLangProviderException(string! code, string! message, MuLang.Core.Runtime.RuntimeError? cause, MuLang.Core.Runtime.RuntimeErrorData errorData, System.Exception? innerException = null) -> void

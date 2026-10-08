@@ -17,7 +17,10 @@ MuLang.Exporters.DotNet.DotNetProviderInvocationContext.CancellationToken.get ->
 MuLang.Exporters.DotNet.DotNetProviderInvocationContext.GetObjectPropertyNames(object! value) -> System.Collections.Generic.IEnumerable<string!>!
 MuLang.Exporters.DotNet.DotNetProviderInvocationContext.GetReadOnlyArrayCount(object! value) -> int
 MuLang.Exporters.DotNet.DotNetProviderInvocationContext.StructuralEquals(object? left, object? right) -> bool
+MuLang.Exporters.DotNet.DotNetProviderInvocationContext.ThrowApplicationError(string! code, string! message) -> void
 MuLang.Exporters.DotNet.DotNetProviderInvocationContext.ThrowApplicationError(string! code, string! message, MuLang.Core.Runtime.RuntimeError? cause = null, object? data = null) -> void
+MuLang.Exporters.DotNet.DotNetProviderInvocationContext.ThrowApplicationError(string! code, string! message, MuLang.Core.Runtime.RuntimeError? cause) -> void
+MuLang.Exporters.DotNet.DotNetProviderInvocationContext.ThrowApplicationError(string! code, string! message, MuLang.Core.Runtime.RuntimeError? cause, MuLang.Core.Runtime.RuntimeErrorData errorData) -> void
 MuLang.Exporters.DotNet.DotNetProviderInvocationContext.ThrowIfCancellationRequested() -> void
 MuLang.Exporters.DotNet.DotNetProviderInvocationContext.TryGetObjectProperty(object! value, string! name, out object? propertyValue) -> bool
 MuLang.Exporters.DotNet.DotNetProviderInvocationContext.TryGetReadOnlyArrayElement(object! value, int index, out object? element) -> bool
@@ -33,6 +36,8 @@ MuLang.Exporters.DotNet.IDotNetArrayValue.Count.get -> int
 MuLang.Exporters.DotNet.IDotNetArrayValue.Identity.get -> object!
 MuLang.Exporters.DotNet.IDotNetArrayValue.TryGetElement(int index, out object? value) -> bool
 MuLang.Exporters.DotNet.IDotNetArrayValue.TrySetElement(int index, object? value) -> bool
+MuLang.Exporters.DotNet.IDotNetErrorValue
+MuLang.Exporters.DotNet.IDotNetErrorValue.Error.get -> MuLang.Core.Runtime.RuntimeError!
 MuLang.Exporters.DotNet.IDotNetObjectPropertyCapabilities
 MuLang.Exporters.DotNet.IDotNetObjectPropertyCapabilities.IsPropertyReadOnly(string! name) -> bool
 MuLang.Exporters.DotNet.IDotNetObjectValue
@@ -48,7 +53,11 @@ MuLang.Exporters.DotNet.IDotNetReadOnlyArrayValue.TryGetElement(int index, out o
 MuLang.Exporters.DotNet.MuLangProviderException
 MuLang.Exporters.DotNet.MuLangProviderException.Cause.get -> MuLang.Core.Runtime.RuntimeError?
 MuLang.Exporters.DotNet.MuLangProviderException.Code.get -> string!
+MuLang.Exporters.DotNet.MuLangProviderException.ErrorData.get -> MuLang.Core.Runtime.RuntimeErrorData
+MuLang.Exporters.DotNet.MuLangProviderException.MuLangProviderException(string! code, string! message) -> void
 MuLang.Exporters.DotNet.MuLangProviderException.MuLangProviderException(string! code, string! message, MuLang.Core.Runtime.RuntimeError? cause = null, object? data = null, System.Exception? innerException = null) -> void
+MuLang.Exporters.DotNet.MuLangProviderException.MuLangProviderException(string! code, string! message, MuLang.Core.Runtime.RuntimeError? cause) -> void
+MuLang.Exporters.DotNet.MuLangProviderException.MuLangProviderException(string! code, string! message, MuLang.Core.Runtime.RuntimeError? cause, MuLang.Core.Runtime.RuntimeErrorData errorData, System.Exception? innerException = null) -> void
 MuLang.Exporters.DotNet.MuLangProviderException.Payload.get -> object?
 const MuLang.Exporters.DotNet.DotNetRuntimeErrorCodes.BudgetExceeded = "MUL6011" -> string!
 const MuLang.Exporters.DotNet.DotNetRuntimeErrorCodes.CallDepthExceeded = "MUL6017" -> string!
