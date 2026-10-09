@@ -1,11 +1,1 @@
 #nullable enable
-MuLang.Exporters.DotNet.DotNetProviderInvocationContext.CreateArray(MuLang.Core.Types.ArrayTypeSymbol! type, System.Collections.Generic.IEnumerable<object?>! elements) -> object!
-MuLang.Exporters.DotNet.DotNetProviderInvocationContext.CreateErrorValue(MuLang.Core.Runtime.RuntimeError! error) -> object!
-MuLang.Exporters.DotNet.DotNetProviderInvocationContext.CreateObject(MuLang.Core.Types.ObjectTypeSymbol! type, System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string!, object?>>! properties) -> object!
-MuLang.Exporters.DotNet.DotNetProviderInvocationContext.IdentityEquals(object? left, object? right) -> bool
-MuLang.Exporters.DotNet.DotNetProviderInvocationContext.IsArrayValue(object? value) -> bool
-MuLang.Exporters.DotNet.DotNetProviderInvocationContext.IsObjectValue(object? value) -> bool
-MuLang.Exporters.DotNet.DotNetProviderInvocationContext.TryGetObjectPropertyReadOnly(object! value, string! name, out bool isReadOnly) -> bool
-MuLang.Exporters.DotNet.DotNetProviderInvocationContext.TryRemoveObjectProperty(object! value, string! name) -> bool
-MuLang.Exporters.DotNet.DotNetProviderInvocationContext.TrySetArrayElement(object! value, int index, object? element) -> bool
-MuLang.Exporters.DotNet.DotNetProviderInvocationContext.TrySetObjectProperty(object! value, string! name, object? propertyValue) -> bool
