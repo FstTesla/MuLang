@@ -2,22 +2,19 @@
 
 ## Status
 
-Proposed for MuLang `1.2` or `1.3`.
+Planned for MuLang `1.2`, targeting the package release `0.3.0`.
 
-The final version depends on the release state of MuLang `1.2` when the
-read-only and optional object-properties prerequisite is complete:
-
-- use `1.2` only if that version has not been stabilized or released and both
-  features can be delivered and specified together;
-- otherwise use `1.3`.
+Introduce source-declared and inline object types alongside the complete
+object-literal model in MuLang `1.2`.
 
 The feature is controlled independently by a language-profile setting and is
 enabled by the standard profile for the selected language version.
 
 ## Prerequisite
 
-Implement and stabilize read-only and optional object properties before this
-plan.
+The read-only and optional object-property model is the prerequisite and is
+considered complete. Resolve any remaining compatibility issues without
+changing its settled semantics.
 
 User-defined object declarations use that plan's complete property model:
 
@@ -711,33 +708,34 @@ Update language-server tests for standard and Visual Studio presentation modes.
 
 ## Implementation sequence
 
-1. Complete the read-only and optional object-properties prerequisite and
-   resolve its remaining semantic and MuIR decisions.
-2. Decide `1.2` versus `1.3` using the release criterion in this plan.
-3. Add `UserDefinedTypesFeature` to profiles, builders, fingerprints, standard
+1. Keep the completed read-only and optional object-properties model as a
+   prerequisite; resolve any remaining compatibility issues without changing
+   its settled semantics.
+2. Add `UserDefinedTypesFeature` to profiles, builders, fingerprints, standard
    profiles, test factories, public APIs, and baselines.
-4. Refactor `TypeSyntax` around recursive primary types and shared suffixes.
-5. Add version-aware `type` tokenization, declaration syntax nodes, and shared
+3. Refactor `TypeSyntax` around recursive primary types and shared suffixes.
+4. Add version-aware `type` tokenization, declaration syntax nodes, and shared
    object-type-body syntax.
-6. Extend type parsing with closed and open inline object primary types.
-7. Extend program parsing, declaration ordering, expression-mode recovery, and
+5. Extend type parsing with closed and open inline object primary types.
+6. Extend program parsing, declaration ordering, expression-mode recovery, and
    targeted feature diagnostics.
-8. Add source-named incomplete object-symbol construction in Core.
-9. Implement shared named and inline object-type-body binding.
-10. Implement the two-pass source-type declaration and completion pipeline.
-11. Resolve source and inline types from all existing type positions and bind
+7. Add source-named incomplete object-symbol construction in Core.
+8. Implement shared named and inline object-type-body binding.
+9. Implement the two-pass source-type declaration and completion pipeline.
+10. Resolve source and inline types from all existing type positions and bind
     function signatures after named type completion.
-12. Integrate contextual object-literal binding and open-object validation.
-13. Add recursive semantic classification and TextMate support.
-14. Verify reachable-only structural IR projection and source-name erasure.
-15. Add compiler, Core, IR, serialization, exporter, and language-server
+11. Integrate contextual object-literal binding and open-object validation.
+12. Add recursive semantic classification and TextMate support.
+13. Verify reachable-only structural IR projection and source-name erasure.
+14. Add compiler, Core, IR, serialization, exporter, and language-server
     coverage.
-16. Update specifications, roadmap, changelog, and public API baselines.
+15. Update specifications, roadmap, changelog, and public API baselines.
 
 ## Decisions
 
 The following decisions are fixed for this plan:
 
+- the feature targets MuLang `1.2` and package release `0.3.0`;
 - syntax uses `type Name { ... };` and `type Name @{ ... };`;
 - closed and open object bodies are also valid inline primary types;
 - inline object types are governed by `UserDefinedTypesFeature`;

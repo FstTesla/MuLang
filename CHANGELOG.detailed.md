@@ -12,6 +12,12 @@ Stable entries describe the incremental change since the preceding prerelease. T
 
 Each release heading identifies the incremental version range covered by the section, from the comparison version to the released version.
 
+## `0.3.0-alpha.4` → `0.3.0-alpha.5` - 2026-10-09
+
+### New features
+
+- Expanded .NET provider invocation contexts with validated factories for typed arrays, structured objects, and MuLang error values; object and array kind and identity checks; and adapter-mediated array and object mutation that honors declared capabilities.
+
 ## `0.3.0-alpha.3` → `0.3.0-alpha.4` - 2026-10-08
 
 ### Breaking changes

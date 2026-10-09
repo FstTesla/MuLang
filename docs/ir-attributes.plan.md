@@ -2,12 +2,17 @@
 
 ## Status
 
-Proposed for MuIR version 3.
+Planned for MuIR version 2 and package release `0.3.0`.
+
+Stable package release `0.2.0` used MuIR 1; MuIR 2 exists only in the
+`0.3.0` prerelease line. Adding attributes to MuIR 2 therefore does not require
+a new format version, while MuIR 1 remains the stable compatibility format.
 
 The plan records the following decisions:
 
-- persist attributes in MuIR version 3 rather than in a sidecar file;
-- continue reading MuIR versions 1 and 2;
+- persist attributes in MuIR version 2 rather than in a sidecar file;
+- continue reading MuIR version 1;
+- accept existing MuIR 2 prerelease documents without an attribute section;
 - ignore unknown well-known attributes when their payload is correctly
   delimited;
 - initially support program, function, slot, and type targets;
@@ -53,10 +58,10 @@ general metadata facility.
   compatibility, and executable instruction semantics.
 - Preserve deterministic canonical MuIR output for attributes understood by
   the writer.
-- Allow a MuIR 3 reader to skip a future well-known attribute without
+- Allow a MuIR 2 reader to skip a future well-known attribute without
   rejecting the complete document.
-- Continue reading MuIR 1 and 2 documents and project their legacy slot names
-  into the new model.
+- Continue reading MuIR 1 documents and project their legacy slot names into
+  the new model.
 - Provide bounded parsing and validation for attribute collections and
   payloads.
 - Give exporters and runtime-diagnostic producers a shared API for resolving a
@@ -73,7 +78,7 @@ general metadata facility.
   debugger state.
 - Do not add reflection over functions, slots, globals, or types.
 - Do not assign persistent IDs to instructions or terminators in this version.
-- Do not make an older MuIR 1 or 2 reader accept a MuIR 3 document.
+- Do not make a MuIR 1 reader accept a MuIR 2 document.
 - Do not preserve unknown attribute payloads when a document is read and
   rewritten by a reader that does not understand them.
 
@@ -97,7 +102,7 @@ are present or absent:
 An exporter or runtime MAY use an attribute to improve a diagnostic message.
 It MUST fall back to the existing stable identifier or structural type display
 when the attribute is absent, unknown, malformed before materialization, or
-discarded by an older MuIR 3 reader.
+discarded by an older MuIR 2 reader.
 
 Attributes MUST NOT participate in canonical type identity. In particular,
 two structurally equivalent object types remain one canonical MuIR type entry
@@ -253,19 +258,19 @@ and exporter components should not duplicate lookup and fallback rules.
 
 ### `IrSlot.Name` migration
 
-Keep `IrSlot.Name` for source and binary compatibility during the MuIR 3
+Keep `IrSlot.Name` for source and binary compatibility during the MuIR 2
 transition, but mark it obsolete in favor of program attributes.
 
 The compiler and new tests should stop reading `IrSlot.Name` directly.
 
 Compatibility behavior is:
 
-- reading MuIR 1 or 2 converts a non-`none` positional slot name into a
-  `source-name` slot attribute and also materializes `IrSlot.Name`;
-- reading MuIR 3 materializes `IrSlot.Name` from `source-name` when present so
+- reading MuIR 1 or legacy MuIR 2 converts a non-`none` positional slot name
+  into a `source-name` slot attribute and also materializes `IrSlot.Name`;
+- reading MuIR 2 materializes `IrSlot.Name` from `source-name` when present so
   existing consumers continue to work;
-- writing MuIR 3 serializes the attribute and does not serialize a positional
-  slot-name operand;
+- writing canonical MuIR 2 serializes the attribute and writes `none` for the
+  positional slot-name operand retained by the grammar;
 - when an API caller supplies only `IrSlot.Name`, the writer synthesizes the
   equivalent `source-name` attribute;
 - when both representations are present, they MUST match; otherwise, writing
@@ -331,18 +336,21 @@ The projection result must carry both:
 No name may influence structural graph construction, strongly connected
 component ordering, or type-table ID assignment.
 
-## MuIR version 3
+## MuIR version 2 attributes
 
 ### Document structure
 
-MuIR 3 adds one required `attributes` section after all user functions and
-before `end`. The section is present even when its count is zero.
+Canonical MuIR 2 adds one required `attributes` section after all user
+functions and before `end`. The section is present even when its count is zero.
+For compatibility with existing MuIR 2 prerelease documents, readers also
+accept the earlier layout without an `attributes` section and convert any
+positional slot names into attributes.
 
 The high-level grammar is:
 
 ```text
 document ::=
-  "muir" "3"
+  "muir" "2"
   "mode" compilation-mode
   "environment" string
   "profile" string
@@ -371,7 +379,7 @@ function-target ::=
 attribute-name ::= atom
 ```
 
-The target is outside the payload and has a fixed MuIR 3 grammar. The payload
+The target is outside the payload and has a fixed MuIR 2 grammar. The payload
 is enclosed in balanced braces. A reader recognizes strings and nested
 delimiters while skipping an unknown payload, so braces inside strings do not
 end it.
@@ -391,23 +399,17 @@ The declared list count MUST match the number of source type names.
 
 ### Slot grammar
 
-MuIR 3 removes the positional slot-name operand:
-
-```text
-slot ::=
-  "slot" slot-ref slot-kind type-ref slot-mutability
-  "region" lifetime-region-ref
-```
-
-MuIR 1 and 2 retain their existing grammar and reader behavior.
+MuIR 2 retains its positional slot-name operand for wire compatibility, but
+canonical writers emit `none` there and serialize names only as attributes.
+MuIR 1 retains its existing grammar and reader behavior.
 
 ### Canonical form
 
-The MuIR 3 writer:
+The canonical MuIR 2 writer:
 
-- always emits version 3;
+- always emits version 2;
 - always emits the `attributes` section;
-- emits no positional slot names;
+- emits `none` for positional slot names;
 - omits absent attributes;
 - emits targets in program, function, slot, then type order;
 - orders functions by entry first and user-function document order;
@@ -428,18 +430,20 @@ cannot be emitted by the current writer.
 
 ### Compatibility
 
-The reader accepts versions 1, 2, and 3.
+The reader accepts versions 1 and 2.
 
-For versions 1 and 2:
+For version 1:
 
 - no `attributes` section is expected;
 - legacy slot names are converted into attributes;
 - all other attribute collections are empty.
 
-For version 3:
+For version 2:
 
-- the `attributes` section is required;
-- slot declarations do not contain positional names;
+- the `attributes` section is required in canonical documents and optional in
+  existing prerelease documents;
+- positional slot names in legacy documents are converted into attributes;
+- canonical documents use `none` for positional slot names;
 - known attributes are parsed and validated;
 - an unknown attribute name on a known target is skipped and discarded;
 - an unknown target kind is rejected because the reader cannot establish its
@@ -448,12 +452,12 @@ For version 3:
   duplicate singleton attributes, and invalid cardinality are rejected.
 
 Ignoring an unknown attribute intentionally weakens byte-for-byte round-trip
-for documents produced by a newer MuIR 3 writer: an older MuIR 3 reader can
+for documents produced by a newer MuIR 2 writer: an older MuIR 2 reader can
 successfully consume such a document, but rewriting it drops attributes that
 it did not understand. Canonical byte identity remains required when every
 attribute in the input is understood.
 
-A MuIR 1 or 2 reader continues to reject version 3 through the existing
+A MuIR 1 reader continues to reject version 2 through the existing
 unsupported-version behavior. This is the expected forward-compatibility
 boundary.
 
@@ -542,10 +546,10 @@ func divide(total: int, divisor: int): int {
 return divide(42, 0);
 ```
 
-A simplified hypothetical MuIR 3 translation is:
+A simplified hypothetical MuIR 2 translation is:
 
 ```text
-muir 3
+muir 2
 mode program
 environment "env"
 profile "profile"
@@ -609,10 +613,10 @@ func getCustomerName(customer: Customer): string {
 return getCustomerName(currentCustomer);
 ```
 
-A simplified hypothetical MuIR 3 translation is:
+A simplified hypothetical MuIR 2 translation is:
 
 ```text
-muir 3
+muir 2
 mode program
 environment "env"
 profile "profile"
@@ -692,10 +696,10 @@ Add compiler tests covering:
 
 Add MuIR tests covering:
 
-- canonical version 3 output with an empty attribute section;
+- canonical version 2 output with an empty attribute section;
 - canonical output containing every initial known attribute;
 - version 1 and 2 legacy slot-name conversion;
-- MuIR 3 slot-name materialization into obsolete `IrSlot.Name`;
+- MuIR 2 slot-name materialization into obsolete `IrSlot.Name`;
 - fallback synthesis when only `IrSlot.Name` is supplied through the API;
 - rejection of conflicting legacy and attribute slot names;
 - deterministic attribute and payload ordering;
@@ -711,11 +715,12 @@ Add MuIR tests covering:
 - every new reader limit;
 - LF output and UTF-8 without a byte-order mark.
 
-Retain MuIR 1 and 2 fixtures as reader-compatibility artifacts. Add MuIR 3
-fixtures for minimal, complete, type-alias, and unknown-attribute documents.
+Retain MuIR 1 and legacy MuIR 2 fixtures as reader-compatibility artifacts.
+Add canonical MuIR 2 fixtures for minimal, complete, type-alias, and
+unknown-attribute documents.
 
-Update existing tests that currently expect the writer to emit MuIR 2 so the
-canonical writer emits MuIR 3.
+Update existing tests that currently expect MuIR 2 output to include the
+canonical attributes section and attribute-backed slot names.
 
 ### Validation
 
@@ -750,7 +755,7 @@ Update:
 - public API XML documentation and baselines;
 - the language-server or runtime documentation where runtime diagnostics and
   stack traces are described;
-- the detailed changelog for the release that introduces MuIR 3.
+- the detailed changelog for package release `0.3.0`.
 
 The portable-IR specification should state the non-semantic attribute
 invariants. The MuIR specification should contain the complete registry,
@@ -766,9 +771,10 @@ payload grammar, canonical ordering, compatibility behavior, and limits.
 4. Extend `IrTypeProjector` to preserve, merge, and re-target type names after
    structural projection.
 5. Update every `IrProgram` transformation to preserve attributes.
-6. Add MuIR 3 reader support, the attribute section, known payload parsing,
-   unknown-payload skipping, limits, and legacy MuIR 1 and 2 conversion.
-7. Update the canonical writer to emit MuIR 3, remove positional slot names,
+6. Add MuIR 2 reader support for the attribute section, known payload parsing,
+   unknown-payload skipping, limits, and legacy MuIR 1 and prerelease MuIR 2
+   conversion.
+7. Update the canonical writer to emit MuIR 2 with the attributes section,
    serialize attributes deterministically, and synthesize compatible slot
    attributes from `IrSlot.Name`.
 8. Deprecate `IrSlot.Name`, migrate repository callers to typed attribute
@@ -787,9 +793,9 @@ The work is complete when:
 
 - the compiler emits the initial well-known names without affecting executable
   behavior;
-- MuIR 3 round-trips every understood attribute canonically;
-- MuIR 1 and 2 remain readable;
-- unknown MuIR 3 attributes on known targets are safely skipped;
+- MuIR 2 round-trips every understood attribute canonically;
+- MuIR 1 and existing prerelease MuIR 2 documents remain readable;
+- unknown MuIR 2 attributes on known targets are safely skipped;
 - legacy slot names are available through both the obsolete compatibility
   property and the new attribute API;
 - structurally merged types retain all meaningful diagnostic aliases without
