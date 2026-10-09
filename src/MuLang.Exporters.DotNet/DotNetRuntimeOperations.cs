@@ -353,6 +353,14 @@ internal static class DotNetRuntimeOperations
         return new DotNetObjectValue(type, properties);
     }
 
+    public static object CreateObject(
+        ObjectTypeSymbol type,
+        IEnumerable<KeyValuePair<string, object?>> properties
+    )
+    {
+        return new DotNetObjectValue(type, properties);
+    }
+
     public static object? GetProperty(
         object? target,
         string name,
@@ -647,7 +655,7 @@ internal static class DotNetRuntimeOperations
         return true;
     }
 
-    private static bool IdentityEquals(
+    internal static bool IdentityEquals(
         DotNetRuntimeContext context,
         object? left,
         object? right,

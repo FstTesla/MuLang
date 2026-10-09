@@ -1715,6 +1715,180 @@ public sealed class DotNetExporterTests
     }
 
     [Test]
+    public void ProviderContextCreatesAndMutatesTypedArrays()
+    {
+        ArrayTypeSymbol arrayType = TypeSymbols.Array(TypeSymbols.Int);
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddFunction(
+                "function.create",
+                "create",
+                [ ],
+                arrayType
+            )
+            .Build(LanguageVersion.Version1_2);
+        Func<DotNetRuntimeContext, object?> compiled = CompileProgram(
+            """
+            var values: int[] = create();
+            values[0] = 9;
+            return values[1];
+            """,
+            environment,
+            TypeSymbols.Int
+        );
+        bool providerChecks = false;
+        DotNetRuntimeContext context = CreateContext(
+            environment,
+            functions:
+            [
+                new KeyValuePair<string, DotNetProviderFunction>(
+                    "function.create",
+                    (invocation, _) =>
+                    {
+                        object array = invocation.CreateArray(
+                            arrayType,
+                            [ 1L, 2L ]
+                        );
+                        object otherArray = invocation.CreateArray(
+                            arrayType,
+                            [ 1L, 2L ]
+                        );
+                        object readOnlyArray = invocation.CreateArray(
+                            TypeSymbols.ReadOnlyArray(TypeSymbols.Int),
+                            [ 1L ]
+                        );
+                        providerChecks =
+                            invocation.IsArrayValue(array) &&
+                            !invocation.IsObjectValue(array) &&
+                            invocation.GetReadOnlyArrayCount(array) == 2 &&
+                            invocation.TrySetArrayElement(array, 1, 3L) &&
+                            !invocation.TrySetArrayElement(readOnlyArray, 0, 2L) &&
+                            invocation.IdentityEquals(array, array) &&
+                            !invocation.IdentityEquals(array, otherArray);
+                        return array;
+                    }
+                ),
+            ]
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(compiled(context), Is.EqualTo(3L));
+            Assert.That(providerChecks, Is.True);
+        }
+    }
+
+    [Test]
+    public void ProviderContextCreatesAndMutatesStructuredObjects()
+    {
+        ObjectTypeSymbol objectType = ObjectTypeSymbol.CreateAnonymous(
+            true,
+            [
+                new ObjectPropertySymbol("value", TypeSymbols.Int),
+                new ObjectPropertySymbol(
+                    "optional",
+                    TypeSymbols.Int,
+                    isOptional: true
+                ),
+            ]
+        );
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddFunction(
+                "function.create",
+                "create",
+                [ ],
+                TypeSymbols.Bool
+            )
+            .Build(LanguageVersion.Version1_2);
+        Func<DotNetRuntimeContext, object?> compiled = CompileExpression(
+            "create()",
+            environment,
+            TypeSymbols.Bool
+        );
+        DotNetRuntimeContext context = CreateContext(
+            environment,
+            functions:
+            [
+                new KeyValuePair<string, DotNetProviderFunction>(
+                    "function.create",
+                    (invocation, _) =>
+                    {
+                        object value = invocation.CreateObject(
+                            objectType,
+                            [
+                                KeyValuePair.Create<string, object?>("value", 1L),
+                                KeyValuePair.Create<string, object?>("optional", 2L),
+                            ]
+                        );
+
+                        return
+                            invocation.IsObjectValue(value) &&
+                            !invocation.IsArrayValue(value) &&
+                            invocation.TryGetObjectPropertyReadOnly(
+                                value,
+                                "value",
+                                out bool isReadOnly
+                            ) &&
+                            !isReadOnly &&
+                            invocation.TrySetObjectProperty(value, "value", 7L) &&
+                            invocation.TryRemoveObjectProperty(value, "optional") &&
+                            !invocation.TryRemoveObjectProperty(value, "value") &&
+                            invocation.TryGetObjectProperty(
+                                value,
+                                "value",
+                                out object? propertyValue
+                            ) &&
+                            Equals(propertyValue, 7L) &&
+                            invocation.GetObjectPropertyNames(value)
+                                .SequenceEqual([ "value" ]);
+                    }
+                ),
+            ]
+        );
+
+        Assert.That(compiled(context), Is.True);
+    }
+
+    [Test]
+    public void ProviderContextCreatesErrorValues()
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddFunction(
+                "function.create",
+                "create",
+                [ ],
+                TypeSymbols.ErrorValue
+            )
+            .Build(LanguageVersion.Version1_2);
+        Func<DotNetRuntimeContext, object?> compiled = CompileExpression(
+            "create().code == \"custom\"",
+            environment,
+            TypeSymbols.Bool
+        );
+        RuntimeError error = new (
+            "custom",
+            "Failure.",
+            RuntimeErrorCategory.Application,
+            true,
+            default,
+            [ ],
+            null,
+            RuntimeErrorData.Absent
+        );
+        DotNetRuntimeContext context = CreateContext(
+            environment,
+            functions:
+            [
+                new KeyValuePair<string, DotNetProviderFunction>(
+                    "function.create",
+                    (invocation, _) => invocation.CreateErrorValue(error)
+                ),
+            ]
+        );
+
+        Assert.That(compiled(context), Is.True);
+    }
+
+    [Test]
     public void ProviderObjectEnumerationObservesExecutionControls()
     {
         EnvironmentSchema environment = new EnvironmentBuilder()

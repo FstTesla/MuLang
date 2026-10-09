@@ -11,6 +11,7 @@ func clamp(value: int, minimum: int, maximum: int): int {
 }
 
 func validateRequested(value: int): int {
+    var validationCompleted: bool = false;
     try {
         if (value < 0) {
             throw {
@@ -21,6 +22,7 @@ func validateRequested(value: int): int {
             };
         }
 
+        validationCompleted = true;
         return value;
     } catch (failure) {
         if (failure.code == "negative-request") {
@@ -29,7 +31,7 @@ func validateRequested(value: int): int {
 
         return 0;
     } finally {
-        var validationCompleted$ = true;
+        if (validationCompleted) { }
     }
 }
 

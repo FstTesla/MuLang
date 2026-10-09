@@ -67,7 +67,7 @@
       "patterns": [
         {
           "name": "keyword.control.mulang",
-          "match": "\\b(?:break|continue|else|for|if|return|while)\\b"
+          "match": "\\b(?:break|catch|continue|else|finally|for|if|return|throw|try|while)\\b"
         },
         {
           "name": "keyword.declaration.mulang",
@@ -75,7 +75,7 @@
         },
         {
           "name": "storage.type.mulang",
-          "match": "\\b(?:bool|float|int|number|object|primitive|string|unknown|void)\\b"
+          "match": "\\b(?:bool|error|float|int|number|object|primitive|string|unknown|void)\\b"
         },
         {
           "name": "constant.language.mulang",

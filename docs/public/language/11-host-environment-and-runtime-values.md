@@ -50,15 +50,24 @@ Provider functions are synchronous. A provider invocation MAY receive an
 invocation-scoped runtime context exposing:
 
 - cancellation observation;
+- runtime object and array kind checks;
 - read-only array inspection;
 - object property enumeration and reads;
+- object and array mutation attempts;
+- construction of validated arrays, structured objects, and error values;
 - MuLang structural equality;
+- MuLang identity equality;
 - reporting of expected application failures at the provider call span.
 
 These services MUST use the same value adapters, structural semantics,
 execution controls, and runtime-error model as ordinary MuLang execution. An
 invocation context MUST NOT remain usable after its provider invocation
-completes.
+completes. Values created through the context MUST conform to the supplied
+array or structured-object type. Array mutability is determined by its array
+type, and object mutation is subject to the object's declared capabilities.
+Mutation methods report rejection without converting it into an exception.
+Provider operations and factory enumeration participate in cancellation and
+resource-budget accounting.
 
 Object-property name enumeration is lazy. Acquiring the enumeration and
 advancing it are independently subject to execution controls, and an enumerator
