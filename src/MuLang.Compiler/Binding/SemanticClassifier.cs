@@ -24,9 +24,37 @@ internal static class SemanticClassifier
 
         void VisitType(TypeSyntax? syntax)
         {
-            if (syntax?.NameToken.Kind == TokenKind.Identifier)
+            if (syntax is null)
             {
-                Add(SemanticClassificationKind.Type, syntax.NameToken.Span);
+                return;
+            }
+
+            switch (syntax.Primary)
+            {
+                case NamedTypeSyntax { NameToken.Kind: TokenKind.Identifier } named:
+                {
+                    Add(SemanticClassificationKind.Type, named.NameToken.Span);
+                    break;
+                }
+
+                case ObjectTypeBodySyntax body:
+                {
+                    VisitObjectTypeBody(body);
+                    break;
+                }
+            }
+        }
+
+        void VisitObjectTypeBody(ObjectTypeBodySyntax body)
+        {
+            foreach (ObjectTypePropertySyntax property in body.Properties)
+            {
+                Add(
+                    SemanticClassificationKind.Property,
+                    property.NameToken.Span,
+                    SemanticClassificationModifiers.Declaration
+                );
+                VisitType(property.Type);
             }
         }
 
@@ -323,6 +351,18 @@ internal static class SemanticClassifier
 
             case BoundRoot.Program program:
             {
+                ProgramRootSyntax root = (ProgramRootSyntax)program.Syntax;
+
+                foreach (TypeDeclarationSyntax declaration in root.Types)
+                {
+                    Add(
+                        SemanticClassificationKind.Type,
+                        declaration.IdentifierToken.Span,
+                        SemanticClassificationModifiers.Declaration
+                    );
+                    VisitObjectTypeBody(declaration.Body);
+                }
+
                 foreach (BoundFunction function in program.Functions)
                 {
                     FunctionDeclarationSyntax declaration =

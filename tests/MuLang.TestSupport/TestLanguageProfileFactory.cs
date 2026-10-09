@@ -6,6 +6,7 @@ public static class TestLanguageProfileFactory
 {
     public static LanguageProfile Create(
         UserDefinedFunctionsFeature? userDefinedFunctions = null,
+        UserDefinedTypesFeature? userDefinedTypes = null,
         RecursionFeature? recursion = null,
         LoopFeatures? loops = null,
         ProviderFunctionCallsFeature? providerFunctionCalls = null,
@@ -25,6 +26,11 @@ public static class TestLanguageProfileFactory
         if (userDefinedFunctions is not null)
         {
             builder.WithUserDefinedFunctions(userDefinedFunctions.Value);
+        }
+
+        if (userDefinedTypes is not null)
+        {
+            builder.WithUserDefinedTypes(userDefinedTypes.Value);
         }
 
         if (recursion is not null)

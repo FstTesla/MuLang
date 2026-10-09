@@ -170,6 +170,10 @@ Version 2 writers always emit both independent capability tokens.
 
 Provider type IDs, language-facing object type names, and named-versus-anonymous origin are not represented. The environment fingerprint identifies the required provider schema, while IR validation compares the reconstructed object type structurally.
 
+Source-declared type names and inline source occurrences are erased by the same
+projection. MuIR therefore contains only reachable structural shapes; unused
+source declarations and source-only renames do not affect canonical output.
+
 ## 4. Constants
 
 Constant operands encode runtime representation explicitly:

@@ -5,6 +5,29 @@ namespace MuLang.Core.Tests.Types;
 public sealed class TypeRelationsTests
 {
     [Test]
+    public void SourceNamedObjectsRemainStructurallyEquivalent()
+    {
+        ObjectTypeSymbol first = ObjectTypeSymbol.CreateSourceIncomplete(
+            "First",
+            false
+        );
+        ObjectTypeSymbol second = ObjectTypeSymbol.CreateSourceIncomplete(
+            "Second",
+            false
+        );
+        first.Complete([ new ObjectPropertySymbol("value", TypeSymbols.Int) ]);
+        second.Complete([ new ObjectPropertySymbol("value", TypeSymbols.Int) ]);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(first.Id, Is.Null);
+            Assert.That(first.DisplayName, Is.EqualTo("First"));
+            Assert.That(TypeRelations.AreEquivalent(first, second), Is.True);
+            Assert.That(TypeRelations.IsAssignable(first, second), Is.True);
+        }
+    }
+
+    [Test]
     public void AppliesUnknownAndNullableAssignability()
     {
         TypeSymbol nullableInt = TypeSymbols.Nullable(TypeSymbols.Int);

@@ -16,6 +16,7 @@ internal sealed class Binder
     private readonly EnvironmentSchema environment;
     private readonly LanguageProfile profile;
     private readonly TypeSymbol expectedResultType;
+    private readonly IDictionary<string, ObjectTypeSymbol> sourceTypes;
     private readonly IDictionary<string, UserFunctionSymbol> userFunctions;
     private readonly IDictionary<string, ISet<string>> userFunctionCalls;
     private readonly ICollection<Diagnostic> diagnostics;
@@ -37,6 +38,7 @@ internal sealed class Binder
         EnvironmentSchema environment,
         LanguageProfile profile,
         TypeSymbol expectedResultType,
+        IDictionary<string, ObjectTypeSymbol>? sourceTypes = null,
         IDictionary<string, UserFunctionSymbol>? userFunctions = null,
         IDictionary<string, ISet<string>>? userFunctionCalls = null,
         ICollection<Diagnostic>? diagnostics = null,
@@ -51,6 +53,8 @@ internal sealed class Binder
         this.environment = environment;
         this.profile = profile;
         this.expectedResultType = expectedResultType;
+        this.sourceTypes = sourceTypes ??
+            new Dictionary<string, ObjectTypeSymbol>(StringComparer.Ordinal);
         this.userFunctions = userFunctions ??
             new Dictionary<string, UserFunctionSymbol>(StringComparer.Ordinal);
         this.userFunctionCalls = userFunctionCalls ??
@@ -173,6 +177,9 @@ internal sealed class Binder
 
     private BoundRoot BindProgramRoot(ProgramRootSyntax syntax)
     {
+        IReadOnlyList<(TypeDeclarationSyntax Declaration, ObjectTypeSymbol? Symbol)>
+            typeDeclarations = DeclareSourceTypes(syntax.Types);
+        CompleteSourceTypes(typeDeclarations);
         IReadOnlyList<UserFunctionSymbol> functionSymbols =
             DeclareUserFunctions(syntax.Functions);
         IList<BoundFunction> functions = [ ];
@@ -220,6 +227,75 @@ internal sealed class Binder
             statements.AsReadOnly(),
             expectedResultType
         );
+    }
+
+    private IReadOnlyList<(TypeDeclarationSyntax Declaration, ObjectTypeSymbol? Symbol)>
+        DeclareSourceTypes(IReadOnlyList<TypeDeclarationSyntax> declarations)
+    {
+        IList<(TypeDeclarationSyntax Declaration, ObjectTypeSymbol? Symbol)> results = [ ];
+
+        foreach (TypeDeclarationSyntax declaration in declarations)
+        {
+            if (profile.UserDefinedTypes == UserDefinedTypesFeature.Disabled)
+            {
+                ReportFeature(
+                    DiagnosticCodes.DisabledTypeDeclarations,
+                    declaration.TypeKeyword.Span,
+                    "Type declarations are disabled by the language profile."
+                );
+            }
+
+            if (declaration.IdentifierToken.IsMissing)
+            {
+                results.Add((declaration, null));
+                continue;
+            }
+
+            string name = GetText(declaration.IdentifierToken);
+
+            if (environment.TryGetType(name, out _))
+            {
+                Report(
+                    DiagnosticCodes.TypeConflict,
+                    declaration.IdentifierToken.Span,
+                    $"Source type '{name}' conflicts with a provider type."
+                );
+                results.Add((declaration, null));
+                continue;
+            }
+
+            if (sourceTypes.ContainsKey(name))
+            {
+                Report(
+                    DiagnosticCodes.DuplicateType,
+                    declaration.IdentifierToken.Span,
+                    $"Source type '{name}' is declared more than once."
+                );
+                results.Add((declaration, null));
+                continue;
+            }
+
+            ObjectTypeSymbol symbol = ObjectTypeSymbol.CreateSourceIncomplete(
+                name,
+                declaration.Body.IsOpen
+            );
+            sourceTypes.Add(name, symbol);
+            results.Add((declaration, symbol));
+        }
+
+        return results.AsReadOnly();
+    }
+
+    private void CompleteSourceTypes(
+        IReadOnlyList<(TypeDeclarationSyntax Declaration, ObjectTypeSymbol? Symbol)> declarations
+    )
+    {
+        foreach (
+            (TypeDeclarationSyntax declaration, ObjectTypeSymbol? symbol) in declarations
+        )
+        {
+            BindObjectTypeBody(declaration.Body, symbol, isInline: false);
+        }
     }
 
     private IReadOnlyList<UserFunctionSymbol> DeclareUserFunctions(
@@ -337,6 +413,7 @@ internal sealed class Binder
             environment,
             profile,
             function.ReturnType,
+            sourceTypes,
             userFunctions,
             userFunctionCalls,
             diagnostics,
@@ -3151,32 +3228,15 @@ internal sealed class Binder
 
     private TypeSymbol BindType(TypeSyntax syntax)
     {
-        string name = GetText(syntax.NameToken);
-        TypeSymbol type = syntax.NameToken.Kind switch
+        TypeSymbol type = syntax.Primary switch
         {
-            TokenKind.BoolKeyword => TypeSymbols.Bool,
-            TokenKind.IntKeyword => TypeSymbols.Int,
-            TokenKind.FloatKeyword => TypeSymbols.Float,
-            TokenKind.NumberKeyword => TypeSymbols.Number,
-            TokenKind.StringKeyword => TypeSymbols.String,
-            TokenKind.PrimitiveKeyword => TypeSymbols.Primitive,
-            TokenKind.ErrorKeyword => TypeSymbols.ErrorValue,
-            TokenKind.UnknownKeyword => TypeSymbols.Unknown,
-            TokenKind.ObjectKeyword => TypeSymbols.Object,
-            TokenKind.VoidKeyword => TypeSymbols.Void,
-            TokenKind.Identifier
-                when environment.TryGetType(name, out ObjectTypeSymbol? objectType) =>
-                objectType,
-            _ => TypeSymbols.ErrorRecovery,
+            NamedTypeSyntax named => BindNamedType(named),
+            ObjectTypeBodySyntax body => BindObjectTypeBody(body, null, isInline: true),
+            _ => throw new InvalidOperationException("Unknown type primary syntax."),
         };
 
         if (type.Kind == TypeKind.ErrorRecovery)
         {
-            Report(
-                DiagnosticCodes.UndefinedType,
-                syntax.NameToken.Span,
-                $"Type '{name}' is not defined."
-            );
             return type;
         }
 
@@ -3224,6 +3284,131 @@ internal sealed class Binder
         }
 
         return type;
+    }
+
+    private TypeSymbol BindNamedType(NamedTypeSyntax syntax)
+    {
+        string name = GetText(syntax.NameToken);
+        TypeSymbol type = syntax.NameToken.Kind switch
+        {
+            TokenKind.BoolKeyword => TypeSymbols.Bool,
+            TokenKind.IntKeyword => TypeSymbols.Int,
+            TokenKind.FloatKeyword => TypeSymbols.Float,
+            TokenKind.NumberKeyword => TypeSymbols.Number,
+            TokenKind.StringKeyword => TypeSymbols.String,
+            TokenKind.PrimitiveKeyword => TypeSymbols.Primitive,
+            TokenKind.ErrorKeyword => TypeSymbols.ErrorValue,
+            TokenKind.UnknownKeyword => TypeSymbols.Unknown,
+            TokenKind.ObjectKeyword => TypeSymbols.Object,
+            TokenKind.VoidKeyword => TypeSymbols.Void,
+            TokenKind.Identifier
+                when sourceTypes.TryGetValue(name, out ObjectTypeSymbol? sourceType) =>
+                sourceType,
+            TokenKind.Identifier
+                when environment.TryGetType(name, out ObjectTypeSymbol? objectType) =>
+                objectType,
+            _ => TypeSymbols.ErrorRecovery,
+        };
+
+        if (type.Kind == TypeKind.ErrorRecovery)
+        {
+            Report(
+                DiagnosticCodes.UndefinedType,
+                syntax.NameToken.Span,
+                $"Type '{name}' is not defined."
+            );
+        }
+
+        return type;
+    }
+
+    private ObjectTypeSymbol BindObjectTypeBody(
+        ObjectTypeBodySyntax syntax,
+        ObjectTypeSymbol? target,
+        bool isInline
+    )
+    {
+        if (
+            isInline &&
+            profile.UserDefinedTypes == UserDefinedTypesFeature.Disabled
+        )
+        {
+            ReportFeature(
+                DiagnosticCodes.DisabledInlineObjectTypes,
+                syntax.OpenBraceToken.Span,
+                "Inline object types are disabled by the language profile."
+            );
+        }
+
+        if (
+            syntax.IsOpen &&
+            profile.OpenObjects != OpenObjectsFeature.Enabled
+        )
+        {
+            ReportFeature(
+                DiagnosticCodes.DisabledOpenObjects,
+                syntax.OpenBraceToken.Span,
+                "Open object types are disabled by the language profile."
+            );
+        }
+
+        ReportDisabledTrailingComma(
+            syntax.CommaTokens,
+            syntax.CommaTokens.Count == syntax.Properties.Count
+        );
+
+        ICollection<ObjectPropertySymbol> properties = [ ];
+        ISet<string> names = new HashSet<string>(StringComparer.Ordinal);
+
+        foreach (ObjectTypePropertySyntax propertySyntax in syntax.Properties)
+        {
+            string name = propertySyntax.NameToken.Kind == TokenKind.StringLiteral
+                ? propertySyntax.NameToken.Value ?? ""
+                : GetText(propertySyntax.NameToken);
+            TypeSymbol propertyType = BindType(propertySyntax.Type);
+
+            if (
+                propertyType.Kind is
+                    TypeKind.Void or
+                    TypeKind.Null or
+                    TypeKind.ErrorRecovery
+            )
+            {
+                Report(
+                    DiagnosticCodes.InvalidObjectPropertyType,
+                    propertySyntax.Type.Span,
+                    $"Type '{propertyType.DisplayName}' cannot be used for an object property."
+                );
+                propertyType = TypeSymbols.Unknown;
+            }
+
+            if (!names.Add(name))
+            {
+                Report(
+                    DiagnosticCodes.DuplicateObjectProperty,
+                    propertySyntax.NameToken.Span,
+                    $"Object property '{name}' is declared more than once."
+                );
+                continue;
+            }
+
+            properties.Add(
+                new ObjectPropertySymbol(
+                    name,
+                    propertyType,
+                    propertySyntax.IsOptional,
+                    propertySyntax.IsReadOnly
+                )
+            );
+        }
+
+        if (target is not null)
+        {
+            target.Complete(properties);
+            return target;
+        }
+
+        return ObjectTypeSymbol.CreateAnonymous(syntax.IsOpen, properties);
     }
 
     private static ObjectPropertySymbol? TryResolveLiteralProperty(

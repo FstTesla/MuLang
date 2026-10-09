@@ -1,1 +1,6 @@
 #nullable enable
+MuLang.Core.LanguageProfile.UserDefinedTypes.get -> MuLang.Core.UserDefinedTypesFeature
+MuLang.Core.LanguageProfileBuilder.WithUserDefinedTypes(MuLang.Core.UserDefinedTypesFeature userDefinedTypes) -> MuLang.Core.LanguageProfileBuilder!
+MuLang.Core.UserDefinedTypesFeature
+MuLang.Core.UserDefinedTypesFeature.Disabled = 0 -> MuLang.Core.UserDefinedTypesFeature
+MuLang.Core.UserDefinedTypesFeature.Enabled = 1 -> MuLang.Core.UserDefinedTypesFeature

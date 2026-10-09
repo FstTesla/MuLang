@@ -184,6 +184,30 @@ public sealed class LexerTests
     }
 
     [Test]
+    public void VersionsTypeKeyword()
+    {
+        LexResult earlier = Lexer.Lex(
+            SourceText.From("type"),
+            LanguageProfiles.Version1_1
+        );
+        LexResult current = Lexer.Lex(
+            SourceText.From("type"),
+            LanguageProfiles.Version1_2
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(earlier.Tokens[0].Kind, Is.EqualTo(TokenKind.Identifier));
+            Assert.That(
+                earlier.Diagnostics.Single().Code,
+                Is.EqualTo(DiagnosticCodes.FutureReservedKeyword)
+            );
+            Assert.That(current.Tokens[0].Kind, Is.EqualTo(TokenKind.TypeKeyword));
+            Assert.That(current.Diagnostics, Is.Empty);
+        }
+    }
+
+    [Test]
     public void RecognizesOperatorsUsingLongestMatch()
     {
         LexResult result = Lexer.Lex(

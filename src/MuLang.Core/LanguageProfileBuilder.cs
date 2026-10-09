@@ -7,6 +7,7 @@ public sealed class LanguageProfileBuilder
 {
     private LanguageVersion languageVersion;
     private UserDefinedFunctionsFeature userDefinedFunctions;
+    private UserDefinedTypesFeature userDefinedTypes;
     private RecursionFeature recursion;
     private LoopFeatures loops;
     private ProviderFunctionCallsFeature providerFunctionCalls;
@@ -36,6 +37,7 @@ public sealed class LanguageProfileBuilder
 
         languageVersion = profile.LanguageVersion;
         userDefinedFunctions = profile.UserDefinedFunctions;
+        userDefinedTypes = profile.UserDefinedTypes;
         recursion = profile.Recursion;
         loops = profile.Loops;
         providerFunctionCalls = profile.ProviderFunctionCalls;
@@ -81,6 +83,20 @@ public sealed class LanguageProfileBuilder
             nameof(userDefinedFunctions)
         );
         this.userDefinedFunctions = userDefinedFunctions;
+
+        return this;
+    }
+
+    /// <summary>Sets the user-defined types feature setting.</summary>
+    /// <param name="userDefinedTypes">The user-defined types feature setting.</param>
+    /// <returns>The same <see cref="LanguageProfileBuilder" /> instance, for chaining.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="userDefinedTypes" /> is not defined.</exception>
+    public LanguageProfileBuilder WithUserDefinedTypes(
+        [SuppressMessage("ReSharper", "ParameterHidesMember")] UserDefinedTypesFeature userDefinedTypes
+    )
+    {
+        LanguageProfile.ValidateDefined(userDefinedTypes, nameof(userDefinedTypes));
+        this.userDefinedTypes = userDefinedTypes;
 
         return this;
     }
@@ -359,6 +375,7 @@ public sealed class LanguageProfileBuilder
         return new LanguageProfile(
             languageVersion,
             userDefinedFunctions,
+            userDefinedTypes,
             recursion,
             loops,
             providerFunctionCalls,

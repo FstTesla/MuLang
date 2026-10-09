@@ -12,6 +12,20 @@ Stable entries describe the incremental change since the preceding prerelease. T
 
 Each release heading identifies the incremental version range covered by the section, from the comparison version to the released version.
 
+## `0.3.0-alpha.5` → `0.3.0-alpha.6` - 2026-10-09
+
+### Breaking changes
+
+- Reserved `type` as a keyword in MuLang 1.2. Source identifiers and host-provided type, global, function, or parameter names using that spelling must be renamed or continue targeting MuLang 1.1.
+- Extended language-profile identity with the user-defined-types setting. Every standard profile fingerprint changes, so persisted compilation artifacts and caches produced by earlier prereleases must be regenerated.
+
+### New features
+
+- Added MuLang 1.2 top-level closed and open structural object type declarations with program-wide visibility, forward references, direct and mutual recursion, source/host conflict diagnostics, and a separate namespace from values and functions.
+- Added closed and open inline object bodies as primary type syntax in every type position, including recursively nested properties and ordinary nullable, mutable-array, and read-only-array suffixes.
+- Added `UserDefinedTypesFeature`, `LanguageProfile.UserDefinedTypes`, and `LanguageProfileBuilder.WithUserDefinedTypes`. The standard MuLang 1.2 profile enables the feature; disabled profiles retain parse recovery and produce targeted declaration and inline-type diagnostics.
+- Extended contextual object literals, casts, type tests, semantic highlighting, TextMate highlighting, portable IR projection, MuIR canonicalization, and .NET export paths to source-declared and inline shapes. Compatibility remains purely structural, and lowering erases source names while omitting unused declarations.
+
 ## `0.3.0-alpha.4` → `0.3.0-alpha.5` - 2026-10-09
 
 ### New features

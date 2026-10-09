@@ -116,11 +116,12 @@ Arrays and primitive values are not objects.
 
 ## 4.5. Structured object types
 
-Structured object types are declared by the host environment and cannot be declared in source code.
+Structured object types may be declared by the host environment, by a
+top-level source declaration, or anonymously in an inline type.
 
 A structured object type defines:
 
-- a stable type name;
+- an optional descriptive type name;
 - a set of known properties;
 - the type of each known property;
 - whether each known property is required or optional;
@@ -148,6 +149,87 @@ Read-only property capability freezes both value and presence after object
 construction. A present read-only property cannot be assigned or removed, and
 an absent read-only optional property cannot be added later. The restriction is
 shallow and does not make a referenced object or array deeply immutable.
+
+### 4.5.1. Source-declared object types
+
+Language version 1.2 permits top-level source declarations:
+
+```text
+type Person {
+    name$: string,
+    manager?: Person,
+};
+```
+
+The declaration body is closed when enclosed in `{` and `}` and open when
+enclosed in `@{` and `}`. Property names may be identifiers or string literals.
+The property modifier order is `$` for read-only capability, then `?` for
+optional presence, followed by `:` and an explicit type. Empty bodies and one
+profile-controlled trailing comma are valid.
+
+All type declarations precede function declarations and executable statements.
+Their names are visible throughout the program, so forward, direct-recursive,
+and mutual-recursive references are valid. Type recursion does not depend on
+the user-function recursion setting. A cycle containing only required
+properties is valid and may describe a cyclic runtime graph even when no finite
+acyclic literal can construct it.
+
+Source type names share one namespace with host type names and a separate
+namespace from values and functions. Duplicate source names and conflicts with
+host type names are invalid. Names are descriptive compile-time aliases for
+structural shapes, not nominal identities.
+
+> These distinct names remain structurally equivalent:
+>
+> ```text
+> type First { value: int };
+> type Second { value: int };
+> var first: First = { value: int = 1 };
+> var second: Second = first;
+> ```
+
+> This declaration is invalid because `Person` is already a host type in the
+> selected environment:
+>
+> ```text
+> type Person { name: string };
+> ```
+
+### 4.5.2. Inline object types
+
+A closed or open object body is also a primary type and may appear in every
+ordinary type position:
+
+```text
+var item: { name$: string, score?: number } = {
+    name$ = "MuLang",
+    score? = 1,
+};
+```
+
+Inline bodies may nest recursively and may refer to visible source or host type
+names. Each occurrence is anonymous, but structural equivalence ignores that
+symbol identity. The ordinary nullable and array suffixes apply to the complete
+body:
+
+```text
+var rows: @{ value: int }?[]$ = $[null, @{ value = 1 }];
+```
+
+Object literals remain the only source construction syntax. A type name does
+not introduce a constructor.
+
+> This is invalid because a declaration body cannot contain an initializer:
+>
+> ```text
+> type Invalid { value: int = 1 };
+> ```
+
+> This is also invalid because arbitrary aliases are not supported:
+>
+> ```text
+> type Count int;
+> ```
 
 ## 4.6. Array types
 

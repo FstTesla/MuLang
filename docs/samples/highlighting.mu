@@ -1,3 +1,19 @@
+type HighlightDetails @{
+    title: string,
+    name: string,
+    state: string,
+    count: int,
+    accent?: string,
+};
+
+type HighlightEnvelope {
+    details$: HighlightDetails,
+    metadata: {
+        requested: int,
+        tags: string[]$,
+    },
+};
+
 func clamp(value: int, minimum: int, maximum: int): int {
     if (value < minimum) {
         return minimum;
@@ -85,7 +101,7 @@ func exerciseHighlighting(name: string, requested: int): void {
 
     ;
 
-    var details = @{
+    var details: HighlightDetails = @{
         title = displayText,
         name = name,
         state = state,
@@ -98,8 +114,22 @@ func exerciseHighlighting(name: string, requested: int): void {
     var missingValue = details?.["missing"] ?? "fallback";
     details.accent~;
 
+    var envelope: HighlightEnvelope = {
+        details$: HighlightDetails = details,
+        metadata: { requested: int, tags: string[]$ } = {
+            requested = requested,
+            tags = $["highlighting", "types"],
+        },
+    };
+    var inlineDetails: @{ label$: string, value?: int } = @{
+        label$ = "inline",
+        value? = count,
+    };
+
     values[0] = exactValue;
-    var total = readOnlyValues.length + immutableFlags + hexadecimalMask;
+    var total = readOnlyValues.length + immutableFlags + hexadecimalMask +
+        envelope.metadata.tags.length +
+        (inlineDetails has "value" ? inlineDetails.value : 0);
 
     var firstTotal$: int;
     while (active) {

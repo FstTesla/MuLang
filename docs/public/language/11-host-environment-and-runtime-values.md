@@ -16,6 +16,11 @@ Profile compatibility requirements for open structured types are defined in [Sec
 
 Source names are resolved exclusively against declarations in the source program and the static environment.
 
+Source-declared types are not added to the static environment. They share the
+program-wide type namespace with host declarations for conflict detection, but
+the environment fingerprint remains independent from source declarations.
+Source and host types may be structurally compatible.
+
 > For example, this expression is valid only if the static environment declares globals named `price` and `taxRate` with compatible numeric types:
 >
 > ```text
@@ -35,6 +40,9 @@ The execution environment supplies:
 - execution-limit state.
 
 The execution environment MUST expose no source-level operation that was not declared by the static environment or required by this specification.
+
+Source type names require no runtime registration or reflection. Execution
+observes only the resulting structural shape and capabilities.
 
 The host is trusted. A MuLang type restricts operations available to MuLang source but does not restrict operations that the host itself may perform on a value.
 

@@ -2,7 +2,8 @@
 
 ## Status
 
-Planned for MuLang `1.2`, targeting the package release `0.3.0`.
+Implemented for MuLang `1.2`, first released in package version
+`0.3.0-alpha.6` and targeting the stable package release `0.3.0`.
 
 Introduce source-declared and inline object types alongside the complete
 object-literal model in MuLang `1.2`.
@@ -759,5 +760,4 @@ The following decisions are fixed for this plan:
 - declarations are program-only;
 - recursive required-property cycles are valid;
 - the feature has its own profile setting;
-- the exact language version remains open between `1.2` and `1.3` under the
-  stated release criterion.
+- the feature targets language version `1.2`.

@@ -47,6 +47,7 @@ internal static class LanguageNames
             "finally",
             "primitive",
             "throw",
+            "type",
             "try",
         };
 

@@ -7,6 +7,37 @@ namespace MuLang.Compiler.Tests.Syntax;
 
 public sealed class ParserTests
 {
+    [Test]
+    public void ParsesNamedAndInlineObjectTypes()
+    {
+        SyntaxTree tree = Parser.Parse(
+            SourceText.From(
+                """
+                type Node @{ next?: Node, payload$: { value: int } };
+                var nodes: Node[]$;
+                """
+            ),
+            CompilationMode.Program,
+            LanguageProfiles.Version1_2
+        );
+        ProgramRootSyntax root = (ProgramRootSyntax)tree.Root;
+        ObjectTypeBodySyntax inline = (ObjectTypeBodySyntax)root.Types
+            .Single()
+            .Body
+            .Properties[1]
+            .Type
+            .Primary;
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(tree.Diagnostics, Is.Empty);
+            Assert.That(root.Types, Has.Count.EqualTo(1));
+            Assert.That(root.Types[0].Body.IsOpen, Is.True);
+            Assert.That(inline.IsOpen, Is.False);
+            Assert.That(root.Statements, Has.Count.EqualTo(1));
+        }
+    }
+
     [TestCase("try { } catch { }")]
     [TestCase("try { } catch (failure) { }")]
     [TestCase("try { } finally { }")]
@@ -185,8 +216,14 @@ public sealed class ParserTests
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(innerConversion.Type.NameToken.Kind, Is.EqualTo(TokenKind.IntKeyword));
-            Assert.That(outerConversion.Type.NameToken.Kind, Is.EqualTo(TokenKind.NumberKeyword));
+            Assert.That(
+                ((NamedTypeSyntax)innerConversion.Type.Primary).NameToken.Kind,
+                Is.EqualTo(TokenKind.IntKeyword)
+            );
+            Assert.That(
+                ((NamedTypeSyntax)outerConversion.Type.Primary).NameToken.Kind,
+                Is.EqualTo(TokenKind.NumberKeyword)
+            );
             Assert.That(tree.Diagnostics, Is.Empty);
         }
     }

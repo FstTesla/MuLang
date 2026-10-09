@@ -12,6 +12,25 @@ namespace MuLang.Exporters.DotNet.Tests.Exporting;
 public sealed class DotNetExporterTests
 {
     [Test]
+    public void ExecutesContextuallyTypedSourceDeclaredObjects()
+    {
+        EnvironmentSchema environment = CreateEmptyEnvironment(
+            LanguageVersion.Version1_2
+        );
+        Func<DotNetRuntimeContext, object?> compiled = CompileProgram(
+            """
+            type Counter { value: int };
+            var counter: Counter = { value: int = 42 };
+            return counter.value;
+            """,
+            environment,
+            TypeSymbols.Int
+        );
+
+        Assert.That(compiled(CreateContext(environment)), Is.EqualTo(42L));
+    }
+
+    [Test]
     public void ExecutesSourceCatchAndFinally()
     {
         const string source = """

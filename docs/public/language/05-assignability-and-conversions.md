@@ -134,9 +134,28 @@ Read-only target properties are read views: the source may be mutable or
 read-only, a required source may satisfy an optional target, and the source
 value type may use the representation-safe read compatibility relation.
 Read-only source properties are not assignable to mutable target properties.
-Type names and host-defined identifiers do not affect structural compatibility.
+Source names, inline occurrence identity, and host-defined identifiers do not
+affect structural compatibility. Source-declared, inline, host-declared, and
+object-literal-inferred shapes participate in the same relation.
 
 Structural compatibility depends only on the MuLang type shapes described above. Host type identity and inheritance do not affect it.
+
+> These assignments are valid because every shape is structurally compatible:
+>
+> ```text
+> type Named { value: int };
+> var named: Named = { value: int = 1 };
+> var inline: { value: int } = named;
+> ```
+
+> This assignment is invalid because the mutable property types are not
+> equivalent:
+>
+> ```text
+> type IntegerValue { value: int };
+> var source: IntegerValue = { value: int = 1 };
+> var target: { value: number } = source;
+> ```
 
 ## 5.7. Array conversion
 

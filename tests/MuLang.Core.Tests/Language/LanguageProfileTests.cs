@@ -25,6 +25,10 @@ public sealed class LanguageProfileTests
                 profile.UserDefinedFunctions,
                 Is.EqualTo(UserDefinedFunctionsFeature.Enabled)
             );
+            Assert.That(
+                profile.UserDefinedTypes,
+                Is.EqualTo(UserDefinedTypesFeature.Disabled)
+            );
             Assert.That(profile.Recursion, Is.EqualTo(RecursionFeature.Enabled));
             Assert.That(
                 profile.Loops,
@@ -94,6 +98,10 @@ public sealed class LanguageProfileTests
                 Is.EqualTo(ExceptionHandlingFeature.Enabled)
             );
             Assert.That(
+                LanguageProfiles.Version1_2.UserDefinedTypes,
+                Is.EqualTo(UserDefinedTypesFeature.Enabled)
+            );
+            Assert.That(
                 LanguageProfiles.Version1_2.ObjectLiteralSyntax,
                 Is.EqualTo(ObjectLiteralSyntax.Full)
             );
@@ -132,6 +140,8 @@ public sealed class LanguageProfileTests
         {
             Assert.That((int)UserDefinedFunctionsFeature.Disabled, Is.Zero);
             Assert.That((int)UserDefinedFunctionsFeature.Enabled, Is.EqualTo(1));
+            Assert.That((int)UserDefinedTypesFeature.Disabled, Is.Zero);
+            Assert.That((int)UserDefinedTypesFeature.Enabled, Is.EqualTo(1));
             Assert.That((int)RecursionFeature.Disabled, Is.Zero);
             Assert.That((int)RecursionFeature.Enabled, Is.EqualTo(1));
             Assert.That((int)ProviderFunctionCallsFeature.Disabled, Is.Zero);
@@ -187,6 +197,7 @@ public sealed class LanguageProfileTests
     {
         LanguageProfile source = new LanguageProfileBuilder()
             .WithUserDefinedFunctions(UserDefinedFunctionsFeature.Disabled)
+            .WithUserDefinedTypes(UserDefinedTypesFeature.Disabled)
             .WithLoops(LoopFeatures.While)
             .WithMutations(MutationFeatures.ArrayElements)
             .WithConstantFolding(ConstantFoldingFeature.Disabled)
@@ -271,7 +282,7 @@ public sealed class LanguageProfileTests
             Assert.That(
                 first.Fingerprint.Value,
                 Is.EqualTo(
-                    "d379033707a5d30fd262583c0cad9d74e8ef99ba27a8a498cd0466bcef7a4df1"
+                    "8fb4e1cc063e5b01d32290a21ea562febda8b8c38fee405b799004e8c709d109"
                 )
             );
         }
@@ -395,6 +406,7 @@ public sealed class LanguageProfileTests
         LanguageProfile direct = new (
             LanguageVersion.Version1,
             UserDefinedFunctionsFeature.Enabled,
+            UserDefinedTypesFeature.Disabled,
             RecursionFeature.Enabled,
             LoopFeatures.While | LoopFeatures.For,
             ProviderFunctionCallsFeature.Enabled,
@@ -445,6 +457,7 @@ public sealed class LanguageProfileTests
         yield return static () => new LanguageProfile(
             (LanguageVersion)99,
             UserDefinedFunctionsFeature.Enabled,
+            UserDefinedTypesFeature.Disabled,
             RecursionFeature.Enabled,
             LoopFeatures.While | LoopFeatures.For,
             ProviderFunctionCallsFeature.Enabled,
@@ -460,6 +473,9 @@ public sealed class LanguageProfileTests
         );
         yield return static () => TestLanguageProfileFactory.Create(
             userDefinedFunctions: (UserDefinedFunctionsFeature)99
+        );
+        yield return static () => TestLanguageProfileFactory.Create(
+            userDefinedTypes: (UserDefinedTypesFeature)99
         );
         yield return static () => TestLanguageProfileFactory.Create(
             recursion: (RecursionFeature)99
@@ -503,6 +519,8 @@ public sealed class LanguageProfileTests
             builder.WithLanguageVersion((LanguageVersion)99);
         yield return static builder =>
             builder.WithUserDefinedFunctions((UserDefinedFunctionsFeature)99);
+        yield return static builder =>
+            builder.WithUserDefinedTypes((UserDefinedTypesFeature)99);
         yield return static builder =>
             builder.WithRecursion((RecursionFeature)99);
         yield return static builder =>

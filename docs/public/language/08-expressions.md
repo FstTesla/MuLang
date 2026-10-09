@@ -124,6 +124,24 @@ including a required source property satisfying an optional target property.
 An enclosing implicit conversion exposes the expected static type without
 replacing the concrete capabilities of the literal.
 
+The contextual type may be host-declared, source-declared, or inline. Source
+type names do not add construction syntax or nominal conversion; the object
+literal remains the constructed value and is checked structurally.
+
+> A source declaration may provide the expected type:
+>
+> ```text
+> type Item { name$: string, score?: int };
+> var item: Item = { name$ = "MuLang", score?: int };
+> ```
+
+> This literal is invalid because the required `name` property is absent:
+>
+> ```text
+> type Item { name: string };
+> var item: Item = { };
+> ```
+
 The `ObjectLiteralSyntax.Legacy` profile setting preserves the earlier grammar,
 where `:` introduces a required initializer and `?` followed by `:` introduces
 an optional initializer. Legacy syntax cannot declare read-only properties or

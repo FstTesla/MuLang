@@ -71,7 +71,7 @@
         },
         {
           "name": "keyword.declaration.mulang",
-          "match": "\\b(?:func|var)\\b"
+          "match": "\\b(?:func|type|var)\\b"
         },
         {
           "name": "storage.type.mulang",

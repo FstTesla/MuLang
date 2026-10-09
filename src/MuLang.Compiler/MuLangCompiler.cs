@@ -370,6 +370,7 @@ public static class MuLangCompiler
                 TokenKind.ThrowKeyword or
                 TokenKind.TrueKeyword or
                 TokenKind.TryKeyword or
+                TokenKind.TypeKeyword or
                 TokenKind.UnknownKeyword or
                 TokenKind.VarKeyword or
                 TokenKind.VoidKeyword or

@@ -73,7 +73,8 @@ MuLang stores source spans in Unicode scalar offsets. The language server conver
 ## Hybrid highlighting
 
 TextMate provides immediate lexical highlighting for keywords, including the
-language-version-1.2 `primitive` intrinsic type, literals, strings, operators,
+language-version-1.2 `type` declaration keyword and `primitive` intrinsic type,
+literals, strings, operators,
 and punctuation. Object-property `$`, `?`, `:`, and `=` tokens retain those
 ordinary classifications. It remains active while the language server starts and acts
 as a fallback if the server is unavailable.
@@ -81,11 +82,13 @@ as a fallback if the server is unavailable.
 The compiler supplements TextMate with binding-based semantic classifications for:
 
 - named types;
+- source type declarations and references;
 - functions, exposed as the standard LSP `method` token so Visual Studio uses its method classification;
 - parameters;
 - local and global variables;
 - object properties;
 - explicit object-property types;
+- inline and nested object-type property declarations and references;
 - declarations;
 - read-only host symbols;
 - host-provided symbols.

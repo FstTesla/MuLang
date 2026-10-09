@@ -35,6 +35,7 @@ internal enum TokenKind
     ThrowKeyword,
     TrueKeyword,
     TryKeyword,
+    TypeKeyword,
     UnknownKeyword,
     VarKeyword,
     VoidKeyword,

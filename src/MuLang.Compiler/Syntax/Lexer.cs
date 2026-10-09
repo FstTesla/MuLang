@@ -628,6 +628,12 @@ internal sealed class Lexer
                 text,
                 span
             ),
+            "type" => GetVersionedKeywordKind(
+                TokenKind.TypeKeyword,
+                LanguageVersion.Version1_2,
+                text,
+                span
+            ),
             "unknown" => TokenKind.UnknownKeyword,
             "var" => TokenKind.VarKeyword,
             "void" => TokenKind.VoidKeyword,

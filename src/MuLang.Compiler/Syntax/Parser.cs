@@ -56,6 +56,8 @@ internal sealed class Parser
         {
             CompilationMode.Expression => parser.Current.Kind == TokenKind.FuncKeyword
                 ? parser.ParseRejectedFunctionDeclarationExpressionRoot()
+                : parser.Current.Kind == TokenKind.TypeKeyword
+                    ? parser.ParseRejectedTypeDeclarationExpressionRoot()
                 : parser.ParseExpressionRoot(),
             CompilationMode.Program => parser.ParseProgramRoot(),
             _ => throw new ArgumentOutOfRangeException(nameof(compilationMode)),
@@ -121,19 +123,65 @@ internal sealed class Parser
         );
     }
 
+    private ExpressionRootSyntax ParseRejectedTypeDeclarationExpressionRoot()
+    {
+        SyntaxToken typeKeyword = Current;
+        Report(
+            DiagnosticCodes.TypeDeclarationNotAllowed,
+            typeKeyword.Span,
+            "Type declarations are only valid at the start of a program."
+        );
+        ParseTypeDeclaration();
+        SyntaxToken endOfFileToken = Match(TokenKind.EndOfFile);
+        SyntaxToken missingToken = new (
+            TokenKind.Identifier,
+            new TextSpan(typeKeyword.Span.Start, 0),
+            IsMissing: true
+        );
+
+        return new ExpressionRootSyntax(
+            new MissingExpressionSyntax(missingToken),
+            endOfFileToken
+        );
+    }
+
     private ProgramRootSyntax ParseProgramRoot()
     {
+        IList<TypeDeclarationSyntax> types = [ ];
         IList<FunctionDeclarationSyntax> functions = [ ];
         IList<StatementSyntax> statements = [ ];
+        bool hasFunctionDeclaration = false;
         bool hasExecutableStatement = false;
 
         while (Current.Kind != TokenKind.EndOfFile)
         {
             int start = position;
 
-            if (Current.Kind == TokenKind.FuncKeyword)
+            if (Current.Kind == TokenKind.TypeKeyword)
+            {
+                if (hasExecutableStatement)
+                {
+                    Report(
+                        DiagnosticCodes.TypeDeclarationAfterStatement,
+                        Current.Span,
+                        "Type declarations must appear before executable statements."
+                    );
+                }
+                else if (hasFunctionDeclaration)
+                {
+                    Report(
+                        DiagnosticCodes.TypeDeclarationAfterFunction,
+                        Current.Span,
+                        "Type declarations must appear before function declarations."
+                    );
+                }
+
+                types.Add(ParseTypeDeclaration());
+            }
+            else if (Current.Kind == TokenKind.FuncKeyword)
             {
                 ReportDisabledUserDefinedFunctions(Current);
+                hasFunctionDeclaration = true;
 
                 if (hasExecutableStatement)
                 {
@@ -161,9 +209,25 @@ internal sealed class Parser
         SyntaxToken endOfFileToken = Match(TokenKind.EndOfFile);
 
         return new ProgramRootSyntax(
+            types.AsReadOnly(),
             functions.AsReadOnly(),
             statements.AsReadOnly(),
             endOfFileToken
+        );
+    }
+
+    private TypeDeclarationSyntax ParseTypeDeclaration()
+    {
+        SyntaxToken typeKeyword = Match(TokenKind.TypeKeyword);
+        SyntaxToken identifierToken = Match(TokenKind.Identifier);
+        ObjectTypeBodySyntax body = ParseObjectTypeBody();
+        SyntaxToken semicolonToken = Match(TokenKind.Semicolon);
+
+        return new TypeDeclarationSyntax(
+            typeKeyword,
+            identifierToken,
+            body,
+            semicolonToken
         );
     }
 
@@ -250,6 +314,7 @@ internal sealed class Parser
             TokenKind.ThrowKeyword => ParseThrowStatement(),
             TokenKind.TryKeyword => ParseTryStatement(),
             TokenKind.FuncKeyword => ParseInvalidNestedFunctionDeclaration(),
+            TokenKind.TypeKeyword => ParseInvalidNestedTypeDeclaration(),
             TokenKind.Semicolon => new EmptyStatementSyntax(ParseToken()),
             _ => ParseSimpleStatement(true),
         };
@@ -282,6 +347,18 @@ internal sealed class Parser
         return new EmptyStatementSyntax(declaration.FuncKeyword);
     }
 
+    private StatementSyntax ParseInvalidNestedTypeDeclaration()
+    {
+        TypeDeclarationSyntax declaration = ParseTypeDeclaration();
+        Report(
+            DiagnosticCodes.TypeDeclarationNotAllowed,
+            declaration.TypeKeyword.Span,
+            "Type declarations are not valid inside a function or statement."
+        );
+
+        return new EmptyStatementSyntax(declaration.TypeKeyword);
+    }
+
     private BlockStatementSyntax ParseBlockStatement(
         bool stopAtFunctionDeclaration = false
     )
@@ -291,7 +368,10 @@ internal sealed class Parser
 
         while (
             Current.Kind is not TokenKind.CloseBrace and not TokenKind.EndOfFile &&
-            !(stopAtFunctionDeclaration && Current.Kind == TokenKind.FuncKeyword)
+            !(
+                stopAtFunctionDeclaration &&
+                Current.Kind is TokenKind.FuncKeyword or TokenKind.TypeKeyword
+            )
         )
         {
             int start = position;
@@ -1037,7 +1117,7 @@ internal sealed class Parser
         {
             colonToken = ParseToken();
 
-            if (SyntaxFacts.IsTypeName(Current.Kind))
+            if (CanStartType())
             {
                 type = ParseType();
             }
@@ -1189,10 +1269,16 @@ internal sealed class Parser
         bool allowVoid = false
     )
     {
-        SyntaxToken nameToken =
-            SyntaxFacts.IsTypeName(Current.Kind) ||
-            allowVoid && Current.Kind == TokenKind.VoidKeyword
-                ? ParseToken() : Match(TokenKind.Identifier);
+        TypePrimarySyntax primary =
+            profile.LanguageVersion >= LanguageVersion.Version1_2 &&
+            Current.Kind is TokenKind.OpenBrace or TokenKind.OpenObjectBrace
+                ? ParseObjectTypeBody()
+                : new NamedTypeSyntax(
+                    CanStartType(allowVoid) &&
+                    Current.Kind is not TokenKind.OpenBrace and not TokenKind.OpenObjectBrace
+                        ? ParseToken()
+                        : Match(TokenKind.Identifier)
+                );
 
         IList<SyntaxToken> suffixTokens = [ ];
 
@@ -1233,7 +1319,104 @@ internal sealed class Parser
             }
         }
 
-        return new TypeSyntax(nameToken, suffixTokens.AsReadOnly());
+        return new TypeSyntax(primary, suffixTokens.AsReadOnly());
+    }
+
+    private bool CanStartType(bool allowVoid = false)
+    {
+        return SyntaxFacts.IsTypeName(Current.Kind) ||
+            profile.LanguageVersion >= LanguageVersion.Version1_2 &&
+            Current.Kind is TokenKind.OpenBrace or TokenKind.OpenObjectBrace ||
+            allowVoid && Current.Kind == TokenKind.VoidKeyword;
+    }
+
+    private ObjectTypeBodySyntax ParseObjectTypeBody()
+    {
+        SyntaxToken openBraceToken = Current.Kind is
+            TokenKind.OpenBrace or
+            TokenKind.OpenObjectBrace
+                ? ParseToken()
+                : Match(TokenKind.OpenBrace);
+
+        if (
+            openBraceToken.Kind == TokenKind.OpenObjectBrace &&
+            profile.OpenObjects != OpenObjectsFeature.Enabled
+        )
+        {
+            Report(
+                DiagnosticCodes.DisabledOpenObjects,
+                openBraceToken.Span,
+                "Open object types are disabled by the language profile."
+            );
+        }
+
+        IList<ObjectTypePropertySyntax> properties = [ ];
+        IList<SyntaxToken> commaTokens = [ ];
+
+        while (Current.Kind is not TokenKind.CloseBrace and not TokenKind.EndOfFile)
+        {
+            int start = position;
+            SyntaxToken nameToken = Current.Kind is
+                TokenKind.Identifier or
+                TokenKind.StringLiteral
+                    ? ParseToken()
+                    : Match(TokenKind.Identifier);
+            SyntaxToken? dollarToken = Current.Kind == TokenKind.Dollar
+                ? ParseToken()
+                : null;
+            SyntaxToken? questionToken = Current.Kind == TokenKind.Question
+                ? ParseToken()
+                : null;
+
+            while (Current.Kind is TokenKind.Dollar or TokenKind.Question)
+            {
+                SyntaxToken modifierToken = ParseToken();
+                Report(
+                    DiagnosticCodes.InvalidObjectPropertyModifier,
+                    modifierToken.Span,
+                    "Object type property modifiers must appear once in '$?' order before the type."
+                );
+            }
+
+            SyntaxToken colonToken = Match(TokenKind.Colon);
+            TypeSyntax type = ParseType();
+            properties.Add(
+                new ObjectTypePropertySyntax(
+                    nameToken,
+                    dollarToken,
+                    questionToken,
+                    colonToken,
+                    type
+                )
+            );
+
+            if (Current.Kind != TokenKind.Comma)
+            {
+                break;
+            }
+
+            commaTokens.Add(ParseToken());
+
+            if (Current.Kind == TokenKind.CloseBrace)
+            {
+                ReportDisabledTrailingComma(commaTokens[^1]);
+                break;
+            }
+
+            if (position == start)
+            {
+                ParseToken();
+            }
+        }
+
+        SyntaxToken closeBraceToken = Match(TokenKind.CloseBrace);
+
+        return new ObjectTypeBodySyntax(
+            openBraceToken,
+            properties.AsReadOnly(),
+            commaTokens.AsReadOnly(),
+            closeBraceToken
+        );
     }
 
     private ExpressionSyntax ParseMissingExpression()

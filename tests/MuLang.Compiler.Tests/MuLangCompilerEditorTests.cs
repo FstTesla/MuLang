@@ -11,6 +11,56 @@ namespace MuLang.Compiler.Tests;
 public sealed class MuLangCompilerEditorTests
 {
     [Test]
+    public void HighlightingSampleParsesAndClassifiesUserDefinedTypes()
+    {
+        string repositoryRoot = Path.GetFullPath(
+            Path.Combine(
+                TestContext.CurrentContext.TestDirectory,
+                "..",
+                "..",
+                "..",
+                "..",
+                ".."
+            )
+        );
+        string source = File.ReadAllText(
+            Path.Combine(repositoryRoot, "docs", "samples", "highlighting.mu")
+        );
+        SemanticClassificationResult result = MuLangCompiler.ClassifySemantically(
+            source,
+            new EnvironmentBuilder().Build(LanguageVersion.Version1_2),
+            CompilationMode.Program,
+            profile: LanguageProfiles.Version1_2
+        );
+        SourceText sourceText = SourceText.From(source);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(
+                result.Diagnostics,
+                Has.None.Matches<Diagnostic>(
+                    static diagnostic =>
+                        diagnostic.Category is
+                            DiagnosticCategory.Lexical or
+                            DiagnosticCategory.Syntax
+                )
+            );
+            Assert.That(
+                result.Classifications.Any(
+                    classification =>
+                        classification.Kind == SemanticClassificationKind.Type &&
+                        classification.Modifiers.HasFlag(
+                            SemanticClassificationModifiers.Declaration
+                        ) &&
+                        sourceText.GetText(classification.Span) ==
+                        "HighlightDetails"
+                ),
+                Is.True
+            );
+        }
+    }
+
+    [Test]
     public void AnalyzesWithoutProducingPortableIr()
     {
         AnalysisResult result = MuLangCompiler.Analyze(
@@ -71,6 +121,70 @@ public sealed class MuLangCompilerEditorTests
             )
         );
         Assert.That(result.Diagnostics, Is.Empty);
+    }
+
+    [Test]
+    public void ClassifiesSourceAndInlineObjectTypes()
+    {
+        const string sourceStr = """
+                                 type Node { next?: Node, payload: { value: int } };
+                                 var node: Node;
+                                 """;
+        SourceText source = SourceText.From(sourceStr);
+        SemanticClassificationResult result = MuLangCompiler.ClassifySemantically(
+            sourceStr,
+            new EnvironmentBuilder().Build(LanguageVersion.Version1_2),
+            CompilationMode.Program,
+            profile: LanguageProfiles.Version1_2
+        );
+        IReadOnlyList<(
+            string Text,
+            SemanticClassificationKind Kind,
+            SemanticClassificationModifiers Modifiers
+            )> classifications =
+        [
+            .. result.Classifications.Select(
+                classification => (
+                    source.GetText(classification.Span),
+                    classification.Kind,
+                    classification.Modifiers
+                )
+            ),
+        ];
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.Diagnostics, Is.Empty);
+            Assert.That(
+                classifications,
+                Does.Contain(
+                    (
+                        "Node",
+                        SemanticClassificationKind.Type,
+                        SemanticClassificationModifiers.Declaration
+                    )
+                )
+            );
+            Assert.That(
+                classifications.Count(
+                    static classification =>
+                        classification is
+                        {
+                            Text: "Node",
+                            Kind: SemanticClassificationKind.Type,
+                        }
+                ),
+                Is.EqualTo(3)
+            );
+            Assert.That(
+                classifications.Count(
+                    static classification =>
+                        classification.Kind ==
+                        SemanticClassificationKind.Property
+                ),
+                Is.EqualTo(3)
+            );
+        }
     }
 
     [Test]

@@ -6,9 +6,14 @@ User-defined functions are synchronous top-level program declarations. They are 
 
 User-defined functions are available only in program mode and only when enabled by the selected language profile.
 
-A program MAY begin with zero or more function declarations. Every function declaration MUST precede every executable top-level statement.
+A program MAY begin with zero or more type declarations followed by zero or
+more function declarations. Every function declaration MUST follow every type
+declaration and precede every executable top-level statement.
 
 Functions cannot be declared in expression mode, inside another function, or inside a statement block.
+
+Function signatures may use source-declared and inline object types. All valid
+source type declarations are completed before function signatures are bound.
 
 When the feature is disabled, a function declaration or a call to a user-defined function is a compile-time error.
 

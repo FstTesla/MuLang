@@ -8,7 +8,8 @@ The language is designed to:
 
 - support expression-only and statement-based compilation;
 - use a small, explicitly defined type system;
-- obtain all global variables, functions, and structured types from a host-provided environment;
+- obtain global variables, functions, and host structured types from a host-provided environment;
+- declare structural object types in source programs;
 - prevent implicit access to host-specific operations;
 - produce deterministic diagnostics before execution whenever possible;
 - preserve the same language semantics across conforming implementations;
@@ -19,9 +20,8 @@ This specification defines MuLang without requiring knowledge of another languag
 
 ## 1.2. Non-goals
 
-Language version 1 does not provide:
+MuLang does not provide:
 
-- user-defined structured types;
 - classes, inheritance, interfaces, or generics;
 - function values;
 - asynchronous functions;
@@ -57,9 +57,16 @@ Statements, including `return`, are not valid in expression mode.
 
 ### 1.3.2. Program mode
 
-Program mode accepts zero or more top-level function declarations followed by zero or more executable statements and the end of the source text. A function declaration MUST NOT follow an executable top-level statement.
+Program mode accepts zero or more top-level type declarations, zero or more
+function declarations, zero or more executable statements, and the end of the
+source text, in that order. A type declaration MUST NOT follow a function or
+executable statement. A function declaration MUST NOT follow an executable
+top-level statement.
 
-User-defined functions are specified in [Section 7](07-user-defined-functions.md). Their availability and recursion depend on the language profile as defined in [Section 14.1](14-language-profiles.md#141-user-defined-functions-and-recursion).
+User-defined object types are specified in
+[Section 4.5](04-types.md#45-structured-object-types). User-defined functions
+are specified in [Section 7](07-user-defined-functions.md). Their availability
+depends on the language profile.
 
 A pure expression is not a statement. A function call is the only expression permitted as an expression statement.
 

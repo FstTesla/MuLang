@@ -56,7 +56,7 @@ public sealed class ObjectTypeSymbol : TypeSymbol
         );
     }
 
-    /// <summary>Gets the provider identifier, or <c>null</c> for an anonymous type.</summary>
+    /// <summary>Gets the provider identifier, or <c>null</c> for a compiler-defined type.</summary>
     public string? Id { get; }
 
     /// <summary>Gets the language name.</summary>
@@ -106,6 +106,16 @@ public sealed class ObjectTypeSymbol : TypeSymbol
     )
     {
         return new ObjectTypeSymbol(id, name, isOpen, id is not null);
+    }
+
+    internal static ObjectTypeSymbol CreateSourceIncomplete(
+        string name,
+        bool isOpen
+    )
+    {
+        LanguageNames.ValidateIdentifier(name, nameof(name));
+
+        return new ObjectTypeSymbol(null, name, isOpen, false);
     }
 
     internal void Complete(

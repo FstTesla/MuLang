@@ -10,6 +10,7 @@ public static class LanguageProfiles
     public static LanguageProfile Version1 { get; } = new (
         LanguageVersion.Version1,
         UserDefinedFunctionsFeature.Enabled,
+        UserDefinedTypesFeature.Disabled,
         RecursionFeature.Enabled,
         LoopFeatures.While | LoopFeatures.For,
         ProviderFunctionCallsFeature.Enabled,
@@ -30,6 +31,7 @@ public static class LanguageProfiles
     public static LanguageProfile Version1_1 { get; } = new (
         LanguageVersion.Version1_1,
         UserDefinedFunctionsFeature.Enabled,
+        UserDefinedTypesFeature.Disabled,
         RecursionFeature.Enabled,
         LoopFeatures.While | LoopFeatures.For,
         ProviderFunctionCallsFeature.Enabled,
@@ -50,6 +52,7 @@ public static class LanguageProfiles
     public static LanguageProfile Version1_2 { get; } = new (
         LanguageVersion.Version1_2,
         UserDefinedFunctionsFeature.Enabled,
+        UserDefinedTypesFeature.Enabled,
         RecursionFeature.Enabled,
         LoopFeatures.While | LoopFeatures.For,
         ProviderFunctionCallsFeature.Enabled,

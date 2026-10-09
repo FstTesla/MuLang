@@ -6,6 +6,7 @@ public sealed record LanguageProfile
     /// <summary>Initializes a new instance of the <see cref="LanguageProfile" /> class.</summary>
     /// <param name="languageVersion">The language version.</param>
     /// <param name="userDefinedFunctions">The user-defined functions feature setting.</param>
+    /// <param name="userDefinedTypes">The user-defined types feature setting.</param>
     /// <param name="recursion">The recursion feature setting.</param>
     /// <param name="loops">The loop features.</param>
     /// <param name="providerFunctionCalls">The provider function calls feature setting.</param>
@@ -23,6 +24,7 @@ public sealed record LanguageProfile
     internal LanguageProfile(
         LanguageVersion languageVersion,
         UserDefinedFunctionsFeature userDefinedFunctions,
+        UserDefinedTypesFeature userDefinedTypes,
         RecursionFeature recursion,
         LoopFeatures loops,
         ProviderFunctionCallsFeature providerFunctionCalls,
@@ -39,6 +41,7 @@ public sealed record LanguageProfile
     {
         ValidateLanguageVersion(languageVersion, nameof(languageVersion));
         ValidateDefined(userDefinedFunctions, nameof(userDefinedFunctions));
+        ValidateDefined(userDefinedTypes, nameof(userDefinedTypes));
         ValidateDefined(recursion, nameof(recursion));
         ValidateFlags(loops, LoopFeatures.While | LoopFeatures.For, nameof(loops));
         ValidateDefined(providerFunctionCalls, nameof(providerFunctionCalls));
@@ -64,6 +67,7 @@ public sealed record LanguageProfile
 
         LanguageVersion = languageVersion;
         UserDefinedFunctions = userDefinedFunctions;
+        UserDefinedTypes = userDefinedTypes;
         Recursion = recursion;
         Loops = loops;
         ProviderFunctionCalls = providerFunctionCalls;
@@ -84,6 +88,9 @@ public sealed record LanguageProfile
 
     /// <summary>Gets the user-defined functions feature setting.</summary>
     public UserDefinedFunctionsFeature UserDefinedFunctions { get; }
+
+    /// <summary>Gets the user-defined types feature setting.</summary>
+    public UserDefinedTypesFeature UserDefinedTypes { get; }
 
     /// <summary>Gets the recursion feature setting.</summary>
     public RecursionFeature Recursion { get; }

@@ -69,6 +69,13 @@ Structured object types transported through IR MAY be self-recursive or mutually
 
 Structured object types in IR are purely structural. Lowering MUST erase provider type IDs, language-facing type names, and named-versus-anonymous origin while preserving openness, properties, optionality, capabilities, and recursive edges. Provider symbol IDs and the environment fingerprint remain unchanged.
 
+The same rule applies to source-declared and inline object types. Only shapes
+reachable from lowered function signatures, slots, constants, conversions,
+type tests, object creation, arrays, or nested properties enter the projected
+graph. Unused source declarations do not appear in portable IR, and renaming a
+source declaration without changing a reachable shape does not change the
+projected type graph.
+
 `CreateObject` carries the complete structured object type separately from its
 present property values. Values must be unique, declared or valid additional
 open-object properties, and type-compatible. Every required property must be

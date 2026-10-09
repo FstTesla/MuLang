@@ -60,6 +60,15 @@ public static class DiagnosticCodes
     /// <summary>Gets the code for an incorrectly ordered exception clause.</summary>
     public const string InvalidExceptionClauseOrder = "MUL2014";
 
+    /// <summary>Gets the code for a type declaration disabled by the compilation mode.</summary>
+    public const string TypeDeclarationNotAllowed = "MUL2015";
+
+    /// <summary>Gets the code for a type declaration following a function.</summary>
+    public const string TypeDeclarationAfterFunction = "MUL2016";
+
+    /// <summary>Gets the code for a type declaration following a statement.</summary>
+    public const string TypeDeclarationAfterStatement = "MUL2017";
+
     /// <summary>Gets the code for an undefined name.</summary>
     public const string UndefinedName = "MUL3001";
 
@@ -228,6 +237,15 @@ public static class DiagnosticCodes
     /// <summary>Gets the code for object-literal syntax that conflicts with the selected grammar.</summary>
     public const string ObjectLiteralSyntaxMismatch = "MUL3046";
 
+    /// <summary>Gets the code for a duplicate source type declaration.</summary>
+    public const string DuplicateType = "MUL3049";
+
+    /// <summary>Gets the code for a source type conflicting with a provider type.</summary>
+    public const string TypeConflict = "MUL3050";
+
+    /// <summary>Gets the code for an invalid declared object-property type.</summary>
+    public const string InvalidObjectPropertyType = "MUL3051";
+
     /// <summary>Gets the code for an invalid throw operand.</summary>
     public const string InvalidThrowOperand = "MUL3047";
 
@@ -272,4 +290,10 @@ public static class DiagnosticCodes
 
     /// <summary>Gets the code for disabled source-level exception handling.</summary>
     public const string DisabledExceptionHandling = "MUL7014";
+
+    /// <summary>Gets the code for disabled source type declarations.</summary>
+    public const string DisabledTypeDeclarations = "MUL7015";
+
+    /// <summary>Gets the code for disabled inline object types.</summary>
+    public const string DisabledInlineObjectTypes = "MUL7016";
 }

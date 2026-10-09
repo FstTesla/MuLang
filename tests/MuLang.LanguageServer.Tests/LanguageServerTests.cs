@@ -332,6 +332,58 @@ public sealed class LanguageServerTests
         );
     }
 
+    [TestCase(false, 1)]
+    [TestCase(true, 0)]
+    public async Task ReturnsSourceAndInlineTypeSemanticTokens(
+        bool visualStudio,
+        int declarationModifier
+    )
+    {
+        IReadOnlyList<JsonElement> output = await RunServerAsync(
+            visualStudio,
+            """
+            {"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}
+            """,
+            """
+            {"jsonrpc":"2.0","method":"textDocument/didOpen","params":{"textDocument":{"uri":"file:///test.mu","languageId":"mulang","version":1,"text":"type Node { next?: Node, payload: { value: int } }; var node: Node;"}}}
+            """,
+            """
+            {"jsonrpc":"2.0","id":3,"method":"textDocument/semanticTokens/full","params":{"textDocument":{"uri":"file:///test.mu"}}}
+            """,
+            """
+            {"jsonrpc":"2.0","method":"shutdown","id":2}
+            """,
+            """
+            {"jsonrpc":"2.0","method":"exit"}
+            """
+        );
+        JsonElement response = output.Single(
+            static message =>
+                message.TryGetProperty("id", out JsonElement id) &&
+                id.ValueKind == JsonValueKind.Number &&
+                id.GetInt32() == 3
+        );
+
+        Assert.That(
+            response
+                .GetProperty("result")
+                .GetProperty("data")
+                .EnumerateArray()
+                .Select(static value => value.GetInt32()),
+            Is.EqualTo(
+                [
+                    0, 5, 4, 0, declarationModifier,
+                    0, 7, 4, 4, declarationModifier,
+                    0, 7, 4, 0, 0,
+                    0, 6, 7, 4, declarationModifier,
+                    0, 11, 5, 4, declarationModifier,
+                    0, 20, 4, 3, declarationModifier,
+                    0, 6, 4, 0, 0,
+                ]
+            )
+        );
+    }
+
     [Test]
     public async Task ReturnsEmptySemanticTokensForUnknownDocument()
     {

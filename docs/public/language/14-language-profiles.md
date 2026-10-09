@@ -6,6 +6,7 @@ A language profile selects:
 
 - a language version;
 - whether user-defined functions are enabled;
+- whether user-defined object types are enabled;
 - whether recursion is enabled;
 - which loop forms are enabled;
 - whether calls to host-provided functions are enabled;
@@ -21,19 +22,23 @@ A language profile selects:
 
 Unknown settings and unsupported language versions MUST be rejected. A setting whose prerequisite is disabled remains dormant rather than making the profile invalid.
 
-The standard profile for language version 1 enables user-defined functions, recursion, both loop kinds, calls to host-provided functions, open objects, every mutation kind, explicit loop-control levels, trailing commas, and compile-time constant evaluation. It uses strict Boolean conditions and prohibits variable shadowing.
+The standard profile for language version 1 enables user-defined functions,
+recursion, both loop kinds, calls to host-provided functions, open objects,
+every mutation kind, explicit loop-control levels, trailing commas, and
+compile-time constant evaluation. It disables user-defined object types, uses
+strict Boolean conditions, and prohibits variable shadowing.
 
 The standard profile for language version 1.1 has the same settings and adds read-only array types and literals, binary, octal, and hexadecimal integer literals, and the `infty` and `nan` float literals. These additions are determined by the language version and are not independently configurable.
 
-The standard profile for language version 1.2 has the same settings, enables
-source-level exception handling, and adds the `primitive` abstract type and
-full object-literal property grammar.
+The standard profile for language version 1.2 enables user-defined object
+types and source-level exception handling, and adds the `primitive` abstract
+type and full object-literal property grammar.
 
 Language version 1 rejects `$`, `$[`, and prefixed integer literals and treats `infty` and `nan` as identifiers.
 
-Language versions 1 and 1.1 treat `catch`, `finally`, `primitive`, `throw`, and
-`try` as identifiers and warn that the spellings become reserved in version
-1.2.
+Language versions 1 and 1.1 treat `catch`, `finally`, `primitive`, `throw`,
+`type`, and `try` as identifiers and warn that the spellings become reserved
+in version 1.2.
 
 > For example, this expression is valid in the standard language-version-1.1 profile and rejected as an unavailable feature in language version 1:
 >
@@ -271,6 +276,28 @@ which remains available for host values and portable IR contracts.
 > var failure: error = currentFailure;
 > ```
 
-## 14.12. Feature diagnostics
+## 14.12. User-defined object types
+
+`UserDefinedTypesFeature` controls top-level object type declarations and
+inline object type bodies together. The setting is effective in language
+version 1.2 and dormant in earlier versions, where `type` remains an identifier
+and object bodies are not primary type syntax.
+
+The standard version-1.2 profile enables the feature. A customized profile may
+disable it; declarations and inline bodies still parse and each occurrence
+produces a targeted feature diagnostic rather than unrelated syntax errors.
+Open source and inline types additionally require the open-objects setting.
+
+The configured value contributes to the language-profile fingerprint,
+including while dormant.
+
+> With the feature enabled, this declaration and inline annotation are valid:
+>
+> ```text
+> type Named { value: int };
+> var value: { value: int } = { value: int = 1 };
+> ```
+
+## 14.13. Feature diagnostics
 
 Use of syntax or behavior disabled by the selected profile is a compile-time error.

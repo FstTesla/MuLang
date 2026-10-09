@@ -66,6 +66,7 @@ Language version 1.2 additionally reserves:
 - `finally`
 - `primitive`
 - `throw`
+- `type`
 - `try`
 
 When compiling an earlier language version, each identifier occurrence whose spelling becomes reserved in a later supported version produces a warning while remaining an identifier.

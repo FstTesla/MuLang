@@ -1,1 +1,9 @@
 #nullable enable
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.DisabledInlineObjectTypes = "MUL7016" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.DisabledTypeDeclarations = "MUL7015" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.DuplicateType = "MUL3049" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.InvalidObjectPropertyType = "MUL3051" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.TypeConflict = "MUL3050" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.TypeDeclarationAfterFunction = "MUL2016" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.TypeDeclarationAfterStatement = "MUL2017" -> string!
+const MuLang.Compiler.Diagnostics.DiagnosticCodes.TypeDeclarationNotAllowed = "MUL2015" -> string!

@@ -8,13 +8,10 @@ types, and MuIR 2 adds well-known diagnostic attributes.
 
 ## Sequence
 
-1. **Complete the MuLang `1.2` object model.** Stabilize the existing
-   `0.3.0` prerelease features and complete user-defined object declarations
-   and inline object types in
-   [the implementation plan](user-defined-object-types.plan.md), building on
-   the completed read-only and optional object-property model. Validate
-   compiler, profile, runtime, IR projection, language-server, and
-   documentation behavior.
+1. **Complete the MuLang `1.2` object model.** Completed for
+   `0.3.0-alpha.6`: source-declared and inline structural object types now
+   build on the read-only and optional object-property model across compiler,
+   profile, IR projection, language-server, VSIX, and specification surfaces.
 2. **Add well-known IR attributes to MuIR 2.** Follow
    [the IR attributes plan](ir-attributes.plan.md), preserving MuIR 1
    compatibility. Keep attributes non-semantic and ensure type names survive

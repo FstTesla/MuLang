@@ -11,6 +11,7 @@ internal static class LanguageProfileFingerprintFactory
         StringBuilder canonical = new ();
         Append(canonical, "LanguageVersion", profile.LanguageVersion);
         Append(canonical, "UserDefinedFunctions", profile.UserDefinedFunctions);
+        Append(canonical, "UserDefinedTypes", profile.UserDefinedTypes);
         Append(canonical, "Recursion", profile.Recursion);
         Append(canonical, "Loops", profile.Loops);
         Append(canonical, "ProviderFunctionCalls", profile.ProviderFunctionCalls);
