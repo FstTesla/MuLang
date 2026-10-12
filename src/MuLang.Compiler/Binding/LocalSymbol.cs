@@ -1,3 +1,4 @@
+using MuLang.Core.Text;
 using MuLang.Core.Types;
 
 namespace MuLang.Compiler.Binding;
@@ -9,15 +10,19 @@ internal sealed class LocalSymbol : BoundVariableSymbol
         TypeSymbol type,
         int slot,
         bool isReadOnly,
-        int declarationLoopDepth
+        int declarationLoopDepth,
+        TextSpan? declarationSpan
     )
         : base(name, type, slot)
     {
         IsReadOnly = isReadOnly;
         DeclarationLoopDepth = declarationLoopDepth;
+        DeclarationSpan = declarationSpan;
     }
 
     public bool IsReadOnly { get; }
 
     public int DeclarationLoopDepth { get; }
+
+    public TextSpan? DeclarationSpan { get; }
 }

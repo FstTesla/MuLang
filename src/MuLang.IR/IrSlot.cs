@@ -65,6 +65,7 @@ public sealed record IrSlot
         int Id,
         IrSlotKind Kind,
         TypeSymbol Type,
+        // ReSharper disable once UnusedParameter.Local
         string? Name,
         IrSlotMutability Mutability,
         int LifetimeRegion
@@ -81,6 +82,7 @@ public sealed record IrSlot
         int Id,
         IrSlotKind Kind,
         TypeSymbol Type,
+        // ReSharper disable once UnusedParameter.Local
         string? Name
     )
         : this(
@@ -91,7 +93,8 @@ public sealed record IrSlot
                 ? IrSlotMutability.ReadOnly
                 : IrSlotMutability.Mutable,
             0
-        ) { }
+        )
+    { }
 
     /// <summary>Initializes a new instance of the <see cref="IrSlot" /> class with explicit mutability. The <paramref name="name" /> value is ignored.</summary>
     /// <param name="id">The slot identifier within the function.</param>
@@ -104,6 +107,7 @@ public sealed record IrSlot
         int id,
         IrSlotKind kind,
         TypeSymbol type,
+        // ReSharper disable once UnusedParameter.Local
         string? name,
         IrSlotMutability mutability
     )

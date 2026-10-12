@@ -361,7 +361,14 @@ internal sealed class Binder
                     );
                 }
 
-                parameters.Add(new UserParameterSymbol(parameterName, parameterType, index));
+                parameters.Add(
+                    new UserParameterSymbol(
+                        parameterName,
+                        parameterType,
+                        index,
+                        parameter.Span
+                    )
+                );
             }
 
             TypeSymbol returnType = BindType(declaration.ReturnType);
@@ -542,7 +549,8 @@ internal sealed class Binder
             localType,
             nextLocalSlot++,
             syntax.IsReadOnly,
-            loopDepth
+            loopDepth,
+            syntax.DeclarationSpan
         );
         bool hasCurrentLocal = scope.ContainsVariable(name);
         bool hasVisibleLocal = scope.TryLookup(name, out _);
@@ -1347,7 +1355,8 @@ internal sealed class Binder
                 TypeSymbols.ErrorValue,
                 nextLocalSlot++,
                 true,
-                loopDepth
+                loopDepth,
+                handlerSyntax.ParameterSpan
             );
             handlerState.Assigned.Add(errorLocal);
             handlerState.PossiblyAssigned.Add(errorLocal);

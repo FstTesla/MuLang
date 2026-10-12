@@ -183,11 +183,11 @@ ordinal order.
 | `declaration-span` | function or slot | one source span | zero or one per target |
 | `source-type-names` | type | a non-empty string list | zero or one |
 
-The first implementation MAY omit `source-document` and declaration spans if
-the compiler does not yet have a stable document identity or exact declaration
-span at the relevant lowering boundary. The model and wire definitions should
-still reserve their standard payloads so adding compiler population does not
-require another format version.
+The compiler leaves `source-document` absent because compilation currently has
+no stable document identity. It emits `declaration-span` for complete function
+declarations, complete function-parameter declarations, explicit catch
+parameters, and local declarations through their name, read-only modifier, and
+type annotation while excluding any `=` token and initializer expression.
 
 Names are Unicode strings and use the ordinary MuIR string rules. The reader
 MUST reject empty or whitespace-only values for source names, qualified names,

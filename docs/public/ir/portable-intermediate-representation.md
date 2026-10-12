@@ -87,6 +87,12 @@ and projected types. Attributes may preserve source names, qualified function
 names, declaration spans, referenced provider-symbol names, and ordered type
 aliases.
 
+Compiler-produced declaration spans cover the complete function declaration,
+the complete function-parameter declaration, or the explicit catch parameter.
+A local-variable declaration span ends after its name, read-only modifier, or
+type annotation and excludes any initializer assignment and expression. The
+compiler does not currently emit a source-document attribute.
+
 Attributes are non-semantic. Removing every attribute MUST NOT change
 validation of executable structure, environment compatibility, type identity
 or assignability, control flow, dispatch, runtime conformance, cancellation,

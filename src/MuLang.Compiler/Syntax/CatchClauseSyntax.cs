@@ -10,6 +10,16 @@ internal sealed record CatchClauseSyntax(
     BlockStatementSyntax Body
 ) : SyntaxNode
 {
+    public TextSpan? ParameterSpan =>
+        OpenParenthesisToken is not null &&
+        IdentifierToken is not null &&
+        CloseParenthesisToken is not null
+            ? TextSpan.FromBounds(
+                OpenParenthesisToken.Span.Start,
+                CloseParenthesisToken.Span.End
+            )
+            : null;
+
     public override TextSpan Span => TextSpan.FromBounds(
         CatchKeyword.Span.Start,
         Body.Span.End

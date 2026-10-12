@@ -1,3 +1,4 @@
+using MuLang.Core.Text;
 using MuLang.IR;
 
 namespace MuLang.Compiler.Lowering;
@@ -16,15 +17,28 @@ internal sealed class IrAttributeBuilder
     private readonly IDictionary<string, string> providerFunctions =
         new Dictionary<string, string>(StringComparer.Ordinal);
 
-    public void AddFunction(string functionId, string sourceName)
+    public void AddFunction(
+        string functionId,
+        string sourceName,
+        TextSpan declarationSpan
+    )
     {
-        functions[functionId] = new IrFunctionAttributes(sourceName, null, null);
+        functions[functionId] = new IrFunctionAttributes(
+            sourceName,
+            null,
+            declarationSpan
+        );
     }
 
-    public void AddSlot(string functionId, int slotId, string sourceName)
+    public void AddSlot(
+        string functionId,
+        int slotId,
+        string sourceName,
+        TextSpan declarationSpan
+    )
     {
         slots[new IrSlotAttributeTarget(functionId, slotId)] =
-            new IrSlotAttributes(sourceName, null);
+            new IrSlotAttributes(sourceName, declarationSpan);
     }
 
     public void AddProviderGlobal(string id, string name)
@@ -70,7 +84,7 @@ internal sealed class IrAttributeBuilder
             program,
             functions,
             slots,
-            [ ]
+            []
         );
     }
 }

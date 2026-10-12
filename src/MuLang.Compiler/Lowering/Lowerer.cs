@@ -140,7 +140,8 @@ internal sealed class Lowerer
         currentFunctionId = function.Symbol.Id;
         attributeBuilder.AddFunction(
             function.Symbol.Id,
-            function.Symbol.Name
+            function.Symbol.Name,
+            function.Symbol.Declaration.Span
         );
 
         foreach (UserParameterSymbol parameter in function.Symbol.Parameters)
@@ -153,7 +154,8 @@ internal sealed class Lowerer
             attributeBuilder.AddSlot(
                 currentFunctionId,
                 slot,
-                parameter.Name
+                parameter.Name,
+                parameter.DeclarationSpan
             );
         }
 
@@ -347,11 +349,16 @@ internal sealed class Lowerer
             if (statement.ErrorLocal is { } errorLocal)
             {
                 localSlots.Add(errorLocal, errorSlot);
-                attributeBuilder.AddSlot(
-                    currentFunctionId,
-                    errorSlot,
-                    errorLocal.Name
-                );
+
+                if (errorLocal.DeclarationSpan is { } declarationSpan)
+                {
+                    attributeBuilder.AddSlot(
+                        currentFunctionId,
+                        errorSlot,
+                        errorLocal.Name,
+                        declarationSpan
+                    );
+                }
             }
 
             builder.SwitchTo(handlerEntry);
@@ -1314,7 +1321,15 @@ internal sealed class Lowerer
             mutability
         );
         localSlots.Add(local, slot);
-        attributeBuilder.AddSlot(currentFunctionId, slot, local.Name);
+        attributeBuilder.AddSlot(
+            currentFunctionId,
+            slot,
+            local.Name,
+            local.DeclarationSpan ??
+            throw new InvalidOperationException(
+                $"Source local '{local.Name}' has no declaration span."
+            )
+        );
 
         return slot;
     }

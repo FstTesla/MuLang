@@ -15,6 +15,13 @@ internal sealed record VariableDeclarationStatementSyntax(
 {
     public bool IsReadOnly => DollarToken is not null;
 
+    public TextSpan DeclarationSpan => TextSpan.FromBounds(
+        VarKeyword.Span.Start,
+        Type?.Span.End ??
+        DollarToken?.Span.End ??
+        IdentifierToken.Span.End
+    );
+
     public override TextSpan Span
     {
         get
