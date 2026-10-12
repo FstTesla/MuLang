@@ -76,6 +76,7 @@ MuLang.Core.LanguageProfile.Recursion.get -> MuLang.Core.RecursionFeature
 MuLang.Core.LanguageProfile.Shadowing.get -> MuLang.Core.ShadowingPolicy
 MuLang.Core.LanguageProfile.TrailingCommas.get -> MuLang.Core.TrailingCommasFeature
 MuLang.Core.LanguageProfile.UserDefinedFunctions.get -> MuLang.Core.UserDefinedFunctionsFeature
+MuLang.Core.LanguageProfile.UserDefinedTypes.get -> MuLang.Core.UserDefinedTypesFeature
 MuLang.Core.LanguageProfileBuilder
 MuLang.Core.LanguageProfileBuilder.Build() -> MuLang.Core.LanguageProfile!
 MuLang.Core.LanguageProfileBuilder.DisableLoops(MuLang.Core.LoopFeatures loops) -> MuLang.Core.LanguageProfileBuilder!
@@ -100,6 +101,7 @@ MuLang.Core.LanguageProfileBuilder.WithRecursion(MuLang.Core.RecursionFeature re
 MuLang.Core.LanguageProfileBuilder.WithShadowing(MuLang.Core.ShadowingPolicy shadowing) -> MuLang.Core.LanguageProfileBuilder!
 MuLang.Core.LanguageProfileBuilder.WithTrailingCommas(MuLang.Core.TrailingCommasFeature trailingCommas) -> MuLang.Core.LanguageProfileBuilder!
 MuLang.Core.LanguageProfileBuilder.WithUserDefinedFunctions(MuLang.Core.UserDefinedFunctionsFeature userDefinedFunctions) -> MuLang.Core.LanguageProfileBuilder!
+MuLang.Core.LanguageProfileBuilder.WithUserDefinedTypes(MuLang.Core.UserDefinedTypesFeature userDefinedTypes) -> MuLang.Core.LanguageProfileBuilder!
 MuLang.Core.LanguageProfileFingerprint
 MuLang.Core.LanguageProfileFingerprint.<Clone>$() -> MuLang.Core.LanguageProfileFingerprint!
 MuLang.Core.LanguageProfileFingerprint.Equals(MuLang.Core.LanguageProfileFingerprint? other) -> bool
@@ -179,8 +181,10 @@ MuLang.Core.Runtime.RuntimeErrorData.Value.get -> object?
 MuLang.Core.Runtime.RuntimeErrorData.Value.init -> void
 MuLang.Core.Runtime.RuntimeStackFrame
 MuLang.Core.Runtime.RuntimeStackFrame.CallSpan.get -> MuLang.Core.Text.TextSpan
+MuLang.Core.Runtime.RuntimeStackFrame.DisplayName.get -> string!
 MuLang.Core.Runtime.RuntimeStackFrame.FunctionId.get -> string!
 MuLang.Core.Runtime.RuntimeStackFrame.RuntimeStackFrame(string! functionId, MuLang.Core.Text.TextSpan callSpan) -> void
+MuLang.Core.Runtime.RuntimeStackFrame.RuntimeStackFrame(string! functionId, MuLang.Core.Text.TextSpan callSpan, string? displayName) -> void
 MuLang.Core.ShadowingPolicy
 MuLang.Core.ShadowingPolicy.Globals = 2 -> MuLang.Core.ShadowingPolicy
 MuLang.Core.ShadowingPolicy.NestedScopes = 1 -> MuLang.Core.ShadowingPolicy
@@ -284,6 +288,9 @@ MuLang.Core.Types.TypeSymbols
 MuLang.Core.UserDefinedFunctionsFeature
 MuLang.Core.UserDefinedFunctionsFeature.Disabled = 0 -> MuLang.Core.UserDefinedFunctionsFeature
 MuLang.Core.UserDefinedFunctionsFeature.Enabled = 1 -> MuLang.Core.UserDefinedFunctionsFeature
+MuLang.Core.UserDefinedTypesFeature
+MuLang.Core.UserDefinedTypesFeature.Disabled = 0 -> MuLang.Core.UserDefinedTypesFeature
+MuLang.Core.UserDefinedTypesFeature.Enabled = 1 -> MuLang.Core.UserDefinedTypesFeature
 abstract MuLang.Core.Types.TypeSymbol.DisplayName.get -> string!
 override MuLang.Core.Diagnostics.Diagnostic.Equals(object? obj) -> bool
 override MuLang.Core.Diagnostics.Diagnostic.GetHashCode() -> int

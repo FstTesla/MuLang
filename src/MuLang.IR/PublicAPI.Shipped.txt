@@ -1,4 +1,13 @@
 #nullable enable
+MuLang.IR.IrAttributeCollection
+MuLang.IR.IrAttributeCollection.Functions.get -> System.Collections.Generic.IReadOnlyDictionary<string!, MuLang.IR.IrFunctionAttributes!>!
+MuLang.IR.IrAttributeCollection.IrAttributeCollection(MuLang.IR.IrProgramAttributes? program, System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string!, MuLang.IR.IrFunctionAttributes!>>! functions, System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<MuLang.IR.IrSlotAttributeTarget, MuLang.IR.IrSlotAttributes!>>! slots, System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<MuLang.Core.Types.TypeSymbol!, MuLang.IR.IrTypeAttributes!>>! types) -> void
+MuLang.IR.IrAttributeCollection.Program.get -> MuLang.IR.IrProgramAttributes?
+MuLang.IR.IrAttributeCollection.Slots.get -> System.Collections.Generic.IReadOnlyDictionary<MuLang.IR.IrSlotAttributeTarget, MuLang.IR.IrSlotAttributes!>!
+MuLang.IR.IrAttributeCollection.TryGetFunction(string! functionId, out MuLang.IR.IrFunctionAttributes? attributes) -> bool
+MuLang.IR.IrAttributeCollection.TryGetSlot(string! functionId, int slotId, out MuLang.IR.IrSlotAttributes? attributes) -> bool
+MuLang.IR.IrAttributeCollection.TryGetType(MuLang.Core.Types.TypeSymbol! type, out MuLang.IR.IrTypeAttributes? attributes) -> bool
+MuLang.IR.IrAttributeCollection.Types.get -> System.Collections.Generic.IReadOnlyDictionary<MuLang.Core.Types.TypeSymbol!, MuLang.IR.IrTypeAttributes!>!
 MuLang.IR.IrBasicBlock
 MuLang.IR.IrBasicBlock.<Clone>$() -> MuLang.IR.IrBasicBlock!
 MuLang.IR.IrBasicBlock.Deconstruct(out int Id, out System.Collections.Generic.IReadOnlyCollection<MuLang.IR.IrInstruction!>! Instructions, out MuLang.IR.IrTerminator! Terminator) -> void
@@ -37,6 +46,7 @@ MuLang.IR.IrConversionKind
 MuLang.IR.IrConversionKind.CheckedCast = 1 -> MuLang.IR.IrConversionKind
 MuLang.IR.IrConversionKind.ValueConversion = 0 -> MuLang.IR.IrConversionKind
 MuLang.IR.IrDiagnosticCodes
+MuLang.IR.IrDiagnosticNameResolver
 MuLang.IR.IrExceptionCleanup
 MuLang.IR.IrExceptionCleanup.<Clone>$() -> MuLang.IR.IrExceptionCleanup!
 MuLang.IR.IrExceptionCleanup.Blocks.get -> System.Collections.Generic.IReadOnlyCollection<int>!
@@ -109,6 +119,17 @@ MuLang.IR.IrFunction.ReturnType.get -> MuLang.Core.Types.TypeSymbol!
 MuLang.IR.IrFunction.ReturnType.init -> void
 MuLang.IR.IrFunction.Slots.get -> System.Collections.Generic.IReadOnlyList<MuLang.IR.IrSlot!>!
 MuLang.IR.IrFunction.Slots.init -> void
+MuLang.IR.IrFunctionAttributes
+MuLang.IR.IrFunctionAttributes.<Clone>$() -> MuLang.IR.IrFunctionAttributes!
+MuLang.IR.IrFunctionAttributes.DeclarationSpan.get -> MuLang.Core.Text.TextSpan?
+MuLang.IR.IrFunctionAttributes.DeclarationSpan.init -> void
+MuLang.IR.IrFunctionAttributes.Deconstruct(out string? SourceName, out string? QualifiedSourceName, out MuLang.Core.Text.TextSpan? DeclarationSpan) -> void
+MuLang.IR.IrFunctionAttributes.Equals(MuLang.IR.IrFunctionAttributes? other) -> bool
+MuLang.IR.IrFunctionAttributes.IrFunctionAttributes(string? SourceName, string? QualifiedSourceName, MuLang.Core.Text.TextSpan? DeclarationSpan) -> void
+MuLang.IR.IrFunctionAttributes.QualifiedSourceName.get -> string?
+MuLang.IR.IrFunctionAttributes.QualifiedSourceName.init -> void
+MuLang.IR.IrFunctionAttributes.SourceName.get -> string?
+MuLang.IR.IrFunctionAttributes.SourceName.init -> void
 MuLang.IR.IrInstruction
 MuLang.IR.IrInstruction.Binary
 MuLang.IR.IrInstruction.Binary.Binary(MuLang.Core.Text.TextSpan Span, int Destination, MuLang.IR.IrBinaryOperator Operator, int Left, int Right) -> void
@@ -343,6 +364,8 @@ MuLang.IR.IrLifetimeRegion.ParentRegion.get -> int?
 MuLang.IR.IrLifetimeRegion.ParentRegion.init -> void
 MuLang.IR.IrProgram
 MuLang.IR.IrProgram.<Clone>$() -> MuLang.IR.IrProgram!
+MuLang.IR.IrProgram.Attributes.get -> MuLang.IR.IrAttributeCollection!
+MuLang.IR.IrProgram.Attributes.init -> void
 MuLang.IR.IrProgram.Blocks.get -> System.Collections.Generic.IReadOnlyList<MuLang.IR.IrBasicBlock!>!
 MuLang.IR.IrProgram.CompilationMode.get -> MuLang.Core.CompilationMode
 MuLang.IR.IrProgram.CompilationMode.init -> void
@@ -360,8 +383,29 @@ MuLang.IR.IrProgram.ResultType.get -> MuLang.Core.Types.TypeSymbol!
 MuLang.IR.IrProgram.Slots.get -> System.Collections.Generic.IReadOnlyList<MuLang.IR.IrSlot!>!
 MuLang.IR.IrProgram.UserFunctions.get -> System.Collections.Generic.IReadOnlyList<MuLang.IR.IrFunction!>!
 MuLang.IR.IrProgram.UserFunctions.init -> void
+MuLang.IR.IrProgramAttributes
+MuLang.IR.IrProgramAttributes.<Clone>$() -> MuLang.IR.IrProgramAttributes!
+MuLang.IR.IrProgramAttributes.Deconstruct(out string? SourceDocument, out System.Collections.Generic.IReadOnlyList<MuLang.IR.IrProviderSymbolName!>! ProviderGlobalNames, out System.Collections.Generic.IReadOnlyList<MuLang.IR.IrProviderSymbolName!>! ProviderFunctionNames) -> void
+MuLang.IR.IrProgramAttributes.Equals(MuLang.IR.IrProgramAttributes? other) -> bool
+MuLang.IR.IrProgramAttributes.IrProgramAttributes(string? SourceDocument, System.Collections.Generic.IReadOnlyList<MuLang.IR.IrProviderSymbolName!>! ProviderGlobalNames, System.Collections.Generic.IReadOnlyList<MuLang.IR.IrProviderSymbolName!>! ProviderFunctionNames) -> void
+MuLang.IR.IrProgramAttributes.ProviderFunctionNames.get -> System.Collections.Generic.IReadOnlyList<MuLang.IR.IrProviderSymbolName!>!
+MuLang.IR.IrProgramAttributes.ProviderFunctionNames.init -> void
+MuLang.IR.IrProgramAttributes.ProviderGlobalNames.get -> System.Collections.Generic.IReadOnlyList<MuLang.IR.IrProviderSymbolName!>!
+MuLang.IR.IrProgramAttributes.ProviderGlobalNames.init -> void
+MuLang.IR.IrProgramAttributes.SourceDocument.get -> string?
+MuLang.IR.IrProgramAttributes.SourceDocument.init -> void
+MuLang.IR.IrProviderSymbolName
+MuLang.IR.IrProviderSymbolName.<Clone>$() -> MuLang.IR.IrProviderSymbolName!
+MuLang.IR.IrProviderSymbolName.Deconstruct(out string! Id, out string! Name) -> void
+MuLang.IR.IrProviderSymbolName.Equals(MuLang.IR.IrProviderSymbolName? other) -> bool
+MuLang.IR.IrProviderSymbolName.Id.get -> string!
+MuLang.IR.IrProviderSymbolName.Id.init -> void
+MuLang.IR.IrProviderSymbolName.IrProviderSymbolName(string! Id, string! Name) -> void
+MuLang.IR.IrProviderSymbolName.Name.get -> string!
+MuLang.IR.IrProviderSymbolName.Name.init -> void
 MuLang.IR.IrSlot
 MuLang.IR.IrSlot.<Clone>$() -> MuLang.IR.IrSlot!
+MuLang.IR.IrSlot.Deconstruct(out int Id, out MuLang.IR.IrSlotKind Kind, out MuLang.Core.Types.TypeSymbol! Type, out MuLang.IR.IrSlotMutability Mutability, out int LifetimeRegion) -> void
 MuLang.IR.IrSlot.Deconstruct(out int Id, out MuLang.IR.IrSlotKind Kind, out MuLang.Core.Types.TypeSymbol! Type, out string? Name) -> void
 MuLang.IR.IrSlot.Deconstruct(out int Id, out MuLang.IR.IrSlotKind Kind, out MuLang.Core.Types.TypeSymbol! Type, out string? Name, out MuLang.IR.IrSlotMutability Mutability, out int LifetimeRegion) -> void
 MuLang.IR.IrSlot.Equals(MuLang.IR.IrSlot? other) -> bool
@@ -369,6 +413,7 @@ MuLang.IR.IrSlot.Id.get -> int
 MuLang.IR.IrSlot.Id.init -> void
 MuLang.IR.IrSlot.IrSlot(int Id, MuLang.IR.IrSlotKind Kind, MuLang.Core.Types.TypeSymbol! Type, string? Name) -> void
 MuLang.IR.IrSlot.IrSlot(int Id, MuLang.IR.IrSlotKind Kind, MuLang.Core.Types.TypeSymbol! Type, string? Name, MuLang.IR.IrSlotMutability Mutability, int LifetimeRegion) -> void
+MuLang.IR.IrSlot.IrSlot(int id, MuLang.IR.IrSlotKind kind, MuLang.Core.Types.TypeSymbol! type, MuLang.IR.IrSlotMutability mutability, int lifetimeRegion) -> void
 MuLang.IR.IrSlot.IrSlot(int id, MuLang.IR.IrSlotKind kind, MuLang.Core.Types.TypeSymbol! type, string? name, MuLang.IR.IrSlotMutability mutability) -> void
 MuLang.IR.IrSlot.Kind.get -> MuLang.IR.IrSlotKind
 MuLang.IR.IrSlot.Kind.init -> void
@@ -380,6 +425,24 @@ MuLang.IR.IrSlot.Name.get -> string?
 MuLang.IR.IrSlot.Name.init -> void
 MuLang.IR.IrSlot.Type.get -> MuLang.Core.Types.TypeSymbol!
 MuLang.IR.IrSlot.Type.init -> void
+MuLang.IR.IrSlotAttributeTarget
+MuLang.IR.IrSlotAttributeTarget.Deconstruct(out string! FunctionId, out int SlotId) -> void
+MuLang.IR.IrSlotAttributeTarget.Equals(MuLang.IR.IrSlotAttributeTarget other) -> bool
+MuLang.IR.IrSlotAttributeTarget.FunctionId.get -> string!
+MuLang.IR.IrSlotAttributeTarget.FunctionId.init -> void
+MuLang.IR.IrSlotAttributeTarget.IrSlotAttributeTarget() -> void
+MuLang.IR.IrSlotAttributeTarget.IrSlotAttributeTarget(string! FunctionId, int SlotId) -> void
+MuLang.IR.IrSlotAttributeTarget.SlotId.get -> int
+MuLang.IR.IrSlotAttributeTarget.SlotId.init -> void
+MuLang.IR.IrSlotAttributes
+MuLang.IR.IrSlotAttributes.<Clone>$() -> MuLang.IR.IrSlotAttributes!
+MuLang.IR.IrSlotAttributes.DeclarationSpan.get -> MuLang.Core.Text.TextSpan?
+MuLang.IR.IrSlotAttributes.DeclarationSpan.init -> void
+MuLang.IR.IrSlotAttributes.Deconstruct(out string? SourceName, out MuLang.Core.Text.TextSpan? DeclarationSpan) -> void
+MuLang.IR.IrSlotAttributes.Equals(MuLang.IR.IrSlotAttributes? other) -> bool
+MuLang.IR.IrSlotAttributes.IrSlotAttributes(string? SourceName, MuLang.Core.Text.TextSpan? DeclarationSpan) -> void
+MuLang.IR.IrSlotAttributes.SourceName.get -> string?
+MuLang.IR.IrSlotAttributes.SourceName.init -> void
 MuLang.IR.IrSlotKind
 MuLang.IR.IrSlotKind.Local = 1 -> MuLang.IR.IrSlotKind
 MuLang.IR.IrSlotKind.Parameter = 0 -> MuLang.IR.IrSlotKind
@@ -425,6 +488,13 @@ MuLang.IR.IrTerminator.Throw.Equals(MuLang.IR.IrTerminator.Throw? other) -> bool
 MuLang.IR.IrTerminator.Throw.Error.get -> int
 MuLang.IR.IrTerminator.Throw.Error.init -> void
 MuLang.IR.IrTerminator.Throw.Throw(MuLang.Core.Text.TextSpan Span, int Error) -> void
+MuLang.IR.IrTypeAttributes
+MuLang.IR.IrTypeAttributes.<Clone>$() -> MuLang.IR.IrTypeAttributes!
+MuLang.IR.IrTypeAttributes.Deconstruct(out System.Collections.Generic.IReadOnlyList<string!>! SourceNames) -> void
+MuLang.IR.IrTypeAttributes.Equals(MuLang.IR.IrTypeAttributes? other) -> bool
+MuLang.IR.IrTypeAttributes.IrTypeAttributes(System.Collections.Generic.IReadOnlyList<string!>! SourceNames) -> void
+MuLang.IR.IrTypeAttributes.SourceNames.get -> System.Collections.Generic.IReadOnlyList<string!>!
+MuLang.IR.IrTypeAttributes.SourceNames.init -> void
 MuLang.IR.IrUnaryOperator
 MuLang.IR.IrUnaryOperator.BitwiseNot = 3 -> MuLang.IR.IrUnaryOperator
 MuLang.IR.IrUnaryOperator.Identity = 0 -> MuLang.IR.IrUnaryOperator
@@ -447,6 +517,10 @@ MuLang.IR.Serialization.MuIrReadResult.Program.get -> MuLang.IR.IrProgram?
 MuLang.IR.Serialization.MuIrReadResult.Success.get -> bool
 MuLang.IR.Serialization.MuIrReader
 MuLang.IR.Serialization.MuIrReaderOptions
+MuLang.IR.Serialization.MuIrReaderOptions.MaximumAttributes.get -> int
+MuLang.IR.Serialization.MuIrReaderOptions.MaximumAttributes.init -> void
+MuLang.IR.Serialization.MuIrReaderOptions.MaximumAttributesPerTarget.get -> int
+MuLang.IR.Serialization.MuIrReaderOptions.MaximumAttributesPerTarget.init -> void
 MuLang.IR.Serialization.MuIrReaderOptions.MaximumBlocksPerFunction.get -> int
 MuLang.IR.Serialization.MuIrReaderOptions.MaximumDiagnostics.get -> int
 MuLang.IR.Serialization.MuIrReaderOptions.MaximumDocumentLength.get -> int
@@ -457,11 +531,17 @@ MuLang.IR.Serialization.MuIrReaderOptions.MaximumInstructionsPerBlock.get -> int
 MuLang.IR.Serialization.MuIrReaderOptions.MaximumLifetimeRegionsPerFunction.get -> int
 MuLang.IR.Serialization.MuIrReaderOptions.MaximumLifetimeRegionsPerFunction.init -> void
 MuLang.IR.Serialization.MuIrReaderOptions.MaximumListElements.get -> int
+MuLang.IR.Serialization.MuIrReaderOptions.MaximumProviderSymbolNameMappings.get -> int
+MuLang.IR.Serialization.MuIrReaderOptions.MaximumProviderSymbolNameMappings.init -> void
 MuLang.IR.Serialization.MuIrReaderOptions.MaximumSlotsPerFunction.get -> int
+MuLang.IR.Serialization.MuIrReaderOptions.MaximumSourceTypeNamesPerType.get -> int
+MuLang.IR.Serialization.MuIrReaderOptions.MaximumSourceTypeNamesPerType.init -> void
 MuLang.IR.Serialization.MuIrReaderOptions.MaximumStringLength.get -> int
 MuLang.IR.Serialization.MuIrReaderOptions.MaximumTokenLength.get -> int
 MuLang.IR.Serialization.MuIrReaderOptions.MaximumTypeNestingDepth.get -> int
 MuLang.IR.Serialization.MuIrReaderOptions.MaximumTypes.get -> int
+MuLang.IR.Serialization.MuIrReaderOptions.MaximumUnknownAttributePayloadTokens.get -> int
+MuLang.IR.Serialization.MuIrReaderOptions.MaximumUnknownAttributePayloadTokens.init -> void
 MuLang.IR.Serialization.MuIrReaderOptions.MuIrReaderOptions(int maximumDocumentLength = 16777216, int maximumStringLength = 1048576, int maximumTokenLength = 1048576, int maximumTypeNestingDepth = 64, int maximumTypes = 10000, int maximumFunctions = 1000, int maximumSlotsPerFunction = 100000, int maximumBlocksPerFunction = 100000, int maximumInstructionsPerBlock = 100000, int maximumListElements = 100000, int maximumDiagnostics = 100) -> void
 MuLang.IR.Serialization.MuIrSerializationException
 MuLang.IR.Serialization.MuIrSerializationException.MuIrSerializationException(string! message) -> void
@@ -471,6 +551,7 @@ abstract MuLang.IR.IrInstruction.<Clone>$() -> MuLang.IR.IrInstruction!
 abstract MuLang.IR.IrTerminator.<Clone>$() -> MuLang.IR.IrTerminator!
 const MuLang.IR.IrDiagnosticCodes.CompilationMetadataMismatch = "MUL5008" -> string!
 const MuLang.IR.IrDiagnosticCodes.EnvironmentMismatch = "MUL5006" -> string!
+const MuLang.IR.IrDiagnosticCodes.InvalidAttributes = "MUL5009" -> string!
 const MuLang.IR.IrDiagnosticCodes.InvalidSlot = "MUL5002" -> string!
 const MuLang.IR.IrDiagnosticCodes.InvalidStructure = "MUL5001" -> string!
 const MuLang.IR.IrDiagnosticCodes.TypeMismatch = "MUL5003" -> string!
@@ -478,6 +559,7 @@ const MuLang.IR.IrDiagnosticCodes.UndefinedProviderSymbol = "MUL5004" -> string!
 const MuLang.IR.IrDiagnosticCodes.UndefinedUserFunction = "MUL5007" -> string!
 const MuLang.IR.IrDiagnosticCodes.UseBeforeDefinition = "MUL5005" -> string!
 const MuLang.IR.Serialization.MuIrDiagnosticCodes.DuplicateDeclaration = "MUIR0008" -> string!
+const MuLang.IR.Serialization.MuIrDiagnosticCodes.InvalidAttribute = "MUIR0020" -> string!
 const MuLang.IR.Serialization.MuIrDiagnosticCodes.InvalidEscape = "MUIR0005" -> string!
 const MuLang.IR.Serialization.MuIrDiagnosticCodes.InvalidInstruction = "MUIR0013" -> string!
 const MuLang.IR.Serialization.MuIrDiagnosticCodes.InvalidMagic = "MUIR0001" -> string!
@@ -514,6 +596,9 @@ override MuLang.IR.IrExceptionRegion.ToString() -> string!
 override MuLang.IR.IrFunction.Equals(object? obj) -> bool
 override MuLang.IR.IrFunction.GetHashCode() -> int
 override MuLang.IR.IrFunction.ToString() -> string!
+override MuLang.IR.IrFunctionAttributes.Equals(object? obj) -> bool
+override MuLang.IR.IrFunctionAttributes.GetHashCode() -> int
+override MuLang.IR.IrFunctionAttributes.ToString() -> string!
 override MuLang.IR.IrInstruction.Binary.<Clone>$() -> MuLang.IR.IrInstruction.Binary!
 override MuLang.IR.IrInstruction.Binary.Equals(object? obj) -> bool
 override MuLang.IR.IrInstruction.Binary.GetHashCode() -> int
@@ -606,9 +691,19 @@ override MuLang.IR.IrLifetimeRegion.ToString() -> string!
 override MuLang.IR.IrProgram.Equals(object? obj) -> bool
 override MuLang.IR.IrProgram.GetHashCode() -> int
 override MuLang.IR.IrProgram.ToString() -> string!
+override MuLang.IR.IrProgramAttributes.Equals(object? obj) -> bool
+override MuLang.IR.IrProgramAttributes.GetHashCode() -> int
+override MuLang.IR.IrProgramAttributes.ToString() -> string!
+override MuLang.IR.IrProviderSymbolName.Equals(object? obj) -> bool
+override MuLang.IR.IrProviderSymbolName.GetHashCode() -> int
+override MuLang.IR.IrProviderSymbolName.ToString() -> string!
 override MuLang.IR.IrSlot.Equals(object? obj) -> bool
 override MuLang.IR.IrSlot.GetHashCode() -> int
 override MuLang.IR.IrSlot.ToString() -> string!
+override MuLang.IR.IrSlotAttributeTarget.GetHashCode() -> int
+override MuLang.IR.IrSlotAttributes.Equals(object? obj) -> bool
+override MuLang.IR.IrSlotAttributes.GetHashCode() -> int
+override MuLang.IR.IrSlotAttributes.ToString() -> string!
 override MuLang.IR.IrTerminator.Branch.<Clone>$() -> MuLang.IR.IrTerminator.Branch!
 override MuLang.IR.IrTerminator.Branch.Equals(object? obj) -> bool
 override MuLang.IR.IrTerminator.Branch.GetHashCode() -> int
@@ -632,6 +727,9 @@ override MuLang.IR.IrTerminator.Throw.Equals(object? obj) -> bool
 override MuLang.IR.IrTerminator.Throw.GetHashCode() -> int
 override MuLang.IR.IrTerminator.Throw.ToString() -> string!
 override MuLang.IR.IrTerminator.ToString() -> string!
+override MuLang.IR.IrTypeAttributes.Equals(object? obj) -> bool
+override MuLang.IR.IrTypeAttributes.GetHashCode() -> int
+override MuLang.IR.IrTypeAttributes.ToString() -> string!
 override sealed MuLang.IR.IrInstruction.Binary.Equals(MuLang.IR.IrInstruction? other) -> bool
 override sealed MuLang.IR.IrInstruction.Constant.Equals(MuLang.IR.IrInstruction? other) -> bool
 override sealed MuLang.IR.IrInstruction.Convert.Equals(MuLang.IR.IrInstruction? other) -> bool
@@ -657,8 +755,14 @@ override sealed MuLang.IR.IrTerminator.Jump.Equals(MuLang.IR.IrTerminator? other
 override sealed MuLang.IR.IrTerminator.Resume.Equals(MuLang.IR.IrTerminator? other) -> bool
 override sealed MuLang.IR.IrTerminator.Return.Equals(MuLang.IR.IrTerminator? other) -> bool
 override sealed MuLang.IR.IrTerminator.Throw.Equals(MuLang.IR.IrTerminator? other) -> bool
+static MuLang.IR.IrAttributeCollection.Empty.get -> MuLang.IR.IrAttributeCollection!
 static MuLang.IR.IrBasicBlock.operator !=(MuLang.IR.IrBasicBlock? left, MuLang.IR.IrBasicBlock? right) -> bool
 static MuLang.IR.IrBasicBlock.operator ==(MuLang.IR.IrBasicBlock? left, MuLang.IR.IrBasicBlock? right) -> bool
+static MuLang.IR.IrDiagnosticNameResolver.GetFunctionDisplayName(MuLang.IR.IrAttributeCollection! attributes, string! functionId, string! fallback) -> string!
+static MuLang.IR.IrDiagnosticNameResolver.GetProviderFunctionDisplayName(MuLang.IR.IrAttributeCollection! attributes, string! providerId, string! fallback) -> string!
+static MuLang.IR.IrDiagnosticNameResolver.GetProviderGlobalDisplayName(MuLang.IR.IrAttributeCollection! attributes, string! providerId, string! fallback) -> string!
+static MuLang.IR.IrDiagnosticNameResolver.GetSlotDisplayName(MuLang.IR.IrAttributeCollection! attributes, string! functionId, int slotId, string! fallback) -> string!
+static MuLang.IR.IrDiagnosticNameResolver.GetTypeDisplayNames(MuLang.IR.IrAttributeCollection! attributes, MuLang.Core.Types.TypeSymbol! type, string! fallback) -> System.Collections.Generic.IReadOnlyList<string!>!
 static MuLang.IR.IrExceptionCleanup.operator !=(MuLang.IR.IrExceptionCleanup? left, MuLang.IR.IrExceptionCleanup? right) -> bool
 static MuLang.IR.IrExceptionCleanup.operator ==(MuLang.IR.IrExceptionCleanup? left, MuLang.IR.IrExceptionCleanup? right) -> bool
 static MuLang.IR.IrExceptionHandler.operator !=(MuLang.IR.IrExceptionHandler? left, MuLang.IR.IrExceptionHandler? right) -> bool
@@ -669,6 +773,8 @@ static MuLang.IR.IrExceptionRegion.operator !=(MuLang.IR.IrExceptionRegion? left
 static MuLang.IR.IrExceptionRegion.operator ==(MuLang.IR.IrExceptionRegion? left, MuLang.IR.IrExceptionRegion? right) -> bool
 static MuLang.IR.IrFunction.operator !=(MuLang.IR.IrFunction? left, MuLang.IR.IrFunction? right) -> bool
 static MuLang.IR.IrFunction.operator ==(MuLang.IR.IrFunction? left, MuLang.IR.IrFunction? right) -> bool
+static MuLang.IR.IrFunctionAttributes.operator !=(MuLang.IR.IrFunctionAttributes? left, MuLang.IR.IrFunctionAttributes? right) -> bool
+static MuLang.IR.IrFunctionAttributes.operator ==(MuLang.IR.IrFunctionAttributes? left, MuLang.IR.IrFunctionAttributes? right) -> bool
 static MuLang.IR.IrInstruction.Binary.operator !=(MuLang.IR.IrInstruction.Binary? left, MuLang.IR.IrInstruction.Binary? right) -> bool
 static MuLang.IR.IrInstruction.Binary.operator ==(MuLang.IR.IrInstruction.Binary? left, MuLang.IR.IrInstruction.Binary? right) -> bool
 static MuLang.IR.IrInstruction.Constant.operator !=(MuLang.IR.IrInstruction.Constant? left, MuLang.IR.IrInstruction.Constant? right) -> bool
@@ -717,8 +823,17 @@ static MuLang.IR.IrLifetimeRegion.operator !=(MuLang.IR.IrLifetimeRegion? left, 
 static MuLang.IR.IrLifetimeRegion.operator ==(MuLang.IR.IrLifetimeRegion? left, MuLang.IR.IrLifetimeRegion? right) -> bool
 static MuLang.IR.IrProgram.operator !=(MuLang.IR.IrProgram? left, MuLang.IR.IrProgram? right) -> bool
 static MuLang.IR.IrProgram.operator ==(MuLang.IR.IrProgram? left, MuLang.IR.IrProgram? right) -> bool
+static MuLang.IR.IrProgramAttributes.Empty.get -> MuLang.IR.IrProgramAttributes!
+static MuLang.IR.IrProgramAttributes.operator !=(MuLang.IR.IrProgramAttributes? left, MuLang.IR.IrProgramAttributes? right) -> bool
+static MuLang.IR.IrProgramAttributes.operator ==(MuLang.IR.IrProgramAttributes? left, MuLang.IR.IrProgramAttributes? right) -> bool
+static MuLang.IR.IrProviderSymbolName.operator !=(MuLang.IR.IrProviderSymbolName? left, MuLang.IR.IrProviderSymbolName? right) -> bool
+static MuLang.IR.IrProviderSymbolName.operator ==(MuLang.IR.IrProviderSymbolName? left, MuLang.IR.IrProviderSymbolName? right) -> bool
 static MuLang.IR.IrSlot.operator !=(MuLang.IR.IrSlot? left, MuLang.IR.IrSlot? right) -> bool
 static MuLang.IR.IrSlot.operator ==(MuLang.IR.IrSlot? left, MuLang.IR.IrSlot? right) -> bool
+static MuLang.IR.IrSlotAttributeTarget.operator !=(MuLang.IR.IrSlotAttributeTarget left, MuLang.IR.IrSlotAttributeTarget right) -> bool
+static MuLang.IR.IrSlotAttributeTarget.operator ==(MuLang.IR.IrSlotAttributeTarget left, MuLang.IR.IrSlotAttributeTarget right) -> bool
+static MuLang.IR.IrSlotAttributes.operator !=(MuLang.IR.IrSlotAttributes? left, MuLang.IR.IrSlotAttributes? right) -> bool
+static MuLang.IR.IrSlotAttributes.operator ==(MuLang.IR.IrSlotAttributes? left, MuLang.IR.IrSlotAttributes? right) -> bool
 static MuLang.IR.IrTerminator.Branch.operator !=(MuLang.IR.IrTerminator.Branch? left, MuLang.IR.IrTerminator.Branch? right) -> bool
 static MuLang.IR.IrTerminator.Branch.operator ==(MuLang.IR.IrTerminator.Branch? left, MuLang.IR.IrTerminator.Branch? right) -> bool
 static MuLang.IR.IrTerminator.Jump.operator !=(MuLang.IR.IrTerminator.Jump? left, MuLang.IR.IrTerminator.Jump? right) -> bool
@@ -731,6 +846,8 @@ static MuLang.IR.IrTerminator.Throw.operator !=(MuLang.IR.IrTerminator.Throw? le
 static MuLang.IR.IrTerminator.Throw.operator ==(MuLang.IR.IrTerminator.Throw? left, MuLang.IR.IrTerminator.Throw? right) -> bool
 static MuLang.IR.IrTerminator.operator !=(MuLang.IR.IrTerminator? left, MuLang.IR.IrTerminator? right) -> bool
 static MuLang.IR.IrTerminator.operator ==(MuLang.IR.IrTerminator? left, MuLang.IR.IrTerminator? right) -> bool
+static MuLang.IR.IrTypeAttributes.operator !=(MuLang.IR.IrTypeAttributes? left, MuLang.IR.IrTypeAttributes? right) -> bool
+static MuLang.IR.IrTypeAttributes.operator ==(MuLang.IR.IrTypeAttributes? left, MuLang.IR.IrTypeAttributes? right) -> bool
 static MuLang.IR.IrValidator.Validate(MuLang.IR.IrProgram! program, MuLang.Core.Environment.EnvironmentSchema! environment) -> MuLang.Core.Diagnostics.DiagnosticCollection!
 static MuLang.IR.IrValidator.Validate(MuLang.IR.IrProgram! program, MuLang.Core.Environment.EnvironmentSchema! environment, MuLang.Core.CompilationMode? expectedCompilationMode, MuLang.Core.LanguageProfileFingerprint? expectedLanguageProfileFingerprint) -> MuLang.Core.Diagnostics.DiagnosticCollection!
 static MuLang.IR.Serialization.MuIrReader.Read(System.IO.Stream! stream) -> MuLang.IR.Serialization.MuIrReadResult!
@@ -750,3 +867,5 @@ virtual MuLang.IR.IrInstruction.PrintMembers(System.Text.StringBuilder! builder)
 virtual MuLang.IR.IrTerminator.EqualityContract.get -> System.Type!
 virtual MuLang.IR.IrTerminator.Equals(MuLang.IR.IrTerminator? other) -> bool
 virtual MuLang.IR.IrTerminator.PrintMembers(System.Text.StringBuilder! builder) -> bool
+~override MuLang.IR.IrSlotAttributeTarget.Equals(object obj) -> bool
+~override MuLang.IR.IrSlotAttributeTarget.ToString() -> string

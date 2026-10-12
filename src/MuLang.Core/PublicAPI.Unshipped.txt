@@ -1,8 +1,1 @@
 #nullable enable
-MuLang.Core.LanguageProfile.UserDefinedTypes.get -> MuLang.Core.UserDefinedTypesFeature
-MuLang.Core.LanguageProfileBuilder.WithUserDefinedTypes(MuLang.Core.UserDefinedTypesFeature userDefinedTypes) -> MuLang.Core.LanguageProfileBuilder!
-MuLang.Core.UserDefinedTypesFeature
-MuLang.Core.UserDefinedTypesFeature.Disabled = 0 -> MuLang.Core.UserDefinedTypesFeature
-MuLang.Core.UserDefinedTypesFeature.Enabled = 1 -> MuLang.Core.UserDefinedTypesFeature
-MuLang.Core.Runtime.RuntimeStackFrame.DisplayName.get -> string!
-MuLang.Core.Runtime.RuntimeStackFrame.RuntimeStackFrame(string! functionId, MuLang.Core.Text.TextSpan callSpan, string? displayName) -> void
