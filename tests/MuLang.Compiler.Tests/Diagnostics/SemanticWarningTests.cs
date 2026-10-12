@@ -489,7 +489,10 @@ public sealed class SemanticWarningTests
             source,
             environment,
             CompilationMode.Expression,
-            profile: profile
+            new MuLangCompilationOptions
+            {
+                Profile = profile,
+            }
         );
     }
 
@@ -507,8 +510,11 @@ public sealed class SemanticWarningTests
             source,
             environment,
             CompilationMode.Program,
-            TypeSymbols.Void,
-            profile
+            new MuLangCompilationOptions
+            {
+                ExpectedResultType = TypeSymbols.Void,
+                Profile = profile,
+            }
         );
     }
 

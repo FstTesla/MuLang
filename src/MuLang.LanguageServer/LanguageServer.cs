@@ -264,7 +264,10 @@ internal sealed class LanguageServer
             document.Text,
             Environment,
             CompilationMode.Program,
-            profile: Profile
+            new MuLangCompilationOptions
+            {
+                Profile = Profile,
+            }
         );
 
         return writer.WriteNotificationAsync(

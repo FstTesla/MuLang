@@ -25,8 +25,11 @@ public sealed class ExceptionLoweringTests
             """,
             environment,
             CompilationMode.Program,
-            TypeSymbols.Void,
-            LanguageProfiles.Version1_2
+            new MuLangCompilationOptions
+            {
+                ExpectedResultType = TypeSymbols.Void,
+                Profile = LanguageProfiles.Version1_2,
+            }
         );
         IrFunction function = result.Program?.EntryFunction ??
             throw new AssertionException("Expected an IR program.");

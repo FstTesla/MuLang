@@ -38,8 +38,11 @@ public sealed class IrAttributeLoweringTests
             sourceText,
             environment,
             CompilationMode.Program,
-            TypeSymbols.Int,
-            LanguageProfiles.Version1_2
+            new MuLangCompilationOptions
+            {
+                ExpectedResultType = TypeSymbols.Int,
+                Profile = LanguageProfiles.Version1_2,
+            }
         );
         IrProgram program = result.Program ??
             throw new AssertionException("Expected an IR program.");
@@ -155,7 +158,10 @@ public sealed class IrAttributeLoweringTests
             sourceText,
             new EnvironmentBuilder().Build(LanguageVersion.Version1_2),
             CompilationMode.Program,
-            profile: LanguageProfiles.Version1_2
+            new MuLangCompilationOptions
+            {
+                Profile = LanguageProfiles.Version1_2,
+            }
         );
         IrProgram program = result.Program ??
             throw new AssertionException("Expected an IR program.");

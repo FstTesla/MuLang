@@ -2278,8 +2278,11 @@ public sealed class DotNetExporterTests
             "item has key",
             environment,
             CompilationMode.Expression,
-            TypeSymbols.Bool,
-            profile
+            new MuLangCompilationOptions
+            {
+                ExpectedResultType = TypeSymbols.Bool,
+                Profile = profile,
+            }
         );
         DotNetExportResult export = DotNetExporter.Export(
             result.Program ?? throw new AssertionException("Expected compilation to produce an IR program."),
@@ -3665,8 +3668,11 @@ public sealed class DotNetExporterTests
             source,
             environment,
             CompilationMode.Expression,
-            expectedType,
-            GetProfile(environment)
+            new MuLangCompilationOptions
+            {
+                ExpectedResultType = expectedType,
+                Profile = GetProfile(environment),
+            }
         );
         Assert.That(
             result.Diagnostics.HasErrors,
@@ -3693,11 +3699,14 @@ public sealed class DotNetExporterTests
     {
         CompilationResult result = MuLangCompiler.Compile(
             source,
-            sourceDocument,
             environment,
             CompilationMode.Program,
-            resultType,
-            GetProfile(environment)
+            new MuLangCompilationOptions
+            {
+                ExpectedResultType = resultType,
+                Profile = GetProfile(environment),
+                SourceDocument = sourceDocument,
+            }
         );
         Assert.That(
             result.Diagnostics.HasErrors,

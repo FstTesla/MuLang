@@ -205,7 +205,8 @@ public sealed class ConstantFolderTests
         CompilationResult result = MuLangCompiler.Compile(
             "consume(1 + 2)",
             environment,
-            CompilationMode.Expression
+            CompilationMode.Expression,
+            MuLangCompilationOptions.Default
         );
         IrProgram program = RequireProgram(result);
         IReadOnlyList<IrInstruction> instructions = GetInstructions(program);
@@ -256,13 +257,19 @@ public sealed class ConstantFolderTests
             "1 + 2 * 3",
             environment,
             CompilationMode.Expression,
-            profile: profile
+            new MuLangCompilationOptions
+            {
+                Profile = profile,
+            }
         );
         CompilationResult division = MuLangCompiler.Compile(
             "1 / 0",
             environment,
             CompilationMode.Expression,
-            profile: profile
+            new MuLangCompilationOptions
+            {
+                Profile = profile,
+            }
         );
         IrProgram arithmeticProgram = RequireProgram(arithmetic);
         IrProgram divisionProgram = RequireProgram(division);
@@ -302,7 +309,10 @@ public sealed class ConstantFolderTests
             source,
             environment,
             CompilationMode.Expression,
-            expectedType
+            new MuLangCompilationOptions
+            {
+                ExpectedResultType = expectedType,
+            }
         );
     }
 
@@ -314,7 +324,10 @@ public sealed class ConstantFolderTests
             source,
             environment,
             CompilationMode.Program,
-            TypeSymbols.Void
+            new MuLangCompilationOptions
+            {
+                ExpectedResultType = TypeSymbols.Void,
+            }
         );
     }
 

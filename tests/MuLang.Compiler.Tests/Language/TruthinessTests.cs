@@ -29,8 +29,11 @@ public sealed class TruthinessTests
             "0 || \"value\"",
             environment,
             CompilationMode.Expression,
-            TypeSymbols.Bool,
-            truthinessProfile
+            new MuLangCompilationOptions
+            {
+                ExpectedResultType = TypeSymbols.Bool,
+                Profile = truthinessProfile,
+            }
         );
         DotNetExportResult export = DotNetExporter.Export(
             result.Program ?? throw new AssertionException("Expected compilation to produce an IR program."),
@@ -592,8 +595,11 @@ public sealed class TruthinessTests
             "while (1) { }",
             environment,
             CompilationMode.Program,
-            TypeSymbols.Int,
-            truthinessProfile
+            new MuLangCompilationOptions
+            {
+                ExpectedResultType = TypeSymbols.Int,
+                Profile = truthinessProfile,
+            }
         );
 
         using (Assert.EnterMultipleScope())

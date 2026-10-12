@@ -121,7 +121,10 @@ public sealed class LanguageProfileIrTests
             "$[1]",
             environment,
             CompilationMode.Expression,
-            TypeSymbols.ReadOnlyArray(TypeSymbols.Int)
+            new MuLangCompilationOptions
+            {
+                ExpectedResultType = TypeSymbols.ReadOnlyArray(TypeSymbols.Int),
+            }
         );
 
         using (Assert.EnterMultipleScope())
@@ -147,8 +150,11 @@ public sealed class LanguageProfileIrTests
                     "1",
                     environment,
                     CompilationMode.Expression,
-                    TypeSymbols.Primitive,
-                    LanguageProfiles.Version1_1
+                    new MuLangCompilationOptions
+                    {
+                        ExpectedResultType = TypeSymbols.Primitive,
+                        Profile = LanguageProfiles.Version1_1,
+                    }
                 ),
                 Throws.ArgumentException
             );
@@ -157,8 +163,11 @@ public sealed class LanguageProfileIrTests
                     "[1]",
                     environment,
                     CompilationMode.Expression,
-                    TypeSymbols.Array(TypeSymbols.Primitive),
-                    LanguageProfiles.Version1_1
+                    new MuLangCompilationOptions
+                    {
+                        ExpectedResultType = TypeSymbols.Array(TypeSymbols.Primitive),
+                        Profile = LanguageProfiles.Version1_1,
+                    }
                 ),
                 Throws.ArgumentException
             );
@@ -175,7 +184,10 @@ public sealed class LanguageProfileIrTests
             "var value$: int; if (condition) value = 1; else value = 2; return value;",
             environment,
             CompilationMode.Program,
-            TypeSymbols.Int
+            new MuLangCompilationOptions
+            {
+                ExpectedResultType = TypeSymbols.Int,
+            }
         );
         IrSlot local = GetNamedSlot(result.Program, "value");
 
@@ -201,7 +213,10 @@ public sealed class LanguageProfileIrTests
             """,
             environment,
             CompilationMode.Program,
-            TypeSymbols.Int
+            new MuLangCompilationOptions
+            {
+                ExpectedResultType = TypeSymbols.Int,
+            }
         );
         IrSlot local = GetNamedSlot(result.Program, "value");
 
@@ -222,7 +237,10 @@ public sealed class LanguageProfileIrTests
             "while (condition) { var value$: int; value = 1; }",
             environment,
             CompilationMode.Program,
-            TypeSymbols.Void
+            new MuLangCompilationOptions
+            {
+                ExpectedResultType = TypeSymbols.Void,
+            }
         );
         IrProgram program = result.Program ??
             throw new AssertionException("Expected an IR program.");
@@ -280,7 +298,10 @@ public sealed class LanguageProfileIrTests
             "node",
             environment,
             CompilationMode.Expression,
-            providerType
+            new MuLangCompilationOptions
+            {
+                ExpectedResultType = providerType,
+            }
         );
         ObjectTypeSymbol irType = (ObjectTypeSymbol)(
             result.Program?.ResultType ??

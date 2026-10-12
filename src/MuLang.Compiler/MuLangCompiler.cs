@@ -7,6 +7,7 @@ using MuLang.Core.Diagnostics;
 using MuLang.Core.Environment;
 using MuLang.Core.Text;
 using MuLang.Core.Types;
+using System.Runtime.CompilerServices;
 
 namespace MuLang.Compiler;
 
@@ -23,7 +24,7 @@ public static class MuLangCompiler
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="source" /> or <paramref name="environment" /> is <c>null</c>.</exception>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="compilationMode" /> is not defined.</exception>
     /// <exception cref="ArgumentException">Thrown when the result type or language version is incompatible with the analysis settings.</exception>
-#pragma warning disable RS0027
+    [Obsolete("Use Analyze(string, EnvironmentSchema, CompilationMode, MuLangCompilationOptions) instead.")]
     public static AnalysisResult Analyze(
         string source,
         EnvironmentSchema environment,
@@ -34,50 +35,50 @@ public static class MuLangCompiler
     {
         return Analyze(
             source,
-            null,
             environment,
             compilationMode,
-            expectedResultType,
-            profile
+            new MuLangCompilationOptions
+            {
+                ExpectedResultType = expectedResultType,
+                Profile = profile,
+            }
         );
     }
 
-    /// <summary>Analyzes MuLang source code associated with a document without producing portable IR.</summary>
+    /// <summary>Analyzes MuLang source code using the specified compilation options without producing portable IR.</summary>
     /// <param name="source">The MuLang source code.</param>
-    /// <param name="sourceDocument">The source document name or URI, or <c>null</c> when unavailable.</param>
     /// <param name="environment">The environment schema available to the analyzed code.</param>
     /// <param name="compilationMode">The compilation mode.</param>
-    /// <param name="expectedResultType">The expected result type, or <c>null</c> to infer an expression result or use <c>void</c> for a program.</param>
-    /// <param name="profile">The language profile, or <c>null</c> to use <see cref="LanguageProfiles.Latest" />.</param>
+    /// <param name="options">The analysis options, or <c>null</c> to use <see cref="MuLangCompilationOptions.Default" />.</param>
     /// <returns>The analysis result.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="source" /> or <paramref name="environment" /> is <c>null</c>.</exception>
-    /// <exception cref="ArgumentException">Thrown when <paramref name="sourceDocument" /> is empty or whitespace, or the result type or language version is incompatible with the analysis settings.</exception>
+    /// <exception cref="ArgumentException">Thrown when the source document is empty or whitespace, or the result type or language version is incompatible with the analysis settings.</exception>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="compilationMode" /> is not defined.</exception>
+    [OverloadResolutionPriority(1)]
     public static AnalysisResult Analyze(
         string source,
-        string? sourceDocument,
         EnvironmentSchema environment,
         CompilationMode compilationMode,
-        TypeSymbol? expectedResultType,
-        LanguageProfile? profile
+        MuLangCompilationOptions? options = null
     )
     {
-        SourceText sourceText = CreateSourceText(source, sourceDocument);
+        options ??= MuLangCompilationOptions.Default;
+
+        SourceText sourceText = CreateSourceText(source, options.SourceDocument);
         (BindingResult _, DiagnosticCollection diagnostics) = BindAndOptimize(
             sourceText,
             environment,
             compilationMode,
-            expectedResultType,
-            profile
+            options.ExpectedResultType,
+            options.Profile
         );
 
         return new AnalysisResult(
             diagnostics,
-            sourceDocument,
+            options.SourceDocument,
             sourceText.LineMap
         );
     }
-#pragma warning restore RS0027
 
     /// <summary>Classifies MuLang source text using the specified language profile.</summary>
     /// <param name="source">The MuLang source code.</param>
@@ -153,7 +154,7 @@ public static class MuLangCompiler
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="source" /> or <paramref name="environment" /> is <c>null</c>.</exception>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="compilationMode" /> is not defined.</exception>
     /// <exception cref="ArgumentException">Thrown when the result type or language version is incompatible with the compilation settings.</exception>
-#pragma warning disable RS0027
+    [Obsolete("Use Compile(string, EnvironmentSchema, CompilationMode, MuLangCompilationOptions) instead.")]
     public static CompilationResult Compile(
         string source,
         EnvironmentSchema environment,
@@ -164,35 +165,36 @@ public static class MuLangCompiler
     {
         return Compile(
             source,
-            null,
             environment,
             compilationMode,
-            expectedResultType,
-            profile
+            new MuLangCompilationOptions
+            {
+                ExpectedResultType = expectedResultType,
+                Profile = profile,
+            }
         );
     }
 
-    /// <summary>Compiles MuLang source code associated with a document using the specified compilation settings.</summary>
+    /// <summary>Compiles MuLang source code using the specified compilation options.</summary>
     /// <param name="source">The MuLang source code.</param>
-    /// <param name="sourceDocument">The source document name or URI, or <c>null</c> when unavailable.</param>
     /// <param name="environment">The environment schema available to the compiled code.</param>
     /// <param name="compilationMode">The compilation mode.</param>
-    /// <param name="expectedResultType">The expected result type, or <c>null</c> to infer an expression result or use <c>void</c> for a program.</param>
-    /// <param name="profile">The language profile, or <c>null</c> to use <see cref="LanguageProfiles.Latest" />.</param>
+    /// <param name="options">The compilation options, or <c>null</c> to use <see cref="MuLangCompilationOptions.Default" />.</param>
     /// <returns>The compilation result.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="source" /> or <paramref name="environment" /> is <c>null</c>.</exception>
-    /// <exception cref="ArgumentException">Thrown when <paramref name="sourceDocument" /> is empty or whitespace, or the result type or language version is incompatible with the compilation settings.</exception>
+    /// <exception cref="ArgumentException">Thrown when the source document is empty or whitespace, or the result type or language version is incompatible with the compilation settings.</exception>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="compilationMode" /> is not defined.</exception>
+    [OverloadResolutionPriority(1)]
     public static CompilationResult Compile(
         string source,
-        string? sourceDocument,
         EnvironmentSchema environment,
         CompilationMode compilationMode,
-        TypeSymbol? expectedResultType,
-        LanguageProfile? profile
+        MuLangCompilationOptions? options = null
     )
     {
-        SourceText sourceText = CreateSourceText(source, sourceDocument);
+        options ??= MuLangCompilationOptions.Default;
+
+        SourceText sourceText = CreateSourceText(source, options.SourceDocument);
         (
             BindingResult optimizedBinding,
             DiagnosticCollection analysisDiagnostics
@@ -200,8 +202,8 @@ public static class MuLangCompiler
             sourceText,
             environment,
             compilationMode,
-            expectedResultType,
-            profile
+            options.ExpectedResultType,
+            options.Profile
         );
 
         if (analysisDiagnostics.HasErrors)
@@ -209,7 +211,7 @@ public static class MuLangCompiler
             return new CompilationResult(
                 null,
                 analysisDiagnostics,
-                sourceDocument,
+                options.SourceDocument,
                 sourceText.LineMap
             );
         }
@@ -217,7 +219,7 @@ public static class MuLangCompiler
         LoweringResult lowering = Lowerer.Lower(
             optimizedBinding,
             environment,
-            sourceDocument,
+            options.SourceDocument,
             sourceText.LineMap
         );
         DiagnosticCollection diagnostics = DiagnosticCollection.Create(
@@ -227,11 +229,10 @@ public static class MuLangCompiler
         return new CompilationResult(
             lowering.Program,
             diagnostics,
-            sourceDocument,
+            options.SourceDocument,
             sourceText.LineMap
         );
     }
-#pragma warning restore RS0027
 
     private static (
         BindingResult Binding,

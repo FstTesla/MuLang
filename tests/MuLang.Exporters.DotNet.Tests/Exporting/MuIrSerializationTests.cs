@@ -17,7 +17,10 @@ public sealed class MuIrSerializationTests
             "40 + 2",
             environment,
             CompilationMode.Expression,
-            TypeSymbols.Int
+            new MuLangCompilationOptions
+            {
+                ExpectedResultType = TypeSymbols.Int,
+            }
         );
         IrProgram original = compilation.Program ??
             throw new InvalidOperationException("Compilation failed.");

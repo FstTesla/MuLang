@@ -3,5 +3,14 @@ MuLang.Compiler.AnalysisResult.LineMap.get -> MuLang.Core.Text.TextLineMap!
 MuLang.Compiler.AnalysisResult.SourceDocument.get -> string?
 MuLang.Compiler.CompilationResult.LineMap.get -> MuLang.Core.Text.TextLineMap!
 MuLang.Compiler.CompilationResult.SourceDocument.get -> string?
-static MuLang.Compiler.MuLangCompiler.Analyze(string! source, string? sourceDocument, MuLang.Core.Environment.EnvironmentSchema! environment, MuLang.Core.CompilationMode compilationMode, MuLang.Core.Types.TypeSymbol? expectedResultType, MuLang.Core.LanguageProfile? profile) -> MuLang.Compiler.AnalysisResult!
-static MuLang.Compiler.MuLangCompiler.Compile(string! source, string? sourceDocument, MuLang.Core.Environment.EnvironmentSchema! environment, MuLang.Core.CompilationMode compilationMode, MuLang.Core.Types.TypeSymbol? expectedResultType, MuLang.Core.LanguageProfile? profile) -> MuLang.Compiler.CompilationResult!
+MuLang.Compiler.MuLangCompilationOptions
+MuLang.Compiler.MuLangCompilationOptions.ExpectedResultType.get -> MuLang.Core.Types.TypeSymbol?
+MuLang.Compiler.MuLangCompilationOptions.ExpectedResultType.init -> void
+MuLang.Compiler.MuLangCompilationOptions.MuLangCompilationOptions() -> void
+MuLang.Compiler.MuLangCompilationOptions.Profile.get -> MuLang.Core.LanguageProfile?
+MuLang.Compiler.MuLangCompilationOptions.Profile.init -> void
+MuLang.Compiler.MuLangCompilationOptions.SourceDocument.get -> string?
+MuLang.Compiler.MuLangCompilationOptions.SourceDocument.init -> void
+static MuLang.Compiler.MuLangCompilationOptions.Default.get -> MuLang.Compiler.MuLangCompilationOptions!
+static MuLang.Compiler.MuLangCompiler.Analyze(string! source, MuLang.Core.Environment.EnvironmentSchema! environment, MuLang.Core.CompilationMode compilationMode, MuLang.Compiler.MuLangCompilationOptions? options = null) -> MuLang.Compiler.AnalysisResult!
+static MuLang.Compiler.MuLangCompiler.Compile(string! source, MuLang.Core.Environment.EnvironmentSchema! environment, MuLang.Core.CompilationMode compilationMode, MuLang.Compiler.MuLangCompilationOptions? options = null) -> MuLang.Compiler.CompilationResult!

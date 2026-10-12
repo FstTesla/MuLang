@@ -11,11 +11,14 @@ public sealed class MuLangCompilerSourceLocationTests
     {
         CompilationResult result = MuLangCompiler.Compile(
             "return 1;\n",
-            "file:///sample.mu",
             new EnvironmentBuilder().Build(LanguageVersion.Version1_2),
             CompilationMode.Program,
-            TypeSymbols.Int,
-            LanguageProfiles.Version1_2
+            new MuLangCompilationOptions
+            {
+                ExpectedResultType = TypeSymbols.Int,
+                Profile = LanguageProfiles.Version1_2,
+                SourceDocument = "file:///sample.mu",
+            }
         );
 
         using (Assert.EnterMultipleScope())

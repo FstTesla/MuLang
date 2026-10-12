@@ -66,7 +66,8 @@ public sealed class MuLangCompilerEditorTests
         AnalysisResult result = MuLangCompiler.Analyze(
             "var value: int = \"text\";",
             new EnvironmentBuilder().Build(),
-            CompilationMode.Program
+            CompilationMode.Program,
+            MuLangCompilationOptions.Default
         );
 
         using (Assert.EnterMultipleScope())

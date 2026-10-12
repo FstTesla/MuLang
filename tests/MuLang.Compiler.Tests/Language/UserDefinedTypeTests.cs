@@ -135,7 +135,10 @@ public sealed class UserDefinedTypeTests
             "type Item { value: int };",
             new EnvironmentBuilder().Build(LanguageVersion.Version1_2),
             CompilationMode.Expression,
-            profile: LanguageProfiles.Version1_2
+            new MuLangCompilationOptions
+            {
+                Profile = LanguageProfiles.Version1_2,
+            }
         );
 
         Assert.That(
@@ -154,7 +157,10 @@ public sealed class UserDefinedTypeTests
             """,
             new EnvironmentBuilder().Build(LanguageVersion.Version1_2),
             CompilationMode.Program,
-            profile: LanguageProfiles.Version1_2
+            new MuLangCompilationOptions
+            {
+                Profile = LanguageProfiles.Version1_2,
+            }
         );
         IrSlot point = GetNamedSlot(result.Program, "point");
         ObjectTypeSymbol type = (ObjectTypeSymbol)point.Type;
@@ -269,7 +275,10 @@ public sealed class UserDefinedTypeTests
             source,
             new EnvironmentBuilder().Build(LanguageVersion.Version1_2),
             CompilationMode.Program,
-            profile: LanguageProfiles.Version1_2
+            new MuLangCompilationOptions
+            {
+                Profile = LanguageProfiles.Version1_2,
+            }
         );
     }
 
