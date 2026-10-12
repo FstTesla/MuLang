@@ -5,6 +5,9 @@ namespace MuLang.Compiler.Lowering;
 
 internal sealed class IrAttributeBuilder
 {
+    private readonly string? sourceDocument;
+    private readonly TextLineMap? lineMap;
+
     private readonly IDictionary<string, IrFunctionAttributes> functions =
         new Dictionary<string, IrFunctionAttributes>(StringComparer.Ordinal);
 
@@ -16,6 +19,15 @@ internal sealed class IrAttributeBuilder
 
     private readonly IDictionary<string, string> providerFunctions =
         new Dictionary<string, string>(StringComparer.Ordinal);
+
+    public IrAttributeBuilder(
+        string? sourceDocument,
+        TextLineMap? lineMap
+    )
+    {
+        this.sourceDocument = sourceDocument;
+        this.lineMap = lineMap;
+    }
 
     public void AddFunction(
         string functionId,
@@ -54,10 +66,13 @@ internal sealed class IrAttributeBuilder
     public IrAttributeCollection Build()
     {
         IrProgramAttributes? program =
-            providerGlobals.Count == 0 && providerFunctions.Count == 0
+            sourceDocument is null &&
+            lineMap is null &&
+            providerGlobals.Count == 0 &&
+            providerFunctions.Count == 0
                 ? null
                 : new IrProgramAttributes(
-                    null,
+                    sourceDocument,
                     [
                         .. providerGlobals
                             .OrderBy(static item => item.Key, StringComparer.Ordinal)
@@ -78,13 +93,16 @@ internal sealed class IrAttributeBuilder
                                 )
                             ),
                     ]
-                );
+                )
+                {
+                    LineMap = lineMap,
+                };
 
         return new IrAttributeCollection(
             program,
             functions,
             slots,
-            []
+            [ ]
         );
     }
 }

@@ -212,6 +212,8 @@ internal sealed class DotNetExceptionRegionInterpreter
             }
             catch (MuLangRuntimeException exception)
             {
+                execution.Enrich(exception);
+
                 if (!exception.Error.IsCatchable)
                 {
                     throw;

@@ -1,1 +1,5 @@
 #nullable enable
+MuLang.IR.IrProgramAttributes.LineMap.get -> MuLang.Core.Text.TextLineMap?
+MuLang.IR.IrProgramAttributes.LineMap.init -> void
+MuLang.IR.Serialization.MuIrReaderOptions.MaximumSourceLines.get -> int
+MuLang.IR.Serialization.MuIrReaderOptions.MaximumSourceLines.init -> void

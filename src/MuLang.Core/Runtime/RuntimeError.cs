@@ -67,6 +67,41 @@ public sealed class RuntimeError
         RuntimeError? cause,
         RuntimeErrorData errorData
     )
+        : this(
+            code,
+            message,
+            category,
+            isCatchable,
+            span,
+            null,
+            frames,
+            cause,
+            errorData
+        ) { }
+
+    /// <summary>Initializes a new instance of the <see cref="RuntimeError" /> class with a materialized source location.</summary>
+    /// <param name="code">The stable error code.</param>
+    /// <param name="message">The error message.</param>
+    /// <param name="category">The error category.</param>
+    /// <param name="isCatchable">A value indicating whether source-level recovery may catch the error.</param>
+    /// <param name="span">The source span associated with the failing operation.</param>
+    /// <param name="location">The materialized source location, or <c>null</c> when unavailable.</param>
+    /// <param name="frames">The MuLang stack frames, ordered from innermost to outermost.</param>
+    /// <param name="cause">The optional public MuLang error cause.</param>
+    /// <param name="errorData">The optional application payload.</param>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="code" /> is null, empty, or whitespace, <paramref name="category" /> is invalid, or <paramref name="location" /> does not match <paramref name="span" />.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="message" /> or <paramref name="frames" /> is <c>null</c>, or a frame is <c>null</c>.</exception>
+    public RuntimeError(
+        string code,
+        string message,
+        RuntimeErrorCategory category,
+        bool isCatchable,
+        TextSpan span,
+        TextLocation? location,
+        IEnumerable<RuntimeStackFrame> frames,
+        RuntimeError? cause,
+        RuntimeErrorData errorData
+    )
     {
         if (string.IsNullOrWhiteSpace(code))
         {
@@ -94,6 +129,14 @@ public sealed class RuntimeError
             throw new ArgumentNullException(nameof(frames));
         }
 
+        if (location is { } value && value.Span != span)
+        {
+            throw new ArgumentException(
+                "The source location does not match the source span.",
+                nameof(location)
+            );
+        }
+
         List<RuntimeStackFrame> frameList = [ ];
 
         foreach (RuntimeStackFrame frame in frames)
@@ -111,6 +154,7 @@ public sealed class RuntimeError
         Category = category;
         IsCatchable = isCatchable;
         Span = span;
+        Location = location;
         this.frames = frameList;
         Frames = frameList.AsReadOnly();
         Cause = cause;
@@ -132,6 +176,9 @@ public sealed class RuntimeError
     /// <summary>Gets the source span associated with the failing operation.</summary>
     public TextSpan Span { get; }
 
+    /// <summary>Gets the materialized source location, when available.</summary>
+    public TextLocation? Location { get; private set; }
+
     /// <summary>Gets the MuLang stack frames, ordered from innermost to outermost.</summary>
     public IReadOnlyList<RuntimeStackFrame> Frames { get; }
 
@@ -148,5 +195,18 @@ public sealed class RuntimeError
     internal void AddFrame(RuntimeStackFrame frame)
     {
         frames.Add(frame);
+    }
+
+    internal void SetLocation(TextLocation location)
+    {
+        if (location.Span != Span)
+        {
+            throw new ArgumentException(
+                "The source location does not match the source span.",
+                nameof(location)
+            );
+        }
+
+        Location ??= location;
     }
 }

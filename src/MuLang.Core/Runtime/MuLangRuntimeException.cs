@@ -68,6 +68,9 @@ public sealed class MuLangRuntimeException : Exception
     /// <summary>Gets the source span associated with the error.</summary>
     public TextSpan Span => Error.Span;
 
+    /// <summary>Gets the materialized source location, when available.</summary>
+    public TextLocation? Location => Error.Location;
+
     internal bool CanPropagateThroughProvider { get; }
 
     internal void AddFrame(RuntimeStackFrame frame)

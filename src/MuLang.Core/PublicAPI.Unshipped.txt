@@ -1,1 +1,28 @@
 #nullable enable
+MuLang.Core.Runtime.MuLangRuntimeException.Location.get -> MuLang.Core.Text.TextLocation?
+MuLang.Core.Runtime.RuntimeError.Location.get -> MuLang.Core.Text.TextLocation?
+MuLang.Core.Runtime.RuntimeError.RuntimeError(string! code, string! message, MuLang.Core.Runtime.RuntimeErrorCategory category, bool isCatchable, MuLang.Core.Text.TextSpan span, MuLang.Core.Text.TextLocation? location, System.Collections.Generic.IEnumerable<MuLang.Core.Runtime.RuntimeStackFrame!>! frames, MuLang.Core.Runtime.RuntimeError? cause, MuLang.Core.Runtime.RuntimeErrorData errorData) -> void
+MuLang.Core.Runtime.RuntimeStackFrame.CallLocation.get -> MuLang.Core.Text.TextLocation?
+MuLang.Core.Runtime.RuntimeStackFrame.RuntimeStackFrame(string! functionId, MuLang.Core.Text.TextSpan callSpan, string? displayName, MuLang.Core.Text.TextLocation? callLocation) -> void
+MuLang.Core.Text.SourceText.LineMap.get -> MuLang.Core.Text.TextLineMap!
+MuLang.Core.Text.TextLineMap
+MuLang.Core.Text.TextLineMap.GetLocation(MuLang.Core.Text.TextSpan span, string? sourceDocument = null) -> MuLang.Core.Text.TextLocation
+MuLang.Core.Text.TextLineMap.GetOffset(int line, int column) -> int
+MuLang.Core.Text.TextLineMap.GetPosition(int offset) -> MuLang.Core.Text.TextPosition
+MuLang.Core.Text.TextLineMap.Length.get -> int
+MuLang.Core.Text.TextLineMap.LineCount.get -> int
+MuLang.Core.Text.TextLineMap.LineStarts.get -> System.Collections.Generic.IReadOnlyList<int>!
+MuLang.Core.Text.TextLineMap.TextLineMap(int length, System.Collections.Generic.IEnumerable<int>! lineStarts) -> void
+MuLang.Core.Text.TextLocation
+MuLang.Core.Text.TextLocation.End.get -> MuLang.Core.Text.TextPosition
+MuLang.Core.Text.TextLocation.Equals(MuLang.Core.Text.TextLocation other) -> bool
+override MuLang.Core.Text.TextLocation.GetHashCode() -> int
+MuLang.Core.Text.TextLocation.SourceDocument.get -> string?
+MuLang.Core.Text.TextLocation.Span.get -> MuLang.Core.Text.TextSpan
+MuLang.Core.Text.TextLocation.Start.get -> MuLang.Core.Text.TextPosition
+MuLang.Core.Text.TextLocation.TextLocation() -> void
+MuLang.Core.Text.TextLocation.TextLocation(MuLang.Core.Text.TextSpan span, MuLang.Core.Text.TextPosition start, MuLang.Core.Text.TextPosition end, string? sourceDocument = null) -> void
+static MuLang.Core.Text.TextLocation.operator !=(MuLang.Core.Text.TextLocation left, MuLang.Core.Text.TextLocation right) -> bool
+static MuLang.Core.Text.TextLocation.operator ==(MuLang.Core.Text.TextLocation left, MuLang.Core.Text.TextLocation right) -> bool
+~override MuLang.Core.Text.TextLocation.Equals(object obj) -> bool
+~override MuLang.Core.Text.TextLocation.ToString() -> string

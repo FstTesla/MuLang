@@ -149,7 +149,10 @@ public sealed class IrAttributeTests
                     "file:///sample.mu",
                     [ new IrProviderSymbolName("global.id", "globalName") ],
                     [ new IrProviderSymbolName("function.id", "functionName") ]
-                ),
+                )
+                {
+                    LineMap = new TextLineMap(10, [ 0, 5 ]),
+                },
                 [
                     new KeyValuePair<string, IrFunctionAttributes>(
                         "$entry",
@@ -212,6 +215,10 @@ public sealed class IrAttributeTests
             Assert.That(
                 read.Attributes.Program?.SourceDocument,
                 Is.EqualTo("file:///sample.mu")
+            );
+            Assert.That(
+                read.Attributes.Program?.LineMap?.LineStarts,
+                Is.EqualTo([ 0, 5 ])
             );
             Assert.That(
                 read.Attributes.Functions["$entry"].SourceName,

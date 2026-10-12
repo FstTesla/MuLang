@@ -1,1 +1,7 @@
 #nullable enable
+MuLang.Compiler.AnalysisResult.LineMap.get -> MuLang.Core.Text.TextLineMap!
+MuLang.Compiler.AnalysisResult.SourceDocument.get -> string?
+MuLang.Compiler.CompilationResult.LineMap.get -> MuLang.Core.Text.TextLineMap!
+MuLang.Compiler.CompilationResult.SourceDocument.get -> string?
+static MuLang.Compiler.MuLangCompiler.Analyze(string! source, string? sourceDocument, MuLang.Core.Environment.EnvironmentSchema! environment, MuLang.Core.CompilationMode compilationMode, MuLang.Core.Types.TypeSymbol? expectedResultType, MuLang.Core.LanguageProfile? profile) -> MuLang.Compiler.AnalysisResult!
+static MuLang.Compiler.MuLangCompiler.Compile(string! source, string? sourceDocument, MuLang.Core.Environment.EnvironmentSchema! environment, MuLang.Core.CompilationMode compilationMode, MuLang.Core.Types.TypeSymbol? expectedResultType, MuLang.Core.LanguageProfile? profile) -> MuLang.Compiler.CompilationResult!

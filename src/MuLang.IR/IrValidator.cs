@@ -132,6 +132,8 @@ public static class IrValidator
     {
         static bool IsInvalid(string? value) => string.IsNullOrWhiteSpace(value);
 
+        TextLineMap? lineMap = program.Attributes.Program?.LineMap;
+
         if (program.Attributes.Program is { } programAttributes)
         {
             if (
@@ -175,6 +177,11 @@ public static class IrValidator
                     $"Function attribute target '{item.Key}' has an invalid name."
                 );
             }
+
+            ValidateMappedSpan(
+                item.Value.DeclarationSpan,
+                $"Function attribute target '{item.Key}'"
+            );
         }
 
         IReadOnlyDictionary<string, IrFunction> functions = program.UserFunctions
@@ -207,6 +214,11 @@ public static class IrValidator
                     $"Slot attribute target '{item.Key.FunctionId}:%{item.Key.SlotId}' has an invalid name."
                 );
             }
+
+            ValidateMappedSpan(
+                item.Value.DeclarationSpan,
+                $"Slot attribute target '{item.Key.FunctionId}:%{item.Key.SlotId}'"
+            );
         }
 
         IReadOnlyDictionary<TypeSymbol, int> reachableTypes =
@@ -260,6 +272,20 @@ public static class IrValidator
             }
         }
 
+        void ValidateMappedSpan(TextSpan? span, string description)
+        {
+            if (
+                lineMap is not null &&
+                span is { } value &&
+                value.End > lineMap.Length
+            )
+            {
+                ReportInvalid(
+                    $"{description} has a declaration span outside the source line map."
+                );
+            }
+        }
+
         void ReportInvalid(string message)
         {
             Report(
@@ -278,6 +304,8 @@ public static class IrValidator
         ICollection<Diagnostic> diagnostics
     )
     {
+        ValidateMappedSpans(program, function, diagnostics);
+
         IrProgram functionProgram = new (
             program.EnvironmentFingerprint,
             program.CompilationMode,
@@ -353,6 +381,43 @@ public static class IrValidator
         );
     }
 
+    private static void ValidateMappedSpans(
+        IrProgram program,
+        IrFunction function,
+        ICollection<Diagnostic> diagnostics
+    )
+    {
+        if (program.Attributes.Program?.LineMap is not { } lineMap)
+        {
+            return;
+        }
+
+        foreach (IrBasicBlock block in function.Blocks)
+        {
+            foreach (IrInstruction instruction in block.Instructions)
+            {
+                ValidateMappedSpan(instruction.Span);
+            }
+
+            ValidateMappedSpan(block.Terminator.Span);
+        }
+
+        void ValidateMappedSpan(TextSpan span)
+        {
+            if (span.End <= lineMap.Length)
+            {
+                return;
+            }
+
+            Report(
+                diagnostics,
+                IrDiagnosticCodes.InvalidAttributes,
+                default,
+                $"Function '{function.Id}' has a source span outside the source line map."
+            );
+        }
+    }
+
     private static void ValidateParameterSlots(
         IrFunction function,
         bool isEntryFunction,
@@ -378,6 +443,7 @@ public static class IrValidator
                     );
                 }
             }
+
             else
             {
                 hasNonParameter = true;

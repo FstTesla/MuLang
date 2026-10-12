@@ -3,6 +3,7 @@ using MuLang.Compiler.Syntax;
 using MuLang.Core;
 using MuLang.Core.Diagnostics;
 using MuLang.Core.Environment;
+using MuLang.Core.Text;
 using MuLang.Core.Types;
 using MuLang.IR;
 
@@ -13,7 +14,7 @@ internal sealed class Lowerer
     private readonly EnvironmentSchema environment;
     private readonly CompilationMode compilationMode;
     private readonly LanguageProfileFingerprint languageProfileFingerprint;
-    private readonly IrAttributeBuilder attributeBuilder = new ();
+    private readonly IrAttributeBuilder attributeBuilder;
     private IrBuilder builder = new ();
     private string currentFunctionId = "$entry";
 
@@ -28,17 +29,30 @@ internal sealed class Lowerer
     private Lowerer(
         EnvironmentSchema environment,
         CompilationMode compilationMode,
-        LanguageProfileFingerprint languageProfileFingerprint
+        LanguageProfileFingerprint languageProfileFingerprint,
+        string? sourceDocument,
+        TextLineMap? lineMap
     )
     {
         this.environment = environment;
         this.compilationMode = compilationMode;
         this.languageProfileFingerprint = languageProfileFingerprint;
+        attributeBuilder = new IrAttributeBuilder(sourceDocument, lineMap);
     }
 
     public static LoweringResult Lower(
         BindingResult bindingResult,
         EnvironmentSchema environment
+    )
+    {
+        return Lower(bindingResult, environment, null, null);
+    }
+
+    public static LoweringResult Lower(
+        BindingResult bindingResult,
+        EnvironmentSchema environment,
+        string? sourceDocument,
+        TextLineMap? lineMap
     )
     {
         if (bindingResult is null)
@@ -59,7 +73,9 @@ internal sealed class Lowerer
         Lowerer lowerer = new (
             environment,
             bindingResult.CompilationMode,
-            bindingResult.LanguageProfileFingerprint
+            bindingResult.LanguageProfileFingerprint,
+            sourceDocument,
+            lineMap
         );
         IrProgram program = IrTypeProjector.Project(
             lowerer.LowerRoot(bindingResult.Root)

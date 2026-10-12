@@ -27,7 +27,7 @@ internal sealed class DotNetUserFunctionDispatcher
 
     public DotNetUserFunctionExecution CreateExecution()
     {
-        return new DotNetUserFunctionExecution(this);
+        return new DotNetUserFunctionExecution(this, attributes.Program);
     }
 
     public object? Invoke(
@@ -129,6 +129,7 @@ internal sealed class DotNetUserFunctionDispatcher
         }
         catch (MuLangRuntimeException exception)
         {
+            execution.Enrich(exception);
             exception.AddFrame(
                 new RuntimeStackFrame(
                     functionId,
@@ -137,7 +138,8 @@ internal sealed class DotNetUserFunctionDispatcher
                         attributes,
                         functionId,
                         functionId
-                    )
+                    ),
+                    execution.GetLocation(span)
                 )
             );
             throw;

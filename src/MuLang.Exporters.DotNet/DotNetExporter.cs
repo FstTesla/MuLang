@@ -254,18 +254,21 @@ public static class DotNetExporter
 
         return context =>
         {
+            DotNetUserFunctionExecution execution = dispatcher.CreateExecution();
+
             try
             {
                 return ExecutionResult.Success(
                     entryFunction(
                         context,
-                        dispatcher.CreateExecution(),
+                        execution,
                         [ ]
                     )
                 );
             }
             catch (MuLangRuntimeException exception)
             {
+                execution.Enrich(exception);
                 exception.AddFrame(
                     new RuntimeStackFrame(
                         program.EntryFunction.Id,
@@ -274,7 +277,8 @@ public static class DotNetExporter
                             program.Attributes,
                             program.EntryFunction.Id,
                             program.EntryFunction.Id
-                        )
+                        ),
+                        execution.GetLocation(entrySpan)
                     )
                 );
                 return ExecutionResult.Failure(

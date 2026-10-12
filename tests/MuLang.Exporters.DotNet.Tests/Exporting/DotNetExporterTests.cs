@@ -1224,18 +1224,20 @@ public sealed class DotNetExporterTests
     [Test]
     public void MuIrRoundTripPreservesStackFrameDisplayNames()
     {
+        const string source = """
+                              func divide(value: int): int {
+                                  return 1 / value;
+                              }
+                              return divide(denominator);
+                              """;
         EnvironmentSchema environment = new EnvironmentBuilder()
             .AddGlobal("global.denominator", "denominator", TypeSymbols.Int)
             .Build();
         IrProgram compiled = LowerProgram(
-            """
-            func divide(value: int): int {
-                return 1 / value;
-            }
-            return divide(denominator);
-            """,
+            source,
             environment,
-            TypeSymbols.Int
+            TypeSymbols.Int,
+            "file:///sample.mu"
         );
         MuIrReadResult read = MuIrReader.Read(
             MuIrWriter.WriteToString(compiled)
@@ -1265,6 +1267,16 @@ public sealed class DotNetExporterTests
             Assert.That(
                 exception.Error.Frames.Select(static frame => frame.DisplayName),
                 Is.EqualTo([ "divide", "$entry" ])
+            );
+            Assert.That(
+                exception.Location?.SourceDocument,
+                Is.EqualTo("file:///sample.mu")
+            );
+            Assert.That(exception.Location?.Start.Line, Is.EqualTo(2));
+            Assert.That(
+                exception.Error.Frames
+                    .Select(static frame => frame.CallLocation?.Start.Line),
+                Is.EqualTo([ 4, 4 ])
             );
         }
     }
@@ -3675,11 +3687,13 @@ public sealed class DotNetExporterTests
     private static IrProgram LowerProgram(
         string source,
         EnvironmentSchema environment,
-        TypeSymbol resultType
+        TypeSymbol resultType,
+        string? sourceDocument = null
     )
     {
         CompilationResult result = MuLangCompiler.Compile(
             source,
+            sourceDocument,
             environment,
             CompilationMode.Program,
             resultType,

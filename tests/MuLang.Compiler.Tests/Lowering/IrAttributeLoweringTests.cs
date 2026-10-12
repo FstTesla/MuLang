@@ -18,7 +18,7 @@ public sealed class IrAttributeLoweringTests
             .AddFunction(
                 "function.next",
                 "next",
-                [new ParameterSymbol("value", TypeSymbols.Int)],
+                [ new ParameterSymbol("value", TypeSymbols.Int) ],
                 TypeSymbols.Int
             )
             .Build(LanguageVersion.Version1_2);
@@ -84,7 +84,7 @@ public sealed class IrAttributeLoweringTests
                     """
                 )
             );
-            Assert.That(slotNames, Is.EquivalentTo(["item", "result"]));
+            Assert.That(slotNames, Is.EquivalentTo([ "item", "result" ]));
             Assert.That(
                 source.GetText(
                     program.Attributes.Slots[
@@ -112,19 +112,19 @@ public sealed class IrAttributeLoweringTests
             Assert.That(
                 program.Attributes.Program?.ProviderGlobalNames,
                 Is.EqualTo(
-                    [new IrProviderSymbolName("global.value", "globalValue")]
+                    [ new IrProviderSymbolName("global.value", "globalValue") ]
                 )
             );
             Assert.That(
                 program.Attributes.Program?.ProviderFunctionNames,
                 Is.EqualTo(
-                    [new IrProviderSymbolName("function.next", "next")]
+                    [ new IrProviderSymbolName("function.next", "next") ]
                 )
             );
             Assert.That(
                 program.Attributes.Types.Values
                     .SelectMany(static attributes => attributes.SourceNames),
-                Is.EquivalentTo(["First", "Second"])
+                Is.EquivalentTo([ "First", "Second" ])
             );
             Assert.That(
                 function.Slots.Count - slotNames.Count,

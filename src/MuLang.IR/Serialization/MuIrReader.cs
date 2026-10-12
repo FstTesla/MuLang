@@ -238,6 +238,7 @@ public static class MuIrReader
         private int declaredTypeCount;
         private int formatVersion;
         private string? sourceDocument;
+        private TextLineMap? sourceLineMap;
         private Token current;
 
         public DocumentParser(string text, MuIrReaderOptions options)
@@ -461,6 +462,10 @@ public static class MuIrReader
                     Expect("}");
                     return true;
 
+                case ("program", "source-line-map"):
+                    ReadSourceLineMap(name);
+                    return true;
+
                 case ("program", "provider-global-name"):
                     ReadProviderName(providerGlobalNames, "provider global");
                     return true;
@@ -528,12 +533,48 @@ public static class MuIrReader
         {
             return name is
                 "source-document" or
+                "source-line-map" or
                 "provider-global-name" or
                 "provider-function-name" or
                 "source-name" or
                 "qualified-source-name" or
                 "declaration-span" or
                 "source-type-names";
+        }
+
+        private void ReadSourceLineMap(string attributeName)
+        {
+            if (sourceLineMap is not null)
+            {
+                Fail(
+                    MuIrDiagnosticCodes.InvalidAttribute,
+                    $"Attribute '{attributeName}' is declared more than once."
+                );
+            }
+
+            Expect("{");
+            int length = ReadNonNegativeInteger();
+            int lineCount = ReadCount(options.MaximumSourceLines, "source line");
+            int[] lineStarts = new int[lineCount];
+
+            for (int index = 0; index < lineStarts.Length; index++)
+            {
+                lineStarts[index] = ReadNonNegativeInteger();
+            }
+
+            Expect("}");
+
+            try
+            {
+                sourceLineMap = new TextLineMap(length, lineStarts);
+            }
+            catch (ArgumentException exception)
+            {
+                Fail(
+                    MuIrDiagnosticCodes.InvalidAttribute,
+                    exception.Message
+                );
+            }
         }
 
         private void ReadProviderName(
@@ -711,6 +752,7 @@ public static class MuIrReader
         {
             IrProgramAttributes? program =
                 sourceDocument is null &&
+                sourceLineMap is null &&
                 providerGlobalNames.Count == 0 &&
                 providerFunctionNames.Count == 0
                     ? null
@@ -718,7 +760,10 @@ public static class MuIrReader
                         sourceDocument,
                         providerGlobalNames.AsReadOnly(),
                         providerFunctionNames.AsReadOnly()
-                    );
+                    )
+                    {
+                        LineMap = sourceLineMap,
+                    };
             IEnumerable<KeyValuePair<string, IrFunctionAttributes>> functions =
                 functionSourceNames.Keys
                     .Concat(functionQualifiedNames.Keys)

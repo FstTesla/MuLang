@@ -211,6 +211,24 @@ public static class MuIrWriter
                         $"attribute program source-document {{ {Quote(RequireValue(sourceDocument, "source document"))} }}"
                     );
                 }
+
+                if (programAttributes.LineMap is { } lineMap)
+                {
+                    values.Add(
+                        "attribute program source-line-map { " +
+                        $"{lineMap.Length.ToString(CultureInfo.InvariantCulture)} " +
+                        $"{lineMap.LineCount.ToString(CultureInfo.InvariantCulture)} " +
+                        string.Join(
+                            " ",
+                            lineMap.LineStarts.Select(
+                                static offset => offset.ToString(
+                                    CultureInfo.InvariantCulture
+                                )
+                            )
+                        ) +
+                        " }"
+                    );
+                }
             }
 
             WriteFunctionAttributes(program.EntryFunction, true);

@@ -198,6 +198,7 @@ MuIR 2 defines a closed catalog of optional diagnostic attributes:
 | Attribute | Target | Payload | Cardinality |
 |---|---|---|---|
 | `source-document` | program | one string | zero or one |
+| `source-line-map` | program | source length, line count, and line-start offsets | zero or one |
 | `provider-global-name` | program | provider ID and language name | zero or more, unique by provider ID |
 | `provider-function-name` | program | provider ID and language name | zero or more, unique by provider ID |
 | `source-name` | function or slot | one string | zero or one per target |
@@ -209,6 +210,7 @@ Known payloads are:
 
 ```text
 source-document-payload      ::= string
+source-line-map-payload      ::= integer integer integer*
 provider-symbol-name-payload ::= string string
 source-name-payload          ::= string
 qualified-name-payload       ::= string
@@ -218,6 +220,12 @@ source-type-names-payload    ::= integer "[" (string ("," string)*)? "]"
 
 Names and provider IDs MUST NOT be empty or whitespace. Source type names MUST
 be unique and ordinally sorted, and their declared count MUST match the list.
+The first integer in a source line map is the source length in Unicode scalar
+values. The second integer is the line count and MUST match the number of
+following line-start offsets. A line map MUST contain at least one line start;
+the first MUST be zero, and subsequent offsets MUST be strictly increasing and
+no greater than the source length. Instruction, terminator, and declaration
+spans MUST remain within the mapped source length.
 Unknown attribute names on known targets are skipped and discarded through
 their balanced-brace payload. Unknown target kinds, malformed targets,
 unbalanced payloads, invalid known payloads, duplicate singleton attributes,

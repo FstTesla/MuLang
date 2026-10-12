@@ -1,3 +1,5 @@
+using MuLang.Core.Text;
+
 namespace MuLang.IR;
 
 /// <summary>Represents diagnostic attributes associated with an IR program.</summary>
@@ -12,4 +14,7 @@ public sealed record IrProgramAttributes(
 {
     /// <summary>Gets an empty program attribute set.</summary>
     public static IrProgramAttributes Empty { get; } = new (null, [ ], [ ]);
+
+    /// <summary>Gets the source line map, when available.</summary>
+    public TextLineMap? LineMap { get; init; }
 }

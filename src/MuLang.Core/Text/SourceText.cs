@@ -7,13 +7,16 @@ namespace MuLang.Core.Text;
 public sealed class SourceText
 {
     private readonly int[] scalarOffsets;
-    private readonly int[] lineStarts;
 
-    private SourceText(string text, int[] scalarOffsets, int[] lineStarts)
+    private SourceText(
+        string text,
+        int[] scalarOffsets,
+        TextLineMap lineMap
+    )
     {
         Text = text;
         this.scalarOffsets = scalarOffsets;
-        this.lineStarts = lineStarts;
+        LineMap = lineMap;
     }
 
     /// <summary>Gets the underlying MuLang source string.</summary>
@@ -23,7 +26,10 @@ public sealed class SourceText
     public int Length => scalarOffsets.Length - 1;
 
     /// <summary>Gets the number of source lines.</summary>
-    public int LineCount => lineStarts.Length;
+    public int LineCount => LineMap.LineCount;
+
+    /// <summary>Gets the source line map.</summary>
+    public TextLineMap LineMap { get; }
 
     /// <summary>Creates source text from a MuLang source string.</summary>
     /// <param name="text">The source text.</param>
@@ -78,7 +84,11 @@ public sealed class SourceText
 
         scalarOffsets.Add(text.Length);
 
-        return new SourceText(text, [ .. scalarOffsets ], [ .. lineStarts ]);
+        return new SourceText(
+            text,
+            [ .. scalarOffsets ],
+            new TextLineMap(scalarOffset, lineStarts)
+        );
     }
 
     /// <summary>Gets the line and column for a Unicode scalar offset.</summary>
@@ -87,19 +97,7 @@ public sealed class SourceText
     /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="offset" /> is outside the source-text bounds.</exception>
     public TextPosition GetPosition(int offset)
     {
-        ValidateOffset(offset);
-
-        int lineIndex = Array.BinarySearch(lineStarts, offset);
-        if (lineIndex < 0)
-        {
-            lineIndex = ~lineIndex - 1;
-        }
-
-        return new TextPosition(
-            offset,
-            lineIndex + 1,
-            offset - lineStarts[lineIndex] + 1
-        );
+        return LineMap.GetPosition(offset);
     }
 
     /// <summary>Gets the UTF-16 code-unit offset for a Unicode scalar offset.</summary>

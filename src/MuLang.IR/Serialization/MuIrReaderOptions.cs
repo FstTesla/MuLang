@@ -136,6 +136,13 @@ public sealed class MuIrReaderOptions
         );
     } = 1_000;
 
+    /// <summary>Gets the maximum number of source lines in a line-map attribute.</summary>
+    public int MaximumSourceLines
+    {
+        get;
+        init => field = Validate(value, nameof(MaximumSourceLines));
+    } = 1_000_000;
+
     /// <summary>Gets the maximum number of provider-symbol name mappings.</summary>
     public int MaximumProviderSymbolNameMappings
     {

@@ -1,4 +1,5 @@
 using MuLang.Core.Diagnostics;
+using MuLang.Core.Text;
 using MuLang.IR;
 
 namespace MuLang.Compiler;
@@ -8,11 +9,15 @@ public sealed class CompilationResult
 {
     internal CompilationResult(
         IrProgram? program,
-        DiagnosticCollection diagnostics
+        DiagnosticCollection diagnostics,
+        string? sourceDocument,
+        TextLineMap lineMap
     )
     {
         Program = program;
         Diagnostics = diagnostics;
+        SourceDocument = sourceDocument;
+        LineMap = lineMap;
     }
 
     /// <summary>Gets the compiled portable IR program, or <c>null</c> when compilation failed.</summary>
@@ -20,6 +25,12 @@ public sealed class CompilationResult
 
     /// <summary>Gets the diagnostics produced by compilation.</summary>
     public DiagnosticCollection Diagnostics { get; }
+
+    /// <summary>Gets the source document name or URI, when available.</summary>
+    public string? SourceDocument { get; }
+
+    /// <summary>Gets the source line map.</summary>
+    public TextLineMap LineMap { get; }
 
     /// <summary>Gets a value indicating whether compilation produced valid portable IR without errors.</summary>
     public bool IsSuccessful => Program is not null && !Diagnostics.HasErrors;
