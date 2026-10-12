@@ -4,3 +4,5 @@ MuLang.Core.LanguageProfileBuilder.WithUserDefinedTypes(MuLang.Core.UserDefinedT
 MuLang.Core.UserDefinedTypesFeature
 MuLang.Core.UserDefinedTypesFeature.Disabled = 0 -> MuLang.Core.UserDefinedTypesFeature
 MuLang.Core.UserDefinedTypesFeature.Enabled = 1 -> MuLang.Core.UserDefinedTypesFeature
+MuLang.Core.Runtime.RuntimeStackFrame.DisplayName.get -> string!
+MuLang.Core.Runtime.RuntimeStackFrame.RuntimeStackFrame(string! functionId, MuLang.Core.Text.TextSpan callSpan, string? displayName) -> void

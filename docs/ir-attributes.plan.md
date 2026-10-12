@@ -2,7 +2,8 @@
 
 ## Status
 
-Planned for MuIR version 2 and package release `0.3.0`.
+Implemented for MuIR version 2 in package version `0.3.0-alpha.6`, targeting
+the stable package release `0.3.0`.
 
 Stable package release `0.2.0` used MuIR 1; MuIR 2 exists only in the
 `0.3.0` prerelease line. Adding attributes to MuIR 2 therefore does not require
@@ -12,7 +13,8 @@ The plan records the following decisions:
 
 - persist attributes in MuIR version 2 rather than in a sidecar file;
 - continue reading MuIR version 1;
-- accept existing MuIR 2 prerelease documents without an attribute section;
+- reject earlier MuIR 2 prerelease documents and accept only the current
+  attribute-bearing layout;
 - ignore unknown well-known attributes when their payload is correctly
   delimited;
 - initially support program, function, slot, and type targets;
@@ -265,16 +267,13 @@ The compiler and new tests should stop reading `IrSlot.Name` directly.
 
 Compatibility behavior is:
 
-- reading MuIR 1 or legacy MuIR 2 converts a non-`none` positional slot name
-  into a `source-name` slot attribute and also materializes `IrSlot.Name`;
-- reading MuIR 2 materializes `IrSlot.Name` from `source-name` when present so
-  existing consumers continue to work;
-- writing canonical MuIR 2 serializes the attribute and writes `none` for the
-  positional slot-name operand retained by the grammar;
-- when an API caller supplies only `IrSlot.Name`, the writer synthesizes the
-  equivalent `source-name` attribute;
-- when both representations are present, they MUST match; otherwise, writing
-  fails explicitly.
+- reading MuIR 1 converts a non-`none` positional slot name into a
+  `source-name` slot attribute;
+- reading MuIR 2 exposes source names only through `IrProgram.Attributes`;
+- writing canonical MuIR 2 serializes names only as attributes and has no
+  positional slot-name operand;
+- the obsolete API constructor parameter and property named `Name` are ignored
+  and never synthesized into attributes.
 
 Removing `IrSlot.Name` is deferred to a future breaking public-API release and
 does not itself require a MuIR format change.
@@ -342,9 +341,7 @@ component ordering, or type-table ID assignment.
 
 Canonical MuIR 2 adds one required `attributes` section after all user
 functions and before `end`. The section is present even when its count is zero.
-For compatibility with existing MuIR 2 prerelease documents, readers also
-accept the earlier layout without an `attributes` section and convert any
-positional slot names into attributes.
+Earlier prerelease MuIR 2 layouts are rejected.
 
 The high-level grammar is:
 
@@ -399,9 +396,8 @@ The declared list count MUST match the number of source type names.
 
 ### Slot grammar
 
-MuIR 2 retains its positional slot-name operand for wire compatibility, but
-canonical writers emit `none` there and serialize names only as attributes.
-MuIR 1 retains its existing grammar and reader behavior.
+MuIR 2 removes the positional slot-name operand and serializes names only as
+attributes. MuIR 1 retains its existing grammar and reader behavior.
 
 ### Canonical form
 
@@ -409,7 +405,6 @@ The canonical MuIR 2 writer:
 
 - always emits version 2;
 - always emits the `attributes` section;
-- emits `none` for positional slot names;
 - omits absent attributes;
 - emits targets in program, function, slot, then type order;
 - orders functions by entry first and user-function document order;
@@ -418,7 +413,7 @@ The canonical MuIR 2 writer:
 - orders attributes for one target by attribute name;
 - orders provider-symbol mappings by provider ID;
 - orders source type names ordinally;
-- rejects duplicate known attributes and conflicting legacy slot names;
+- rejects duplicate known attributes;
 - writes payloads with the ordinary canonical string, integer, list, and span
   rules.
 
@@ -440,10 +435,8 @@ For version 1:
 
 For version 2:
 
-- the `attributes` section is required in canonical documents and optional in
-  existing prerelease documents;
-- positional slot names in legacy documents are converted into attributes;
-- canonical documents use `none` for positional slot names;
+- the `attributes` section is required;
+- the MuIR 2 slot grammar has no positional slot name;
 - known attributes are parsed and validated;
 - an unknown attribute name on a known target is skipped and discarded;
 - an unknown target kind is rejected because the reader cannot establish its
@@ -698,10 +691,9 @@ Add MuIR tests covering:
 
 - canonical version 2 output with an empty attribute section;
 - canonical output containing every initial known attribute;
-- version 1 and 2 legacy slot-name conversion;
-- MuIR 2 slot-name materialization into obsolete `IrSlot.Name`;
-- fallback synthesis when only `IrSlot.Name` is supplied through the API;
-- rejection of conflicting legacy and attribute slot names;
+- version 1 legacy slot-name conversion;
+- ignored compatibility behavior for the obsolete `IrSlot.Name` constructor
+  parameter and property;
 - deterministic attribute and payload ordering;
 - type-target resolution after canonical type-table merging;
 - unknown attribute skipping;
@@ -715,7 +707,7 @@ Add MuIR tests covering:
 - every new reader limit;
 - LF output and UTF-8 without a byte-order mark.
 
-Retain MuIR 1 and legacy MuIR 2 fixtures as reader-compatibility artifacts.
+Retain MuIR 1 fixtures as reader-compatibility artifacts.
 Add canonical MuIR 2 fixtures for minimal, complete, type-alias, and
 unknown-attribute documents.
 
@@ -771,12 +763,10 @@ payload grammar, canonical ordering, compatibility behavior, and limits.
 4. Extend `IrTypeProjector` to preserve, merge, and re-target type names after
    structural projection.
 5. Update every `IrProgram` transformation to preserve attributes.
-6. Add MuIR 2 reader support for the attribute section, known payload parsing,
-   unknown-payload skipping, limits, and legacy MuIR 1 and prerelease MuIR 2
-   conversion.
-7. Update the canonical writer to emit MuIR 2 with the attributes section,
-   serialize attributes deterministically, and synthesize compatible slot
-   attributes from `IrSlot.Name`.
+6. Add MuIR 2 reader support for the required attribute section, known payload
+   parsing, unknown-payload skipping, limits, and legacy MuIR 1 conversion.
+7. Update the canonical writer to emit MuIR 2 with the attributes section and
+   serialize attributes deterministically without consulting `IrSlot.Name`.
 8. Deprecate `IrSlot.Name`, migrate repository callers to typed attribute
    lookup, and update public API baselines.
 9. Add structural attribute validation for directly constructed IR programs.
@@ -794,10 +784,11 @@ The work is complete when:
 - the compiler emits the initial well-known names without affecting executable
   behavior;
 - MuIR 2 round-trips every understood attribute canonically;
-- MuIR 1 and existing prerelease MuIR 2 documents remain readable;
+- MuIR 1 documents remain readable and earlier prerelease MuIR 2 documents are
+  rejected;
 - unknown MuIR 2 attributes on known targets are safely skipped;
-- legacy slot names are available through both the obsolete compatibility
-  property and the new attribute API;
+- MuIR 1 legacy slot names are converted into the new attribute API, while the
+  obsolete compatibility property and constructor parameter remain unused;
 - structurally merged types retain all meaningful diagnostic aliases without
   changing type identity;
 - runtime diagnostics use source names when available and stable fallbacks

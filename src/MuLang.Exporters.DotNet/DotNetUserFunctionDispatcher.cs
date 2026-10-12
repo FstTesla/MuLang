@@ -9,10 +9,12 @@ internal sealed class DotNetUserFunctionDispatcher
 {
     private readonly IReadOnlyDictionary<string, IrFunction> functions;
     private readonly IReadOnlyDictionary<string, DotNetUserFunction> delegates;
+    private readonly IrAttributeCollection attributes;
 
     public DotNetUserFunctionDispatcher(
         IEnumerable<IrFunction> functions,
-        IReadOnlyDictionary<string, DotNetUserFunction> delegates
+        IReadOnlyDictionary<string, DotNetUserFunction> delegates,
+        IrAttributeCollection attributes
     )
     {
         this.functions = functions.ToDictionary(
@@ -20,6 +22,7 @@ internal sealed class DotNetUserFunctionDispatcher
             StringComparer.Ordinal
         );
         this.delegates = delegates;
+        this.attributes = attributes;
     }
 
     public DotNetUserFunctionExecution CreateExecution()
@@ -127,7 +130,15 @@ internal sealed class DotNetUserFunctionDispatcher
         catch (MuLangRuntimeException exception)
         {
             exception.AddFrame(
-                new RuntimeStackFrame(functionId, span)
+                new RuntimeStackFrame(
+                    functionId,
+                    span,
+                    IrDiagnosticNameResolver.GetFunctionDisplayName(
+                        attributes,
+                        functionId,
+                        functionId
+                    )
+                )
             );
             throw;
         }

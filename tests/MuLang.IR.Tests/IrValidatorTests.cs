@@ -291,11 +291,10 @@ public sealed class IrValidatorTests
                     0,
                     IrSlotKind.Local,
                     TypeSymbols.ErrorValue,
-                    "error",
                     IrSlotMutability.ReadOnly,
                     1
                 ),
-                new IrSlot(1, IrSlotKind.Temporary, TypeSymbols.String, null, IrSlotMutability.Mutable, 1),
+                new IrSlot(1, IrSlotKind.Temporary, TypeSymbols.String, IrSlotMutability.Mutable, 1),
                 CreateTemporarySlot(2, TypeSymbols.String),
             ],
             [
@@ -425,7 +424,6 @@ public sealed class IrValidatorTests
             id,
             IrSlotKind.Temporary,
             type,
-            null,
             IrSlotMutability.Mutable,
             0
         );

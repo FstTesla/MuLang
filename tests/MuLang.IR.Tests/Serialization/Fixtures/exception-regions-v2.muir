@@ -10,7 +10,7 @@ entry "$entry" t0 bb0 slots 1 blocks 3 lifetime-regions 2 exception-regions 1 {
   lifetime-region lr0 parent none entry bb0
   lifetime-region lr1 parent lr0 entry bb1
   exception-region er0 parent none parent-part none protected bb0 [bb0] handler bb1 %0 [bb1] cleanup bb2 [bb2]
-  slot %0 local t1 readonly "error" region lr1
+  slot %0 local t1 readonly region lr1
   block bb0 region lr0 instructions 0 {
     term jump 0 0 bb2
   }
@@ -22,4 +22,8 @@ entry "$entry" t0 bb0 slots 1 blocks 3 lifetime-regions 2 exception-regions 1 {
   }
 }
 users 0
+
+attributes 1 {
+  attribute slot entry %0 source-name { "error" }
+}
 end

@@ -116,7 +116,270 @@ public static class MuIrWriter
                 WriteFunction("user", function);
             }
 
+            IReadOnlyList<string> attributes = BuildAttributes();
+            Line("");
+            Line(
+                $"attributes {attributes.Count.ToString(CultureInfo.InvariantCulture)} {{"
+            );
+
+            foreach (string attribute in attributes)
+            {
+                Line($"  {attribute}");
+            }
+
+            Line("}");
             Line("end");
+        }
+
+        private IReadOnlyList<string> BuildAttributes()
+        {
+            IList<string> values = [ ];
+            IReadOnlyDictionary<string, IrFunction> functionsById =
+                program.UserFunctions
+                    .Append(program.EntryFunction)
+                    .ToDictionary(
+                        static function => function.Id,
+                        StringComparer.Ordinal
+                    );
+
+            foreach (string functionId in program.Attributes.Functions.Keys)
+            {
+                if (!functionsById.ContainsKey(functionId))
+                {
+                    throw Failure(
+                        $"Function attribute target '{functionId}' does not exist."
+                    );
+                }
+            }
+
+            foreach (IrSlotAttributeTarget target in program.Attributes.Slots.Keys)
+            {
+                if (
+                    !functionsById.TryGetValue(
+                        target.FunctionId,
+                        out IrFunction? function
+                    ) ||
+                    function.Slots.All(slot => slot.Id != target.SlotId))
+                {
+                    throw Failure(
+                        $"Slot attribute target '{target.FunctionId}:%{target.SlotId}' does not exist."
+                    );
+                }
+            }
+
+            if (program.Attributes.Program is { } programAttributes)
+            {
+                ValidateProviderMappings(
+                    programAttributes.ProviderFunctionNames,
+                    "provider function"
+                );
+                foreach (
+                    IrProviderSymbolName mapping in
+                    programAttributes.ProviderFunctionNames.OrderBy(
+                        static mapping => mapping.Id,
+                        StringComparer.Ordinal
+                    )
+                )
+                {
+                    values.Add(
+                        "attribute program provider-function-name { " +
+                        $"{Quote(mapping.Id)} {Quote(mapping.Name)} }}"
+                    );
+                }
+
+                ValidateProviderMappings(
+                    programAttributes.ProviderGlobalNames,
+                    "provider global"
+                );
+                foreach (
+                    IrProviderSymbolName mapping in
+                    programAttributes.ProviderGlobalNames.OrderBy(
+                        static mapping => mapping.Id,
+                        StringComparer.Ordinal
+                    )
+                )
+                {
+                    values.Add(
+                        "attribute program provider-global-name { " +
+                        $"{Quote(mapping.Id)} {Quote(mapping.Name)} }}"
+                    );
+                }
+
+                if (programAttributes.SourceDocument is { } sourceDocument)
+                {
+                    values.Add(
+                        $"attribute program source-document {{ {Quote(RequireValue(sourceDocument, "source document"))} }}"
+                    );
+                }
+            }
+
+            WriteFunctionAttributes(program.EntryFunction, true);
+
+            foreach (IrFunction function in program.UserFunctions)
+            {
+                WriteFunctionAttributes(function, false);
+            }
+
+            Dictionary<int, SortedSet<string>> namesByTypeId = [ ];
+
+            foreach (
+                KeyValuePair<TypeSymbol, IrTypeAttributes> item in
+                program.Attributes.Types
+            )
+            {
+                if (!typeIds.TryGetValue(item.Key, out int typeId))
+                {
+                    throw Failure(
+                        $"Type attribute target '{item.Key.DisplayName}' is not serializable."
+                    );
+                }
+
+                if (
+                    item.Value.SourceNames.Count == 0 ||
+                    item.Value.SourceNames.Any(
+                        static name => string.IsNullOrWhiteSpace(name)
+                    ) ||
+                    item.Value.SourceNames.Distinct(StringComparer.Ordinal).Count() !=
+                    item.Value.SourceNames.Count ||
+                    !item.Value.SourceNames.SequenceEqual(
+                        item.Value.SourceNames.Order(StringComparer.Ordinal)
+                    )
+                )
+                {
+                    throw Failure(
+                        $"Type attribute target '{item.Key.DisplayName}' has invalid source names."
+                    );
+                }
+
+                if (
+                    !namesByTypeId.TryGetValue(
+                        typeId,
+                        out SortedSet<string>? names
+                    )
+                )
+                {
+                    names = new SortedSet<string>(StringComparer.Ordinal);
+                    namesByTypeId.Add(typeId, names);
+                }
+
+                foreach (string name in item.Value.SourceNames)
+                {
+                    names.Add(name);
+                }
+            }
+
+            foreach (
+                KeyValuePair<int, SortedSet<string>> item in
+                namesByTypeId.OrderBy(static item => item.Key)
+            )
+            {
+                values.Add(
+                    $"attribute type t{item.Key.ToString(CultureInfo.InvariantCulture)} " +
+                    $"source-type-names {{ {item.Value.Count.ToString(CultureInfo.InvariantCulture)} " +
+                    $"[{string.Join(", ", item.Value.Select(Quote))}] }}"
+                );
+            }
+
+            return values.AsReadOnly();
+
+            void WriteFunctionAttributes(IrFunction function, bool isEntry)
+            {
+                string functionTarget = isEntry
+                    ? "entry"
+                    : $"user {Quote(function.Id)}";
+
+                if (
+                    program.Attributes.TryGetFunction(
+                        function.Id,
+                        out IrFunctionAttributes? attributes
+                    )
+                )
+                {
+                    if (attributes.DeclarationSpan is { } declarationSpan)
+                    {
+                        values.Add(
+                            $"attribute function {functionTarget} declaration-span " +
+                            $"{{ {WriteSpan(declarationSpan)} }}"
+                        );
+                    }
+
+                    if (attributes.QualifiedSourceName is { } qualifiedName)
+                    {
+                        values.Add(
+                            $"attribute function {functionTarget} qualified-source-name " +
+                            $"{{ {Quote(RequireValue(qualifiedName, "qualified source name"))} }}"
+                        );
+                    }
+
+                    if (attributes.SourceName is { } sourceName)
+                    {
+                        values.Add(
+                            $"attribute function {functionTarget} source-name " +
+                            $"{{ {Quote(RequireValue(sourceName, "source name"))} }}"
+                        );
+                    }
+                }
+
+                foreach (IrSlot slot in function.Slots.OrderBy(static slot => slot.Id))
+                {
+                    program.Attributes.TryGetSlot(
+                        function.Id,
+                        slot.Id,
+                        out IrSlotAttributes? slotAttributes
+                    );
+                    string? sourceName = slotAttributes?.SourceName;
+
+                    string slotTarget = isEntry
+                        ? $"entry %{slot.Id.ToString(CultureInfo.InvariantCulture)}"
+                        : $"user {Quote(function.Id)} %{slot.Id.ToString(CultureInfo.InvariantCulture)}";
+
+                    if (slotAttributes?.DeclarationSpan is { } declarationSpan)
+                    {
+                        values.Add(
+                            $"attribute slot {slotTarget} declaration-span " +
+                            $"{{ {WriteSpan(declarationSpan)} }}"
+                        );
+                    }
+
+                    if (sourceName is not null)
+                    {
+                        values.Add(
+                            $"attribute slot {slotTarget} source-name " +
+                            $"{{ {Quote(RequireValue(sourceName, "slot source name"))} }}"
+                        );
+                    }
+                }
+            }
+
+            void ValidateProviderMappings(
+                IReadOnlyList<IrProviderSymbolName> mappings,
+                string description
+            )
+            {
+                ISet<string> ids = new HashSet<string>(StringComparer.Ordinal);
+
+                foreach (IrProviderSymbolName mapping in mappings)
+                {
+                    _ = RequireValue(mapping.Id, $"{description} identifier");
+                    _ = RequireValue(mapping.Name, $"{description} name");
+
+                    if (!ids.Add(mapping.Id))
+                    {
+                        throw Failure(
+                            $"The {description} identifier '{mapping.Id}' is mapped more than once."
+                        );
+                    }
+                }
+            }
+
+            string RequireValue(string value, string description)
+            {
+                return string.IsNullOrWhiteSpace(value)
+                    ? throw Failure(
+                        $"The {description} cannot be empty or whitespace."
+                    )
+                    : value;
+            }
         }
 
         private void WriteType(int id, TypeSymbol type)
@@ -244,7 +507,6 @@ public static class MuIrWriter
                     $"  slot %{slot.Id.ToString(CultureInfo.InvariantCulture)} " +
                     $"{GetSlotKind(slot.Kind)} {TypeReference(slot.Type)} " +
                     $"{GetSlotMutability(slot.Mutability)} " +
-                    $"{(slot.Name is null ? "none" : Quote(slot.Name))} " +
                     $"region lr{slot.LifetimeRegion.ToString(CultureInfo.InvariantCulture)}"
                 );
             }
@@ -424,12 +686,9 @@ public static class MuIrWriter
 
         private string TypeReference(TypeSymbol type)
         {
-            if (!typeIds.TryGetValue(type, out int id))
-            {
-                throw Failure($"Type '{type.DisplayName}' is missing from the type table.");
-            }
-
-            return $"t{id.ToString(CultureInfo.InvariantCulture)}";
+            return typeIds.TryGetValue(type, out int id)
+                ? $"t{id.ToString(CultureInfo.InvariantCulture)}"
+                : throw Failure($"Type '{type.DisplayName}' is missing from the type table.");
         }
 
         private MuIrSerializationException Failure(string message)

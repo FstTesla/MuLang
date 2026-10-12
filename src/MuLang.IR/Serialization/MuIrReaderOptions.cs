@@ -102,6 +102,50 @@ public sealed class MuIrReaderOptions
     /// <summary>Gets the maximum number of diagnostics.</summary>
     public int MaximumDiagnostics { get; }
 
+    /// <summary>Gets the maximum total number of attributes.</summary>
+    public int MaximumAttributes
+    {
+        get;
+        init => field = Validate(value, nameof(MaximumAttributes));
+    } = 100_000;
+
+    /// <summary>Gets the maximum number of attributes for one target.</summary>
+    public int MaximumAttributesPerTarget
+    {
+        get;
+        init => field = Validate(value, nameof(MaximumAttributesPerTarget));
+    } = 100;
+
+    /// <summary>Gets the maximum number of tokens skipped in unknown attribute payloads.</summary>
+    public int MaximumUnknownAttributePayloadTokens
+    {
+        get;
+        init => field = Validate(
+            value,
+            nameof(MaximumUnknownAttributePayloadTokens)
+        );
+    } = 100_000;
+
+    /// <summary>Gets the maximum number of source type names for one type.</summary>
+    public int MaximumSourceTypeNamesPerType
+    {
+        get;
+        init => field = Validate(
+            value,
+            nameof(MaximumSourceTypeNamesPerType)
+        );
+    } = 1_000;
+
+    /// <summary>Gets the maximum number of provider-symbol name mappings.</summary>
+    public int MaximumProviderSymbolNameMappings
+    {
+        get;
+        init => field = Validate(
+            value,
+            nameof(MaximumProviderSymbolNameMappings)
+        );
+    } = 100_000;
+
     private static int Validate(int value, string parameterName)
     {
         return value > 0 ? value : throw new ArgumentOutOfRangeException(parameterName);

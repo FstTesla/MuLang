@@ -6,6 +6,7 @@ using MuLang.Core.Environment;
 using MuLang.Core.Symbols;
 using MuLang.Core.Text;
 using MuLang.Core.Types;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 
 namespace MuLang.Compiler.Binding;
@@ -703,7 +704,6 @@ internal sealed class Binder
             )
             {
                 ReportReadOnlyAssignment(
-                    local.Symbol,
                     syntax.Target.Span,
                     $"Read-only local variable '{local.Symbol.Name}' may already be assigned on an incoming control-flow path."
                 );
@@ -2859,7 +2859,7 @@ internal sealed class Binder
             ReportOptionalAccess(
                 target,
                 syntax.IsOptional,
-                errorProperty!.IsOptional,
+                errorProperty.IsOptional,
                 syntax.OperatorToken.Span
             );
             TypeSymbol resultType = ShouldOptionalAccessReturnNullable(
@@ -3369,9 +3369,9 @@ internal sealed class Binder
 
             if (
                 propertyType.Kind is
-                    TypeKind.Void or
-                    TypeKind.Null or
-                    TypeKind.ErrorRecovery
+                TypeKind.Void or
+                TypeKind.Null or
+                TypeKind.ErrorRecovery
             )
             {
                 Report(
@@ -3433,7 +3433,7 @@ internal sealed class Binder
 
     private static bool TryGetErrorProperty(
         string name,
-        out ObjectPropertySymbol? property
+        [NotNullWhen(true)] out ObjectPropertySymbol? property
     )
     {
         property = name switch
@@ -3587,7 +3587,6 @@ internal sealed class Binder
                 }
 
                 ReportReadOnlyAssignment(
-                    symbol,
                     span,
                     $"Read-only local variable '{symbol.Name}' may be assigned again by another loop iteration."
                 );
@@ -3596,7 +3595,6 @@ internal sealed class Binder
     }
 
     private void ReportReadOnlyAssignment(
-        LocalSymbol symbol,
         TextSpan span,
         string message
     )

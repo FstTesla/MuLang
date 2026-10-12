@@ -76,9 +76,7 @@ public sealed class MuIrSerializationTests
                     new IrSlot(
                         0,
                         IrSlotKind.Temporary,
-                        type,
-                        null,
-                        IrSlotMutability.Mutable,
+                        type, IrSlotMutability.Mutable,
                         0
                     ),
                 ],

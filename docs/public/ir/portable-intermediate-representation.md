@@ -67,14 +67,38 @@ Provider-call validation accepts arguments assignable through read-only array co
 
 Structured object types transported through IR MAY be self-recursive or mutually recursive. Structural equivalence and validation operate coinductively and MUST terminate for finite type graphs.
 
-Structured object types in IR are purely structural. Lowering MUST erase provider type IDs, language-facing type names, and named-versus-anonymous origin while preserving openness, properties, optionality, capabilities, and recursive edges. Provider symbol IDs and the environment fingerprint remain unchanged.
+Structured object types in executable IR are purely structural. Lowering MUST
+erase provider type IDs, language-facing type names, and
+named-versus-anonymous origin from type identity while preserving openness,
+properties, optionality, capabilities, and recursive edges. Provider symbol
+IDs and the environment fingerprint remain unchanged.
 
 The same rule applies to source-declared and inline object types. Only shapes
 reachable from lowered function signatures, slots, constants, conversions,
 type tests, object creation, arrays, or nested properties enter the projected
-graph. Unused source declarations do not appear in portable IR, and renaming a
-source declaration without changing a reachable shape does not change the
-projected type graph.
+graph. Unused source declarations do not appear in portable IR. Reachable
+source and provider type names MAY survive only as optional diagnostic
+attributes; changing them does not change the projected structural graph or
+executable behavior.
+
+Portable IR exposes an immutable collection of standardized diagnostic
+attributes. Initial targets are the program, functions, function-local slots,
+and projected types. Attributes may preserve source names, qualified function
+names, declaration spans, referenced provider-symbol names, and ordered type
+aliases.
+
+Attributes are non-semantic. Removing every attribute MUST NOT change
+validation of executable structure, environment compatibility, type identity
+or assignability, control flow, dispatch, runtime conformance, cancellation,
+resource accounting, or execution results. Validators separately reject
+attribute targets that do not exist and malformed standardized payloads.
+
+Structurally equivalent object types share executable type identity even when
+their diagnostic alias lists differ. Projection merges aliases, removes
+anonymous synthetic names, removes duplicates, and orders names ordinally.
+Runtime diagnostics MAY prefer an attribute name while retaining the portable
+function ID, slot ID, provider ID, or structural display as the authoritative
+fallback.
 
 `CreateObject` carries the complete structured object type separately from its
 present property values. Values must be unique, declared or valid additional

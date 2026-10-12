@@ -8,7 +8,44 @@ public sealed class IrRecordCompatibilityTests
     [Test]
     public void LegacyConstructorsAndDeconstructorsAreObsolete()
     {
-        AssertObsoleteMembers<IrSlot>([ 4, 5 ], [ 4 ]);
+        Assert.That(
+            typeof(IrSlot).GetConstructors()
+                .Where(
+                    static constructor =>
+                        constructor.GetParameters().Any(
+                            static parameter => parameter.Name is "Name" or "name"
+                        )
+                ),
+            Has.All.Matches<ConstructorInfo>(
+                static constructor =>
+                    constructor.IsDefined(typeof(ObsoleteAttribute), false)
+            )
+        );
+        Assert.That(
+            typeof(IrSlot).GetConstructors()
+                .Single(
+                    static constructor =>
+                        constructor.GetParameters().Length == 5 &&
+                        constructor.GetParameters()[3].ParameterType ==
+                        typeof(IrSlotMutability)
+                )
+                .IsDefined(typeof(ObsoleteAttribute), false),
+            Is.False
+        );
+        Assert.That(
+            typeof(IrSlot).GetMethods()
+                .Where(
+                    static method =>
+                        method.Name == "Deconstruct" &&
+                        method.GetParameters().Any(
+                            static parameter => parameter.Name == "Name"
+                        )
+                ),
+            Has.All.Matches<MethodInfo>(
+                static method =>
+                    method.IsDefined(typeof(ObsoleteAttribute), false)
+            )
+        );
         AssertObsoleteMembers<IrBasicBlock>([ 3 ], [ 3 ]);
         AssertObsoleteMembers<IrFunction>([ 5, 6 ], [ 5 ]);
     }
@@ -41,6 +78,9 @@ public sealed class IrRecordCompatibilityTests
         {
             Assert.That(slot.Mutability, Is.EqualTo(IrSlotMutability.ReadOnly));
             Assert.That(slot.LifetimeRegion, Is.Zero);
+#pragma warning disable CS0618
+            Assert.That(slot.Name, Is.Null);
+#pragma warning restore CS0618
             Assert.That(block.LifetimeRegion, Is.Zero);
             Assert.That(
                 function.LifetimeRegions,
@@ -57,7 +97,6 @@ public sealed class IrRecordCompatibilityTests
             0,
             IrSlotKind.Local,
             TypeSymbols.Int,
-            "value",
             IrSlotMutability.ReadOnly,
             1
         );
@@ -87,7 +126,6 @@ public sealed class IrRecordCompatibilityTests
             int slotId,
             IrSlotKind slotKind,
             TypeSymbol slotType,
-            string? slotName,
             IrSlotMutability slotMutability,
             int slotLifetimeRegion
         ) = slot;
@@ -112,7 +150,6 @@ public sealed class IrRecordCompatibilityTests
             Assert.That(slotId, Is.Zero);
             Assert.That(slotKind, Is.EqualTo(IrSlotKind.Local));
             Assert.That(slotType, Is.SameAs(TypeSymbols.Int));
-            Assert.That(slotName, Is.EqualTo("value"));
             Assert.That(slotMutability, Is.EqualTo(IrSlotMutability.ReadOnly));
             Assert.That(slotLifetimeRegion, Is.EqualTo(1));
             Assert.That(blockId, Is.EqualTo(2));

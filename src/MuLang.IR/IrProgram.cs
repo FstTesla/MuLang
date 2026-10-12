@@ -18,6 +18,14 @@ public sealed record IrProgram(
     IReadOnlyList<IrFunction> UserFunctions
 )
 {
+    /// <summary>Gets the well-known diagnostic attributes.</summary>
+    public IrAttributeCollection Attributes
+    {
+        get;
+        init => field = value ??
+            throw new ArgumentNullException(nameof(value));
+    } = IrAttributeCollection.Empty;
+
     /// <summary>Gets the result type of the entry function.</summary>
     public TypeSymbol ResultType => EntryFunction.ReturnType;
 

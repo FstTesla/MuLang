@@ -106,7 +106,7 @@ internal sealed class IrBuilder
         return id;
     }
 
-    public (int EntryBlock, int ErrorSlot) BeginExceptionHandler(string? errorName)
+    public (int EntryBlock, int ErrorSlot) BeginExceptionHandler()
     {
         ExceptionRegionContext context = GetExceptionRegionContext(
             IrExceptionRegionPart.Protected
@@ -129,7 +129,6 @@ internal sealed class IrBuilder
         int errorSlot = CreateSlot(
             IrSlotKind.Local,
             TypeSymbols.ErrorValue,
-            errorName,
             IrSlotMutability.ReadOnly
         );
         MutableIrExceptionRegion region = exceptionRegions[context.RegionId];
@@ -231,7 +230,6 @@ internal sealed class IrBuilder
     public int CreateSlot(
         IrSlotKind kind,
         TypeSymbol type,
-        string? name = null,
         IrSlotMutability? mutability = null
     )
     {
@@ -247,7 +245,6 @@ internal sealed class IrBuilder
                 id,
                 kind,
                 type,
-                name,
                 effectiveMutability,
                 lifetimeRegionStack.Peek()
             )

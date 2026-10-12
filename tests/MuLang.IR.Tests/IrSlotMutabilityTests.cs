@@ -16,7 +16,6 @@ public sealed class IrSlotMutabilityTests
                     0,
                     IrSlotKind.Local,
                     TypeSymbols.Int,
-                    "value",
                     IrSlotMutability.ReadOnly
                 ),
             ],
@@ -39,7 +38,6 @@ public sealed class IrSlotMutabilityTests
                     0,
                     IrSlotKind.Local,
                     TypeSymbols.Int,
-                    "value",
                     IrSlotMutability.ReadOnly
                 ),
             ],
@@ -60,7 +58,6 @@ public sealed class IrSlotMutabilityTests
                     0,
                     IrSlotKind.Local,
                     TypeSymbols.Int,
-                    "value",
                     IrSlotMutability.ReadOnly
                 ),
             ],
@@ -87,7 +84,6 @@ public sealed class IrSlotMutabilityTests
                     0,
                     IrSlotKind.Temporary,
                     TypeSymbols.Int,
-                    "value",
                     IrSlotMutability.ReadOnly
                 ),
             ],
@@ -126,7 +122,6 @@ public sealed class IrSlotMutabilityTests
             0,
             IrSlotKind.Parameter,
             TypeSymbols.Int,
-            "value",
             IrSlotMutability.ReadOnly
         );
 
@@ -143,7 +138,6 @@ public sealed class IrSlotMutabilityTests
             0,
             IrSlotKind.Parameter,
             TypeSymbols.Int,
-            "value",
             IrSlotMutability.Mutable
         );
 
@@ -161,7 +155,6 @@ public sealed class IrSlotMutabilityTests
             0,
             IrSlotKind.Parameter,
             TypeSymbols.Int,
-            "value",
             IrSlotMutability.ReadOnly
         );
 
@@ -200,14 +193,12 @@ public sealed class IrSlotMutabilityTests
                         0,
                         IrSlotKind.Local,
                         TypeSymbols.Int,
-                        "value",
                         IrSlotMutability.ReadOnly
                     ),
                     CreateSlot(
                         1,
                         IrSlotKind.Temporary,
                         TypeSymbols.Bool,
-                        null,
                         IrSlotMutability.Mutable
                     ),
                 ],
@@ -270,14 +261,12 @@ public sealed class IrSlotMutabilityTests
                         0,
                         IrSlotKind.Local,
                         TypeSymbols.Int,
-                        "value",
                         IrSlotMutability.ReadOnly
                     ),
                     CreateSlot(
                         1,
                         IrSlotKind.Temporary,
                         TypeSymbols.Bool,
-                        null,
                         IrSlotMutability.Mutable
                     ),
                 ],
@@ -412,10 +401,9 @@ public sealed class IrSlotMutabilityTests
         int id,
         IrSlotKind kind,
         TypeSymbol type,
-        string? name,
         IrSlotMutability mutability
     ) =>
-        new (id, kind, type, name, mutability, 0);
+        new (id, kind, type, mutability, 0);
 
     private static IrBasicBlock CreateRootBlock(
         int id,

@@ -59,4 +59,7 @@ public static class MuIrDiagnosticCodes
 
     /// <summary>Gets the code for a failure while constructing the IR model.</summary>
     public const string MaterializationFailed = "MUIR0019";
+
+    /// <summary>Gets the code for an invalid well-known attribute.</summary>
+    public const string InvalidAttribute = "MUIR0020";
 }

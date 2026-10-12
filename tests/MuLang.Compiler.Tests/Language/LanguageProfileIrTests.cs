@@ -177,9 +177,7 @@ public sealed class LanguageProfileIrTests
             CompilationMode.Program,
             TypeSymbols.Int
         );
-        IrSlot local = result.Program?.Slots.Single(
-            static slot => slot is { Kind: IrSlotKind.Local, Name: "value" }
-        ) ?? throw new AssertionException("Expected a local IR slot.");
+        IrSlot local = GetNamedSlot(result.Program, "value");
 
         using (Assert.EnterMultipleScope())
         {
@@ -205,9 +203,7 @@ public sealed class LanguageProfileIrTests
             CompilationMode.Program,
             TypeSymbols.Int
         );
-        IrSlot local = result.Program?.Slots.Single(
-            static slot => slot is { Kind: IrSlotKind.Local, Name: "value" }
-        ) ?? throw new AssertionException("Expected a local IR slot.");
+        IrSlot local = GetNamedSlot(result.Program, "value");
 
         using (Assert.EnterMultipleScope())
         {
@@ -228,10 +224,10 @@ public sealed class LanguageProfileIrTests
             CompilationMode.Program,
             TypeSymbols.Void
         );
-        IrSlot local = result.Program?.Slots.Single(
-            static slot => slot is { Kind: IrSlotKind.Local, Name: "value" }
-        ) ?? throw new AssertionException("Expected a local IR slot.");
-        IrLifetimeRegion region = result.Program.EntryFunction.LifetimeRegions.Single(
+        IrProgram program = result.Program ??
+            throw new AssertionException("Expected an IR program.");
+        IrSlot local = GetNamedSlot(program, "value");
+        IrLifetimeRegion region = program.EntryFunction.LifetimeRegions.Single(
             region => region.Id == local.LifetimeRegion
         );
 
@@ -242,6 +238,25 @@ public sealed class LanguageProfileIrTests
             Assert.That(local.LifetimeRegion, Is.Not.EqualTo(0));
             Assert.That(region.ParentRegion, Is.EqualTo(0));
         }
+    }
+
+    private static IrSlot GetNamedSlot(IrProgram? program, string name)
+    {
+        if (program is null)
+        {
+            throw new AssertionException("Expected an IR program.");
+        }
+
+        return program.Slots.Single(
+            slot =>
+                slot.Kind == IrSlotKind.Local &&
+                program.Attributes.TryGetSlot(
+                    program.EntryFunction.Id,
+                    slot.Id,
+                    out IrSlotAttributes? attributes
+                ) &&
+                attributes.SourceName == name
+        );
     }
 
     [Test]

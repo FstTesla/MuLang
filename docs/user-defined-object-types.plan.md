@@ -559,14 +559,15 @@ Add regression tests proving that:
 - nested inline shapes lower recursively and deterministically;
 - recursive source declarations project without infinite recursion;
 - unused declarations do not affect serialized MuIR;
-- renaming a source type without changing a reachable shape does not alter
-  canonical MuIR;
+- renaming a source type without changing a reachable shape changes only its
+  optional diagnostic attribute and does not alter executable type identity;
 - changing a reachable shape does alter the projected type table.
 
 ## .NET exporter and runtime
 
-No exporter or runtime representation is added specifically for source type
-names.
+No executable exporter or runtime type representation is added specifically
+for source type names. Well-known IR attributes may preserve names for
+diagnostics.
 
 The exporter receives only projected structural IR and therefore treats values
 of source-declared and inline object types exactly like equivalent
@@ -575,7 +576,7 @@ host-declared or inferred anonymous structured values.
 Runtime construction, mutation, removal, conformance, and cyclic-graph behavior
 are covered by the object-property prerequisite. Add integration tests using
 source declarations to verify that those existing paths are exercised after
-name erasure.
+executable name erasure.
 
 ## Public API impact
 
@@ -589,8 +590,7 @@ Add the following public profile API:
 
 Do not expose:
 
-- a public collection of source declarations;
-- source names in `IrProgram`;
+- a public collection of source declarations or nominal source identities;
 - source declaration identities in `ObjectTypeSymbol`;
 - a host API for registering source types.
 
@@ -627,7 +627,8 @@ Document explicitly that:
 - object literals remain the construction mechanism;
 - recursive required-property cycles are valid;
 - unused declarations do not appear in portable IR;
-- source names are erased during lowering.
+- source names are erased from executable type identity during lowering and
+  may survive only as non-semantic diagnostic attributes.
 
 ## Test plan
 
@@ -693,7 +694,7 @@ Add IR and serialization tests covering:
 - reachable source shapes;
 - reachable inline and nested-inline shapes;
 - unused declarations;
-- source-name erasure;
+- source-name erasure from executable type identity;
 - deterministic recursive projection;
 - structural equivalence with host and anonymous types.
 
@@ -727,7 +728,8 @@ Update language-server tests for standard and Visual Studio presentation modes.
     function signatures after named type completion.
 11. Integrate contextual object-literal binding and open-object validation.
 12. Add recursive semantic classification and TextMate support.
-13. Verify reachable-only structural IR projection and source-name erasure.
+13. Verify reachable-only structural IR projection and source-name erasure
+    from executable type identity.
 14. Add compiler, Core, IR, serialization, exporter, and language-server
     coverage.
 15. Update specifications, roadmap, changelog, and public API baselines.
@@ -755,7 +757,7 @@ The following decisions are fixed for this plan:
 - multiple names may describe equivalent shapes;
 - disabled features produce targeted diagnostics after successful parsing;
 - type names use a separate namespace from variables and functions;
-- source names are erased during lowering;
+- source names are erased from executable type identity during lowering;
 - unused declarations are not emitted to IR;
 - declarations are program-only;
 - recursive required-property cycles are valid;

@@ -14,6 +14,14 @@ type HighlightEnvelope {
     },
 };
 
+type HighlightDetailsAlias @{
+    title: string,
+    name: string,
+    state: string,
+    count: int,
+    accent?: string,
+};
+
 func clamp(value: int, minimum: int, maximum: int): int {
     if (value < minimum) {
         return minimum;
@@ -108,6 +116,7 @@ func exerciseHighlighting(name: string, requested: int): void {
         count = count,
         accent? = "blue",
     };
+    var aliasedDetails: HighlightDetailsAlias = details;
 
     details.version = 1;
     var hasVersion = details has "version";
@@ -156,7 +165,8 @@ func exerciseHighlighting(name: string, requested: int): void {
     }
 
     details.count = total;
-    var summary = alignedLabel + ": " + details.name + " is " + details.state;
+    var summary = alignedLabel + ": " + aliasedDetails.name + " is " +
+        aliasedDetails.state;
     var comparisons$ = count === requested && count !== -1;
 
     return;

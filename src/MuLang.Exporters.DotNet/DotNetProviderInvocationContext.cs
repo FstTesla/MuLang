@@ -403,8 +403,7 @@ public sealed class DotNetProviderInvocationContext
         runtimeContext.Consume(span);
 
         if (
-            value is IDotNetObjectValue &&
-            value is IDotNetObjectPropertyCapabilities capabilities
+            value is IDotNetObjectValue and IDotNetObjectPropertyCapabilities capabilities
         )
         {
             isReadOnly = capabilities.IsPropertyReadOnly(name);

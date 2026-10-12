@@ -239,7 +239,8 @@ public static class DotNetExporter
 
         DotNetUserFunctionDispatcher dispatcher = new (
             program.UserFunctions,
-            compiledFunctions
+            compiledFunctions,
+            program.Attributes
         );
         DotNetUserFunction entryFunction = CompileFunction(
             program.EntryFunction,
@@ -266,7 +267,15 @@ public static class DotNetExporter
             catch (MuLangRuntimeException exception)
             {
                 exception.AddFrame(
-                    new RuntimeStackFrame(program.EntryFunction.Id, entrySpan)
+                    new RuntimeStackFrame(
+                        program.EntryFunction.Id,
+                        entrySpan,
+                        IrDiagnosticNameResolver.GetFunctionDisplayName(
+                            program.Attributes,
+                            program.EntryFunction.Id,
+                            program.EntryFunction.Id
+                        )
+                    )
                 );
                 return ExecutionResult.Failure(
                     exception.Error,

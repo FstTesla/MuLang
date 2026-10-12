@@ -661,9 +661,7 @@ public sealed class TruthinessTests
                 new IrSlot(
                     0,
                     IrSlotKind.Temporary,
-                    TypeSymbols.Bool,
-                    null,
-                    IrSlotMutability.Mutable,
+                    TypeSymbols.Bool, IrSlotMutability.Mutable,
                     0
                 ),
             ],
@@ -675,17 +673,13 @@ public sealed class TruthinessTests
                 new IrSlot(
                     0,
                     IrSlotKind.Temporary,
-                    TypeSymbols.Void,
-                    null,
-                    IrSlotMutability.Mutable,
+                    TypeSymbols.Void, IrSlotMutability.Mutable,
                     0
                 ),
                 new IrSlot(
                     1,
                     IrSlotKind.Temporary,
-                    TypeSymbols.Int,
-                    null,
-                    IrSlotMutability.Mutable,
+                    TypeSymbols.Int, IrSlotMutability.Mutable,
                     0
                 ),
             ],
@@ -697,17 +691,13 @@ public sealed class TruthinessTests
                 new IrSlot(
                     0,
                     IrSlotKind.Temporary,
-                    TypeSymbols.Int,
-                    null,
-                    IrSlotMutability.Mutable,
+                    TypeSymbols.Int, IrSlotMutability.Mutable,
                     0
                 ),
                 new IrSlot(
                     1,
                     IrSlotKind.Temporary,
-                    TypeSymbols.Bool,
-                    null,
-                    IrSlotMutability.Mutable,
+                    TypeSymbols.Bool, IrSlotMutability.Mutable,
                     0
                 ),
             ],

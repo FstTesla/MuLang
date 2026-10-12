@@ -467,7 +467,6 @@ public sealed class MuIrSerializationTests
             source.Id,
             IrSlotKind.Local,
             source.Type,
-            "value",
             IrSlotMutability.ReadOnly,
             source.LifetimeRegion
         );
@@ -499,7 +498,6 @@ public sealed class MuIrSerializationTests
                     0,
                     IrSlotKind.Local,
                     TypeSymbols.Int,
-                    "value",
                     IrSlotMutability.ReadOnly,
                     1
                 ),
@@ -583,7 +581,6 @@ public sealed class MuIrSerializationTests
                     0,
                     IrSlotKind.Local,
                     TypeSymbols.ErrorValue,
-                    "error",
                     IrSlotMutability.ReadOnly,
                     1
                 ),
@@ -763,17 +760,17 @@ public sealed class MuIrSerializationTests
         );
         IReadOnlyList<IrSlot> slots =
         [
-            CreateRootSlot(0, IrSlotKind.Local, TypeSymbols.Int, "input"),
-            CreateRootSlot(1, IrSlotKind.Local, TypeSymbols.Bool, "flag"),
-            CreateRootSlot(2, IrSlotKind.Temporary, nullableInt, null),
-            CreateRootSlot(3, IrSlotKind.Temporary, TypeSymbols.Float, null),
-            CreateRootSlot(4, IrSlotKind.Temporary, TypeSymbols.String, null),
-            CreateRootSlot(5, IrSlotKind.Temporary, mutableArray, null),
-            CreateRootSlot(6, IrSlotKind.Temporary, namedObject, null),
-            CreateRootSlot(7, IrSlotKind.Temporary, anonymousObject, null),
-            CreateRootSlot(8, IrSlotKind.Temporary, TypeSymbols.Unknown, null),
-            CreateRootSlot(9, IrSlotKind.Temporary, TypeSymbols.Number, null),
-            CreateRootSlot(10, IrSlotKind.Temporary, TypeSymbols.Object, null),
+            CreateRootSlot(0, IrSlotKind.Local, TypeSymbols.Int),
+            CreateRootSlot(1, IrSlotKind.Local, TypeSymbols.Bool),
+            CreateRootSlot(2, IrSlotKind.Temporary, nullableInt),
+            CreateRootSlot(3, IrSlotKind.Temporary, TypeSymbols.Float),
+            CreateRootSlot(4, IrSlotKind.Temporary, TypeSymbols.String),
+            CreateRootSlot(5, IrSlotKind.Temporary, mutableArray),
+            CreateRootSlot(6, IrSlotKind.Temporary, namedObject),
+            CreateRootSlot(7, IrSlotKind.Temporary, anonymousObject),
+            CreateRootSlot(8, IrSlotKind.Temporary, TypeSymbols.Unknown),
+            CreateRootSlot(9, IrSlotKind.Temporary, TypeSymbols.Number),
+            CreateRootSlot(10, IrSlotKind.Temporary, TypeSymbols.Object),
         ];
         IReadOnlyCollection<IrInstruction> instructions =
         [
@@ -842,8 +839,7 @@ public sealed class MuIrSerializationTests
                 CreateRootSlot(
                     0,
                     IrSlotKind.Parameter,
-                    TypeSymbols.Int,
-                    "value"
+                    TypeSymbols.Int
                 ),
             ],
             [
@@ -878,7 +874,7 @@ public sealed class MuIrSerializationTests
             "$entry",
             type,
             0,
-            [ CreateRootSlot(0, IrSlotKind.Temporary, type, null) ],
+            [ CreateRootSlot(0, IrSlotKind.Temporary, type) ],
             [
                 CreateRootBlock(
                     0,
@@ -910,7 +906,7 @@ public sealed class MuIrSerializationTests
             "$entry",
             TypeSymbols.Int,
             0,
-            [ CreateRootSlot(0, IrSlotKind.Temporary, TypeSymbols.Int, null) ],
+            [ CreateRootSlot(0, IrSlotKind.Temporary, TypeSymbols.Int) ],
             [
                 CreateRootBlock(
                     0,
@@ -942,8 +938,7 @@ public sealed class MuIrSerializationTests
                     static (type, id) => CreateRootSlot(
                         id,
                         IrSlotKind.Temporary,
-                        type,
-                        null
+                        type
                     )
                 ),
             ],
@@ -989,14 +984,12 @@ public sealed class MuIrSerializationTests
     private static IrSlot CreateRootSlot(
         int id,
         IrSlotKind kind,
-        TypeSymbol type,
-        string? name
+        TypeSymbol type
     ) =>
         new (
             id,
             kind,
             type,
-            name,
             kind == IrSlotKind.Parameter
                 ? IrSlotMutability.ReadOnly
                 : IrSlotMutability.Mutable,

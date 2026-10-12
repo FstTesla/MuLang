@@ -208,8 +208,36 @@ public static class MuIrReader
         private readonly MuIrReaderOptions options;
         private readonly List<TypeDescriptor> typeDescriptors = [ ];
         private readonly List<TypeSymbol> types = [ ];
+
+        private readonly IDictionary<string, string> functionSourceNames =
+            new Dictionary<string, string>(StringComparer.Ordinal);
+
+        private readonly IDictionary<string, string> functionQualifiedNames =
+            new Dictionary<string, string>(StringComparer.Ordinal);
+
+        private readonly IDictionary<string, TextSpan> functionDeclarationSpans =
+            new Dictionary<string, TextSpan>(StringComparer.Ordinal);
+
+        private readonly IDictionary<IrSlotAttributeTarget, string> slotSourceNames =
+            new Dictionary<IrSlotAttributeTarget, string>();
+
+        private readonly IDictionary<IrSlotAttributeTarget, TextSpan> slotDeclarationSpans =
+            new Dictionary<IrSlotAttributeTarget, TextSpan>();
+
+        private readonly IDictionary<TypeSymbol, IReadOnlyList<string>> typeSourceNames =
+            new Dictionary<TypeSymbol, IReadOnlyList<string>>(
+                ReferenceEqualityComparer.Instance
+            );
+
+        private readonly IList<IrProviderSymbolName> providerGlobalNames = [ ];
+        private readonly IList<IrProviderSymbolName> providerFunctionNames = [ ];
+
+        private readonly IDictionary<string, int> attributeCountsByTarget =
+            new Dictionary<string, int>(StringComparer.Ordinal);
+
         private int declaredTypeCount;
         private int formatVersion;
+        private string? sourceDocument;
         private Token current;
 
         public DocumentParser(string text, MuIrReaderOptions options)
@@ -258,6 +286,11 @@ public static class MuIrReader
                 users.Add(ParseFunction("user"));
             }
 
+            if (formatVersion >= 2)
+            {
+                ParseAttributes(entry, users);
+            }
+
             Expect("end", MuIrDiagnosticCodes.MissingSection);
 
             if (current.Kind != TokenKind.End)
@@ -267,19 +300,509 @@ public static class MuIrReader
 
             try
             {
+                IrAttributeCollection attributes = BuildAttributes();
+
                 return new IrProgram(
                     new EnvironmentFingerprint(environmentValue),
                     mode,
                     new LanguageProfileFingerprint(profileValue),
                     entry,
                     users
-                );
+                )
+                {
+                    Attributes = attributes,
+                };
             }
             catch (ArgumentException exception)
             {
                 Fail(MuIrDiagnosticCodes.MaterializationFailed, exception.Message);
                 throw;
             }
+        }
+
+        private void ParseAttributes(
+            IrFunction entry,
+            IReadOnlyList<IrFunction> users
+        )
+        {
+            Expect("attributes", MuIrDiagnosticCodes.MissingSection);
+            int count = ReadCount(options.MaximumAttributes, "attribute");
+            Expect("{");
+            IReadOnlyDictionary<string, IrFunction> functions = users
+                .Append(entry)
+                .ToDictionary(static function => function.Id, StringComparer.Ordinal);
+
+            for (int index = 0; index < count; index++)
+            {
+                Expect("attribute", MuIrDiagnosticCodes.InvalidAttribute);
+                string targetKind = ReadAtom();
+                string targetKey;
+                string? functionId = null;
+                int? slotId = null;
+                TypeSymbol? type = null;
+
+                switch (targetKind)
+                {
+                    case "program":
+                        targetKey = "program";
+                        break;
+
+                    case "function":
+                        functionId = ReadFunctionTarget(entry, functions);
+                        targetKey = $"function:{functionId}";
+                        break;
+
+                    case "slot":
+                        functionId = ReadFunctionTarget(entry, functions);
+                        slotId = ReadSlot();
+                        targetKey = $"slot:{functionId}:{slotId.Value}";
+
+                        if (functions[functionId].Slots.All(slot => slot.Id != slotId.Value))
+                        {
+                            Fail(
+                                MuIrDiagnosticCodes.UndefinedReference,
+                                $"Slot reference '%{slotId.Value}' is undefined in function '{functionId}'."
+                            );
+                        }
+
+                        break;
+
+                    case "type":
+                        type = ReadTypeReference();
+                        targetKey = $"type:{types.IndexOf(type)}";
+                        break;
+
+                    default:
+                        Fail(
+                            MuIrDiagnosticCodes.InvalidAttribute,
+                            $"Unknown attribute target kind '{targetKind}'."
+                        );
+                        throw new UnreachableException();
+                }
+
+                int targetCount = attributeCountsByTarget.TryGetValue(
+                    targetKey,
+                    out int existingCount
+                )
+                    ? existingCount + 1
+                    : 1;
+
+                if (targetCount > options.MaximumAttributesPerTarget)
+                {
+                    Fail(
+                        MuIrDiagnosticCodes.LimitExceeded,
+                        $"Attribute target '{targetKey}' exceeds the configured attribute limit."
+                    );
+                }
+
+                attributeCountsByTarget[targetKey] = targetCount;
+                string name = ReadAtom();
+
+                if (!TryParseKnownAttribute(
+                        targetKind,
+                        functionId,
+                        slotId,
+                        type,
+                        name
+                    ))
+                {
+                    SkipUnknownAttributePayload();
+                }
+            }
+
+            Expect("}");
+        }
+
+        private string ReadFunctionTarget(
+            IrFunction entry,
+            IReadOnlyDictionary<string, IrFunction> functions
+        )
+        {
+            if (Is("entry"))
+            {
+                Advance();
+                return entry.Id;
+            }
+
+            Expect("user", MuIrDiagnosticCodes.InvalidAttribute);
+            string functionId = ReadString();
+
+            if (
+                functionId == entry.Id ||
+                !functions.ContainsKey(functionId)
+            )
+            {
+                Fail(
+                    MuIrDiagnosticCodes.UndefinedReference,
+                    $"Function attribute target '{functionId}' is undefined."
+                );
+            }
+
+            return functionId;
+        }
+
+        private bool TryParseKnownAttribute(
+            string targetKind,
+            string? functionId,
+            int? slotId,
+            TypeSymbol? type,
+            string name
+        )
+        {
+            switch (targetKind, name)
+            {
+                case ("program", "source-document"):
+                    Expect("{");
+                    SetSingleton(
+                        ref sourceDocument,
+                        ReadRequiredString("source document"),
+                        name
+                    );
+                    Expect("}");
+                    return true;
+
+                case ("program", "provider-global-name"):
+                    ReadProviderName(providerGlobalNames, "provider global");
+                    return true;
+
+                case ("program", "provider-function-name"):
+                    ReadProviderName(providerFunctionNames, "provider function");
+                    return true;
+
+                case ("function", "source-name"):
+                    ReadStringAttribute(
+                        functionSourceNames,
+                        functionId!,
+                        "function source name"
+                    );
+                    return true;
+
+                case ("function", "qualified-source-name"):
+                    ReadStringAttribute(
+                        functionQualifiedNames,
+                        functionId!,
+                        "qualified function source name"
+                    );
+                    return true;
+
+                case ("function", "declaration-span"):
+                    ReadSpanAttribute(
+                        functionDeclarationSpans,
+                        functionId!
+                    );
+                    return true;
+
+                case ("slot", "source-name"):
+                    ReadStringAttribute(
+                        slotSourceNames,
+                        new IrSlotAttributeTarget(functionId!, slotId!.Value),
+                        "slot source name"
+                    );
+                    return true;
+
+                case ("slot", "declaration-span"):
+                    ReadSpanAttribute(
+                        slotDeclarationSpans,
+                        new IrSlotAttributeTarget(functionId!, slotId!.Value)
+                    );
+                    return true;
+
+                case ("type", "source-type-names"):
+                    ReadTypeNames(type!);
+                    return true;
+
+                default:
+                    if (IsKnownAttributeName(name))
+                    {
+                        Fail(
+                            MuIrDiagnosticCodes.InvalidAttribute,
+                            $"Attribute '{name}' is not valid for target '{targetKind}'."
+                        );
+                    }
+
+                    return false;
+            }
+        }
+
+        private static bool IsKnownAttributeName(string name)
+        {
+            return name is
+                "source-document" or
+                "provider-global-name" or
+                "provider-function-name" or
+                "source-name" or
+                "qualified-source-name" or
+                "declaration-span" or
+                "source-type-names";
+        }
+
+        private void ReadProviderName(
+            IList<IrProviderSymbolName> values,
+            string description
+        )
+        {
+            if (
+                providerGlobalNames.Count + providerFunctionNames.Count >=
+                options.MaximumProviderSymbolNameMappings
+            )
+            {
+                Fail(
+                    MuIrDiagnosticCodes.LimitExceeded,
+                    "Provider-symbol name mappings exceed the configured limit."
+                );
+            }
+
+            Expect("{");
+            string id = ReadRequiredString($"{description} identifier");
+            string name = ReadRequiredString($"{description} name");
+            Expect("}");
+
+            if (values.Any(value => value.Id == id))
+            {
+                Fail(
+                    MuIrDiagnosticCodes.InvalidAttribute,
+                    $"The {description} identifier '{id}' is mapped more than once."
+                );
+            }
+
+            values.Add(new IrProviderSymbolName(id, name));
+        }
+
+        private void ReadStringAttribute<TKey>(
+            IDictionary<TKey, string> values,
+            TKey key,
+            string description
+        )
+            where TKey : notnull
+        {
+            Expect("{");
+            string value = ReadRequiredString(description);
+            Expect("}");
+
+            if (!values.TryAdd(key, value))
+            {
+                Fail(
+                    MuIrDiagnosticCodes.InvalidAttribute,
+                    $"Attribute '{description}' is declared more than once."
+                );
+            }
+        }
+
+        private void ReadSpanAttribute<TKey>(
+            IDictionary<TKey, TextSpan> values,
+            TKey key
+        )
+            where TKey : notnull
+        {
+            Expect("{");
+            TextSpan span = ReadSpan();
+            Expect("}");
+
+            if (!values.TryAdd(key, span))
+            {
+                Fail(
+                    MuIrDiagnosticCodes.InvalidAttribute,
+                    "A declaration-span attribute is declared more than once."
+                );
+            }
+        }
+
+        private void ReadTypeNames(TypeSymbol type)
+        {
+            Expect("{");
+            int count = ReadCount(
+                options.MaximumSourceTypeNamesPerType,
+                "source type name"
+            );
+
+            if (count == 0)
+            {
+                Fail(
+                    MuIrDiagnosticCodes.InvalidAttribute,
+                    "A source-type-names attribute cannot be empty."
+                );
+            }
+
+            Expect("[");
+            IList<string> names = [ ];
+
+            for (int index = 0; index < count; index++)
+            {
+                if (index > 0)
+                {
+                    Expect(",");
+                }
+
+                names.Add(ReadRequiredString("source type name"));
+            }
+
+            Expect("]");
+            Expect("}");
+
+            if (
+                typeSourceNames.ContainsKey(type) ||
+                names.Distinct(StringComparer.Ordinal).Count() != names.Count ||
+                !names.SequenceEqual(names.Order(StringComparer.Ordinal))
+            )
+            {
+                Fail(
+                    MuIrDiagnosticCodes.InvalidAttribute,
+                    "Source type names must be unique and ordinally sorted."
+                );
+            }
+
+            typeSourceNames.Add(type, names.AsReadOnly());
+        }
+
+        private string ReadRequiredString(string description)
+        {
+            string value = ReadString();
+
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                Fail(
+                    MuIrDiagnosticCodes.InvalidAttribute,
+                    $"The {description} cannot be empty or whitespace."
+                );
+            }
+
+            return value;
+        }
+
+        private void SkipUnknownAttributePayload()
+        {
+            Expect("{");
+            int depth = 1;
+            int tokens = 0;
+
+            while (depth > 0)
+            {
+                if (current.Kind == TokenKind.End)
+                {
+                    Fail(
+                        MuIrDiagnosticCodes.InvalidAttribute,
+                        "An unknown attribute payload is unterminated."
+                    );
+                }
+
+                if (Is("{"))
+                {
+                    depth++;
+                }
+                else if (Is("}"))
+                {
+                    depth--;
+                }
+
+                Advance();
+                tokens++;
+
+                if (tokens > options.MaximumUnknownAttributePayloadTokens)
+                {
+                    Fail(
+                        MuIrDiagnosticCodes.LimitExceeded,
+                        "An unknown attribute payload exceeds the configured token limit."
+                    );
+                }
+            }
+        }
+
+        private IrAttributeCollection BuildAttributes()
+        {
+            IrProgramAttributes? program =
+                sourceDocument is null &&
+                providerGlobalNames.Count == 0 &&
+                providerFunctionNames.Count == 0
+                    ? null
+                    : new IrProgramAttributes(
+                        sourceDocument,
+                        providerGlobalNames.AsReadOnly(),
+                        providerFunctionNames.AsReadOnly()
+                    );
+            IEnumerable<KeyValuePair<string, IrFunctionAttributes>> functions =
+                functionSourceNames.Keys
+                    .Concat(functionQualifiedNames.Keys)
+                    .Concat(functionDeclarationSpans.Keys)
+                    .Distinct(StringComparer.Ordinal)
+                    .Select(
+                        id => new KeyValuePair<string, IrFunctionAttributes>(
+                            id,
+                            new IrFunctionAttributes(
+                                GetValue(functionSourceNames, id),
+                                GetValue(functionQualifiedNames, id),
+                                functionDeclarationSpans.TryGetValue(
+                                    id,
+                                    out TextSpan span
+                                )
+                                    ? span
+                                    : null
+                            )
+                        )
+                    );
+            IEnumerable<KeyValuePair<IrSlotAttributeTarget, IrSlotAttributes>> slots =
+                slotSourceNames.Keys
+                    .Concat(slotDeclarationSpans.Keys)
+                    .Distinct()
+                    .Select(
+                        target => new KeyValuePair<
+                            IrSlotAttributeTarget,
+                            IrSlotAttributes
+                        >(
+                            target,
+                            new IrSlotAttributes(
+                                GetValue(slotSourceNames, target),
+                                slotDeclarationSpans.TryGetValue(
+                                    target,
+                                    out TextSpan span
+                                )
+                                    ? span
+                                    : null
+                            )
+                        )
+                    );
+
+            return new IrAttributeCollection(
+                program,
+                functions,
+                slots,
+                typeSourceNames.Select(
+                    static item => new KeyValuePair<
+                        TypeSymbol,
+                        IrTypeAttributes
+                    >(
+                        item.Key,
+                        new IrTypeAttributes(item.Value)
+                    )
+                )
+            );
+        }
+
+        private void SetSingleton(
+            ref string? target,
+            string value,
+            string attributeName
+        )
+        {
+            if (target is not null)
+            {
+                Fail(
+                    MuIrDiagnosticCodes.InvalidAttribute,
+                    $"Attribute '{attributeName}' is declared more than once."
+                );
+            }
+
+            target = value;
+        }
+
+        private static TValue? GetValue<TKey, TValue>(
+            IDictionary<TKey, TValue> values,
+            TKey key
+        )
+            where TKey : notnull
+        {
+            return values.TryGetValue(key, out TValue? value)
+                ? value
+                : default;
         }
 
         private void ParseType(int expectedId)
@@ -637,11 +1160,21 @@ public static class MuIrReader
                 IrSlotKind kind = ReadSlotKind();
                 TypeSymbol type = ReadTypeReference();
                 IrSlotMutability mutability = ReadSlotMutability();
-                string? name = ReadOptionalString();
+                string? name = formatVersion == 1
+                    ? ReadOptionalString()
+                    : null;
                 int lifetimeRegion = 0;
 
                 if (formatVersion >= 2)
                 {
+                    if (!Is("region"))
+                    {
+                        Fail(
+                            MuIrDiagnosticCodes.InvalidAttribute,
+                            "MuIR 2 slots do not have a positional name operand."
+                        );
+                    }
+
                     Expect("region");
                     lifetimeRegion = ReadLifetimeRegion();
                 }
@@ -651,11 +1184,18 @@ public static class MuIrReader
                         slotId,
                         kind,
                         type,
-                        name,
                         mutability,
                         lifetimeRegion
                     )
                 );
+
+                if (formatVersion == 1 && name is not null)
+                {
+                    slotSourceNames.Add(
+                        new IrSlotAttributeTarget(id, slotId),
+                        name
+                    );
+                }
             }
 
             List<IrBasicBlock> blocks = new (blockCount);

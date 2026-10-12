@@ -50,6 +50,9 @@ document ::=
   "types" integer type-definition*
   entry-function
   "users" integer user-function*
+  "attributes" integer "{"
+    attribute*
+  "}"
   "end"
 
 compilation-mode ::= "expression" | "program"
@@ -85,7 +88,7 @@ exception-region ::=
 
 slot ::=
   "slot" slot-ref slot-kind type-ref slot-mutability
-  (string | "none") "region" lifetime-region-ref
+  "region" lifetime-region-ref
 slot-kind ::= "parameter" | "local" | "temporary"
 slot-mutability ::= "mutable" | "readonly"
 
@@ -106,6 +109,19 @@ block-ref ::= "bb" integer
 lifetime-region-ref ::= "lr" integer
 exception-region-ref ::= "er" integer
 block-list ::= "[" (block-ref ("," block-ref)*)? "]"
+
+attribute ::=
+  "attribute" attribute-target attribute-name
+  "{" attribute-payload-token* "}"
+
+attribute-target ::=
+    "program"
+  | "function" function-target
+  | "slot" function-target slot-ref
+  | "type" type-ref
+
+function-target ::= "entry" | "user" string
+attribute-name ::= atom
 ```
 
 The two integers in a span are the source start and length. Both MUST fit in a signed 32-bit integer, and their checked sum MUST also fit.
@@ -170,11 +186,47 @@ Version 2 writers always emit both independent capability tokens.
 
 Provider type IDs, language-facing object type names, and named-versus-anonymous origin are not represented. The environment fingerprint identifies the required provider schema, while IR validation compares the reconstructed object type structurally.
 
-Source-declared type names and inline source occurrences are erased by the same
-projection. MuIR therefore contains only reachable structural shapes; unused
-source declarations and source-only renames do not affect canonical output.
+Source-declared and provider type names do not participate in the type table.
+Reachable names may be represented by `source-type-names` diagnostic
+attributes. Unused source declarations remain absent, and changing only a
+diagnostic alias does not change canonical executable type identity.
 
-## 4. Constants
+## 4. Well-known attributes
+
+MuIR 2 defines a closed catalog of optional diagnostic attributes:
+
+| Attribute | Target | Payload | Cardinality |
+|---|---|---|---|
+| `source-document` | program | one string | zero or one |
+| `provider-global-name` | program | provider ID and language name | zero or more, unique by provider ID |
+| `provider-function-name` | program | provider ID and language name | zero or more, unique by provider ID |
+| `source-name` | function or slot | one string | zero or one per target |
+| `qualified-source-name` | function | one string | zero or one |
+| `declaration-span` | function or slot | one span | zero or one per target |
+| `source-type-names` | type | a non-empty string list | zero or one |
+
+Known payloads are:
+
+```text
+source-document-payload      ::= string
+provider-symbol-name-payload ::= string string
+source-name-payload          ::= string
+qualified-name-payload       ::= string
+declaration-span-payload     ::= span
+source-type-names-payload    ::= integer "[" (string ("," string)*)? "]"
+```
+
+Names and provider IDs MUST NOT be empty or whitespace. Source type names MUST
+be unique and ordinally sorted, and their declared count MUST match the list.
+Unknown attribute names on known targets are skipped and discarded through
+their balanced-brace payload. Unknown target kinds, malformed targets,
+unbalanced payloads, invalid known payloads, duplicate singleton attributes,
+and conflicting slot names are errors.
+
+Attributes do not affect executable semantics. Unknown attributes accepted by
+an older reader are not preserved when that program is rewritten.
+
+## 5. Constants
 
 Constant operands encode runtime representation explicitly:
 
@@ -201,7 +253,7 @@ Arbitrary host objects are not portable constants and MUST be rejected by the wr
 A constant whose static type is `primitive` uses the token for its concrete
 runtime representation. No separate primitive constant token exists.
 
-## 5. Instructions
+## 6. Instructions
 
 Every instruction starts with its opcode and source span. Operand order is fixed:
 
@@ -258,7 +310,7 @@ Conversion-kind tokens are `value` and `checked`.
 
 Unknown opcodes and operator tokens MUST be rejected. A reader MUST NOT ignore an executable operation it does not understand.
 
-## 6. Terminators
+## 7. Terminators
 
 Terminator operands after the source span are:
 
@@ -275,7 +327,7 @@ Every block contains exactly one terminator after its declared instructions.
 `resume` is valid only in a cleanup component. A cleanup cannot return.
 Ordinary control-flow edges cannot enter handlers or cleanup components.
 
-## 7. Canonical form
+## 8. Canonical form
 
 The canonical writer MUST:
 
@@ -286,6 +338,12 @@ The canonical writer MUST:
 - emit no comments or trailing whitespace;
 - emit one final line feed;
 - preserve function, slot, block, instruction, element, and argument order;
+- emit the MuIR 2 `attributes` section even when empty;
+- order targets as program, function, slot, then type;
+- order functions with entry first and users in document order;
+- order slots by function and slot ID and types by type-table ID;
+- order attributes for one target by attribute name;
+- order provider mappings by provider ID and type aliases ordinally;
 - emit object properties by ordinal name;
 - assign type identifiers deterministically, with acyclic dependencies before dependants and stable ordering inside recursive components;
 - use the tokens and operand orders defined by this section.
@@ -294,7 +352,7 @@ Serializing wire-equivalent IR graphs MUST produce byte-identical output regardl
 
 Readers MAY accept non-canonical whitespace and comments, but writers MUST emit only canonical form.
 
-## 8. Reading, diagnostics, and limits
+## 9. Reading, diagnostics, and limits
 
 MuIR reading distinguishes structural reconstruction from semantic IR validation. A successful read guarantees that the document is lexically and structurally representable by the public IR model. It does not guarantee valid control flow, definite assignment, provider identifiers, type compatibility, or environment/profile fingerprints.
 
@@ -308,15 +366,23 @@ Reading failure returns no partial program and at least one error diagnostic. A 
 
 The reader MUST reject unsupported format versions, invalid references, invalid type definitions, malformed instructions and terminators, source-span overflow, trailing content, and constructor failures.
 
-Hosts MAY configure positive limits for document, string, token, type-nesting, type, function, slot, block, instruction, list-element, and diagnostic counts. A limit violation MUST fail reading without returning a partial program.
+Hosts MAY configure positive limits for document, string, token, type-nesting,
+type, function, slot, block, instruction, list-element, diagnostic, total
+attribute, per-target attribute, skipped unknown-payload token, source-type
+name, and provider-symbol mapping counts. A limit violation MUST fail reading
+without returning a partial program.
 
-## 9. Compatibility
+## 10. Compatibility
 
-MuIR version 2 adds the `primitive` intrinsic-type token and the
-structured-object property mutability token. The reader continues to accept
-version 1 documents, reads their properties as mutable, and MUST reject
-`primitive` when the document declares version 1. The canonical writer emits
-version 2.
+MuIR version 2 adds the `primitive` intrinsic-type token, structured-object
+property mutability, lifetime and exception regions, and well-known
+attributes. The reader continues to accept version 1 documents, reads their
+properties as mutable, and converts positional slot names into `source-name`
+attributes while preserving the obsolete compatibility property.
+
+Earlier prerelease MuIR 2 layouts are not compatibility formats and MUST be
+rejected. A MuIR 2 document therefore always contains the `attributes` section
+and has no positional slot-name operand. The canonical writer emits version 2.
 
 MuIR compatibility is defined by the wire contract, not by .NET enum names,
 record names, or numeric enum values.

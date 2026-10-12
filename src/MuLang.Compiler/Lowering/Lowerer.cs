@@ -13,7 +13,9 @@ internal sealed class Lowerer
     private readonly EnvironmentSchema environment;
     private readonly CompilationMode compilationMode;
     private readonly LanguageProfileFingerprint languageProfileFingerprint;
+    private readonly IrAttributeBuilder attributeBuilder = new ();
     private IrBuilder builder = new ();
+    private string currentFunctionId = "$entry";
 
     private readonly IDictionary<LocalSymbol, int> localSlots =
         new Dictionary<LocalSymbol, int>(ReferenceEqualityComparer.Instance);
@@ -85,7 +87,10 @@ internal sealed class Lowerer
                     languageProfileFingerprint,
                     entryFunction,
                     [ ]
-                );
+                )
+                {
+                    Attributes = attributeBuilder.Build(),
+                };
             }
 
             case BoundRoot.Program program:
@@ -116,7 +121,10 @@ internal sealed class Lowerer
                     languageProfileFingerprint,
                     entryFunction,
                     functions.AsReadOnly()
-                );
+                )
+                {
+                    Attributes = attributeBuilder.Build(),
+                };
             }
 
             default:
@@ -129,15 +137,24 @@ internal sealed class Lowerer
     private IrFunction LowerFunction(BoundFunction function)
     {
         ResetFunctionState();
+        currentFunctionId = function.Symbol.Id;
+        attributeBuilder.AddFunction(
+            function.Symbol.Id,
+            function.Symbol.Name
+        );
 
         foreach (UserParameterSymbol parameter in function.Symbol.Parameters)
         {
             int slot = builder.CreateSlot(
                 IrSlotKind.Parameter,
-                parameter.Type,
-                parameter.Name
+                parameter.Type
             );
             parameterSlots.Add(parameter, slot);
+            attributeBuilder.AddSlot(
+                currentFunctionId,
+                slot,
+                parameter.Name
+            );
         }
 
         LowerStatements(function.Statements);
@@ -155,6 +172,7 @@ internal sealed class Lowerer
     private void ResetFunctionState()
     {
         builder = new IrBuilder();
+        currentFunctionId = "$entry";
         localSlots.Clear();
         parameterSlots.Clear();
         loopContexts.Clear();
@@ -324,13 +342,16 @@ internal sealed class Lowerer
 
         if (statement.Handler is { } handler)
         {
-            (int handlerEntry, int errorSlot) = builder.BeginExceptionHandler(
-                statement.ErrorLocal?.Name
-            );
+            (int handlerEntry, int errorSlot) = builder.BeginExceptionHandler();
 
             if (statement.ErrorLocal is { } errorLocal)
             {
                 localSlots.Add(errorLocal, errorSlot);
+                attributeBuilder.AddSlot(
+                    currentFunctionId,
+                    errorSlot,
+                    errorLocal.Name
+                );
             }
 
             builder.SwitchTo(handlerEntry);
@@ -766,6 +787,10 @@ internal sealed class Lowerer
 
     private int LowerGlobal(BoundExpression.Global expression)
     {
+        attributeBuilder.AddProviderGlobal(
+            expression.Symbol.Id,
+            expression.Symbol.Name
+        );
         int destination = CreateTemporary(expression.Type);
         builder.Emit(
             new IrInstruction.LoadGlobal(
@@ -1123,6 +1148,10 @@ internal sealed class Lowerer
 
     private int LowerProviderCall(BoundExpression.ProviderCall expression)
     {
+        attributeBuilder.AddProviderFunction(
+            expression.Function.Id,
+            expression.Function.Name
+        );
         IList<int> arguments = [ ];
 
         foreach (BoundExpression argument in expression.Arguments)
@@ -1282,10 +1311,10 @@ internal sealed class Lowerer
         slot = builder.CreateSlot(
             IrSlotKind.Local,
             local.Type,
-            local.Name,
             mutability
         );
         localSlots.Add(local, slot);
+        attributeBuilder.AddSlot(currentFunctionId, slot, local.Name);
 
         return slot;
     }

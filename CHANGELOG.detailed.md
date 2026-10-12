@@ -18,13 +18,18 @@ Each release heading identifies the incremental version range covered by the sec
 
 - Reserved `type` as a keyword in MuLang 1.2. Source identifiers and host-provided type, global, function, or parameter names using that spelling must be renamed or continue targeting MuLang 1.1.
 - Extended language-profile identity with the user-defined-types setting. Every standard profile fingerprint changes, so persisted compilation artifacts and caches produced by earlier prereleases must be regenerated.
+- Replaced the prerelease MuIR 2 grammar with the canonical required `attributes` section and removed the positional slot-name operand. Earlier prerelease MuIR 2 documents are rejected; MuIR 1 remains readable and its positional slot names are converted into attributes.
+- Marked the `IrSlot` constructor parameter and property named `Name` obsolete and ignored. Producers must populate `IrProgram.Attributes` slot attributes.
 
 ### New features
 
 - Added MuLang 1.2 top-level closed and open structural object type declarations with program-wide visibility, forward references, direct and mutual recursion, source/host conflict diagnostics, and a separate namespace from values and functions.
 - Added closed and open inline object bodies as primary type syntax in every type position, including recursively nested properties and ordinary nullable, mutable-array, and read-only-array suffixes.
 - Added `UserDefinedTypesFeature`, `LanguageProfile.UserDefinedTypes`, and `LanguageProfileBuilder.WithUserDefinedTypes`. The standard MuLang 1.2 profile enables the feature; disabled profiles retain parse recovery and produce targeted declaration and inline-type diagnostics.
-- Extended contextual object literals, casts, type tests, semantic highlighting, TextMate highlighting, portable IR projection, MuIR canonicalization, and .NET export paths to source-declared and inline shapes. Compatibility remains purely structural, and lowering erases source names while omitting unused declarations.
+- Extended contextual object literals, casts, type tests, semantic highlighting, TextMate highlighting, portable IR projection, MuIR canonicalization, and .NET export paths to source-declared and inline shapes. Compatibility remains purely structural; lowering erases names from executable type identity, omits unused declarations, and retains reachable names only as optional diagnostic attributes.
+- Added immutable well-known IR attributes for program, function, slot, and type diagnostic names, provider-symbol aliases, qualified names, and declaration spans, together with shared fallback resolution APIs and structural validation.
+- Added compiler emission of user-function, parameter, local, catch-variable, provider global/function, and source/provider type aliases. Structurally equivalent projected object types merge their diagnostic aliases without changing type identity.
+- Added MuIR 2 canonical attribute serialization, legacy MuIR 1 slot-name conversion, bounded unknown-attribute skipping, configurable attribute reader limits, and source-aware runtime stack-frame display names that retain portable function IDs.
 
 ## `0.3.0-alpha.4` → `0.3.0-alpha.5` - 2026-10-09
 

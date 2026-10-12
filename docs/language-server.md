@@ -99,6 +99,12 @@ The language server publishes these classifications through `textDocument/semant
 
 By default, the server uses standard LSP token types and modifiers. The Visual Studio client starts it in a dedicated presentation mode: functions and named structured types then use Visual Studio's native `method name` and `class name` classifications, while unsupported token modifiers are omitted so they cannot override semantic colors with the plain-text classification.
 
+Compiler lowering also preserves these source names as optional well-known
+portable-IR diagnostic attributes. The attributes do not change semantic
+tokens or source-language behavior, but downstream runtime diagnostics can
+display function, local, parameter, provider-symbol, and structural type
+aliases after compilation or MuIR round trips.
+
 ## Current scope
 
 The server supports initialization, full document synchronization, diagnostics, full-document semantic tokens, shutdown, and exit.

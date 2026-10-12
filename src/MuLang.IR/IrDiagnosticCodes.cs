@@ -26,4 +26,7 @@ public static class IrDiagnosticCodes
 
     /// <summary>Gets the code for incompatible compilation metadata.</summary>
     public const string CompilationMetadataMismatch = "MUL5008";
+
+    /// <summary>Gets the code for invalid well-known IR attributes.</summary>
+    public const string InvalidAttributes = "MUL5009";
 }

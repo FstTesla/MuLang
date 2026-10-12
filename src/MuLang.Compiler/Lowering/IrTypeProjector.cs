@@ -132,6 +132,50 @@ internal static class IrTypeProjector
 
         TypeSymbol Get(TypeSymbol type) => projected[references[type]];
 
+        Dictionary<TypeSymbol, SortedSet<string>> namesByProjectedType =
+            new (ReferenceEqualityComparer.Instance);
+
+        foreach (KeyValuePair<TypeSymbol, ObjectTypeGraphReference> item in references)
+        {
+            TypeSymbol projectedType = projected[item.Value];
+            SortedSet<string>? names = null;
+
+            if (
+                item.Key is ObjectTypeSymbol objectType &&
+                objectType.Name != "<anonymous>"
+            )
+            {
+                names = GetNames(projectedType);
+                names.Add(objectType.Name);
+            }
+
+            if (
+                program.Attributes.TryGetType(
+                    item.Key,
+                    out IrTypeAttributes? sourceAttributes
+                )
+            )
+            {
+                names ??= GetNames(projectedType);
+
+                foreach (string name in sourceAttributes.SourceNames)
+                {
+                    names.Add(name);
+                }
+            }
+        }
+
+        SortedSet<string> GetNames(TypeSymbol type)
+        {
+            if (!namesByProjectedType.TryGetValue(type, out SortedSet<string>? names))
+            {
+                names = new SortedSet<string>(StringComparer.Ordinal);
+                namesByProjectedType.Add(type, names);
+            }
+
+            return names;
+        }
+
         IrFunction ProjectFunction(IrFunction function)
         {
             return function with
@@ -154,7 +198,7 @@ internal static class IrTypeProjector
                             ],
                         }
                     ),
-                ]
+                ],
             };
         }
 
@@ -180,12 +224,27 @@ internal static class IrTypeProjector
             };
         }
 
+        IrAttributeCollection attributes = new (
+            program.Attributes.Program,
+            program.Attributes.Functions,
+            program.Attributes.Slots,
+            namesByProjectedType.Select(
+                static item => new KeyValuePair<TypeSymbol, IrTypeAttributes>(
+                    item.Key,
+                    new IrTypeAttributes([ .. item.Value ])
+                )
+            )
+        );
+
         return new IrProgram(
             program.EnvironmentFingerprint,
             program.CompilationMode,
             program.LanguageProfileFingerprint,
             ProjectFunction(program.EntryFunction),
             [ .. program.UserFunctions.Select(ProjectFunction) ]
-        );
+        )
+        {
+            Attributes = attributes,
+        };
     }
 }

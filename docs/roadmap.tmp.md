@@ -12,10 +12,11 @@ types, and MuIR 2 adds well-known diagnostic attributes.
    `0.3.0-alpha.6`: source-declared and inline structural object types now
    build on the read-only and optional object-property model across compiler,
    profile, IR projection, language-server, VSIX, and specification surfaces.
-2. **Add well-known IR attributes to MuIR 2.** Follow
-   [the IR attributes plan](ir-attributes.plan.md), preserving MuIR 1
-   compatibility. Keep attributes non-semantic and ensure type names survive
-   structural projection.
+2. **Add well-known IR attributes to MuIR 2.** Completed for
+   `0.3.0-alpha.6`: standardized non-semantic program, function, slot, and type
+   attributes preserve diagnostic names through structural projection and
+   MuIR round trips while retaining MuIR 1 readability. Earlier prerelease
+   MuIR 2 layouts are intentionally rejected.
 3. **Stabilize the release candidate.** Run cross-platform build, test,
    package, and VSIX validation; resolve release-blocking regressions; update
    specifications, API baselines, and release notes. Publish beta and RC

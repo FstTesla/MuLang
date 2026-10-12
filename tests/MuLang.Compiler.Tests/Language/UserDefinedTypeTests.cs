@@ -7,7 +7,6 @@ using MuLang.Core.Text;
 using MuLang.Core.Types;
 using MuLang.IR;
 using MuLang.IR.Serialization;
-using MuLang.TestSupport;
 
 namespace MuLang.Compiler.Tests.Language;
 
@@ -74,11 +73,11 @@ public sealed class UserDefinedTypeTests
     [Test]
     public void ReportsDeclarationConflictsAndDuplicateProperties()
     {
-        ObjectTypeSymbol host = new(
+        ObjectTypeSymbol host = new (
             "type.host",
             "Host",
             false,
-            [new ObjectPropertySymbol("value", TypeSymbols.Int)]
+            [ new ObjectPropertySymbol("value", TypeSymbols.Int) ]
         );
         EnvironmentSchema environment = new EnvironmentBuilder()
             .AddType(host)
@@ -157,9 +156,7 @@ public sealed class UserDefinedTypeTests
             CompilationMode.Program,
             profile: LanguageProfiles.Version1_2
         );
-        IrSlot point = result.Program?.Slots.Single(
-            static slot => slot is { Kind: IrSlotKind.Local, Name: "point" }
-        ) ?? throw new AssertionException("Expected a point slot.");
+        IrSlot point = GetNamedSlot(result.Program, "point");
         ObjectTypeSymbol type = (ObjectTypeSymbol)point.Type;
 
         using (Assert.EnterMultipleScope())
@@ -169,7 +166,7 @@ public sealed class UserDefinedTypeTests
             Assert.That(type.Name, Is.EqualTo("<anonymous>"));
             Assert.That(
                 type.Properties.Select(static property => property.Name),
-                Is.EquivalentTo(["x", "y"])
+                Is.EquivalentTo([ "x", "y" ])
             );
         }
     }
@@ -183,11 +180,7 @@ public sealed class UserDefinedTypeTests
             var node: Node = { next?: Node };
             """
         );
-        ObjectTypeSymbol node = (ObjectTypeSymbol)(
-            result.Program?.Slots.Single(
-                static slot => slot is { Kind: IrSlotKind.Local, Name: "node" }
-            ).Type ?? throw new AssertionException("Expected a node slot.")
-        );
+        ObjectTypeSymbol node = (ObjectTypeSymbol)GetNamedSlot(result.Program, "node").Type;
 
         Assert.That(
             node.Properties.Single().Type,
@@ -196,7 +189,7 @@ public sealed class UserDefinedTypeTests
     }
 
     [Test]
-    public void ErasesSourceNamesAndUnusedDeclarationsFromMuIr()
+    public void KeepsTypeNamesDiagnosticAndUnusedDeclarationsAbsent()
     {
         IrProgram firstReachable = CompileProgram(
             """
@@ -226,12 +219,29 @@ public sealed class UserDefinedTypeTests
         using (Assert.EnterMultipleScope())
         {
             Assert.That(
-                MuIrWriter.WriteToString(firstReachable),
-                Is.EqualTo(MuIrWriter.WriteToString(otherReachable))
+                MuIrWriter.WriteToString(
+                    firstReachable with
+                    {
+                        Attributes = IrAttributeCollection.Empty,
+                    }
+                ),
+                Is.EqualTo(
+                    MuIrWriter.WriteToString(
+                        otherReachable with
+                        {
+                            Attributes = IrAttributeCollection.Empty,
+                        }
+                    )
+                )
             );
             Assert.That(
                 MuIrWriter.WriteToString(firstUnused),
                 Is.EqualTo(MuIrWriter.WriteToString(otherUnused))
+            );
+            Assert.That(
+                firstReachable.Attributes.Types.Values
+                    .SelectMany(static attributes => attributes.SourceNames),
+                Does.Contain("First")
             );
         }
     }
@@ -260,6 +270,24 @@ public sealed class UserDefinedTypeTests
             new EnvironmentBuilder().Build(LanguageVersion.Version1_2),
             CompilationMode.Program,
             profile: LanguageProfiles.Version1_2
+        );
+    }
+
+    private static IrSlot GetNamedSlot(IrProgram? program, string name)
+    {
+        if (program is null)
+        {
+            throw new AssertionException("Expected an IR program.");
+        }
+
+        return program.Slots.Single(
+            slot =>
+                program.Attributes.TryGetSlot(
+                    program.EntryFunction.Id,
+                    slot.Id,
+                    out IrSlotAttributes? attributes
+                ) &&
+                attributes.SourceName == name
         );
     }
 }

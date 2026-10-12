@@ -58,7 +58,7 @@ internal sealed class Parser
                 ? parser.ParseRejectedFunctionDeclarationExpressionRoot()
                 : parser.Current.Kind == TokenKind.TypeKeyword
                     ? parser.ParseRejectedTypeDeclarationExpressionRoot()
-                : parser.ParseExpressionRoot(),
+                    : parser.ParseExpressionRoot(),
             CompilationMode.Program => parser.ParseProgramRoot(),
             _ => throw new ArgumentOutOfRangeException(nameof(compilationMode)),
         };
@@ -1335,8 +1335,8 @@ internal sealed class Parser
         SyntaxToken openBraceToken = Current.Kind is
             TokenKind.OpenBrace or
             TokenKind.OpenObjectBrace
-                ? ParseToken()
-                : Match(TokenKind.OpenBrace);
+            ? ParseToken()
+            : Match(TokenKind.OpenBrace);
 
         if (
             openBraceToken.Kind == TokenKind.OpenObjectBrace &&
@@ -1359,8 +1359,8 @@ internal sealed class Parser
             SyntaxToken nameToken = Current.Kind is
                 TokenKind.Identifier or
                 TokenKind.StringLiteral
-                    ? ParseToken()
-                    : Match(TokenKind.Identifier);
+                ? ParseToken()
+                : Match(TokenKind.Identifier);
             SyntaxToken? dollarToken = Current.Kind == TokenKind.Dollar
                 ? ParseToken()
                 : null;

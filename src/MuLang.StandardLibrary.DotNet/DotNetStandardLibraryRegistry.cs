@@ -104,7 +104,7 @@ internal static class DotNetStandardLibraryRegistry
                 [StandardLibraryCatalog.Functions.ParseInt.Id] = static _ => ParseInt,
                 [StandardLibraryCatalog.Functions.ParseFloat.Id] = static _ => ParseFloat,
                 [StandardLibraryCatalog.Functions.ParseBool.Id] = static _ => ParseBool,
-                [StandardLibraryCatalog.Functions.RandomFloat.Id] = static services => (context, _) => RandomFloat(context, services.RandomSource),
+                [StandardLibraryCatalog.Functions.RandomFloat.Id] = static services => (_, _) => RandomFloat(services.RandomSource),
                 [StandardLibraryCatalog.Functions.RandomInt.Id] = static services => (context, arguments) => RandomInt(context, arguments, services.RandomSource),
                 [StandardLibraryCatalog.Functions.UnixTimeSeconds.Id] = static services =>
                 {
@@ -902,10 +902,7 @@ internal static class DotNetStandardLibraryRegistry
         }
     }
 
-    private static object RandomFloat(
-        DotNetProviderInvocationContext context,
-        IStandardLibraryRandomSource randomSource
-    )
+    private static object RandomFloat(IStandardLibraryRandomSource randomSource)
     {
         double value = randomSource.NextDouble();
 

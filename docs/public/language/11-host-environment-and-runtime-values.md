@@ -150,6 +150,23 @@ and enforce required, optional, mutable, and read-only declarations internally.
 
 MuLang provides no source-level operation for testing whether a specific property or array element is writable or whether a property is removable. `has` reports only property presence and does not imply either capability.
 
+Portable IR may retain optional source names as non-semantic diagnostic
+attributes. Runtime stack frames keep their portable function identifier and
+may additionally display the source function name. Removing those attributes
+does not change dispatch, execution, type compatibility, or catchability.
+
+> A failure raised inside source function `calculate` may be displayed as
+> `calculate` while its stack frame still exposes portable ID `user:0`.
+>
+> A host MUST NOT dispatch by the diagnostic name:
+>
+> ```text
+> calculate
+> ```
+>
+> The executable call continues targeting `user:0`; source names are not
+> reflection or callable values.
+
 > Given a host global `item: object`, this expression tests only whether the property is present:
 >
 > ```text

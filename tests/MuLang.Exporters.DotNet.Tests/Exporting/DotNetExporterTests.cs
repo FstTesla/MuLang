@@ -6,6 +6,7 @@ using MuLang.Core.Runtime;
 using MuLang.Core.Symbols;
 using MuLang.Core.Types;
 using MuLang.IR;
+using MuLang.IR.Serialization;
 
 namespace MuLang.Exporters.DotNet.Tests.Exporting;
 
@@ -1207,10 +1208,65 @@ public sealed class DotNetExporterTests
             () => compiled(context)
         );
 
-        Assert.That(
-            exception.Error.Frames.Select(static frame => frame.FunctionId),
-            Is.EqualTo([ "user:0", "user:1", "$entry" ])
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(
+                exception.Error.Frames.Select(static frame => frame.FunctionId),
+                Is.EqualTo([ "user:0", "user:1", "$entry" ])
+            );
+            Assert.That(
+                exception.Error.Frames.Select(static frame => frame.DisplayName),
+                Is.EqualTo([ "inner", "outer", "$entry" ])
+            );
+        }
+    }
+
+    [Test]
+    public void MuIrRoundTripPreservesStackFrameDisplayNames()
+    {
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .AddGlobal("global.denominator", "denominator", TypeSymbols.Int)
+            .Build();
+        IrProgram compiled = LowerProgram(
+            """
+            func divide(value: int): int {
+                return 1 / value;
+            }
+            return divide(denominator);
+            """,
+            environment,
+            TypeSymbols.Int
         );
+        MuIrReadResult read = MuIrReader.Read(
+            MuIrWriter.WriteToString(compiled)
+        );
+        IrProgram program = read.Program ??
+            throw new AssertionException("Expected a round-tripped program.");
+        Func<DotNetRuntimeContext, object?> execute = Export(
+            program,
+            environment
+        );
+        DotNetRuntimeContext context = CreateContext(
+            environment,
+            [ new KeyValuePair<string, object?>("global.denominator", 0L) ]
+        );
+
+        MuLangRuntimeException exception = RequireRuntimeException(
+            () => execute(context)
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(read.Diagnostics, Is.Empty);
+            Assert.That(
+                exception.Error.Frames.Select(static frame => frame.FunctionId),
+                Is.EqualTo([ "user:0", "$entry" ])
+            );
+            Assert.That(
+                exception.Error.Frames.Select(static frame => frame.DisplayName),
+                Is.EqualTo([ "divide", "$entry" ])
+            );
+        }
     }
 
     [Test]
@@ -1370,16 +1426,13 @@ public sealed class DotNetExporterTests
                 new IrSlot(
                     0,
                     IrSlotKind.Temporary,
-                    TypeSymbols.Int,
-                    null,
-                    IrSlotMutability.Mutable,
+                    TypeSymbols.Int, IrSlotMutability.Mutable,
                     0
                 ),
                 new IrSlot(
                     1,
                     IrSlotKind.Local,
                     TypeSymbols.ErrorValue,
-                    "error",
                     IrSlotMutability.ReadOnly,
                     1
                 ),
@@ -1487,9 +1540,7 @@ public sealed class DotNetExporterTests
                 new IrSlot(
                     0,
                     IrSlotKind.Temporary,
-                    TypeSymbols.Int,
-                    null,
-                    IrSlotMutability.Mutable,
+                    TypeSymbols.Int, IrSlotMutability.Mutable,
                     0
                 ),
             ],
@@ -3436,17 +3487,13 @@ public sealed class DotNetExporterTests
                     new IrSlot(
                         0,
                         IrSlotKind.Temporary,
-                        TypeSymbols.Int,
-                        null,
-                        IrSlotMutability.Mutable,
+                        TypeSymbols.Int, IrSlotMutability.Mutable,
                         0
                     ),
                     new IrSlot(
                         1,
                         IrSlotKind.Temporary,
-                        TypeSymbols.Int,
-                        null,
-                        IrSlotMutability.Mutable,
+                        TypeSymbols.Int, IrSlotMutability.Mutable,
                         0
                     ),
                 ],
@@ -3526,17 +3573,13 @@ public sealed class DotNetExporterTests
                     new IrSlot(
                         0,
                         IrSlotKind.Temporary,
-                        TypeSymbols.Int,
-                        null,
-                        IrSlotMutability.Mutable,
+                        TypeSymbols.Int, IrSlotMutability.Mutable,
                         0
                     ),
                     new IrSlot(
                         1,
                         IrSlotKind.Temporary,
-                        objectType,
-                        null,
-                        IrSlotMutability.Mutable,
+                        objectType, IrSlotMutability.Mutable,
                         0
                     ),
                 ],

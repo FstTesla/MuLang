@@ -16,10 +16,10 @@ internal sealed record ProgramRootSyntax(
             int start = Types is [ var firstType, .. ]
                 ? firstType.Span.Start
                 : Functions is [ var firstFunction, .. ]
-                ? firstFunction.Span.Start
-                : Statements is [ var firstStatement, .. ]
-                    ? firstStatement.Span.Start
-                    : EndOfFileToken.Span.Start;
+                    ? firstFunction.Span.Start
+                    : Statements is [ var firstStatement, .. ]
+                        ? firstStatement.Span.Start
+                        : EndOfFileToken.Span.Start;
 
             return TextSpan.FromBounds(start, EndOfFileToken.Span.End);
         }

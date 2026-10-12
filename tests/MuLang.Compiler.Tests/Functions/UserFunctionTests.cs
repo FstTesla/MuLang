@@ -507,7 +507,6 @@ public sealed class UserFunctionTests
                         0,
                         IrSlotKind.Parameter,
                         TypeSymbols.Int,
-                        "value",
                         IrSlotMutability.ReadOnly,
                         0
                     ),

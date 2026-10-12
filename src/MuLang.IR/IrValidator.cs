@@ -4,6 +4,7 @@ using MuLang.Core.Environment;
 using MuLang.Core.Symbols;
 using MuLang.Core.Text;
 using MuLang.Core.Types;
+using MuLang.IR.Serialization;
 using System.Collections.ObjectModel;
 
 namespace MuLang.IR;
@@ -112,6 +113,7 @@ public static class IrValidator
             }
         }
 
+        ValidateAttributes(program, functionIds, diagnostics);
         ValidateFunction(program, program.EntryFunction, environment, diagnostics);
 
         foreach (IrFunction function in program.UserFunctions)
@@ -120,6 +122,153 @@ public static class IrValidator
         }
 
         return DiagnosticCollection.Create(diagnostics);
+    }
+
+    private static void ValidateAttributes(
+        IrProgram program,
+        ISet<string> functionIds,
+        ICollection<Diagnostic> diagnostics
+    )
+    {
+        static bool IsInvalid(string? value) => string.IsNullOrWhiteSpace(value);
+
+        if (program.Attributes.Program is { } programAttributes)
+        {
+            if (
+                programAttributes.SourceDocument is not null &&
+                IsInvalid(programAttributes.SourceDocument)
+            )
+            {
+                ReportInvalid("The source-document attribute is empty.");
+            }
+
+            ValidateProviderNames(
+                programAttributes.ProviderGlobalNames,
+                "provider global"
+            );
+            ValidateProviderNames(
+                programAttributes.ProviderFunctionNames,
+                "provider function"
+            );
+        }
+
+        foreach (
+            KeyValuePair<string, IrFunctionAttributes> item in
+            program.Attributes.Functions
+        )
+        {
+            if (!functionIds.Contains(item.Key))
+            {
+                ReportInvalid(
+                    $"Function attribute target '{item.Key}' does not exist."
+                );
+            }
+
+            if (
+                item.Value.SourceName is not null &&
+                IsInvalid(item.Value.SourceName) ||
+                item.Value.QualifiedSourceName is not null &&
+                IsInvalid(item.Value.QualifiedSourceName)
+            )
+            {
+                ReportInvalid(
+                    $"Function attribute target '{item.Key}' has an invalid name."
+                );
+            }
+        }
+
+        IReadOnlyDictionary<string, IrFunction> functions = program.UserFunctions
+            .Append(program.EntryFunction)
+            .ToDictionary(static function => function.Id, StringComparer.Ordinal);
+
+        foreach (
+            KeyValuePair<IrSlotAttributeTarget, IrSlotAttributes> item in
+            program.Attributes.Slots
+        )
+        {
+            if (
+                !functions.TryGetValue(
+                    item.Key.FunctionId,
+                    out IrFunction? function
+                ) ||
+                function.Slots.All(slot => slot.Id != item.Key.SlotId))
+            {
+                ReportInvalid(
+                    $"Slot attribute target '{item.Key.FunctionId}:%{item.Key.SlotId}' does not exist."
+                );
+            }
+
+            if (
+                item.Value.SourceName is not null &&
+                IsInvalid(item.Value.SourceName)
+            )
+            {
+                ReportInvalid(
+                    $"Slot attribute target '{item.Key.FunctionId}:%{item.Key.SlotId}' has an invalid name."
+                );
+            }
+        }
+
+        IReadOnlyDictionary<TypeSymbol, int> reachableTypes =
+            MuIrTypeTableBuilder.Build(program).TypeIds;
+
+        foreach (
+            KeyValuePair<TypeSymbol, IrTypeAttributes> item in
+            program.Attributes.Types
+        )
+        {
+            if (!reachableTypes.ContainsKey(item.Key))
+            {
+                ReportInvalid(
+                    $"Type attribute target '{item.Key.DisplayName}' is not reachable from the program."
+                );
+            }
+
+            if (
+                item.Value.SourceNames.Count == 0 ||
+                item.Value.SourceNames.Any(IsInvalid) ||
+                item.Value.SourceNames.Distinct(StringComparer.Ordinal).Count() !=
+                item.Value.SourceNames.Count ||
+                !item.Value.SourceNames.SequenceEqual(
+                    item.Value.SourceNames.Order(StringComparer.Ordinal)
+                )
+            )
+            {
+                ReportInvalid(
+                    $"Type attribute target '{item.Key.DisplayName}' has invalid source names."
+                );
+            }
+        }
+
+        void ValidateProviderNames(
+            IReadOnlyList<IrProviderSymbolName> values,
+            string kind
+        )
+        {
+            ISet<string> ids = new HashSet<string>(StringComparer.Ordinal);
+
+            foreach (IrProviderSymbolName value in values)
+            {
+                if (
+                    IsInvalid(value.Id) ||
+                    IsInvalid(value.Name) ||
+                    !ids.Add(value.Id)
+                )
+                {
+                    ReportInvalid($"A {kind} name mapping is invalid.");
+                }
+            }
+        }
+
+        void ReportInvalid(string message)
+        {
+            Report(
+                diagnostics,
+                IrDiagnosticCodes.InvalidAttributes,
+                default,
+                message
+            );
+        }
     }
 
     private static void ValidateFunction(
