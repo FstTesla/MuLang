@@ -1,3 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Suppressions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:MuLang.IR.IrProgramAttributes.#ctor(System.String,System.Collections.Generic.IReadOnlyList{MuLang.IR.IrProviderSymbolName},System.Collections.Generic.IReadOnlyList{MuLang.IR.IrProviderSymbolName})</Target>
+    <Left>lib/net10.0/MuLang.IR.dll</Left>
+    <Right>lib/net10.0/MuLang.IR.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:MuLang.IR.IrProgramAttributes.Deconstruct(System.String@,System.Collections.Generic.IReadOnlyList{MuLang.IR.IrProviderSymbolName}@,System.Collections.Generic.IReadOnlyList{MuLang.IR.IrProviderSymbolName}@)</Target>
+    <Left>lib/net10.0/MuLang.IR.dll</Left>
+    <Right>lib/net10.0/MuLang.IR.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:MuLang.IR.IrProgramAttributes.get_SourceDocument</Target>
+    <Left>lib/net10.0/MuLang.IR.dll</Left>
+    <Right>lib/net10.0/MuLang.IR.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
 </Suppressions>
