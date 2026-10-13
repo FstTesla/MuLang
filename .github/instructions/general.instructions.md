@@ -29,11 +29,11 @@ In autopilot mode, document any autonomous decision you make in a dedicated Mark
 
 ---
 
-When reviewing your autonomous decisions, present them one by one and remove them from the dedicated Markdown file once they have been reviewed. For each point, allow me to skip to the next one or to suspend the review process.
+When reviewing your autonomous decisions, present them one by one and remove them from the dedicated Markdown file once they have been reviewed. For each point, allow to ask for clarification, to skip to the next one, or to suspend the review process.
 
 ---
 
-Do not stage or commit changes to the repository, unless explicitly told to do so.
+Unless explicitly told to do so, do not stage changes, commit or push to the repository. Leave unstaged and staged changes as they are.
 
 # Coding practices and style
 

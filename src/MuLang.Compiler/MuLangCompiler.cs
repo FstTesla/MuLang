@@ -52,7 +52,7 @@ public static class MuLangCompiler
     /// <param name="options">The analysis options, or <c>null</c> to use <see cref="MuLangCompilationOptions.Default" />.</param>
     /// <returns>The analysis result.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="source" /> or <paramref name="environment" /> is <c>null</c>.</exception>
-    /// <exception cref="ArgumentException">Thrown when the source document is empty or whitespace, or the result type or language version is incompatible with the analysis settings.</exception>
+    /// <exception cref="ArgumentException">Thrown when the source document URI is not absolute, or the result type or language version is incompatible with the analysis settings.</exception>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="compilationMode" /> is not defined.</exception>
     [OverloadResolutionPriority(1)]
     public static AnalysisResult Analyze(
@@ -182,7 +182,7 @@ public static class MuLangCompiler
     /// <param name="options">The compilation options, or <c>null</c> to use <see cref="MuLangCompilationOptions.Default" />.</param>
     /// <returns>The compilation result.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="source" /> or <paramref name="environment" /> is <c>null</c>.</exception>
-    /// <exception cref="ArgumentException">Thrown when the source document is empty or whitespace, or the result type or language version is incompatible with the compilation settings.</exception>
+    /// <exception cref="ArgumentException">Thrown when the source document URI is not absolute, or the result type or language version is incompatible with the compilation settings.</exception>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="compilationMode" /> is not defined.</exception>
     [OverloadResolutionPriority(1)]
     public static CompilationResult Compile(
@@ -361,7 +361,7 @@ public static class MuLangCompiler
 
     private static SourceText CreateSourceText(
         string source,
-        string? sourceDocument
+        Uri? sourceDocument
     )
     {
         if (source is null)
@@ -369,10 +369,16 @@ public static class MuLangCompiler
             throw new ArgumentNullException(nameof(source));
         }
 
-        if (sourceDocument is not null && string.IsNullOrWhiteSpace(sourceDocument))
+        if (
+            sourceDocument is not null &&
+            (
+                !sourceDocument.IsAbsoluteUri ||
+                string.IsNullOrWhiteSpace(sourceDocument.OriginalString)
+            )
+        )
         {
             throw new ArgumentException(
-                "The source document cannot be empty or whitespace.",
+                "The source document URI must be absolute.",
                 nameof(sourceDocument)
             );
         }

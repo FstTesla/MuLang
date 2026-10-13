@@ -1237,7 +1237,7 @@ public sealed class DotNetExporterTests
             source,
             environment,
             TypeSymbols.Int,
-            "file:///sample.mu"
+            new Uri("file:///sample.mu")
         );
         MuIrReadResult read = MuIrReader.Read(
             MuIrWriter.WriteToString(compiled)
@@ -1270,7 +1270,7 @@ public sealed class DotNetExporterTests
             );
             Assert.That(
                 exception.Location?.SourceDocument,
-                Is.EqualTo("file:///sample.mu")
+                Is.EqualTo(new Uri("file:///sample.mu"))
             );
             Assert.That(exception.Location?.Start.Line, Is.EqualTo(2));
             Assert.That(
@@ -3694,7 +3694,7 @@ public sealed class DotNetExporterTests
         string source,
         EnvironmentSchema environment,
         TypeSymbol resultType,
-        string? sourceDocument = null
+        Uri? sourceDocument = null
     )
     {
         CompilationResult result = MuLangCompiler.Compile(

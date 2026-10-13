@@ -146,7 +146,7 @@ public sealed class IrAttributeTests
         {
             Attributes = new IrAttributeCollection(
                 new IrProgramAttributes(
-                    "file:///sample.mu",
+                    new Uri("https://example.com/sources/sample%20file.mu"),
                     [ new IrProviderSymbolName("global.id", "globalName") ],
                     [ new IrProviderSymbolName("function.id", "functionName") ]
                 )
@@ -214,7 +214,15 @@ public sealed class IrAttributeTests
             );
             Assert.That(
                 read.Attributes.Program?.SourceDocument,
-                Is.EqualTo("file:///sample.mu")
+                Is.EqualTo(
+                    new Uri("https://example.com/sources/sample%20file.mu")
+                )
+            );
+            Assert.That(
+                read.Attributes.Program?.SourceDocument?.OriginalString,
+                Is.EqualTo(
+                    "https://example.com/sources/sample%20file.mu"
+                )
             );
             Assert.That(
                 read.Attributes.Program?.LineMap?.LineStarts,
@@ -236,6 +244,57 @@ public sealed class IrAttributeTests
             Assert.That(
                 read.Attributes.Types.Values.Single().SourceNames,
                 Is.EqualTo([ "Count", "Value" ])
+            );
+        }
+    }
+
+    [Test]
+    public void RejectsRelativeSourceDocument()
+    {
+        IrProgram relativeProgram = CreateProgram() with
+        {
+            Attributes = new IrAttributeCollection(
+                new IrProgramAttributes(
+                    new Uri("sample.mu", UriKind.Relative),
+                    [ ],
+                    [ ]
+                ),
+                [ ],
+                [ ],
+                [ ]
+            ),
+        };
+        IrProgram absoluteProgram = relativeProgram with
+        {
+            Attributes = new IrAttributeCollection(
+                relativeProgram.Attributes.Program! with
+                {
+                    SourceDocument = new Uri("file:///sample.mu"),
+                },
+                [ ],
+                [ ],
+                [ ]
+            ),
+        };
+        string invalidText = MuIrWriter
+            .WriteToString(absoluteProgram)
+            .Replace(
+                "\"file:///sample.mu\"",
+                "\"sample.mu\"",
+                StringComparison.Ordinal
+            );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(
+                () => MuIrWriter.WriteToString(relativeProgram),
+                Throws.TypeOf<MuIrSerializationException>()
+            );
+            Assert.That(
+                MuIrReader.Read(invalidText).Diagnostics.Select(
+                    static diagnostic => diagnostic.Code
+                ),
+                Does.Contain(MuIrDiagnosticCodes.InvalidAttribute)
             );
         }
     }

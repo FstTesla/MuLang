@@ -138,10 +138,15 @@ public static class IrValidator
         {
             if (
                 programAttributes.SourceDocument is not null &&
-                IsInvalid(programAttributes.SourceDocument)
+                (
+                    !programAttributes.SourceDocument.IsAbsoluteUri ||
+                    IsInvalid(programAttributes.SourceDocument.OriginalString)
+                )
             )
             {
-                ReportInvalid("The source-document attribute is empty.");
+                ReportInvalid(
+                    "The source-document URI attribute is not absolute."
+                );
             }
 
             ValidateProviderNames(

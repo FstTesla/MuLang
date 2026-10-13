@@ -1,15 +1,15 @@
 #nullable enable
 MuLang.Compiler.AnalysisResult.LineMap.get -> MuLang.Core.Text.TextLineMap!
-MuLang.Compiler.AnalysisResult.SourceDocument.get -> string?
+MuLang.Compiler.AnalysisResult.SourceDocument.get -> System.Uri?
 MuLang.Compiler.CompilationResult.LineMap.get -> MuLang.Core.Text.TextLineMap!
-MuLang.Compiler.CompilationResult.SourceDocument.get -> string?
+MuLang.Compiler.CompilationResult.SourceDocument.get -> System.Uri?
 MuLang.Compiler.MuLangCompilationOptions
 MuLang.Compiler.MuLangCompilationOptions.ExpectedResultType.get -> MuLang.Core.Types.TypeSymbol?
 MuLang.Compiler.MuLangCompilationOptions.ExpectedResultType.init -> void
 MuLang.Compiler.MuLangCompilationOptions.MuLangCompilationOptions() -> void
 MuLang.Compiler.MuLangCompilationOptions.Profile.get -> MuLang.Core.LanguageProfile?
 MuLang.Compiler.MuLangCompilationOptions.Profile.init -> void
-MuLang.Compiler.MuLangCompilationOptions.SourceDocument.get -> string?
+MuLang.Compiler.MuLangCompilationOptions.SourceDocument.get -> System.Uri?
 MuLang.Compiler.MuLangCompilationOptions.SourceDocument.init -> void
 static MuLang.Compiler.MuLangCompilationOptions.Default.get -> MuLang.Compiler.MuLangCompilationOptions!
 static MuLang.Compiler.MuLangCompiler.Analyze(string! source, MuLang.Core.Environment.EnvironmentSchema! environment, MuLang.Core.CompilationMode compilationMode, MuLang.Compiler.MuLangCompilationOptions? options = null) -> MuLang.Compiler.AnalysisResult!

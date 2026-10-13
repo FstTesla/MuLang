@@ -8,7 +8,7 @@ public sealed class AnalysisResult
 {
     internal AnalysisResult(
         DiagnosticCollection diagnostics,
-        string? sourceDocument,
+        Uri? sourceDocument,
         TextLineMap lineMap
     )
     {
@@ -20,8 +20,8 @@ public sealed class AnalysisResult
     /// <summary>Gets the diagnostics produced by analysis.</summary>
     public DiagnosticCollection Diagnostics { get; }
 
-    /// <summary>Gets the source document name or URI, when available.</summary>
-    public string? SourceDocument { get; }
+    /// <summary>Gets the source document URI, when available.</summary>
+    public Uri? SourceDocument { get; }
 
     /// <summary>Gets the source line map.</summary>
     public TextLineMap LineMap { get; }

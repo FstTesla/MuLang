@@ -7,7 +7,7 @@ namespace MuLang.Exporters.DotNet;
 internal sealed class DotNetUserFunctionExecution
 {
     private readonly DotNetUserFunctionDispatcher dispatcher;
-    private readonly string? sourceDocument;
+    private readonly Uri? sourceDocument;
     private readonly TextLineMap? lineMap;
 
     public DotNetUserFunctionExecution(

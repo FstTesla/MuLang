@@ -21,13 +21,13 @@ public sealed class TextLineMapTests
             );
             Assert.That(lineMap.GetOffset(2, 2), Is.EqualTo(4));
             Assert.That(
-                lineMap.GetLocation(span, "file:///sample.mu"),
+                lineMap.GetLocation(span, new Uri("file:///sample.mu")),
                 Is.EqualTo(
                     new TextLocation(
                         span,
                         new TextPosition(3, 2, 1),
                         new TextPosition(5, 2, 3),
-                        "file:///sample.mu"
+                        new Uri("file:///sample.mu")
                     )
                 )
             );

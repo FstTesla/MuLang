@@ -197,7 +197,7 @@ MuIR 2 defines a closed catalog of optional diagnostic attributes:
 
 | Attribute | Target | Payload | Cardinality |
 |---|---|---|---|
-| `source-document` | program | one string | zero or one |
+| `source-document` | program | one absolute URI string | zero or one |
 | `source-line-map` | program | source length, line count, and line-start offsets | zero or one |
 | `provider-global-name` | program | provider ID and language name | zero or more, unique by provider ID |
 | `provider-function-name` | program | provider ID and language name | zero or more, unique by provider ID |
@@ -218,7 +218,9 @@ declaration-span-payload     ::= span
 source-type-names-payload    ::= integer "[" (string ("," string)*)? "]"
 ```
 
-Names and provider IDs MUST NOT be empty or whitespace. Source type names MUST
+Source document URIs MUST be absolute and are serialized using their original
+string representation. Names and provider IDs MUST NOT be
+empty or whitespace. Source type names MUST
 be unique and ordinally sorted, and their declared count MUST match the list.
 The first integer in a source line map is the source length in Unicode scalar
 values. The second integer is the line count and MUST match the number of

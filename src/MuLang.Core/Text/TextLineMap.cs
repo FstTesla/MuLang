@@ -116,14 +116,14 @@ public sealed class TextLineMap
 
     /// <summary>Creates a materialized source location for a span.</summary>
     /// <param name="span">The source span.</param>
-    /// <param name="sourceDocument">The source document name or URI, when available.</param>
+    /// <param name="sourceDocument">The source document URI, when available.</param>
     /// <returns>The corresponding source location.</returns>
-    /// <exception cref="ArgumentException">Thrown when <paramref name="sourceDocument" /> is empty or whitespace.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="sourceDocument" /> is not absolute.</exception>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="span" /> is outside the source bounds.</exception>
     /// <exception cref="OverflowException">Thrown when the span end exceeds <see cref="int.MaxValue" />.</exception>
     public TextLocation GetLocation(
         TextSpan span,
-        string? sourceDocument = null
+        Uri? sourceDocument = null
     )
     {
         ValidateOffset(span.Start);

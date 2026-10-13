@@ -15,6 +15,6 @@ public sealed class MuLangCompilationOptions
     /// <summary>Gets or sets the language profile, or <c>null</c> to use <see cref="LanguageProfiles.Latest" />.</summary>
     public LanguageProfile? Profile { get; init; }
 
-    /// <summary>Gets or sets the source document name or URI, or <c>null</c> when unavailable.</summary>
-    public string? SourceDocument { get; init; }
+    /// <summary>Gets or sets the source document URI, or <c>null</c> when unavailable.</summary>
+    public Uri? SourceDocument { get; init; }
 }

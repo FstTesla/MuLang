@@ -3,11 +3,11 @@ using MuLang.Core.Text;
 namespace MuLang.IR;
 
 /// <summary>Represents diagnostic attributes associated with an IR program.</summary>
-/// <param name="SourceDocument">The source document name or URI, when available.</param>
+/// <param name="SourceDocument">The source document URI, when available.</param>
 /// <param name="ProviderGlobalNames">The referenced provider-global names.</param>
 /// <param name="ProviderFunctionNames">The referenced provider-function names.</param>
 public sealed record IrProgramAttributes(
-    string? SourceDocument,
+    Uri? SourceDocument,
     IReadOnlyList<IrProviderSymbolName> ProviderGlobalNames,
     IReadOnlyList<IrProviderSymbolName> ProviderFunctionNames
 )

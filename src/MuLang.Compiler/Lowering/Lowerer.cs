@@ -30,7 +30,7 @@ internal sealed class Lowerer
         EnvironmentSchema environment,
         CompilationMode compilationMode,
         LanguageProfileFingerprint languageProfileFingerprint,
-        string? sourceDocument,
+        Uri? sourceDocument,
         TextLineMap? lineMap
     )
     {
@@ -51,7 +51,7 @@ internal sealed class Lowerer
     public static LoweringResult Lower(
         BindingResult bindingResult,
         EnvironmentSchema environment,
-        string? sourceDocument,
+        Uri? sourceDocument,
         TextLineMap? lineMap
     )
     {

@@ -5,7 +5,7 @@ namespace MuLang.Compiler.Lowering;
 
 internal sealed class IrAttributeBuilder
 {
-    private readonly string? sourceDocument;
+    private readonly Uri? sourceDocument;
     private readonly TextLineMap? lineMap;
 
     private readonly IDictionary<string, IrFunctionAttributes> functions =
@@ -21,7 +21,7 @@ internal sealed class IrAttributeBuilder
         new Dictionary<string, string>(StringComparer.Ordinal);
 
     public IrAttributeBuilder(
-        string? sourceDocument,
+        Uri? sourceDocument,
         TextLineMap? lineMap
     )
     {

@@ -385,14 +385,14 @@ MuLang.IR.IrProgram.UserFunctions.get -> System.Collections.Generic.IReadOnlyLis
 MuLang.IR.IrProgram.UserFunctions.init -> void
 MuLang.IR.IrProgramAttributes
 MuLang.IR.IrProgramAttributes.<Clone>$() -> MuLang.IR.IrProgramAttributes!
-MuLang.IR.IrProgramAttributes.Deconstruct(out string? SourceDocument, out System.Collections.Generic.IReadOnlyList<MuLang.IR.IrProviderSymbolName!>! ProviderGlobalNames, out System.Collections.Generic.IReadOnlyList<MuLang.IR.IrProviderSymbolName!>! ProviderFunctionNames) -> void
+MuLang.IR.IrProgramAttributes.Deconstruct(out System.Uri? SourceDocument, out System.Collections.Generic.IReadOnlyList<MuLang.IR.IrProviderSymbolName!>! ProviderGlobalNames, out System.Collections.Generic.IReadOnlyList<MuLang.IR.IrProviderSymbolName!>! ProviderFunctionNames) -> void
 MuLang.IR.IrProgramAttributes.Equals(MuLang.IR.IrProgramAttributes? other) -> bool
-MuLang.IR.IrProgramAttributes.IrProgramAttributes(string? SourceDocument, System.Collections.Generic.IReadOnlyList<MuLang.IR.IrProviderSymbolName!>! ProviderGlobalNames, System.Collections.Generic.IReadOnlyList<MuLang.IR.IrProviderSymbolName!>! ProviderFunctionNames) -> void
+MuLang.IR.IrProgramAttributes.IrProgramAttributes(System.Uri? SourceDocument, System.Collections.Generic.IReadOnlyList<MuLang.IR.IrProviderSymbolName!>! ProviderGlobalNames, System.Collections.Generic.IReadOnlyList<MuLang.IR.IrProviderSymbolName!>! ProviderFunctionNames) -> void
 MuLang.IR.IrProgramAttributes.ProviderFunctionNames.get -> System.Collections.Generic.IReadOnlyList<MuLang.IR.IrProviderSymbolName!>!
 MuLang.IR.IrProgramAttributes.ProviderFunctionNames.init -> void
 MuLang.IR.IrProgramAttributes.ProviderGlobalNames.get -> System.Collections.Generic.IReadOnlyList<MuLang.IR.IrProviderSymbolName!>!
 MuLang.IR.IrProgramAttributes.ProviderGlobalNames.init -> void
-MuLang.IR.IrProgramAttributes.SourceDocument.get -> string?
+MuLang.IR.IrProgramAttributes.SourceDocument.get -> System.Uri?
 MuLang.IR.IrProgramAttributes.SourceDocument.init -> void
 MuLang.IR.IrProviderSymbolName
 MuLang.IR.IrProviderSymbolName.<Clone>$() -> MuLang.IR.IrProviderSymbolName!

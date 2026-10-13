@@ -208,7 +208,7 @@ public static class MuIrWriter
                 if (programAttributes.SourceDocument is { } sourceDocument)
                 {
                     values.Add(
-                        $"attribute program source-document {{ {Quote(RequireValue(sourceDocument, "source document"))} }}"
+                        $"attribute program source-document {{ {Quote(RequireAbsoluteUri(sourceDocument))} }}"
                     );
                 }
 
@@ -397,6 +397,21 @@ public static class MuIrWriter
                         $"The {description} cannot be empty or whitespace."
                     )
                     : value;
+            }
+
+            string RequireAbsoluteUri(Uri value)
+            {
+                if (!value.IsAbsoluteUri)
+                {
+                    throw Failure(
+                        "The source document URI must be absolute."
+                    );
+                }
+
+                return RequireValue(
+                    value.OriginalString,
+                    "source document URI"
+                );
             }
         }
 

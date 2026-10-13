@@ -237,7 +237,7 @@ public static class MuIrReader
 
         private int declaredTypeCount;
         private int formatVersion;
-        private string? sourceDocument;
+        private Uri? sourceDocument;
         private TextLineMap? sourceLineMap;
         private Token current;
 
@@ -453,13 +453,7 @@ public static class MuIrReader
             switch (targetKind, name)
             {
                 case ("program", "source-document"):
-                    Expect("{");
-                    SetSingleton(
-                        ref sourceDocument,
-                        ReadRequiredString("source document"),
-                        name
-                    );
-                    Expect("}");
+                    ReadSourceDocument(name);
                     return true;
 
                 case ("program", "source-line-map"):
@@ -569,6 +563,33 @@ public static class MuIrReader
                 sourceLineMap = new TextLineMap(length, lineStarts);
             }
             catch (ArgumentException exception)
+            {
+                Fail(
+                    MuIrDiagnosticCodes.InvalidAttribute,
+                    exception.Message
+                );
+            }
+        }
+
+        private void ReadSourceDocument(string attributeName)
+        {
+            if (sourceDocument is not null)
+            {
+                Fail(
+                    MuIrDiagnosticCodes.InvalidAttribute,
+                    $"Attribute '{attributeName}' is declared more than once."
+                );
+            }
+
+            Expect("{");
+            string value = ReadRequiredString("source document URI");
+            Expect("}");
+
+            try
+            {
+                sourceDocument = new Uri(value, UriKind.Absolute);
+            }
+            catch (UriFormatException exception)
             {
                 Fail(
                     MuIrDiagnosticCodes.InvalidAttribute,
@@ -820,23 +841,6 @@ public static class MuIrReader
                     )
                 )
             );
-        }
-
-        private void SetSingleton(
-            ref string? target,
-            string value,
-            string attributeName
-        )
-        {
-            if (target is not null)
-            {
-                Fail(
-                    MuIrDiagnosticCodes.InvalidAttribute,
-                    $"Attribute '{attributeName}' is declared more than once."
-                );
-            }
-
-            target = value;
         }
 
         private static TValue? GetValue<TKey, TValue>(
