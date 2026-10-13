@@ -16,14 +16,33 @@ public static class MuIrWriter
     /// <exception cref="MuIrSerializationException">Thrown when the program contains a value that MuIR cannot represent.</exception>
     public static string WriteToString(IrProgram program)
     {
+        return WriteToString(program, MuIrWriterOptions.Default);
+    }
+
+    /// <summary>Serializes a program to MuIR text using the specified options.</summary>
+    /// <param name="program">The program to serialize.</param>
+    /// <param name="options">The writer options.</param>
+    /// <returns>The MuIR document.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when an argument is <c>null</c>.</exception>
+    /// <exception cref="MuIrSerializationException">Thrown when the program contains a value that MuIR cannot represent.</exception>
+    public static string WriteToString(
+        IrProgram program,
+        MuIrWriterOptions options
+    )
+    {
         if (program is null)
         {
             throw new ArgumentNullException(nameof(program));
         }
 
+        if (options is null)
+        {
+            throw new ArgumentNullException(nameof(options));
+        }
+
         StringBuilder builder = new ();
         using StringWriter writer = new (builder, CultureInfo.InvariantCulture);
-        Write(program, writer);
+        Write(program, writer, options);
         return builder.ToString();
     }
 
@@ -33,6 +52,21 @@ public static class MuIrWriter
     /// <exception cref="ArgumentNullException">Thrown when an argument is <c>null</c>.</exception>
     /// <exception cref="MuIrSerializationException">Thrown when the program contains a value that MuIR cannot represent.</exception>
     public static void Write(IrProgram program, TextWriter writer)
+    {
+        Write(program, writer, MuIrWriterOptions.Default);
+    }
+
+    /// <summary>Serializes a program to a text writer using the specified options.</summary>
+    /// <param name="program">The program to serialize.</param>
+    /// <param name="writer">The destination writer.</param>
+    /// <param name="options">The writer options.</param>
+    /// <exception cref="ArgumentNullException">Thrown when an argument is <c>null</c>.</exception>
+    /// <exception cref="MuIrSerializationException">Thrown when the program contains a value that MuIR cannot represent.</exception>
+    public static void Write(
+        IrProgram program,
+        TextWriter writer,
+        MuIrWriterOptions options
+    )
     {
         if (program is null)
         {
@@ -44,7 +78,12 @@ public static class MuIrWriter
             throw new ArgumentNullException(nameof(writer));
         }
 
-        new DocumentWriter(program, writer).Write();
+        if (options is null)
+        {
+            throw new ArgumentNullException(nameof(options));
+        }
+
+        new DocumentWriter(program, writer, options).Write();
     }
 
     /// <summary>Serializes a program as canonical UTF-8 MuIR.</summary>
@@ -53,9 +92,32 @@ public static class MuIrWriter
     /// <param name="leaveOpen">Whether to leave the stream open after writing.</param>
     /// <exception cref="ArgumentNullException">Thrown when an argument is <c>null</c>.</exception>
     /// <exception cref="MuIrSerializationException">Thrown when the program contains a value that MuIR cannot represent.</exception>
+#pragma warning disable RS0026, RS0027
     public static void Write(
         IrProgram program,
         Stream stream,
+        bool leaveOpen = true
+    )
+    {
+        Write(
+            program,
+            stream,
+            MuIrWriterOptions.Default,
+            leaveOpen
+        );
+    }
+
+    /// <summary>Serializes a program as UTF-8 MuIR using the specified options.</summary>
+    /// <param name="program">The program to serialize.</param>
+    /// <param name="stream">The destination stream.</param>
+    /// <param name="options">The writer options.</param>
+    /// <param name="leaveOpen">Whether to leave the stream open after writing.</param>
+    /// <exception cref="ArgumentNullException">Thrown when an argument is <c>null</c>.</exception>
+    /// <exception cref="MuIrSerializationException">Thrown when the program contains a value that MuIR cannot represent.</exception>
+    public static void Write(
+        IrProgram program,
+        Stream stream,
+        MuIrWriterOptions options,
         bool leaveOpen = true
     )
     {
@@ -69,29 +131,41 @@ public static class MuIrWriter
             throw new ArgumentNullException(nameof(stream));
         }
 
+        if (options is null)
+        {
+            throw new ArgumentNullException(nameof(options));
+        }
+
         using StreamWriter writer = new (
             stream,
             new UTF8Encoding(false),
             1024,
             leaveOpen
         );
-        Write(program, writer);
+        Write(program, writer, options);
         writer.Flush();
     }
+#pragma warning restore RS0026, RS0027
 
     private sealed class DocumentWriter
     {
         private readonly IrProgram program;
         private readonly TextWriter writer;
+        private readonly MuIrWriterOptions options;
         private readonly IReadOnlyList<TypeSymbol> types;
         private readonly IReadOnlyDictionary<TypeSymbol, int> typeIds;
         private string currentFunctionId = "";
         private int currentBlockId;
 
-        public DocumentWriter(IrProgram program, TextWriter writer)
+        public DocumentWriter(
+            IrProgram program,
+            TextWriter writer,
+            MuIrWriterOptions options
+        )
         {
             this.program = program;
             this.writer = writer;
+            this.options = options;
             (types, typeIds) = MuIrTypeTableBuilder.Build(program);
         }
 
@@ -133,6 +207,11 @@ public static class MuIrWriter
 
         private IReadOnlyList<string> BuildAttributes()
         {
+            if (!options.WriteAttributes)
+            {
+                return [ ];
+            }
+
             IList<string> values = [ ];
             IReadOnlyDictionary<string, IrFunction> functionsById =
                 program.UserFunctions
@@ -212,7 +291,10 @@ public static class MuIrWriter
                     );
                 }
 
-                if (programAttributes.LineMap is { } lineMap)
+                if (
+                    options.WriteSourceLineMap &&
+                    programAttributes.LineMap is { } lineMap
+                )
                 {
                     values.Add(
                         "attribute program source-line-map { " +

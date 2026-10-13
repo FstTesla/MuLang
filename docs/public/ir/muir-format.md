@@ -360,6 +360,17 @@ The canonical writer MUST:
 
 Serializing wire-equivalent IR graphs MUST produce byte-identical output regardless of equivalent type-instance sharing or object-property declaration order. Reading canonical MuIR and writing the reconstructed program MUST reproduce the same bytes.
 
+The default writer options emit the complete canonical document. Writers MAY
+offer an explicit diagnostic-metadata projection that omits the
+`source-line-map` attribute or all diagnostic attributes. Such output remains
+canonical for the projected metadata set but is intentionally lossy: reading
+and rewriting it cannot restore omitted attributes. The MuIR 2 `attributes`
+section remains present even when all attributes are omitted.
+
+`MuIrWriterOptions.WriteAttributes` controls whether any diagnostic attributes
+are emitted. `MuIrWriterOptions.WriteSourceLineMap` independently controls the
+`source-line-map` attribute when attribute writing is enabled.
+
 Readers MAY accept non-canonical whitespace and comments, but writers MUST emit only canonical form.
 
 ## 9. Reading, diagnostics, and limits

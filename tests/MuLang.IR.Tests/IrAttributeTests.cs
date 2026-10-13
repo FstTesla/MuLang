@@ -142,37 +142,7 @@ public sealed class IrAttributeTests
     [Test]
     public void RoundTripsKnownAttributesAndMaterializesLegacySlotName()
     {
-        IrProgram program = CreateProgram() with
-        {
-            Attributes = new IrAttributeCollection(
-                new IrProgramAttributes(
-                    new Uri("https://example.com/sources/sample%20file.mu"),
-                    [ new IrProviderSymbolName("global.id", "globalName") ],
-                    [ new IrProviderSymbolName("function.id", "functionName") ]
-                )
-                {
-                    LineMap = new TextLineMap(10, [ 0, 5 ]),
-                },
-                [
-                    new KeyValuePair<string, IrFunctionAttributes>(
-                        "$entry",
-                        new IrFunctionAttributes("main", null, new TextSpan(1, 2))
-                    ),
-                ],
-                [
-                    new KeyValuePair<IrSlotAttributeTarget, IrSlotAttributes>(
-                        new IrSlotAttributeTarget("$entry", 0),
-                        new IrSlotAttributes("value", new TextSpan(3, 4))
-                    ),
-                ],
-                [
-                    new KeyValuePair<TypeSymbol, IrTypeAttributes>(
-                        TypeSymbols.Int,
-                        new IrTypeAttributes([ "Count", "Value" ])
-                    ),
-                ]
-            ),
-        };
+        IrProgram program = CreateAttributedProgram();
         string text = MuIrWriter.WriteToString(program);
         MuIrReadResult result = MuIrReader.Read(text);
         IrProgram read = result.Program ??
@@ -245,6 +215,38 @@ public sealed class IrAttributeTests
                 read.Attributes.Types.Values.Single().SourceNames,
                 Is.EqualTo([ "Count", "Value" ])
             );
+        }
+    }
+
+    [Test]
+    public void WriterOptionsFilterDiagnosticAttributes()
+    {
+        IrProgram program = CreateAttributedProgram();
+        string withoutLineMap = MuIrWriter.WriteToString(
+            program,
+            new MuIrWriterOptions
+            {
+                WriteSourceLineMap = false,
+            }
+        );
+        string withoutAttributes = MuIrWriter.WriteToString(
+            program,
+            new MuIrWriterOptions
+            {
+                WriteAttributes = false,
+            }
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(withoutLineMap, Does.Contain("source-document"));
+            Assert.That(withoutLineMap, Does.Contain("source-name"));
+            Assert.That(withoutLineMap, Does.Not.Contain("source-line-map"));
+            Assert.That(withoutAttributes, Does.Contain("attributes 0 {"));
+            Assert.That(withoutAttributes, Does.Not.Contain("attribute program"));
+            Assert.That(withoutAttributes, Does.Not.Contain("attribute function"));
+            Assert.That(withoutAttributes, Does.Not.Contain("attribute slot"));
+            Assert.That(withoutAttributes, Does.Not.Contain("attribute type"));
         }
     }
 
@@ -596,6 +598,41 @@ public sealed class IrAttributeTests
             entry,
             [ ]
         );
+    }
+
+    private static IrProgram CreateAttributedProgram()
+    {
+        return CreateProgram() with
+        {
+            Attributes = new IrAttributeCollection(
+                new IrProgramAttributes(
+                    new Uri("https://example.com/sources/sample%20file.mu"),
+                    [ new IrProviderSymbolName("global.id", "globalName") ],
+                    [ new IrProviderSymbolName("function.id", "functionName") ]
+                )
+                {
+                    LineMap = new TextLineMap(10, [ 0, 5 ]),
+                },
+                [
+                    new KeyValuePair<string, IrFunctionAttributes>(
+                        "$entry",
+                        new IrFunctionAttributes("main", null, new TextSpan(1, 2))
+                    ),
+                ],
+                [
+                    new KeyValuePair<IrSlotAttributeTarget, IrSlotAttributes>(
+                        new IrSlotAttributeTarget("$entry", 0),
+                        new IrSlotAttributes("value", new TextSpan(3, 4))
+                    ),
+                ],
+                [
+                    new KeyValuePair<TypeSymbol, IrTypeAttributes>(
+                        TypeSymbols.Int,
+                        new IrTypeAttributes([ "Count", "Value" ])
+                    ),
+                ]
+            ),
+        };
     }
 
     private static IEnumerable<TestCaseData> AttributeLimitCases()

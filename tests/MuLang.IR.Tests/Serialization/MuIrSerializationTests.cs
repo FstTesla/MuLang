@@ -4,6 +4,7 @@ using MuLang.Core.Environment;
 using MuLang.Core.Text;
 using MuLang.Core.Types;
 using MuLang.IR.Serialization;
+using System.Globalization;
 using System.Text;
 
 namespace MuLang.IR.Tests.Serialization;
@@ -121,6 +122,34 @@ public sealed class MuIrSerializationTests
             Assert.That(bytes, Is.Not.Empty);
             Assert.That(bytes.Take(3), Is.Not.EqualTo(new byte[] { 0xEF, 0xBB, 0xBF }));
             Assert.That(Encoding.UTF8.GetString(bytes), Does.StartWith("muir 2\n"));
+        }
+    }
+
+    [Test]
+    public void WriterOptionOverloadsUseTheSpecifiedOptions()
+    {
+        MuIrWriterOptions options = new ()
+        {
+            WriteAttributes = false,
+        };
+        using StringWriter textWriter = new (CultureInfo.InvariantCulture);
+        using MemoryStream stream = new ();
+
+        MuIrWriter.Write(CreateMinimalProgram(), textWriter, options);
+        MuIrWriter.Write(CreateMinimalProgram(), stream, options);
+
+        string expected = MuIrWriter.WriteToString(
+            CreateMinimalProgram(),
+            options
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(textWriter.ToString(), Is.EqualTo(expected));
+            Assert.That(
+                Encoding.UTF8.GetString(stream.ToArray()),
+                Is.EqualTo(expected)
+            );
         }
     }
 
