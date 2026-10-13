@@ -2,14 +2,26 @@
 MuLang.Compiler.AnalysisResult
 MuLang.Compiler.AnalysisResult.Diagnostics.get -> MuLang.Core.Diagnostics.DiagnosticCollection!
 MuLang.Compiler.AnalysisResult.IsSuccessful.get -> bool
+MuLang.Compiler.AnalysisResult.LineMap.get -> MuLang.Core.Text.TextLineMap!
+MuLang.Compiler.AnalysisResult.SourceDocument.get -> System.Uri?
 MuLang.Compiler.ClassificationResult
 MuLang.Compiler.ClassificationResult.Classifications.get -> System.Collections.Generic.IReadOnlyList<MuLang.Compiler.SourceClassification!>!
 MuLang.Compiler.ClassificationResult.Diagnostics.get -> MuLang.Core.Diagnostics.DiagnosticCollection!
 MuLang.Compiler.CompilationResult
 MuLang.Compiler.CompilationResult.Diagnostics.get -> MuLang.Core.Diagnostics.DiagnosticCollection!
 MuLang.Compiler.CompilationResult.IsSuccessful.get -> bool
+MuLang.Compiler.CompilationResult.LineMap.get -> MuLang.Core.Text.TextLineMap!
 MuLang.Compiler.CompilationResult.Program.get -> MuLang.IR.IrProgram?
+MuLang.Compiler.CompilationResult.SourceDocument.get -> System.Uri?
 MuLang.Compiler.Diagnostics.DiagnosticCodes
+MuLang.Compiler.MuLangCompilationOptions
+MuLang.Compiler.MuLangCompilationOptions.ExpectedResultType.get -> MuLang.Core.Types.TypeSymbol?
+MuLang.Compiler.MuLangCompilationOptions.ExpectedResultType.init -> void
+MuLang.Compiler.MuLangCompilationOptions.MuLangCompilationOptions() -> void
+MuLang.Compiler.MuLangCompilationOptions.Profile.get -> MuLang.Core.LanguageProfile?
+MuLang.Compiler.MuLangCompilationOptions.Profile.init -> void
+MuLang.Compiler.MuLangCompilationOptions.SourceDocument.get -> System.Uri?
+MuLang.Compiler.MuLangCompilationOptions.SourceDocument.init -> void
 MuLang.Compiler.MuLangCompiler
 MuLang.Compiler.SemanticClassification
 MuLang.Compiler.SemanticClassification.Kind.get -> MuLang.Compiler.SemanticClassificationKind
@@ -138,7 +150,10 @@ const MuLang.Compiler.Diagnostics.DiagnosticCodes.UnreachableStatement = "MUL400
 const MuLang.Compiler.Diagnostics.DiagnosticCodes.UnrecognizedErrorProperty = "MUL3048" -> string!
 const MuLang.Compiler.Diagnostics.DiagnosticCodes.UnsupportedLanguageVersionFeature = "MUL7013" -> string!
 const MuLang.Compiler.Diagnostics.DiagnosticCodes.UnterminatedString = "MUL1002" -> string!
+static MuLang.Compiler.MuLangCompilationOptions.Default.get -> MuLang.Compiler.MuLangCompilationOptions!
+static MuLang.Compiler.MuLangCompiler.Analyze(string! source, MuLang.Core.Environment.EnvironmentSchema! environment, MuLang.Core.CompilationMode compilationMode, MuLang.Compiler.MuLangCompilationOptions? options = null) -> MuLang.Compiler.AnalysisResult!
 static MuLang.Compiler.MuLangCompiler.Analyze(string! source, MuLang.Core.Environment.EnvironmentSchema! environment, MuLang.Core.CompilationMode compilationMode, MuLang.Core.Types.TypeSymbol? expectedResultType = null, MuLang.Core.LanguageProfile? profile = null) -> MuLang.Compiler.AnalysisResult!
 static MuLang.Compiler.MuLangCompiler.Classify(string! source, MuLang.Core.LanguageProfile? profile = null) -> MuLang.Compiler.ClassificationResult!
 static MuLang.Compiler.MuLangCompiler.ClassifySemantically(string! source, MuLang.Core.Environment.EnvironmentSchema! environment, MuLang.Core.CompilationMode compilationMode, MuLang.Core.Types.TypeSymbol? expectedResultType = null, MuLang.Core.LanguageProfile? profile = null) -> MuLang.Compiler.SemanticClassificationResult!
+static MuLang.Compiler.MuLangCompiler.Compile(string! source, MuLang.Core.Environment.EnvironmentSchema! environment, MuLang.Core.CompilationMode compilationMode, MuLang.Compiler.MuLangCompilationOptions? options = null) -> MuLang.Compiler.CompilationResult!
 static MuLang.Compiler.MuLangCompiler.Compile(string! source, MuLang.Core.Environment.EnvironmentSchema! environment, MuLang.Core.CompilationMode compilationMode, MuLang.Core.Types.TypeSymbol? expectedResultType = null, MuLang.Core.LanguageProfile? profile = null) -> MuLang.Compiler.CompilationResult!

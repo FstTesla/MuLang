@@ -145,6 +145,7 @@ MuLang.Core.Runtime.ExecutionResult.Value.get -> object?
 MuLang.Core.Runtime.MuLangRuntimeException
 MuLang.Core.Runtime.MuLangRuntimeException.Code.get -> string!
 MuLang.Core.Runtime.MuLangRuntimeException.Error.get -> MuLang.Core.Runtime.RuntimeError!
+MuLang.Core.Runtime.MuLangRuntimeException.Location.get -> MuLang.Core.Text.TextLocation?
 MuLang.Core.Runtime.MuLangRuntimeException.MuLangRuntimeException(MuLang.Core.Runtime.RuntimeError! error) -> void
 MuLang.Core.Runtime.MuLangRuntimeException.MuLangRuntimeException(MuLang.Core.Runtime.RuntimeError! error, System.Exception? innerException) -> void
 MuLang.Core.Runtime.MuLangRuntimeException.MuLangRuntimeException(string! code, string! message, MuLang.Core.Text.TextSpan span, System.Exception? innerException = null) -> void
@@ -157,7 +158,9 @@ MuLang.Core.Runtime.RuntimeError.Data.get -> object?
 MuLang.Core.Runtime.RuntimeError.ErrorData.get -> MuLang.Core.Runtime.RuntimeErrorData
 MuLang.Core.Runtime.RuntimeError.Frames.get -> System.Collections.Generic.IReadOnlyList<MuLang.Core.Runtime.RuntimeStackFrame!>!
 MuLang.Core.Runtime.RuntimeError.IsCatchable.get -> bool
+MuLang.Core.Runtime.RuntimeError.Location.get -> MuLang.Core.Text.TextLocation?
 MuLang.Core.Runtime.RuntimeError.Message.get -> string!
+MuLang.Core.Runtime.RuntimeError.RuntimeError(string! code, string! message, MuLang.Core.Runtime.RuntimeErrorCategory category, bool isCatchable, MuLang.Core.Text.TextSpan span, MuLang.Core.Text.TextLocation? location, System.Collections.Generic.IEnumerable<MuLang.Core.Runtime.RuntimeStackFrame!>! frames, MuLang.Core.Runtime.RuntimeError? cause, MuLang.Core.Runtime.RuntimeErrorData errorData) -> void
 MuLang.Core.Runtime.RuntimeError.RuntimeError(string! code, string! message, MuLang.Core.Runtime.RuntimeErrorCategory category, bool isCatchable, MuLang.Core.Text.TextSpan span, System.Collections.Generic.IEnumerable<MuLang.Core.Runtime.RuntimeStackFrame!>! frames, MuLang.Core.Runtime.RuntimeError? cause = null, object? data = null) -> void
 MuLang.Core.Runtime.RuntimeError.RuntimeError(string! code, string! message, MuLang.Core.Runtime.RuntimeErrorCategory category, bool isCatchable, MuLang.Core.Text.TextSpan span, System.Collections.Generic.IEnumerable<MuLang.Core.Runtime.RuntimeStackFrame!>! frames, MuLang.Core.Runtime.RuntimeError? cause, MuLang.Core.Runtime.RuntimeErrorData errorData) -> void
 MuLang.Core.Runtime.RuntimeError.Span.get -> MuLang.Core.Text.TextSpan
@@ -180,11 +183,13 @@ MuLang.Core.Runtime.RuntimeErrorData.RuntimeErrorData(bool IsPresent, object? Va
 MuLang.Core.Runtime.RuntimeErrorData.Value.get -> object?
 MuLang.Core.Runtime.RuntimeErrorData.Value.init -> void
 MuLang.Core.Runtime.RuntimeStackFrame
+MuLang.Core.Runtime.RuntimeStackFrame.CallLocation.get -> MuLang.Core.Text.TextLocation?
 MuLang.Core.Runtime.RuntimeStackFrame.CallSpan.get -> MuLang.Core.Text.TextSpan
 MuLang.Core.Runtime.RuntimeStackFrame.DisplayName.get -> string!
 MuLang.Core.Runtime.RuntimeStackFrame.FunctionId.get -> string!
 MuLang.Core.Runtime.RuntimeStackFrame.RuntimeStackFrame(string! functionId, MuLang.Core.Text.TextSpan callSpan) -> void
 MuLang.Core.Runtime.RuntimeStackFrame.RuntimeStackFrame(string! functionId, MuLang.Core.Text.TextSpan callSpan, string? displayName) -> void
+MuLang.Core.Runtime.RuntimeStackFrame.RuntimeStackFrame(string! functionId, MuLang.Core.Text.TextSpan callSpan, string? displayName, MuLang.Core.Text.TextLocation? callLocation) -> void
 MuLang.Core.ShadowingPolicy
 MuLang.Core.ShadowingPolicy.Globals = 2 -> MuLang.Core.ShadowingPolicy
 MuLang.Core.ShadowingPolicy.NestedScopes = 1 -> MuLang.Core.ShadowingPolicy
@@ -211,7 +216,24 @@ MuLang.Core.Text.SourceText.GetText(MuLang.Core.Text.TextSpan span) -> string!
 MuLang.Core.Text.SourceText.GetUtf16Offset(int offset) -> int
 MuLang.Core.Text.SourceText.Length.get -> int
 MuLang.Core.Text.SourceText.LineCount.get -> int
+MuLang.Core.Text.SourceText.LineMap.get -> MuLang.Core.Text.TextLineMap!
 MuLang.Core.Text.SourceText.Text.get -> string!
+MuLang.Core.Text.TextLineMap
+MuLang.Core.Text.TextLineMap.GetLocation(MuLang.Core.Text.TextSpan span, System.Uri? sourceDocument = null) -> MuLang.Core.Text.TextLocation
+MuLang.Core.Text.TextLineMap.GetOffset(int line, int column) -> int
+MuLang.Core.Text.TextLineMap.GetPosition(int offset) -> MuLang.Core.Text.TextPosition
+MuLang.Core.Text.TextLineMap.Length.get -> int
+MuLang.Core.Text.TextLineMap.LineCount.get -> int
+MuLang.Core.Text.TextLineMap.LineStarts.get -> System.Collections.Generic.IReadOnlyList<int>!
+MuLang.Core.Text.TextLineMap.TextLineMap(int length, System.Collections.Generic.IEnumerable<int>! lineStarts) -> void
+MuLang.Core.Text.TextLocation
+MuLang.Core.Text.TextLocation.End.get -> MuLang.Core.Text.TextPosition
+MuLang.Core.Text.TextLocation.Equals(MuLang.Core.Text.TextLocation other) -> bool
+MuLang.Core.Text.TextLocation.SourceDocument.get -> System.Uri?
+MuLang.Core.Text.TextLocation.Span.get -> MuLang.Core.Text.TextSpan
+MuLang.Core.Text.TextLocation.Start.get -> MuLang.Core.Text.TextPosition
+MuLang.Core.Text.TextLocation.TextLocation() -> void
+MuLang.Core.Text.TextLocation.TextLocation(MuLang.Core.Text.TextSpan span, MuLang.Core.Text.TextPosition start, MuLang.Core.Text.TextPosition end, System.Uri? sourceDocument = null) -> void
 MuLang.Core.Text.TextPosition
 MuLang.Core.Text.TextPosition.Column.get -> int
 MuLang.Core.Text.TextPosition.Equals(MuLang.Core.Text.TextPosition other) -> bool
@@ -305,6 +327,7 @@ override MuLang.Core.LanguageProfileFingerprint.Equals(object? obj) -> bool
 override MuLang.Core.LanguageProfileFingerprint.GetHashCode() -> int
 override MuLang.Core.LanguageProfileFingerprint.ToString() -> string!
 override MuLang.Core.Runtime.RuntimeErrorData.GetHashCode() -> int
+override MuLang.Core.Text.TextLocation.GetHashCode() -> int
 override MuLang.Core.Text.TextPosition.GetHashCode() -> int
 override MuLang.Core.Text.TextSpan.GetHashCode() -> int
 override MuLang.Core.Types.ArrayTypeSymbol.DisplayName.get -> string!
@@ -330,6 +353,8 @@ static MuLang.Core.Runtime.RuntimeErrorData.Present(object? value) -> MuLang.Cor
 static MuLang.Core.Runtime.RuntimeErrorData.operator !=(MuLang.Core.Runtime.RuntimeErrorData left, MuLang.Core.Runtime.RuntimeErrorData right) -> bool
 static MuLang.Core.Runtime.RuntimeErrorData.operator ==(MuLang.Core.Runtime.RuntimeErrorData left, MuLang.Core.Runtime.RuntimeErrorData right) -> bool
 static MuLang.Core.Text.SourceText.From(string! text) -> MuLang.Core.Text.SourceText!
+static MuLang.Core.Text.TextLocation.operator !=(MuLang.Core.Text.TextLocation left, MuLang.Core.Text.TextLocation right) -> bool
+static MuLang.Core.Text.TextLocation.operator ==(MuLang.Core.Text.TextLocation left, MuLang.Core.Text.TextLocation right) -> bool
 static MuLang.Core.Text.TextPosition.operator !=(MuLang.Core.Text.TextPosition left, MuLang.Core.Text.TextPosition right) -> bool
 static MuLang.Core.Text.TextPosition.operator ==(MuLang.Core.Text.TextPosition left, MuLang.Core.Text.TextPosition right) -> bool
 static MuLang.Core.Text.TextSpan.FromBounds(int start, int end) -> MuLang.Core.Text.TextSpan
@@ -359,6 +384,8 @@ static MuLang.Core.Types.TypeSymbols.Unknown.get -> MuLang.Core.Types.TypeSymbol
 static MuLang.Core.Types.TypeSymbols.Void.get -> MuLang.Core.Types.TypeSymbol!
 ~override MuLang.Core.Runtime.RuntimeErrorData.Equals(object obj) -> bool
 ~override MuLang.Core.Runtime.RuntimeErrorData.ToString() -> string
+~override MuLang.Core.Text.TextLocation.Equals(object obj) -> bool
+~override MuLang.Core.Text.TextLocation.ToString() -> string
 ~override MuLang.Core.Text.TextPosition.Equals(object obj) -> bool
 ~override MuLang.Core.Text.TextPosition.ToString() -> string
 ~override MuLang.Core.Text.TextSpan.Equals(object obj) -> bool

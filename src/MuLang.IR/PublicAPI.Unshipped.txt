@@ -1,15 +1,1 @@
 #nullable enable
-MuLang.IR.IrProgramAttributes.LineMap.get -> MuLang.Core.Text.TextLineMap?
-MuLang.IR.IrProgramAttributes.LineMap.init -> void
-MuLang.IR.Serialization.MuIrReaderOptions.MaximumSourceLines.get -> int
-MuLang.IR.Serialization.MuIrReaderOptions.MaximumSourceLines.init -> void
-MuLang.IR.Serialization.MuIrWriterOptions
-MuLang.IR.Serialization.MuIrWriterOptions.MuIrWriterOptions() -> void
-MuLang.IR.Serialization.MuIrWriterOptions.WriteAttributes.get -> bool
-MuLang.IR.Serialization.MuIrWriterOptions.WriteAttributes.init -> void
-MuLang.IR.Serialization.MuIrWriterOptions.WriteSourceLineMap.get -> bool
-MuLang.IR.Serialization.MuIrWriterOptions.WriteSourceLineMap.init -> void
-static MuLang.IR.Serialization.MuIrWriter.Write(MuLang.IR.IrProgram! program, System.IO.Stream! stream, MuLang.IR.Serialization.MuIrWriterOptions! options, bool leaveOpen = true) -> void
-static MuLang.IR.Serialization.MuIrWriter.Write(MuLang.IR.IrProgram! program, System.IO.TextWriter! writer, MuLang.IR.Serialization.MuIrWriterOptions! options) -> void
-static MuLang.IR.Serialization.MuIrWriter.WriteToString(MuLang.IR.IrProgram! program, MuLang.IR.Serialization.MuIrWriterOptions! options) -> string!
-static MuLang.IR.Serialization.MuIrWriterOptions.Default.get -> MuLang.IR.Serialization.MuIrWriterOptions!
