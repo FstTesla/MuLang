@@ -12,6 +12,18 @@ Stable entries describe the incremental change since the preceding prerelease. T
 
 Each release heading identifies the incremental version range covered by the section, from the comparison version to the released version.
 
+## `0.3.0-alpha.6` → `0.3.0-alpha.7` - 2026-10-13
+
+### Breaking changes
+
+- Changed the prerelease `IrProgramAttributes.SourceDocument` contract from an arbitrary string to an absolute `Uri`. Custom IR producers must pass a URI, and MuIR documents with a relative or non-URI `source-document` attribute are now rejected.
+
+### New features
+
+- Added `MuLangCompilationOptions` and compiler overloads for associating an absolute source-document URI with analysis and compilation. Analysis and compilation results now expose that URI and a Unicode-scalar source line map.
+- Added `TextLineMap` and `TextLocation` APIs for converting source offsets, lines, and columns and materializing locations. .NET execution now enriches runtime errors and MuLang stack frames with these locations when compiled IR retains source metadata.
+- Added optional MuIR `source-line-map` metadata, validation that mapped spans stay within the source, a configurable reader limit, and writer options for omitting the line map or all diagnostic attributes.
+
 ## `0.3.0-alpha.5` → `0.3.0-alpha.6` - 2026-10-12
 
 ### Breaking changes
