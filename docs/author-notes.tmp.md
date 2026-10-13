@@ -1,6 +1,0 @@
-- New features:
-  - Comments
-  - First-class functions and function types
-- Feature flags:
-  - Comments
-  - First-class functions and function types

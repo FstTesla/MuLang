@@ -44,7 +44,7 @@ public sealed class MuLangCompilerSourceLocationTests
     public void CompilationRejectsRelativeSourceDocument()
     {
         Assert.That(
-            () => MuLangCompiler.Compile(
+            static () => MuLangCompiler.Compile(
                 "return 1;",
                 new EnvironmentBuilder().Build(LanguageVersion.Version1_2),
                 CompilationMode.Program,
