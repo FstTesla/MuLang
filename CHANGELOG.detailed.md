@@ -14,7 +14,9 @@ Each release heading identifies the incremental version range covered by the sec
 
 ## `0.3.0-rc.1` → `0.3.0` - 2026-10-14
 
-No consumer-visible changes.
+### Breaking changes
+
+- Stabilized the prerelease binary-signature changes to `EnvironmentBuilder.Build`, the `ObjectPropertySymbol` constructor, and `ObjectTypeGraphBuilder.AddProperty`. Existing clients compiled against version 0.2 must be recompiled.
 
 ## `0.3.0-alpha.7` → `0.3.0-rc.1` - 2026-10-14
 
