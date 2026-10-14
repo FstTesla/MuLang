@@ -37,6 +37,7 @@ MuLang.Core.Environment.EnvironmentBuilder
 MuLang.Core.Environment.EnvironmentBuilder.AddFunction(string! id, string! name, System.Collections.Generic.IEnumerable<MuLang.Core.Symbols.ParameterSymbol!>! parameters, MuLang.Core.Types.TypeSymbol! returnType) -> MuLang.Core.Environment.EnvironmentBuilder!
 MuLang.Core.Environment.EnvironmentBuilder.AddGlobal(string! id, string! name, MuLang.Core.Types.TypeSymbol! type) -> MuLang.Core.Environment.EnvironmentBuilder!
 MuLang.Core.Environment.EnvironmentBuilder.AddType(MuLang.Core.Types.ObjectTypeSymbol! type) -> MuLang.Core.Environment.EnvironmentBuilder!
+MuLang.Core.Environment.EnvironmentBuilder.Build(MuLang.Core.LanguageVersion languageVersion = MuLang.Core.LanguageVersion.Version1_1) -> MuLang.Core.Environment.EnvironmentSchema!
 MuLang.Core.Environment.EnvironmentBuilder.Build(MuLang.Core.LanguageVersion languageVersion = MuLang.Core.LanguageVersion.Version1_2) -> MuLang.Core.Environment.EnvironmentSchema!
 MuLang.Core.Environment.EnvironmentBuilder.EnvironmentBuilder() -> void
 MuLang.Core.Environment.EnvironmentFingerprint
@@ -266,9 +267,11 @@ MuLang.Core.Types.ObjectPropertySymbol
 MuLang.Core.Types.ObjectPropertySymbol.IsOptional.get -> bool
 MuLang.Core.Types.ObjectPropertySymbol.IsReadOnly.get -> bool
 MuLang.Core.Types.ObjectPropertySymbol.Name.get -> string!
+MuLang.Core.Types.ObjectPropertySymbol.ObjectPropertySymbol(string! name, MuLang.Core.Types.TypeSymbol! type, bool isOptional = false) -> void
 MuLang.Core.Types.ObjectPropertySymbol.ObjectPropertySymbol(string! name, MuLang.Core.Types.TypeSymbol! type, bool isOptional = false, bool isReadOnly = false) -> void
 MuLang.Core.Types.ObjectPropertySymbol.Type.get -> MuLang.Core.Types.TypeSymbol!
 MuLang.Core.Types.ObjectTypeGraphBuilder
+MuLang.Core.Types.ObjectTypeGraphBuilder.AddProperty(MuLang.Core.Types.ObjectTypeGraphReference! objectType, string! name, MuLang.Core.Types.ObjectTypeGraphReference! propertyType, bool isOptional = false) -> MuLang.Core.Types.ObjectTypeGraphBuilder!
 MuLang.Core.Types.ObjectTypeGraphBuilder.AddProperty(MuLang.Core.Types.ObjectTypeGraphReference! objectType, string! name, MuLang.Core.Types.ObjectTypeGraphReference! propertyType, bool isOptional = false, bool isReadOnly = false) -> MuLang.Core.Types.ObjectTypeGraphBuilder!
 MuLang.Core.Types.ObjectTypeGraphBuilder.Array(MuLang.Core.Types.ObjectTypeGraphReference! elementType) -> MuLang.Core.Types.ObjectTypeGraphReference!
 MuLang.Core.Types.ObjectTypeGraphBuilder.Build() -> System.Collections.Generic.IReadOnlyDictionary<MuLang.Core.Types.ObjectTypeGraphReference!, MuLang.Core.Types.TypeSymbol!>!

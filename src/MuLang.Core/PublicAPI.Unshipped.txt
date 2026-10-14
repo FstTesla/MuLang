@@ -1,1 +1,4 @@
 #nullable enable
+*REMOVED*MuLang.Core.Environment.EnvironmentBuilder.Build(MuLang.Core.LanguageVersion languageVersion = MuLang.Core.LanguageVersion.Version1_1) -> MuLang.Core.Environment.EnvironmentSchema!
+*REMOVED*MuLang.Core.Types.ObjectPropertySymbol.ObjectPropertySymbol(string! name, MuLang.Core.Types.TypeSymbol! type, bool isOptional = false) -> void
+*REMOVED*MuLang.Core.Types.ObjectTypeGraphBuilder.AddProperty(MuLang.Core.Types.ObjectTypeGraphReference! objectType, string! name, MuLang.Core.Types.ObjectTypeGraphReference! propertyType, bool isOptional = false) -> MuLang.Core.Types.ObjectTypeGraphBuilder!

@@ -12,6 +12,25 @@ Each release section describes the final stable outcome since the preceding stab
 
 Each release heading identifies the stable version range covered by the section, from the preceding stable version to the released version.
 
+## `0.2.0` → `0.3.0` - 2026-10-14
+
+### Breaking changes
+
+- Changed the default and latest language profile, environment builder, and standalone standard-library composition from MuLang 1.1 to 1.2. Hosts that require 1.1 behavior must now select it explicitly; `primitive`, `error`, and `type` are reserved by the new language version.
+- Changed the standard MuLang 1.2 [object-literal grammar](https://fsttesla.github.io/MuLang/language/08-expressions.html#84-object-literals) to declaration-oriented properties with independent optional and read-only capabilities. Hosts can select the legacy grammar as a migration mode.
+- Extended language-profile identity with object-literal syntax, exception handling, and user-defined types. Standard profile fingerprints change, so persisted compilation artifacts and caches produced by version 0.2 must be regenerated.
+- Changed canonical [MuIR](https://fsttesla.github.io/MuLang/ir/muir-format.html) output from format version 1 to version 2, with lifetime regions, exception regions, and diagnostic attributes. Custom MuIR consumers must support the new grammar; the reader continues accepting version 1 documents.
+- Changed the binary signatures of [`EnvironmentBuilder.Build`](https://fsttesla.github.io/MuLang/api/MuLang.Core.Environment.EnvironmentBuilder.html), the [`ObjectPropertySymbol`](https://fsttesla.github.io/MuLang/api/MuLang.Core.Types.ObjectPropertySymbol.html) constructor, and [`ObjectTypeGraphBuilder.AddProperty`](https://fsttesla.github.io/MuLang/api/MuLang.Core.Types.ObjectTypeGraphBuilder.html) to update the default language version and add read-only property support. Existing compiled clients must be recompiled.
+
+### New features
+
+- Added MuLang 1.2 and the `primitive` intrinsic abstract type as the non-null common supertype of Boolean, integer, floating-point, and string values, including nullable lifting, checked refinement, type tests, common-type inference, and contextual string concatenation.
+- Added [source-declared and inline structural object types](https://fsttesla.github.io/MuLang/language/04-types.html#451-source-declared-object-types), including open or closed shapes, forward references, recursive definitions, and optional or read-only properties.
+- Added [protected statements](https://fsttesla.github.io/MuLang/language/10-statements.html#1013-protected-statements), catch handlers, cleanup, and [explicit application-error throwing and rethrow](https://fsttesla.github.io/MuLang/language/10-statements.html#1014-throw), together with the intrinsic `error` type and public error-value provider contracts.
+- Added portable IR lifetime and exception regions, scoped slots, `Throw` and `Resume` terminators, structured diagnostic attributes, and source metadata, together with validation and .NET execution support.
+- Added compiler options for source-document URIs and [`TextLineMap`](https://fsttesla.github.io/MuLang/api/MuLang.Core.Text.TextLineMap.html) and `TextLocation` APIs. Analysis, compilation, MuIR, runtime errors, and stack frames can now retain source locations and diagnostic display names.
+- Expanded [`DotNetProviderInvocationContext`](https://fsttesla.github.io/MuLang/api/MuLang.Exporters.DotNet.DotNetProviderInvocationContext.html) with validated array, object, and error-value factories; identity and kind checks; and capability-aware mutation operations.
+
 ## `0.1.0` → `0.2.0` - 2026-10-02
 
 ### Breaking changes
