@@ -1,0 +1,27 @@
+muir 2
+mode expression
+environment "env"
+profile "profile"
+types 3
+type t0 intrinsic primitive
+type t1 object closed 2 ["next" t1 optional readonly, "payload" t0 required mutable]
+type t2 intrinsic int
+
+entry "$entry" t1 bb0 slots 3 blocks 1 lifetime-regions 1 exception-regions 0 {
+  lifetime-region lr0 parent none entry bb0
+  slot %0 temporary t2 mutable region lr0
+  slot %1 temporary t0 mutable region lr0
+  slot %2 temporary t1 mutable region lr0
+  block bb0 region lr0 instructions 3 {
+    ins constant 0 1 %0 t2 int 42
+    ins convert 1 1 %1 %0 t0 value
+    ins create-object 2 1 %2 t1 ["payload": %1]
+    term return 3 1 %2
+  }
+}
+users 0
+
+attributes 1 {
+  attribute type t1 source-type-names { 1 ["Node"] }
+}
+end

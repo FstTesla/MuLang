@@ -11,7 +11,111 @@ namespace MuLang.Compiler.Tests;
 public sealed class MuLangCompilerEditorTests
 {
     [Test]
-    public void HighlightingSampleParsesAndClassifiesUserDefinedTypes()
+    public void LanguageSamplesHaveExpectedDiagnostics()
+    {
+        string repositoryRoot = Path.GetFullPath(
+            Path.Combine(
+                TestContext.CurrentContext.TestDirectory,
+                "..",
+                "..",
+                "..",
+                "..",
+                ".."
+            )
+        );
+        string samplesRoot = Path.Combine(repositoryRoot, "docs", "samples");
+        IReadOnlyList<string> validFiles =
+        [
+            .. Directory.GetFiles(
+                Path.Combine(samplesRoot, "valid"),
+                "*.mu",
+                SearchOption.AllDirectories
+            ),
+        ];
+        IReadOnlyList<string> warningFiles =
+        [
+            .. Directory.GetFiles(
+                Path.Combine(samplesRoot, "warnings"),
+                "*.mu",
+                SearchOption.AllDirectories
+            ),
+        ];
+        IReadOnlyList<string> errorFiles =
+        [
+            .. Directory.GetFiles(
+                Path.Combine(samplesRoot, "errors"),
+                "*.mu",
+                SearchOption.AllDirectories
+            ),
+        ];
+        EnvironmentSchema environment = new EnvironmentBuilder()
+            .Build(LanguageVersion.Version1_2);
+        IReadOnlyList<Diagnostic> validDiagnostics =
+        [
+            .. validFiles.SelectMany(
+                file => AnalyzeSample(file, environment).Diagnostics
+            ),
+        ];
+        IReadOnlyList<Diagnostic> warningDiagnostics =
+        [
+            .. warningFiles.SelectMany(
+                file => AnalyzeSample(file, environment).Diagnostics
+            ),
+        ];
+        IReadOnlyList<IReadOnlyList<Diagnostic>> errorDiagnostics =
+        [
+            .. errorFiles.Select(
+                file => AnalyzeSample(file, environment).Diagnostics
+            ),
+        ];
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(validDiagnostics, Is.Empty);
+            Assert.That(warningDiagnostics, Is.Not.Empty);
+            Assert.That(
+                warningDiagnostics,
+                Has.All.Matches<Diagnostic>(
+                    static diagnostic =>
+                        diagnostic.Severity == DiagnosticSeverity.Warning
+                )
+            );
+            Assert.That(errorDiagnostics, Is.Not.Empty);
+            Assert.That(
+                errorDiagnostics,
+                Has.All.Matches<IReadOnlyList<Diagnostic>>(
+                    static diagnostics =>
+                        diagnostics.Any(
+                            static diagnostic =>
+                                diagnostic.Severity == DiagnosticSeverity.Error
+                        ) &&
+                        diagnostics.All(
+                            static diagnostic =>
+                                diagnostic.Category is not
+                                    DiagnosticCategory.Lexical and not
+                                    DiagnosticCategory.Syntax
+                        )
+                )
+            );
+        }
+
+        static AnalysisResult AnalyzeSample(
+            string path,
+            EnvironmentSchema environment
+        ) =>
+            MuLangCompiler.Analyze(
+                File.ReadAllText(path),
+                environment,
+                CompilationMode.Program,
+                new MuLangCompilationOptions
+                {
+                    Profile = LanguageProfiles.Version1_2,
+                }
+            );
+    }
+
+    [Test]
+    public void TypeSampleClassifiesUserDefinedTypes()
     {
         string repositoryRoot = Path.GetFullPath(
             Path.Combine(
@@ -24,7 +128,13 @@ public sealed class MuLangCompilerEditorTests
             )
         );
         string source = File.ReadAllText(
-            Path.Combine(repositoryRoot, "docs", "samples", "highlighting.mu")
+            Path.Combine(
+                repositoryRoot,
+                "docs",
+                "samples",
+                "valid",
+                "types-and-objects.mu"
+            )
         );
         SemanticClassificationResult result = MuLangCompiler.ClassifySemantically(
             source,
@@ -34,30 +144,17 @@ public sealed class MuLangCompilerEditorTests
         );
         SourceText sourceText = SourceText.From(source);
 
-        using (Assert.EnterMultipleScope())
-        {
-            Assert.That(
-                result.Diagnostics,
-                Has.None.Matches<Diagnostic>(
-                    static diagnostic =>
-                        diagnostic.Category is
-                            DiagnosticCategory.Lexical or
-                            DiagnosticCategory.Syntax
-                )
-            );
-            Assert.That(
-                result.Classifications.Any(
-                    classification =>
-                        classification.Kind == SemanticClassificationKind.Type &&
-                        classification.Modifiers.HasFlag(
-                            SemanticClassificationModifiers.Declaration
-                        ) &&
-                        sourceText.GetText(classification.Span) ==
-                        "HighlightDetails"
-                ),
-                Is.True
-            );
-        }
+        Assert.That(
+            result.Classifications.Any(
+                classification =>
+                    classification.Kind == SemanticClassificationKind.Type &&
+                    classification.Modifiers.HasFlag(
+                        SemanticClassificationModifiers.Declaration
+                    ) &&
+                    sourceText.GetText(classification.Span) == "Node"
+            ),
+            Is.True
+        );
     }
 
     [Test]

@@ -58,6 +58,8 @@ public sealed class MuIrSerializationTests
     [TestCase("minimal-v2.muir")]
     [TestCase("object-properties-v2.muir")]
     [TestCase("exception-regions-v2.muir")]
+    [TestCase("diagnostic-attributes-v2.muir")]
+    [TestCase("recursive-types-v2.muir")]
     public void CanonicalFixtureRemainsStable(string fileName)
     {
         string path = Path.Combine(

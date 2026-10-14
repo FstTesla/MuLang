@@ -418,13 +418,14 @@ public sealed class LanguageServerTests
     }
 
     [Test]
-    public async Task HighlightsSampleWithWarningDiagnostics()
+    public async Task HighlightsWarningSampleWithDiagnostics()
     {
         string source = await File.ReadAllTextAsync(
             Path.Combine(
                 AppContext.BaseDirectory,
                 "Samples",
-                "highlighting.mu"
+                "warnings",
+                "semantic-warnings.mu"
             )
         );
         string openDocument = JsonSerializer.Serialize(
@@ -436,7 +437,7 @@ public sealed class LanguageServerTests
                 {
                     textDocument = new
                     {
-                        uri = "file:///highlighting.mu",
+                        uri = "file:///semantic-warnings.mu",
                         languageId = "mulang",
                         version = 1,
                         text = source,
@@ -450,7 +451,7 @@ public sealed class LanguageServerTests
             """,
             openDocument,
             """
-            {"jsonrpc":"2.0","id":3,"method":"textDocument/semanticTokens/full","params":{"textDocument":{"uri":"file:///highlighting.mu"}}}
+            {"jsonrpc":"2.0","id":3,"method":"textDocument/semanticTokens/full","params":{"textDocument":{"uri":"file:///semantic-warnings.mu"}}}
             """,
             """
             {"jsonrpc":"2.0","method":"shutdown","id":2}
@@ -489,8 +490,8 @@ public sealed class LanguageServerTests
                     .Order(),
                 Is.EqualTo(
                     [
+                        "MUL3030",
                         "MUL3032",
-                        "MUL3033",
                         "MUL3033",
                         "MUL3033",
                         "MUL3034",

@@ -10,7 +10,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="..\..\docs\samples\highlighting.mu" Link="Samples\highlighting.mu">
+    <None Include="..\..\docs\samples\**\*.mu" Link="Samples\%(RecursiveDir)%(Filename)%(Extension)">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

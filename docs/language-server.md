@@ -44,7 +44,7 @@ The extension requires:
 
 ## Highlighting smoke test
 
-Open [`samples/highlighting.mu`](samples/highlighting.mu) in Visual Studio to exercise the TextMate and compiler-backed semantic classifications without requiring a host environment.
+Open the files under [`samples/valid`](samples/valid) in Visual Studio to exercise the language syntax and compiler-backed semantic classifications without requiring a host environment. The [`samples/warnings`](samples/warnings) and [`samples/errors`](samples/errors) directories contain intentional diagnostics for editor validation.
 
 ## Initial document model
 

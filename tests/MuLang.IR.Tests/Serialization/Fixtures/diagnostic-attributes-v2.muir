@@ -1,0 +1,33 @@
+muir 2
+mode program
+environment "env"
+profile "profile"
+types 2
+type t0 intrinsic int
+type t1 object closed 1 ["value" t0 required mutable]
+
+entry "$entry" t0 bb0 slots 2 blocks 1 lifetime-regions 1 exception-regions 0 {
+  lifetime-region lr0 parent none entry bb0
+  slot %0 local t0 mutable region lr0
+  slot %1 temporary t1 mutable region lr0
+  block bb0 region lr0 instructions 2 {
+    ins constant 0 1 %0 t0 int 42
+    ins create-object 2 1 %1 t1 ["value": %0]
+    term return 4 1 %0
+  }
+}
+users 0
+
+attributes 10 {
+  attribute program provider-function-name { "function.next" "next" }
+  attribute program provider-global-name { "global.value" "value" }
+  attribute program source-document { "https://example.com/samples/attributes.mu" }
+  attribute program source-line-map { 30 3 0 10 20 }
+  attribute function entry declaration-span { 0 10 }
+  attribute function entry qualified-source-name { "sample.main" }
+  attribute function entry source-name { "main" }
+  attribute slot entry %0 declaration-span { 10 5 }
+  attribute slot entry %0 source-name { "result" }
+  attribute type t1 source-type-names { 2 ["Item", "Record"] }
+}
+end
