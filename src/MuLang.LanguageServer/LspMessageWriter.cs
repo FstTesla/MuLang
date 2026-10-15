@@ -57,6 +57,28 @@ internal sealed class LspMessageWriter
         );
     }
 
+    public Task WriteRequestAsync(
+        int id,
+        string method,
+        Action<Utf8JsonWriter> writeParameters,
+        CancellationToken cancellationToken
+    )
+    {
+        return WriteMessageAsync(
+            writer =>
+            {
+                writer.WriteStartObject();
+                writer.WriteString("jsonrpc", "2.0");
+                writer.WriteNumber("id", id);
+                writer.WriteString("method", method);
+                writer.WritePropertyName("params");
+                writeParameters(writer);
+                writer.WriteEndObject();
+            },
+            cancellationToken
+        );
+    }
+
     public Task WriteResponseAsync(
         JsonElement id,
         Action<Utf8JsonWriter> writeResult,

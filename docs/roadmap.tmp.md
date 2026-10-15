@@ -1,35 +1,70 @@
 # Roadmap
 
-## Goal: package release `0.3.0`
+## Current state
 
-The release completes the current `0.3.0` prerelease line. MuLang `1.2`
-introduces the complete object-literal model together with user-defined object
-types, and MuIR 2 adds well-known diagnostic attributes.
+Package release `0.3.0` is complete. MuLang `1.2` provides the complete
+object-literal model, user-defined and inline structural object types,
+`primitive`, and source-level exception handling. MuIR 2 provides lifetime and
+exception regions, property mutability, source metadata, and well-known
+diagnostic attributes while retaining MuIR 1 readability.
+
+The compiler, .NET exporter, standard library, language server, Visual Studio
+extension, specifications, API baselines, packages, and VSIX have completed the
+stable release cycle. Language samples now separate valid programs, warnings,
+and intentional semantic errors, and the MuIR serialization fixtures cover the
+current format capabilities. The `0.4.0` language-server work has started with
+per-workspace-folder configuration for compilation mode, profiles, declarative
+host environments, and expected result types.
+
+## Goal: package release `0.4.0`
+
+Use the stable MuLang `1.2` and MuIR 2 contracts as the foundation for a
+tooling-focused release. Language syntax, semantics, standard profiles, and
+the MuIR format remain frozen throughout the `0.4.0` cycle except for
+release-blocking correctness fixes.
 
 ## Sequence
 
-1. **Complete the MuLang `1.2` object model.** Completed for
-   `0.3.0-alpha.6`: source-declared and inline structural object types now
-   build on the read-only and optional object-property model across compiler,
-   profile, IR projection, language-server, VSIX, and specification surfaces.
-2. **Add well-known IR attributes to MuIR 2.** Completed for
-   `0.3.0-alpha.6`: standardized non-semantic program, function, slot, and type
-   attributes preserve diagnostic names through structural projection and
-   MuIR round trips while retaining MuIR 1 readability. Earlier prerelease
-   MuIR 2 layouts are intentionally rejected.
-3. **Stabilize the release candidate.** Run cross-platform build, test,
-   package, and VSIX validation; resolve release-blocking regressions; update
-   specifications, API baselines, and release notes. Publish beta and RC
-   prereleases before tagging `0.3.0`.
+1. **Complete and smoke-test language-server workspace configuration.** The
+   implementation allows a workspace to select the compilation mode, standard
+   profile with feature overrides, declarative host environment, and expected
+   result type per workspace folder. The server uses standard LSP configuration
+   requests with a notification fallback, preserves the last valid settings
+   after invalid updates, and keeps standalone-file defaults. Before proceeding,
+   install the generated VSIX and verify configuration reloads, diagnostics, and
+   semantic tokens in Visual Studio.
+2. **Build semantic editor features on the configured compiler model.** Add
+   hover first, followed by definition navigation and references. Reuse compiler
+   symbols, source spans, and diagnostic-name infrastructure rather than
+   introducing editor-only semantic models.
+3. **Integrate the capabilities through the VSIX.** Extend the existing
+   language client and content-type registration without adding Visual
+   Studio dependencies to the compiler or language server. Preserve TextMate
+   highlighting as the immediate lexical fallback.
+4. **Add lexical MuIR editor support.** Register `.muir` as a separate content
+   type with its own TextMate grammar for comments, strings, numbers, document
+   sections, types, instructions, terminators, attributes, and `t`, `%`, `bb`,
+   `lr`, and `er` references. Do not route MuIR documents through the MuLang
+   source compiler.
+5. **Stabilize and release.** Validate the language server and VSIX across
+   supported Visual Studio versions, retain cross-platform compiler and package
+   validation, update editor documentation and samples, and publish beta and
+   RC prereleases before tagging `0.4.0`.
 
-## Parallel, non-blocking work
+## Follow-up and non-blocking work
 
-Add language-server workspace configuration for the language profile, host
-environment, and expected result type when it can be completed without delaying
-the release sequence. Completion, hover, navigation, rename, and formatting
-remain outside the `0.3.0` release gate.
+Rename depends on stable reference discovery and may follow navigation and
+references. Formatting requires a separately defined canonical source style.
+Incremental parsing and incremental semantic-token responses are performance
+optimizations rather than initial `0.4.0` release requirements.
 
-## Deferred beyond `0.3.0`
+MuIR live diagnostics may later reuse `MuIrReader`, with semantic highlighting
+and navigation between slots, blocks, lifetime regions, and exception regions
+added only after the independent lexical content type is established. These
+features may ship in `0.4.x` without blocking the first tooling release.
 
-Standard-library expansion, comments, first-class functions, and function
-types are deferred to later dedicated work.
+## Deferred beyond `0.4.0`
+
+Completion, standard-library expansion, comments, first-class functions, and
+function types remain potential future work and are not part of the tooling
+release.

@@ -1,4 +1,7 @@
+using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.LanguageServer.Client;
+using Microsoft.VisualStudio.Shell;
+using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.Threading;
 using Microsoft.VisualStudio.Utilities;
 using System.ComponentModel.Composition;
@@ -11,13 +14,17 @@ namespace MuLang.VisualStudio;
 [Export(typeof(ILanguageClient))]
 internal sealed class MuLangLanguageClient : ILanguageClient
 {
+    [Import]
+    internal SVsServiceProvider ServiceProvider { get; set; } = null!;
+
     public string Name => "MuLang Language Server";
 
     public IEnumerable<string> ConfigurationSections => [ ];
 
     public object InitializationOptions => new ();
 
-    public IEnumerable<string> FilesToWatch => [ ];
+    public IEnumerable<string> FilesToWatch =>
+        [ "**/mulang.config.json" ];
 
     public bool ShowNotificationOnInitializeFailed => true;
 
@@ -29,9 +36,10 @@ internal sealed class MuLangLanguageClient : ILanguageClient
         remove { }
     }
 
-    public Task<Connection?> ActivateAsync(CancellationToken token)
+    public async Task<Connection?> ActivateAsync(CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
+        await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(token);
         string extensionDirectory = Path.GetDirectoryName(
             Assembly.GetExecutingAssembly().Location
         )!;
@@ -49,10 +57,13 @@ internal sealed class MuLangLanguageClient : ILanguageClient
             );
         }
 
+        string? solutionRoot = GetSolutionRoot();
         ProcessStartInfo startInfo = new ()
         {
             FileName = serverPath,
-            Arguments = "--visual-studio",
+            Arguments = solutionRoot is null
+                ? "--visual-studio"
+                : $"--visual-studio --workspace-root={solutionRoot}",
             RedirectStandardInput = true,
             RedirectStandardOutput = true,
             RedirectStandardError = false,
@@ -73,12 +84,55 @@ internal sealed class MuLangLanguageClient : ILanguageClient
             );
         }
 
-        return Task.FromResult<Connection?>(
-            new Connection(
-                process.StandardOutput.BaseStream,
-                process.StandardInput.BaseStream
-            )
+        return new Connection(
+            process.StandardOutput.BaseStream,
+            process.StandardInput.BaseStream
         );
+    }
+
+    private string? GetSolutionRoot()
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+
+        if (
+            ServiceProvider.GetService(typeof(SVsSolution)) is
+                not IVsSolution solution
+        )
+        {
+            return null;
+        }
+
+        int result = solution.GetSolutionInfo(
+            out string solutionDirectory,
+            out _,
+            out _
+        );
+
+        if (
+            ErrorHandler.Failed(result) ||
+            string.IsNullOrWhiteSpace(solutionDirectory)
+        )
+        {
+            return null;
+        }
+
+        string root = Path.GetFullPath(solutionDirectory);
+
+        if (
+            !root.EndsWith(
+                Path.DirectorySeparatorChar.ToString(),
+                StringComparison.Ordinal
+            ) &&
+            !root.EndsWith(
+                Path.AltDirectorySeparatorChar.ToString(),
+                StringComparison.Ordinal
+            )
+        )
+        {
+            root = $"{root}{Path.DirectorySeparatorChar}";
+        }
+
+        return new Uri(root).AbsoluteUri;
     }
 
     public async Task OnLoadedAsync()

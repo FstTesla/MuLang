@@ -46,7 +46,7 @@ The extension requires:
 
 Open the files under [`samples/valid`](samples/valid) in Visual Studio to exercise the language syntax and compiler-backed semantic classifications without requiring a host environment. The [`samples/warnings`](samples/warnings) and [`samples/errors`](samples/errors) directories contain intentional diagnostics for editor validation.
 
-## Initial document model
+## Workspace configuration
 
 Every standalone `.mu` or `.mulang` file is analyzed as:
 
@@ -57,7 +57,128 @@ Every standalone `.mu` or `.mulang` file is analyzed as:
 
 The server uses full-document synchronization. Opening and changing a document publishes versioned diagnostics; closing it clears diagnostics.
 
-These defaults intentionally avoid guessing host-specific globals, functions, types, expression mode, or expected result types. Workspace configuration for those inputs is planned separately.
+These defaults intentionally avoid guessing host-specific globals, functions,
+types, expression mode, or expected result types.
+
+Workspace-aware clients can provide a `mulang` configuration independently for
+each workspace folder. The server requests the section through the standard
+`workspace/configuration` request when the client advertises that capability.
+Clients without configuration-pull support can send the same section through
+`workspace/didChangeConfiguration`. Visual Studio instead loads the dedicated
+workspace file described below.
+
+For Visual Studio, add a file named `mulang.config.json` to the workspace root
+or any of its subdirectories. For each document, the server searches its
+ancestor directories and uses the nearest configuration file. Nested files
+replace rather than merge with configurations from higher directories.
+
+In Open Folder, Visual Studio supplies the workspace root through standard LSP
+initialization. In Solution View, the VSIX reads the active solution directory
+and passes it to the server as a fallback root. A standard LSP workspace root,
+when available, takes precedence over this fallback.
+
+The root object supports:
+
+- `configuration`: the optional fallback configuration;
+- `overrides`: an ordered array of path-specific configurations.
+
+No compilation setting is valid directly in the root object. If
+`configuration` is omitted, the standalone defaults provide the fallback.
+Each override requires `includes` and `configuration`. `includes` is a
+non-empty array of globs; `excludes` is an optional array of globs. Paths are
+relative to the directory containing `mulang.config.json`, use `/` as the
+normalized separator, and support `*`, `?`, and `**`. An override matches when
+at least one inclusion matches and no exclusion matches. If multiple overrides
+match, the last one wins.
+
+For example:
+
+```json
+{
+  "configuration": {
+    "compilationMode": "program",
+    "profile": "latest"
+  },
+  "overrides": [
+    {
+      "includes": [
+        "expressions/**/*.mu"
+      ],
+      "excludes": [
+        "expressions/generated/**"
+      ],
+      "configuration": {
+        "compilationMode": "expression",
+        "expectedResultType": "int",
+        "profile": "1.2"
+      }
+    },
+    {
+      "includes": [
+        "expressions/conditions/**/*.mu"
+      ],
+      "configuration": {
+        "compilationMode": "expression",
+        "expectedResultType": "bool",
+        "profile": "1.2"
+      }
+    }
+  ]
+}
+```
+
+This uses program mode by default, expects integer expressions under
+`expressions` except for generated files, and expects boolean expressions
+under `expressions/conditions` because the last matching override wins.
+Overrides are complete configurations rather than incremental merges.
+
+The VSIX recursively watches `**/mulang.config.json` and reloads affected
+documents through `workspace/didChangeWatchedFiles`. Invalid updates report an
+error and leave the last valid configuration active. Creating or deleting a
+file re-evaluates the nearest configuration for open documents. Documents with
+no configuration file in their ancestor chain use the standalone defaults.
+
+No entry in `.vs\VSWorkspaceSettings.json` is required. The file name is fixed
+and cannot be overridden, while its location determines the subtree to which
+it applies. Keeping structured settings in dedicated files avoids a Visual
+Studio LSP client limitation that prevents object-valued workspace settings
+from being converted to JSON.
+
+The section supports:
+
+- `compilationMode`: `program` or `expression`;
+- `expectedResultType`: a type reference or `null`;
+- `profile`: a standard base profile and optional feature overrides;
+- `environment`: declarative types, globals, and provider functions.
+
+The profile can be a base-profile string or an object. `base` accepts `latest`,
+`1`, `1.1`, or `1.2`. Object profiles can override `languageVersion`,
+`userDefinedFunctions`, `userDefinedTypes`, `recursion`, `loops`,
+`providerFunctionCalls`, `openObjects`, `mutations`,
+`multiLevelLoopControl`, `trailingCommas`, `constantFolding`,
+`exceptionHandling`, `objectLiteralSyntax`, `conditionSemantics`, and
+`shadowing`. Flag settings use arrays of enum names; all other feature settings
+use their enum names case-insensitively.
+
+An environment contains optional `types`, `globals`, and `functions` arrays.
+Named types require `id` and `name`, and can specify `isOpen` and `properties`.
+Properties require `name` and `type`, with optional `isOptional` and
+`isReadOnly` flags. Globals require `id`, `name`, and `type`. Functions require
+`id`, `name`, `parameters`, and `returnType`; each parameter requires `name`
+and `type`.
+
+A type reference is either the name of a declared type, one of the intrinsic
+names `bool`, `int`, `float`, `number`, `string`, `primitive`, `unknown`,
+`object`, `void`, or `error`, or an object with `kind` set to `nullable` or
+`array`. Nullable references use `underlyingType`; array references use
+`elementType` and can set `readOnly`. Declared types are resolved as a graph,
+so mutually recursive host types are supported. The compiler still enforces
+where value types and `void` are valid.
+
+Configuration updates are validated atomically per workspace folder. A valid
+update reanalyzes open documents with the same resolved settings used for
+diagnostics and semantic tokens. An invalid update produces an LSP error
+message and leaves the last valid configuration active.
 
 ## Diagnostics
 
@@ -107,6 +228,9 @@ aliases after compilation or MuIR round trips.
 
 ## Current scope
 
-The server supports initialization, full document synchronization, diagnostics, full-document semantic tokens, shutdown, and exit.
+The server supports initialization, workspace folders and configuration, full
+document synchronization, diagnostics, full-document semantic tokens,
+shutdown, and exit.
 
-It does not yet provide completion, hover, navigation, references, rename, formatting, workspace configuration, incremental parsing, or incremental semantic-token responses.
+It does not yet provide completion, hover, navigation, references, rename,
+formatting, incremental parsing, or incremental semantic-token responses.

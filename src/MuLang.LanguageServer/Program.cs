@@ -6,6 +6,7 @@ internal static class Program
     {
         try
         {
+            string? fallbackWorkspaceFolder = null;
             bool useVisualStudioClassifications = false;
 
             foreach (string argument in args)
@@ -13,6 +14,39 @@ internal static class Program
                 if (argument == "--visual-studio")
                 {
                     useVisualStudioClassifications = true;
+                    continue;
+                }
+
+                const string workspaceRootPrefix = "--workspace-root=";
+
+                if (
+                    argument.StartsWith(
+                        workspaceRootPrefix,
+                        StringComparison.Ordinal
+                    )
+                )
+                {
+                    string workspaceRoot = argument[
+                        workspaceRootPrefix.Length..
+                    ];
+
+                    if (
+                        fallbackWorkspaceFolder is not null ||
+                        !Uri.TryCreate(
+                            workspaceRoot,
+                            UriKind.Absolute,
+                            out Uri? workspaceRootUri
+                        ) ||
+                        !workspaceRootUri.IsFile
+                    )
+                    {
+                        throw new ArgumentException(
+                            $"Invalid workspace root '{workspaceRoot}'.",
+                            nameof(args)
+                        );
+                    }
+
+                    fallbackWorkspaceFolder = workspaceRootUri.AbsoluteUri;
                     continue;
                 }
 
@@ -25,7 +59,8 @@ internal static class Program
             LanguageServer server = new (
                 Console.OpenStandardInput(),
                 Console.OpenStandardOutput(),
-                useVisualStudioClassifications
+                useVisualStudioClassifications,
+                fallbackWorkspaceFolder
             );
 
             return await server.RunAsync(CancellationToken.None);
