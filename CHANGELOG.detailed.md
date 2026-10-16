@@ -12,6 +12,15 @@ Stable entries describe the incremental change since the preceding prerelease. T
 
 Each release heading identifies the incremental version range covered by the section, from the comparison version to the released version.
 
+## `0.3.0` → `0.4.0-beta.1` - 2026-10-16
+
+### New features
+
+- Added per-workspace-folder language-server configuration for program or expression mode, language profiles and feature overrides, host types, globals and functions, and expected result types. Diagnostics and semantic highlighting use the selected configuration, supplied through LSP configuration requests or change notifications.
+- Added hierarchical `mulang.config.json` files with ordered include/exclude glob overrides, a JSON Schema, and support for JSON comments and trailing commas. Configurations replace rather than merge individual compilation settings; the last matching override wins.
+- Added configuration-file discovery and automatic reloads in Visual Studio Folder and Solution views. Configuration changes refresh diagnostics for open documents; invalid updates report an error and retain the last valid configuration.
+- Added MuLang file icons for `.mu` and `.mulang` files in Visual Studio.
+
 ## `0.3.0-rc.1` → `0.3.0` - 2026-10-14
 
 ### Breaking changes
