@@ -1,6 +1,6 @@
 # MuLang Visual Studio support
 
-`MuLang.VisualStudio` provides syntax highlighting and live compiler diagnostics for `.mu` and `.mulang` files in Visual Studio 2022 and Visual Studio 2026.
+`MuLang.VisualStudio` provides syntax highlighting, semantic hover, and live compiler diagnostics for `.mu` and `.mulang` files in Visual Studio 2022 and Visual Studio 2026.
 
 ## Components
 
@@ -45,6 +45,23 @@ The extension requires:
 ## Highlighting smoke test
 
 Open the files under [`samples/valid`](samples/valid) in Visual Studio to exercise the language syntax and compiler-backed semantic classifications without requiring a host environment. The [`samples/warnings`](samples/warnings) and [`samples/errors`](samples/errors) directories contain intentional diagnostics for editor validation.
+
+## Semantic hover
+
+The server advertises `hoverProvider` and handles `textDocument/hover` for open
+documents. Hover shows resolved signatures for variables, parameters, functions,
+types, and properties, both at declarations and references. Configured host
+symbols use the same compiler binding as diagnostics and semantic tokens.
+
+Signatures include inferred types, read-only and optional modifiers, function
+parameters and return types, and structural type properties. Array `length`,
+literal property indexing, and exception-handler symbols are supported.
+Keywords and operators do not have descriptive hover text.
+
+Hover ranges and request positions use UTF-16. Clients advertising Markdown
+receive a MuLang code block; other clients receive plain text. Unresolved
+symbols, whitespace, and unopened or closed documents return `null`. Document
+and configuration changes are reflected in subsequent requests.
 
 ## Workspace configuration
 

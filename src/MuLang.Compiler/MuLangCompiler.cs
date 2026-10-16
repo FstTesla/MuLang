@@ -144,6 +144,51 @@ public static class MuLangCompiler
         );
     }
 
+    /// <summary>Gets semantic hover information at a Unicode scalar offset.</summary>
+    /// <param name="source">The MuLang source code.</param>
+    /// <param name="environment">The environment schema available to the source code.</param>
+    /// <param name="compilationMode">The compilation mode.</param>
+    /// <param name="offset">The zero-based Unicode scalar offset.</param>
+    /// <param name="options">The analysis options, or <c>null</c> to use <see cref="MuLangCompilationOptions.Default" />.</param>
+    /// <returns>The hover information, or <c>null</c> when no resolved symbol covers the offset.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="source" /> or <paramref name="environment" /> is <c>null</c>.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when the offset is outside the source or the compilation mode is not defined.</exception>
+    /// <exception cref="ArgumentException">Thrown when the source document URI, result type, or language version is incompatible with the analysis settings.</exception>
+    public static HoverInfo? GetHover(
+        string source,
+        EnvironmentSchema environment,
+        CompilationMode compilationMode,
+        int offset,
+        MuLangCompilationOptions? options = null
+    )
+    {
+        options ??= MuLangCompilationOptions.Default;
+        SourceText sourceText = CreateSourceText(source, options.SourceDocument);
+
+        if (offset < 0 || offset > sourceText.Length)
+        {
+            throw new ArgumentOutOfRangeException(nameof(offset));
+        }
+
+        BindingResult binding = Bind(
+            sourceText,
+            environment,
+            compilationMode,
+            options.ExpectedResultType,
+            options.Profile
+        );
+        HoverInfo? hover = null;
+        SemanticClassifier.Classify(
+            binding,
+            offset,
+            (span, content) =>
+            {
+                hover = new HoverInfo(content, span);
+            }
+        );
+        return hover;
+    }
+
     /// <summary>Compiles MuLang source code using the specified compilation settings.</summary>
     /// <param name="source">The MuLang source code.</param>
     /// <param name="environment">The environment schema available to the compiled code.</param>

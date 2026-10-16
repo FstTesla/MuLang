@@ -286,6 +286,45 @@ public sealed class MuLangCompilerEditorTests
     }
 
     [Test]
+    public void ClassifiesSymbolsInExceptionRegions()
+    {
+        const string text = """
+                            var value = 1;
+                            try { var copy = value; }
+                            catch (failure) { var message = failure.message; throw failure; }
+                            finally { value = 2; }
+                            """;
+        SourceText source = SourceText.From(text);
+        SemanticClassificationResult result = MuLangCompiler.ClassifySemantically(
+            text,
+            new EnvironmentBuilder().Build(),
+            CompilationMode.Program
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(
+                result.Diagnostics.HasErrors,
+                Is.False,
+                string.Join("\n", result.Diagnostics.Select(static diagnostic => diagnostic.Message))
+            );
+            Assert.That(
+                result.Classifications.Select(
+                    classification => source.GetText(classification.Span)
+                ),
+                Is.EqualTo(["value", "copy", "value", "failure", "message", "failure", "message", "failure", "value"])
+            );
+            Assert.That(
+                result.Classifications[3].Modifiers,
+                Is.EqualTo(
+                    SemanticClassificationModifiers.Declaration |
+                    SemanticClassificationModifiers.ReadOnly
+                )
+            );
+        }
+    }
+
+    [Test]
     public void PreservesScalarClassificationSpans()
     {
         ClassificationResult result = MuLangCompiler.Classify("😀");

@@ -26,6 +26,7 @@ internal sealed class Binder
     private readonly ISet<(int Start, int Length)> readOnlyAssignmentDiagnostics;
     private readonly string returnContext;
     private readonly string? currentFunctionId;
+    private readonly Dictionary<SyntaxNode, TypeSymbol> types;
     private BindingScope scope = new (null);
     private FlowState currentFlowState = new ([ ]);
     private readonly Stack<LoopFlowContext> loopContexts = [ ];
@@ -47,7 +48,8 @@ internal sealed class Binder
         ISet<(string Code, int Start, int Length)>? warningDiagnostics = null,
         ISet<(int Start, int Length)>? readOnlyAssignmentDiagnostics = null,
         string? currentFunctionId = null,
-        string returnContext = "program"
+        string returnContext = "program",
+        Dictionary<SyntaxNode, TypeSymbol>? types = null
     )
     {
         this.source = source;
@@ -69,6 +71,9 @@ internal sealed class Binder
             new HashSet<(int Start, int Length)>();
         this.currentFunctionId = currentFunctionId;
         this.returnContext = returnContext;
+        this.types = types ?? new Dictionary<SyntaxNode, TypeSymbol>(
+            ReferenceEqualityComparer.Instance
+        );
     }
 
     public static BindingResult Bind(
@@ -145,7 +150,9 @@ internal sealed class Binder
             root,
             allDiagnostics,
             syntaxTree.CompilationMode,
-            syntaxTree.LanguageProfile.Fingerprint
+            syntaxTree.LanguageProfile.Fingerprint,
+            binder.types,
+            syntaxTree.Source
         );
     }
 
@@ -281,6 +288,8 @@ internal sealed class Binder
                 declaration.Body.IsOpen
             );
             sourceTypes.Add(name, symbol);
+            types[declaration] = symbol;
+            types[declaration.Body] = symbol;
             results.Add((declaration, symbol));
         }
 
@@ -429,7 +438,8 @@ internal sealed class Binder
             warningDiagnostics,
             readOnlyAssignmentDiagnostics,
             function.Id,
-            $"function '{function.Name}'"
+            $"function '{function.Name}'",
+            types
         );
         userFunctionCalls.TryAdd(
             function.Id,
@@ -3243,6 +3253,7 @@ internal sealed class Binder
             ObjectTypeBodySyntax body => BindObjectTypeBody(body, null, isInline: true),
             _ => throw new InvalidOperationException("Unknown type primary syntax."),
         };
+        types[syntax.Primary] = type;
 
         if (type.Kind == TypeKind.ErrorRecovery)
         {

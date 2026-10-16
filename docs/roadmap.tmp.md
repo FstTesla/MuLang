@@ -12,9 +12,8 @@ The compiler, .NET exporter, standard library, language server, Visual Studio
 extension, specifications, API baselines, packages, and VSIX have completed the
 stable release cycle. Language samples now separate valid programs, warnings,
 and intentional semantic errors, and the MuIR serialization fixtures cover the
-current format capabilities. The `0.4.0` language-server work has started with
-per-workspace-folder configuration for compilation mode, profiles, declarative
-host environments, and expected result types.
+current format capabilities. Compiler-backed hover is available for symbol
+declarations and references through the language server.
 
 ## Goal: package release `0.4.0`
 
@@ -25,28 +24,20 @@ release-blocking correctness fixes.
 
 ## Sequence
 
-1. **Complete and smoke-test language-server workspace configuration.** The
-   implementation allows a workspace to select the compilation mode, standard
-   profile with feature overrides, declarative host environment, and expected
-   result type per workspace folder. The server uses standard LSP configuration
-   requests with a notification fallback, preserves the last valid settings
-   after invalid updates, and keeps standalone-file defaults. Before proceeding,
-   install the generated VSIX and verify configuration reloads, diagnostics, and
-   semantic tokens in Visual Studio.
-2. **Build semantic editor features on the configured compiler model.** Add
-   hover first, followed by definition navigation and references. Reuse compiler
+1. **Build semantic editor features on the configured compiler model.** Follow
+   hover with definition navigation and references. Reuse compiler
    symbols, source spans, and diagnostic-name infrastructure rather than
    introducing editor-only semantic models.
-3. **Integrate the capabilities through the VSIX.** Extend the existing
+2. **Integrate the capabilities through the VSIX.** Extend the existing
    language client and content-type registration without adding Visual
    Studio dependencies to the compiler or language server. Preserve TextMate
    highlighting as the immediate lexical fallback.
-4. **Add lexical MuIR editor support.** Register `.muir` as a separate content
+3. **Add lexical MuIR editor support.** Register `.muir` as a separate content
    type with its own TextMate grammar for comments, strings, numbers, document
    sections, types, instructions, terminators, attributes, and `t`, `%`, `bb`,
    `lr`, and `er` references. Do not route MuIR documents through the MuLang
    source compiler.
-5. **Stabilize and release.** Validate the language server and VSIX across
+4. **Stabilize and release.** Validate the language server and VSIX across
    supported Visual Studio versions, retain cross-platform compiler and package
    validation, update editor documentation and samples, and publish beta and
    RC prereleases before tagging `0.4.0`.

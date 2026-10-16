@@ -351,6 +351,7 @@ public sealed class LanguageServerTests
                 capabilities.GetProperty("positionEncoding").GetString(),
                 Is.EqualTo("utf-16")
             );
+            Assert.That(capabilities.GetProperty("hoverProvider").GetBoolean(), Is.True);
             Assert.That(
                 capabilities
                     .GetProperty("textDocumentSync")
@@ -525,6 +526,245 @@ public sealed class LanguageServerTests
                 Is.EqualTo(0)
             );
         }
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task ReturnsHoverWithUtf16Ranges(bool useVisualStudioClassifications)
+    {
+        IReadOnlyList<JsonElement> output = await RunServerAsync(
+            useVisualStudioClassifications,
+            """
+            {"jsonrpc":"2.0","id":1,"method":"initialize","params":{"capabilities":{"textDocument":{"hover":{"contentFormat":["markdown","plaintext"]}}}}}
+            """,
+            """
+            {"jsonrpc":"2.0","method":"textDocument/didOpen","params":{"textDocument":{"uri":"file:///test.mu","version":1,"text":"\"😀\";\r\n\"😀\"; var value$ = 1; value;"}}}
+            """,
+            """
+            {"jsonrpc":"2.0","id":3,"method":"textDocument/hover","params":{"textDocument":{"uri":"file:///test.mu"},"position":{"line":1,"character":24}}}
+            """,
+            """
+            {"jsonrpc":"2.0","id":2,"method":"shutdown"}
+            """,
+            """
+            {"jsonrpc":"2.0","method":"exit"}
+            """
+        );
+        JsonElement hover = output.Single(
+            static message =>
+                message.TryGetProperty("id", out JsonElement id) &&
+                id.GetInt32() == 3
+        ).GetProperty("result");
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(
+                hover.GetProperty("contents").GetProperty("kind").GetString(),
+                Is.EqualTo("markdown")
+            );
+            Assert.That(
+                hover.GetProperty("contents").GetProperty("value").GetString(),
+                Is.EqualTo("```mulang\nvar value$: int\n```")
+            );
+            Assert.That(
+                hover.GetProperty("range").GetProperty("start").GetProperty("line").GetInt32(),
+                Is.EqualTo(1)
+            );
+            Assert.That(
+                hover.GetProperty("range").GetProperty("start").GetProperty("character").GetInt32(),
+                Is.EqualTo(22)
+            );
+            Assert.That(
+                hover.GetProperty("range").GetProperty("end").GetProperty("character").GetInt32(),
+                Is.EqualTo(27)
+            );
+        }
+    }
+
+    [Test]
+    public async Task RefreshesHoverAfterDocumentAndConfigurationChanges()
+    {
+        IReadOnlyList<JsonElement> output = await RunServerAsync(
+            """
+            {"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}
+            """,
+            """
+            {"jsonrpc":"2.0","method":"textDocument/didOpen","params":{"textDocument":{"uri":"file:///test.mu","version":1,"text":"var value = 1; value;"}}}
+            """,
+            """
+            {"jsonrpc":"2.0","id":3,"method":"textDocument/hover","params":{"textDocument":{"uri":"file:///test.mu"},"position":{"line":0,"character":15}}}
+            """,
+            """
+            {"jsonrpc":"2.0","method":"textDocument/didChange","params":{"textDocument":{"uri":"file:///test.mu","version":2},"contentChanges":[{"text":"var value = \"text\"; value;"}]}}
+            """,
+            """
+            {"jsonrpc":"2.0","id":4,"method":"textDocument/hover","params":{"textDocument":{"uri":"file:///test.mu"},"position":{"line":0,"character":20}}}
+            """,
+            """
+            {"jsonrpc":"2.0","method":"workspace/didChangeConfiguration","params":{"settings":{"mulang":{"configuration":{"compilationMode":"expression","expectedResultType":"string","environment":{"globals":[{"id":"value","name":"value","type":"string"}]}}}}}}
+            """,
+            """
+            {"jsonrpc":"2.0","method":"textDocument/didChange","params":{"textDocument":{"uri":"file:///test.mu","version":3},"contentChanges":[{"text":"value"}]}}
+            """,
+            """
+            {"jsonrpc":"2.0","id":5,"method":"textDocument/hover","params":{"textDocument":{"uri":"file:///test.mu"},"position":{"line":0,"character":1}}}
+            """,
+            """
+            {"jsonrpc":"2.0","method":"workspace/didChangeConfiguration","params":{"settings":{"mulang":{"configuration":{"compilationMode":"expression","environment":{"globals":[{"id":"value","name":"value","type":"int"}]}}}}}}
+            """,
+            """
+            {"jsonrpc":"2.0","id":6,"method":"textDocument/hover","params":{"textDocument":{"uri":"file:///test.mu"},"position":{"line":0,"character":1}}}
+            """,
+            """
+            {"jsonrpc":"2.0","method":"workspace/didChangeConfiguration","params":{"settings":{"mulang":{"configuration":{"compilationMode":"invalid"}}}}}
+            """,
+            """
+            {"jsonrpc":"2.0","id":7,"method":"textDocument/hover","params":{"textDocument":{"uri":"file:///test.mu"},"position":{"line":0,"character":1}}}
+            """,
+            """
+            {"jsonrpc":"2.0","id":2,"method":"shutdown"}
+            """,
+            """
+            {"jsonrpc":"2.0","method":"exit"}
+            """
+        );
+        IReadOnlyList<JsonElement> hovers =
+        [
+            .. output.Where(
+                static message =>
+                    message.TryGetProperty("id", out JsonElement id) &&
+                    id.GetInt32() >= 3
+            ).Select(static message => message.GetProperty("result").GetProperty("contents")),
+        ];
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(
+                hovers.Select(static hover => hover.GetProperty("kind").GetString()),
+                Is.All.EqualTo("plaintext")
+            );
+            Assert.That(
+                hovers.Select(static hover => hover.GetProperty("value").GetString()),
+                Is.EqualTo(
+                    [
+                        "var value: int",
+                        "var value: string",
+                        "var value$: string",
+                        "var value$: int",
+                        "var value$: int",
+                    ]
+                )
+            );
+        }
+    }
+
+    [TestCase(0, 3)]
+    [TestCase(0, 0)]
+    [TestCase(0, 14)]
+    [TestCase(0, 100)]
+    [TestCase(0, int.MaxValue)]
+    [TestCase(100, 0)]
+    public async Task ReturnsNullHoverForNonSymbolsAndClosedDocuments(int line, int character)
+    {
+        string request = JsonSerializer.Serialize(
+            new
+            {
+                jsonrpc = "2.0",
+                id = 3,
+                method = "textDocument/hover",
+                @params = new
+                {
+                    textDocument = new { uri = "file:///test.mu" },
+                    position = new { line, character },
+                },
+            }
+        );
+        IReadOnlyList<JsonElement> output = await RunServerAsync(
+            """
+            {"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}
+            """,
+            request,
+            """
+            {"jsonrpc":"2.0","method":"textDocument/didOpen","params":{"textDocument":{"uri":"file:///test.mu","version":1,"text":"var value = 1; missing;"}}}
+            """,
+            request.Replace("\"id\":3", "\"id\":4", StringComparison.Ordinal),
+            """
+            {"jsonrpc":"2.0","method":"textDocument/didClose","params":{"textDocument":{"uri":"file:///test.mu"}}}
+            """,
+            request.Replace("\"id\":3", "\"id\":5", StringComparison.Ordinal),
+            """
+            {"jsonrpc":"2.0","id":2,"method":"shutdown"}
+            """,
+            """
+            {"jsonrpc":"2.0","method":"exit"}
+            """
+        );
+
+        Assert.That(
+            output.Where(
+                static message =>
+                    message.TryGetProperty("id", out JsonElement id) &&
+                    id.GetInt32() >= 3
+            ).Select(static message => message.GetProperty("result").ValueKind),
+            Is.All.EqualTo(JsonValueKind.Null)
+        );
+    }
+
+    [TestCase(-1, 0)]
+    [TestCase(0, -1)]
+    public async Task RejectsNegativeHoverPositions(int line, int character)
+    {
+        string request = JsonSerializer.Serialize(
+            new
+            {
+                jsonrpc = "2.0",
+                id = 3,
+                method = "textDocument/hover",
+                @params = new
+                {
+                    textDocument = new { uri = "file:///test.mu" },
+                    position = new { line, character },
+                },
+            }
+        );
+        IReadOnlyList<JsonElement> output = await RunServerAsync(
+            request,
+            """
+            {"jsonrpc":"2.0","id":2,"method":"shutdown"}
+            """,
+            """
+            {"jsonrpc":"2.0","method":"exit"}
+            """
+        );
+
+        Assert.That(
+            output[0].GetProperty("error").GetProperty("code").GetInt32(),
+            Is.EqualTo(-32602)
+        );
+    }
+
+    [TestCase("""{}""")]
+    [TestCase("""{"textDocument":{"uri":null},"position":{"line":0,"character":0}}""")]
+    [TestCase("""{"textDocument":{"uri":"file:///test.mu"},"position":{"line":"0","character":0}}""")]
+    [TestCase("""{"textDocument":{"uri":"file:///test.mu"},"position":{"line":0}}""")]
+    public async Task RejectsMalformedHoverParameters(string parameters)
+    {
+        IReadOnlyList<JsonElement> output = await RunServerAsync(
+            $$"""
+            {"jsonrpc":"2.0","id":3,"method":"textDocument/hover","params":{{parameters}}}
+            """,
+            """
+            {"jsonrpc":"2.0","id":2,"method":"shutdown"}
+            """,
+            """
+            {"jsonrpc":"2.0","method":"exit"}
+            """
+        );
+
+        Assert.That(
+            output[0].GetProperty("error").GetProperty("code").GetInt32(),
+            Is.EqualTo(-32602)
+        );
     }
 
     [Test]

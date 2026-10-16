@@ -32,6 +32,7 @@ internal sealed class LanguageServer
     private bool shutdownRequested;
     private SolutionConfigurationWatcher? solutionConfigurationWatcher;
     private bool supportsWorkspaceConfiguration;
+    private bool supportsMarkdownHover;
     private bool useVisualStudioClassifications;
 
     public LanguageServer(
@@ -125,6 +126,8 @@ internal sealed class LanguageServer
                             UsesVisualStudioClassifications(parameters);
                         supportsWorkspaceConfiguration =
                             SupportsWorkspaceConfiguration(parameters);
+                        supportsMarkdownHover =
+                            SupportsMarkdownHover(parameters);
                         IReadOnlyCollection<string> initialWorkspaceFolders =
                             GetInitialWorkspaceFolders(parameters);
 
@@ -224,6 +227,16 @@ internal sealed class LanguageServer
                 case "textDocument/didClose":
                     {
                         await CloseDocumentAsync(parameters, cancellationToken);
+                        break;
+                    }
+
+                case "textDocument/hover":
+                    {
+                        if (hasId)
+                        {
+                            await WriteHoverAsync(id, parameters, cancellationToken);
+                        }
+
                         break;
                     }
 
@@ -427,6 +440,7 @@ internal sealed class LanguageServer
                 result.WriteStartObject();
                 result.WriteStartObject("capabilities");
                 result.WriteString("positionEncoding", "utf-16");
+                result.WriteBoolean("hoverProvider", true);
                 result.WriteStartObject("textDocumentSync");
                 result.WriteBoolean("openClose", true);
                 result.WriteNumber("change", 1);
@@ -478,6 +492,122 @@ internal sealed class LanguageServer
             },
             cancellationToken
         );
+    }
+
+    private async Task WriteHoverAsync(
+        JsonElement id,
+        JsonElement parameters,
+        CancellationToken cancellationToken
+    )
+    {
+        string uri = parameters
+            .GetProperty("textDocument")
+            .GetProperty("uri")
+            .GetString() ?? throw new InvalidOperationException("Missing document URI.");
+        JsonElement position = parameters.GetProperty("position");
+        int line = position.GetProperty("line").GetInt32();
+        int character = position.GetProperty("character").GetInt32();
+
+        if (line < 0 || character < 0)
+        {
+            await writer.WriteErrorAsync(
+                id,
+                -32602,
+                "Invalid hover position.",
+                cancellationToken
+            );
+            return;
+        }
+
+        await EnsureDocumentConfigurationFileAsync(uri, cancellationToken);
+        SourceText? source = null;
+        HoverInfo? hover = null;
+
+        if (documents.TryGetValue(uri, out DocumentSnapshot? document))
+        {
+            source = SourceText.From(document.Text);
+            int offset = GetScalarOffset(source, line, character);
+            WorkspaceConfiguration configuration = workspaceConfigurations.Get(uri);
+            hover = MuLangCompiler.GetHover(
+                document.Text,
+                configuration.Environment,
+                configuration.CompilationMode,
+                offset,
+                new MuLangCompilationOptions
+                {
+                    ExpectedResultType = configuration.ExpectedResultType,
+                    Profile = configuration.Profile,
+                }
+            );
+        }
+
+        await writer.WriteResponseAsync(
+            id,
+            result =>
+            {
+                if (hover is null || source is null)
+                {
+                    result.WriteNullValue();
+                    return;
+                }
+
+                result.WriteStartObject();
+                result.WriteStartObject("contents");
+                result.WriteString("kind", supportsMarkdownHover ? "markdown" : "plaintext");
+                result.WriteString(
+                    "value",
+                    supportsMarkdownHover
+                        ? $"```mulang\n{hover.Content}\n```"
+                        : hover.Content
+                );
+                result.WriteEndObject();
+                result.WriteStartObject("range");
+                WritePosition(result, "start", source, source.GetPosition(hover.Span.Start));
+                WritePosition(result, "end", source, source.GetPosition(hover.Span.End));
+                result.WriteEndObject();
+                result.WriteEndObject();
+            },
+            cancellationToken
+        );
+    }
+
+    private static int GetScalarOffset(SourceText source, int line, int character)
+    {
+        if (line >= source.LineCount)
+        {
+            return source.Length;
+        }
+
+        int start = source.LineMap.LineStarts[line];
+        int end = line + 1 < source.LineCount
+            ? source.LineMap.LineStarts[line + 1]
+            : source.Length;
+
+        while (end > start && source.GetRune(end - 1).Value is '\r' or '\n')
+        {
+            end--;
+        }
+
+        long utf16Offset = Math.Min(
+            (long)source.GetUtf16Offset(start) + character,
+            source.GetUtf16Offset(end)
+        );
+
+        while (start < end)
+        {
+            int middle = start + (end - start) / 2;
+
+            if (source.GetUtf16Offset(middle) < utf16Offset)
+            {
+                start = middle + 1;
+            }
+            else
+            {
+                end = middle;
+            }
+        }
+
+        return start;
     }
 
     private async Task WriteSemanticTokensAsync(
@@ -1111,6 +1241,25 @@ internal sealed class LanguageServer
         return folder.EndsWith("/", StringComparison.Ordinal)
             ? folder
             : $"{folder}/";
+    }
+
+    private static bool SupportsMarkdownHover(JsonElement parameters)
+    {
+        return
+            parameters.ValueKind == JsonValueKind.Object &&
+            parameters.TryGetProperty("capabilities", out JsonElement capabilities) &&
+            capabilities.ValueKind == JsonValueKind.Object &&
+            capabilities.TryGetProperty("textDocument", out JsonElement textDocument) &&
+            textDocument.ValueKind == JsonValueKind.Object &&
+            textDocument.TryGetProperty("hover", out JsonElement hover) &&
+            hover.ValueKind == JsonValueKind.Object &&
+            hover.TryGetProperty("contentFormat", out JsonElement formats) &&
+            formats.ValueKind == JsonValueKind.Array &&
+            formats.EnumerateArray().Any(
+                static format =>
+                    format.ValueKind == JsonValueKind.String &&
+                    format.GetString() == "markdown"
+            );
     }
 
     private static bool SupportsWorkspaceConfiguration(JsonElement parameters)

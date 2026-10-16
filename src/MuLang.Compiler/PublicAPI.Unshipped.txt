@@ -1,1 +1,5 @@
 #nullable enable
+MuLang.Compiler.HoverInfo
+MuLang.Compiler.HoverInfo.Content.get -> string!
+MuLang.Compiler.HoverInfo.Span.get -> MuLang.Core.Text.TextSpan
+static MuLang.Compiler.MuLangCompiler.GetHover(string! source, MuLang.Core.Environment.EnvironmentSchema! environment, MuLang.Core.CompilationMode compilationMode, int offset, MuLang.Compiler.MuLangCompilationOptions? options = null) -> MuLang.Compiler.HoverInfo?
