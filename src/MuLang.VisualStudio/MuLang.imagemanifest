@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ImageManifest xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+               xmlns="http://schemas.microsoft.com/VisualStudio/ImageManifestSchema/2014">
+  <Symbols>
+    <String Name="Resources" Value="/MuLang.VisualStudio;Component/Icons" />
+    <Guid Name="AssetsGuid" Value="{bf198d4e-6b17-4e1e-874e-b38e2012d82b}" />
+    <ID Name="MuLangFile" Value="0" />
+  </Symbols>
+  <Images>
+    <Image Guid="$(AssetsGuid)" ID="$(MuLangFile)">
+      <Source Uri="$(Resources)/MuLangFile.png">
+        <Size Value="16" />
+      </Source>
+    </Image>
+  </Images>
+  <ImageLists />
+</ImageManifest>

@@ -1,5 +1,6 @@
 using MuLang.Core;
 using MuLang.Core.Types;
+using System.IO.Pipelines;
 using System.Text;
 using System.Text.Json;
 
@@ -90,6 +91,7 @@ public sealed class LanguageServerTests
         using JsonDocument document = JsonDocument.Parse(
             """
             {
+              "$schema": "docs/schemas/mulang.config.schema.json",
               "configuration": {
                 "compilationMode": "program"
               },
@@ -158,6 +160,119 @@ public sealed class LanguageServerTests
                     .ExpectedResultType,
                 Is.SameAs(TypeSymbols.Int)
             );
+        }
+    }
+
+    [Test]
+    public void MergesHierarchicalConfigurationFiles()
+    {
+        using JsonDocument rootDocument = JsonDocument.Parse(
+            """
+            {
+              "configuration": {
+                "compilationMode": "expression",
+                "expectedResultType": "int"
+              },
+              "overrides": [
+                {
+                  "includes": [
+                    "nested/programs/*.mu"
+                  ],
+                  "configuration": {
+                    "compilationMode": "program"
+                  }
+                }
+              ]
+            }
+            """
+        );
+        using JsonDocument nestedDocument = JsonDocument.Parse(
+            """
+            {
+              "overrides": [
+                {
+                  "includes": [
+                    "expressions/*.mu"
+                  ],
+                  "configuration": {
+                    "compilationMode": "expression",
+                    "expectedResultType": "bool"
+                  }
+                }
+              ]
+            }
+            """
+        );
+        using JsonDocument replacedDocument = JsonDocument.Parse(
+            """
+            {
+              "configuration": {
+                "compilationMode": "program"
+              }
+            }
+            """
+        );
+        WorkspaceConfigurationStore store = new ();
+        store.Initialize(["file:///workspace"]);
+        store.SetConfigurationFile(
+            "file:///workspace/mulang.config.json",
+            WorkspaceConfigurationSetParser.Parse(rootDocument.RootElement)
+        );
+        store.SetConfigurationFile(
+            "file:///workspace/nested/mulang.config.json",
+            WorkspaceConfigurationSetParser.Parse(nestedDocument.RootElement)
+        );
+        store.SetConfigurationFile(
+            "file:///workspace/nested/replaced/mulang.config.json",
+            WorkspaceConfigurationSetParser.Parse(replacedDocument.RootElement)
+        );
+
+        WorkspaceConfiguration root = store.Get(
+            "file:///workspace/main.mu"
+        );
+        WorkspaceConfiguration inherited = store.Get(
+            "file:///workspace/nested/main.mu"
+        );
+        WorkspaceConfiguration rootOverride = store.Get(
+            "file:///workspace/nested/programs/main.mu"
+        );
+        WorkspaceConfiguration nestedOverride = store.Get(
+            "file:///workspace/nested/expressions/condition.mu"
+        );
+        WorkspaceConfiguration replaced = store.Get(
+            "file:///workspace/nested/replaced/main.mu"
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(root.CompilationMode, Is.EqualTo(CompilationMode.Expression));
+            Assert.That(root.ExpectedResultType, Is.SameAs(TypeSymbols.Int));
+            Assert.That(
+                inherited.CompilationMode,
+                Is.EqualTo(CompilationMode.Expression)
+            );
+            Assert.That(
+                inherited.ExpectedResultType,
+                Is.SameAs(TypeSymbols.Int)
+            );
+            Assert.That(
+                rootOverride.CompilationMode,
+                Is.EqualTo(CompilationMode.Program)
+            );
+            Assert.That(rootOverride.ExpectedResultType, Is.Null);
+            Assert.That(
+                nestedOverride.CompilationMode,
+                Is.EqualTo(CompilationMode.Expression)
+            );
+            Assert.That(
+                nestedOverride.ExpectedResultType,
+                Is.SameAs(TypeSymbols.Bool)
+            );
+            Assert.That(
+                replaced.CompilationMode,
+                Is.EqualTo(CompilationMode.Program)
+            );
+            Assert.That(replaced.ExpectedResultType, Is.Null);
         }
     }
 
@@ -806,7 +921,7 @@ public sealed class LanguageServerTests
     }
 
     [Test]
-    public async Task LoadsConfigurationFromWorkspaceFile()
+    public async Task LoadsCommentedConfigurationFromWorkspaceFile()
     {
         string workspace = Path.Combine(
             Path.GetTempPath(),
@@ -824,11 +939,13 @@ public sealed class LanguageServerTests
                 configurationFile,
                 """
                 {
+                  // Documents are compiled as integer expressions.
                   "configuration": {
                     "compilationMode": "expression",
-                    "expectedResultType": "int"
+                    /* The expected type is validated by the compiler. */
+                    "expectedResultType": "int",
                   },
-                  "overrides": []
+                  "overrides": [],
                 }
                 """
             );
@@ -1005,7 +1122,7 @@ public sealed class LanguageServerTests
     }
 
     [Test]
-    public async Task UsesNearestConfigurationFileWithLocalGlobs()
+    public async Task MergesConfigurationFilesWithLocalGlobs()
     {
         string workspace = Path.Combine(
             Path.GetTempPath(),
@@ -1016,7 +1133,12 @@ public sealed class LanguageServerTests
             nestedDirectory,
             "expressions"
         );
+        string programDirectory = Path.Combine(
+            nestedDirectory,
+            "programs"
+        );
         Directory.CreateDirectory(expressionDirectory);
+        Directory.CreateDirectory(programDirectory);
 
         try
         {
@@ -1030,7 +1152,17 @@ public sealed class LanguageServerTests
                   "configuration": {
                     "compilationMode": "expression",
                     "expectedResultType": "int"
-                  }
+                  },
+                  "overrides": [
+                    {
+                      "includes": [
+                        "nested/programs/*.mu"
+                      ],
+                      "configuration": {
+                        "compilationMode": "program"
+                      }
+                    }
+                  ]
                 }
                 """
             );
@@ -1041,9 +1173,6 @@ public sealed class LanguageServerTests
                 ),
                 """
                 {
-                  "configuration": {
-                    "compilationMode": "program"
-                  },
                   "overrides": [
                     {
                       "includes": [
@@ -1069,6 +1198,9 @@ public sealed class LanguageServerTests
             ).AbsoluteUri;
             string expressionDocumentUri = new Uri(
                 Path.Combine(expressionDirectory, "condition.mu")
+            ).AbsoluteUri;
+            string programDocumentUri = new Uri(
+                Path.Combine(programDirectory, "program.mu")
             ).AbsoluteUri;
             IReadOnlyList<JsonElement> output = await RunServerAsync(
                 true,
@@ -1097,6 +1229,7 @@ public sealed class LanguageServerTests
                 CreateOpenDocumentMessage(rootDocumentUri, "1"),
                 CreateOpenDocumentMessage(nestedDocumentUri, "1"),
                 CreateOpenDocumentMessage(expressionDocumentUri, "true"),
+                CreateOpenDocumentMessage(programDocumentUri, "1"),
                 """
                 {"jsonrpc":"2.0","method":"shutdown","id":2}
                 """,
@@ -1132,11 +1265,15 @@ public sealed class LanguageServerTests
                 );
                 Assert.That(
                     diagnostics[nestedDocumentUri].GetArrayLength(),
-                    Is.GreaterThan(0)
+                    Is.Zero
                 );
                 Assert.That(
                     diagnostics[expressionDocumentUri].GetArrayLength(),
                     Is.Zero
+                );
+                Assert.That(
+                    diagnostics[programDocumentUri].GetArrayLength(),
+                    Is.GreaterThan(0)
                 );
             }
         }
@@ -1178,11 +1315,15 @@ public sealed class LanguageServerTests
                 resolver.TryResolve(
                     documentUri,
                     workspaceUri,
-                    out Uri? initialFile
+                    out IReadOnlyList<Uri> initialFiles
                 ),
                 Is.True
             );
-            Assert.That(initialFile!.LocalPath, Is.EqualTo(rootConfiguration));
+            Assert.That(initialFiles, Has.Count.EqualTo(1));
+            Assert.That(
+                initialFiles[0].LocalPath,
+                Is.EqualTo(rootConfiguration)
+            );
 
             File.WriteAllText(nestedConfiguration, "{}");
             resolver.ClearCache();
@@ -1191,11 +1332,15 @@ public sealed class LanguageServerTests
                 resolver.TryResolve(
                     documentUri,
                     workspaceUri,
-                    out Uri? nestedFile
+                    out IReadOnlyList<Uri> nestedFiles
                 ),
                 Is.True
             );
-            Assert.That(nestedFile!.LocalPath, Is.EqualTo(nestedConfiguration));
+            Assert.That(nestedFiles, Has.Count.EqualTo(2));
+            Assert.That(
+                nestedFiles.Select(static file => file.LocalPath),
+                Is.EqualTo(new[] { rootConfiguration, nestedConfiguration })
+            );
 
             File.Delete(nestedConfiguration);
             resolver.ClearCache();
@@ -1204,11 +1349,177 @@ public sealed class LanguageServerTests
                 resolver.TryResolve(
                     documentUri,
                     workspaceUri,
-                    out Uri? restoredFile
+                    out IReadOnlyList<Uri> restoredFiles
                 ),
                 Is.True
             );
-            Assert.That(restoredFile!.LocalPath, Is.EqualTo(rootConfiguration));
+            Assert.That(restoredFiles, Has.Count.EqualTo(1));
+            Assert.That(
+                restoredFiles[0].LocalPath,
+                Is.EqualTo(rootConfiguration)
+            );
+        }
+        finally
+        {
+            Directory.Delete(workspace, true);
+        }
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task ReloadsConfigurationChangesFromFallbackWorkspaceRoot(
+        bool providesRootUri
+    )
+    {
+        string workspace = Path.Combine(
+            Path.GetTempPath(),
+            $"MuLang.LanguageServer.Tests-{Guid.NewGuid():N}"
+        );
+        string configurationFile = Path.Combine(
+            workspace,
+            WorkspaceConfigurationFile.FileName
+        );
+        Directory.CreateDirectory(workspace);
+
+        try
+        {
+            await File.WriteAllTextAsync(
+                configurationFile,
+                """
+                {
+                  "configuration": {
+                    "compilationMode": "expression",
+                    "expectedResultType": "int"
+                  }
+                }
+                """
+            );
+            string workspaceUri = new Uri(
+                $"{workspace}{Path.DirectorySeparatorChar}"
+            ).AbsoluteUri;
+            string documentUri = new Uri(
+                Path.Combine(workspace, "test.mu")
+            ).AbsoluteUri;
+            Pipe inputPipe = new ();
+            await using Stream input = inputPipe.Reader.AsStream();
+            await using Stream inputWriter = inputPipe.Writer.AsStream();
+            using MemoryStream output = new ();
+            LanguageServer server = new (
+                input,
+                output,
+                true,
+                workspaceUri
+            );
+            Task<int> serverTask = server.RunAsync(CancellationToken.None);
+            string initializeMessage = providesRootUri
+                ? JsonSerializer.Serialize(
+                    new
+                    {
+                        jsonrpc = "2.0",
+                        id = 1,
+                        method = "initialize",
+                        @params = new { rootUri = workspaceUri },
+                    }
+                )
+                : """
+                  {"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}
+                  """;
+
+            await WriteMessageAsync(
+                inputWriter,
+                initializeMessage
+            );
+            await WriteMessageAsync(
+                inputWriter,
+                """
+                {"jsonrpc":"2.0","method":"initialized","params":{}}
+                """
+            );
+            await WriteMessageAsync(
+                inputWriter,
+                CreateOpenDocumentMessage(documentUri, "1")
+            );
+            await Task.Delay(500);
+            await File.WriteAllTextAsync(
+                configurationFile,
+                """
+                {
+                  "configuration": {
+                    "compilationMode": "program"
+                  }
+                }
+                """
+            );
+            await Task.Delay(750);
+            File.Delete(configurationFile);
+            await Task.Delay(750);
+            await File.WriteAllTextAsync(
+                configurationFile,
+                """
+                {
+                  "configuration": {
+                    "compilationMode": "expression",
+                    "expectedResultType": "int"
+                  }
+                }
+                """
+            );
+            await Task.Delay(750);
+            File.Delete(configurationFile);
+            await Task.Delay(750);
+            await WriteMessageAsync(
+                inputWriter,
+                """
+                {"jsonrpc":"2.0","method":"shutdown","id":2}
+                """
+            );
+            await WriteMessageAsync(
+                inputWriter,
+                """
+                {"jsonrpc":"2.0","method":"exit"}
+                """
+            );
+            Assert.That(
+                await serverTask.WaitAsync(TimeSpan.FromSeconds(5)),
+                Is.Zero
+            );
+            output.Position = 0;
+            IReadOnlyList<JsonElement> messages = await ReadMessagesAsync(output);
+            IReadOnlyList<JsonElement> diagnostics = messages
+                .Where(
+                    static message =>
+                        message.TryGetProperty(
+                            "method",
+                            out JsonElement method
+                        ) &&
+                        method.GetString() ==
+                            "textDocument/publishDiagnostics"
+                )
+                .Select(
+                    static message => message
+                        .GetProperty("params")
+                        .GetProperty("diagnostics")
+                )
+                .ToArray();
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(diagnostics, Has.Count.GreaterThanOrEqualTo(5));
+                Assert.That(diagnostics[0].GetArrayLength(), Is.Zero);
+                Assert.That(diagnostics[^1].GetArrayLength(), Is.GreaterThan(0));
+                Assert.That(
+                    diagnostics.Any(
+                        static value => value.GetArrayLength() == 0
+                    ),
+                    Is.True
+                );
+                Assert.That(
+                    diagnostics.Any(
+                        static value => value.GetArrayLength() > 0
+                    ),
+                    Is.True
+                );
+            }
         }
         finally
         {
@@ -1341,10 +1652,10 @@ public sealed class LanguageServerTests
             params string[] messages
         )
     {
-            return RunServerCoreAsync(true, workspaceRoot, messages);
+        return RunServerCoreAsync(true, workspaceRoot, messages);
     }
 
-        private static async Task<IReadOnlyList<JsonElement>> RunServerCoreAsync(
+    private static async Task<IReadOnlyList<JsonElement>> RunServerCoreAsync(
         bool useVisualStudioClassifications,
         string? fallbackWorkspaceFolder,
         params string[] messages
@@ -1368,6 +1679,13 @@ public sealed class LanguageServerTests
         int exitCode = await server.RunAsync(CancellationToken.None);
         Assert.That(exitCode, Is.Zero);
         output.Position = 0;
+        return await ReadMessagesAsync(output);
+    }
+
+    private static async Task<IReadOnlyList<JsonElement>> ReadMessagesAsync(
+        Stream output
+    )
+    {
         IList<JsonElement> results = new List<JsonElement>();
 
         while (true)

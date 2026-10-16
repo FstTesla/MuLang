@@ -64,19 +64,48 @@ internal sealed class WorkspaceConfigurationStore
 
     public WorkspaceConfiguration Get(string documentUri)
     {
-        string? configurationDirectory = configurationFiles.Keys
-            .Where(directory => documentUri.StartsWith(
-                directory,
-                UriComparison
-            ))
-            .OrderByDescending(static directory => directory.Length)
-            .FirstOrDefault();
+        IReadOnlyList<KeyValuePair<string, WorkspaceConfigurationSet>>
+            inheritedConfigurations =
+            [
+                .. configurationFiles
+                    .Where(entry => documentUri.StartsWith(
+                        entry.Key,
+                        UriComparison
+                    ))
+                    .OrderBy(static entry => entry.Key.Length),
+            ];
 
-        if (configurationDirectory is not null)
+        if (inheritedConfigurations.Count > 0)
         {
-            return configurationFiles[configurationDirectory].Get(
-                GetRelativePath(configurationDirectory, documentUri)
-            );
+            WorkspaceConfiguration effectiveConfiguration =
+                WorkspaceConfiguration.Default;
+
+            foreach (
+                KeyValuePair<string, WorkspaceConfigurationSet> inherited
+                    in inheritedConfigurations
+            )
+            {
+                if (
+                    inherited.Value.DefaultConfiguration is
+                        { } defaultConfiguration
+                )
+                {
+                    effectiveConfiguration = defaultConfiguration;
+                }
+            }
+
+            foreach (
+                KeyValuePair<string, WorkspaceConfigurationSet> inherited
+                    in inheritedConfigurations
+            )
+            {
+                effectiveConfiguration = inherited.Value.ApplyOverrides(
+                    GetRelativePath(inherited.Key, documentUri),
+                    effectiveConfiguration
+                );
+            }
+
+            return effectiveConfiguration;
         }
 
         string? folder = folders
@@ -93,7 +122,7 @@ internal sealed class WorkspaceConfigurationStore
         }
 
         return configurations.TryGetValue(string.Empty, out WorkspaceConfigurationSet? fallback)
-            ? fallback.DefaultConfiguration
+            ? fallback.DefaultConfiguration ?? WorkspaceConfiguration.Default
             : WorkspaceConfiguration.Default;
     }
 

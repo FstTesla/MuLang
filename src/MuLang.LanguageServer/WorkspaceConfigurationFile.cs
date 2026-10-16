@@ -7,8 +7,8 @@ internal sealed class WorkspaceConfigurationFile
             ? StringComparison.OrdinalIgnoreCase
             : StringComparison.Ordinal;
 
-    private readonly IDictionary<string, Uri?> cache =
-        new Dictionary<string, Uri?>();
+    private readonly IDictionary<string, IReadOnlyList<Uri>> cache =
+        new Dictionary<string, IReadOnlyList<Uri>>();
 
     public const string FileName = "mulang.config.json";
 
@@ -38,7 +38,7 @@ internal sealed class WorkspaceConfigurationFile
     public bool TryResolve(
         string document,
         string workspaceFolder,
-        out Uri? file
+        out IReadOnlyList<Uri> files
     )
     {
         Uri documentUri = new (document, UriKind.Absolute);
@@ -63,18 +63,19 @@ internal sealed class WorkspaceConfigurationFile
             !IsWithinRoot(directory, root)
         )
         {
-            file = null;
+            files = [];
             return false;
         }
 
         string cacheKey = $"{root}\0{directory}";
 
-        if (cache.TryGetValue(cacheKey, out file))
+        if (cache.TryGetValue(cacheKey, out files!))
         {
-            return file is not null;
+            return files.Count > 0;
         }
 
         string current = directory;
+        IList<Uri> discoveredFiles = new List<Uri>();
 
         while (true)
         {
@@ -82,9 +83,7 @@ internal sealed class WorkspaceConfigurationFile
 
             if (File.Exists(candidate))
             {
-                file = new Uri(Path.GetFullPath(candidate));
-                cache[cacheKey] = file;
-                return true;
+                discoveredFiles.Add(new Uri(Path.GetFullPath(candidate)));
             }
 
             if (string.Equals(current, root, PathComparison))
@@ -102,9 +101,9 @@ internal sealed class WorkspaceConfigurationFile
             current = parent;
         }
 
-        file = null;
-        cache[cacheKey] = null;
-        return false;
+        files = [ .. discoveredFiles.Reverse() ];
+        cache[cacheKey] = files;
+        return files.Count > 0;
     }
 
     private static bool IsWithinRoot(string path, string root)

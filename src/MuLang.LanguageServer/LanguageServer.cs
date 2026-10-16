@@ -21,6 +21,7 @@ internal sealed class LanguageServer
     private readonly IDictionary<string, int> latestConfigurationRequests =
         new Dictionary<string, int>(UriComparer);
 
+    private readonly SemaphoreSlim stateGate = new (1, 1);
     private readonly string? fallbackWorkspaceFolder;
     private readonly Stream input;
     private readonly WorkspaceConfigurationFile workspaceConfigurationFile = new ();
@@ -29,6 +30,7 @@ internal sealed class LanguageServer
     private bool exitRequested;
     private int nextRequestId = 1;
     private bool shutdownRequested;
+    private SolutionConfigurationWatcher? solutionConfigurationWatcher;
     private bool supportsWorkspaceConfiguration;
     private bool useVisualStudioClassifications;
 
@@ -49,19 +51,41 @@ internal sealed class LanguageServer
 
     public async Task<int> RunAsync(CancellationToken cancellationToken)
     {
-        while (!exitRequested)
+        try
         {
-            using JsonDocument? message = await LspMessageReader.ReadAsync(
-                input,
-                cancellationToken
-            );
-
-            if (message is null)
+            while (!exitRequested)
             {
-                break;
-            }
+                using JsonDocument? message = await LspMessageReader.ReadAsync(
+                    input,
+                    cancellationToken
+                );
 
-            await HandleMessageAsync(message.RootElement, cancellationToken);
+                if (message is null)
+                {
+                    break;
+                }
+
+                await stateGate.WaitAsync(cancellationToken);
+
+                try
+                {
+                    await HandleMessageAsync(
+                        message.RootElement,
+                        cancellationToken
+                    );
+                }
+                finally
+                {
+                    stateGate.Release();
+                }
+            }
+        }
+        finally
+        {
+            if (solutionConfigurationWatcher is not null)
+            {
+                await solutionConfigurationWatcher.DisposeAsync();
+            }
         }
 
         return shutdownRequested ? 0 : 1;
@@ -127,6 +151,8 @@ internal sealed class LanguageServer
 
                 case "initialized":
                     {
+                        StartSolutionConfigurationWatcher();
+
                         if (
                             !useVisualStudioClassifications &&
                             supportsWorkspaceConfiguration
@@ -654,7 +680,14 @@ internal sealed class LanguageServer
             file.LocalPath,
             cancellationToken
         );
-        using JsonDocument document = JsonDocument.Parse(json);
+        using JsonDocument document = JsonDocument.Parse(
+            json,
+            new JsonDocumentOptions
+            {
+                AllowTrailingCommas = true,
+                CommentHandling = JsonCommentHandling.Skip,
+            }
+        );
         WorkspaceConfigurationSet configuration =
             WorkspaceConfigurationSetParser.Parse(document.RootElement);
         workspaceConfigurations.SetConfigurationFile(
@@ -683,18 +716,25 @@ internal sealed class LanguageServer
                 !workspaceConfigurationFile.TryResolve(
                     document,
                     folder,
-                    out Uri? file
+                    out IReadOnlyList<Uri> files
                 )
             )
             {
                 return false;
             }
 
-            return await ApplyConfigurationFileAsync(
-                file!,
-                false,
-                cancellationToken
-            );
+            bool changed = false;
+
+            foreach (Uri file in files)
+            {
+                changed |= await ApplyConfigurationFileAsync(
+                    file,
+                    false,
+                    cancellationToken
+                );
+            }
+
+            return changed;
         }
         catch (Exception exception) when (
             exception is FormatException or
@@ -716,17 +756,30 @@ internal sealed class LanguageServer
         CancellationToken cancellationToken
     )
     {
+        await ChangeConfigurationFilesAsync(
+            [
+                .. parameters
+                    .GetProperty("changes")
+                    .EnumerateArray()
+                    .Select(
+                        static change =>
+                            change.GetProperty("uri").GetString()!
+                    ),
+            ],
+            cancellationToken
+        );
+    }
+
+    private async Task ChangeConfigurationFilesAsync(
+        IReadOnlyCollection<string> files,
+        CancellationToken cancellationToken
+    )
+    {
         bool changed = false;
         bool configurationFileChanged = false;
 
-        foreach (
-            JsonElement change in parameters
-                .GetProperty("changes")
-                .EnumerateArray()
-        )
+        foreach (string file in files)
         {
-            string file = change.GetProperty("uri").GetString()!;
-
             if (
                 !workspaceConfigurationFile.IsConfigurationFile(file) ||
                 workspaceConfigurations.GetFolder(file) is null
@@ -736,9 +789,9 @@ internal sealed class LanguageServer
             }
 
             configurationFileChanged = true;
-            int type = change.GetProperty("type").GetInt32();
+            Uri fileUri = new (file, UriKind.Absolute);
 
-            if (type == 3)
+            if (!File.Exists(fileUri.LocalPath))
             {
                 changed |= workspaceConfigurations.RemoveConfigurationFile(file);
                 continue;
@@ -752,7 +805,7 @@ internal sealed class LanguageServer
             try
             {
                 changed |= await ApplyConfigurationFileAsync(
-                    new Uri(file, UriKind.Absolute),
+                    fileUri,
                     true,
                     cancellationToken
                 );
@@ -765,7 +818,7 @@ internal sealed class LanguageServer
             )
             {
                 await ShowConfigurationErrorAsync(
-                    $"Invalid MuLang configuration file '{new Uri(file).LocalPath}': {exception.Message}",
+                    $"Invalid MuLang configuration file '{fileUri.LocalPath}': {exception.Message}",
                     cancellationToken
                 );
             }
@@ -787,6 +840,47 @@ internal sealed class LanguageServer
         if (changed)
         {
             await PublishAllDiagnosticsAsync(cancellationToken);
+        }
+    }
+
+    private void StartSolutionConfigurationWatcher()
+    {
+        if (
+            fallbackWorkspaceFolder is null ||
+            solutionConfigurationWatcher is not null
+        )
+        {
+            return;
+        }
+
+        Uri root = new (fallbackWorkspaceFolder, UriKind.Absolute);
+        solutionConfigurationWatcher = new SolutionConfigurationWatcher(
+            root.LocalPath,
+            ProcessSolutionConfigurationChangesAsync
+        );
+    }
+
+    private async Task ProcessSolutionConfigurationChangesAsync(
+        IReadOnlyCollection<string> files,
+        CancellationToken cancellationToken
+    )
+    {
+        await stateGate.WaitAsync(cancellationToken);
+
+        try
+        {
+            await ChangeConfigurationFilesAsync(
+                [
+                    .. files.Select(
+                        static file => new Uri(file).AbsoluteUri
+                    ),
+                ],
+                cancellationToken
+            );
+        }
+        finally
+        {
+            stateGate.Release();
         }
     }
 

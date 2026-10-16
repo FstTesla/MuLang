@@ -1,0 +1,439 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/FstTesla/MuLang/main/docs/schemas/mulang.config.schema.json",
+  "title": "MuLang workspace configuration",
+  "description": "Configures MuLang compilation for documents below the directory containing mulang.config.json. Files in ancestor directories are composed from root to leaf. The language server accepts line comments, block comments, and trailing commas before validating this data model.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "description": "A URI reference to this JSON Schema.",
+      "type": "string",
+      "format": "uri-reference"
+    },
+    "configuration": {
+      "$ref": "#/$defs/configuration",
+      "description": "The complete fallback configuration selected at this hierarchy level. Omission preserves the configuration inherited from ancestor files."
+    },
+    "overrides": {
+      "description": "Ordered path-specific configurations appended after overrides inherited from ancestor files. The last matching override wins.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/override"
+      },
+      "default": []
+    }
+  },
+  "$defs": {
+    "override": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "includes",
+        "configuration"
+      ],
+      "properties": {
+        "includes": {
+          "description": "Non-empty glob patterns relative to the directory containing this file. At least one must match.",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/glob"
+          }
+        },
+        "excludes": {
+          "description": "Glob patterns that prevent this override from matching.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/glob"
+          },
+          "default": []
+        },
+        "configuration": {
+          "$ref": "#/$defs/configuration",
+          "description": "The complete configuration selected when this override matches."
+        }
+      }
+    },
+    "glob": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?![A-Za-z]:[\\\\/])(?!.*(?:^|/)\\.\\.(?:/|$))(?=.*\\S).*$",
+      "description": "A relative glob using / separators and the *, ?, and ** wildcards."
+    },
+    "configuration": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "compilationMode": {
+          "description": "Whether the document is compiled as a program or as a single expression.",
+          "type": "string",
+          "enum": [
+            "program",
+            "expression"
+          ],
+          "default": "program"
+        },
+        "expectedResultType": {
+          "description": "The required result type, or null when no result type is required.",
+          "oneOf": [
+            {
+              "$ref": "#/$defs/typeReference"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "profile": {
+          "$ref": "#/$defs/profile",
+          "description": "The language profile used for analysis.",
+          "default": "latest"
+        },
+        "environment": {
+          "description": "Host-provided types, globals, and functions.",
+          "oneOf": [
+            {
+              "$ref": "#/$defs/environment"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      }
+    },
+    "profile": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/baseProfile"
+        },
+        {
+          "$ref": "#/$defs/customProfile"
+        }
+      ]
+    },
+    "baseProfile": {
+      "type": "string",
+      "enum": [
+        "latest",
+        "1",
+        "1.1",
+        "1.2"
+      ]
+    },
+    "customProfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "base": {
+          "$ref": "#/$defs/baseProfile",
+          "default": "latest"
+        },
+        "languageVersion": {
+          "type": "string",
+          "enum": [
+            "1",
+            "1.1",
+            "1.2"
+          ]
+        },
+        "userDefinedFunctions": {
+          "$ref": "#/$defs/toggle"
+        },
+        "userDefinedTypes": {
+          "$ref": "#/$defs/toggle"
+        },
+        "recursion": {
+          "$ref": "#/$defs/toggle"
+        },
+        "loops": {
+          "$ref": "#/$defs/loopFeatures"
+        },
+        "providerFunctionCalls": {
+          "$ref": "#/$defs/toggle"
+        },
+        "openObjects": {
+          "type": "string",
+          "enum": [
+            "disabled",
+            "propertyExistenceOnly",
+            "enabled"
+          ]
+        },
+        "mutations": {
+          "$ref": "#/$defs/mutationFeatures"
+        },
+        "multiLevelLoopControl": {
+          "$ref": "#/$defs/toggle"
+        },
+        "trailingCommas": {
+          "$ref": "#/$defs/toggle"
+        },
+        "constantFolding": {
+          "$ref": "#/$defs/toggle"
+        },
+        "exceptionHandling": {
+          "$ref": "#/$defs/toggle"
+        },
+        "objectLiteralSyntax": {
+          "type": "string",
+          "enum": [
+            "legacy",
+            "full"
+          ]
+        },
+        "conditionSemantics": {
+          "type": "string",
+          "enum": [
+            "strictBoolean",
+            "truthiness"
+          ]
+        },
+        "shadowing": {
+          "$ref": "#/$defs/shadowingPolicies"
+        }
+      }
+    },
+    "toggle": {
+      "type": "string",
+      "enum": [
+        "disabled",
+        "enabled"
+      ]
+    },
+    "loopFeatures": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "none",
+          "while",
+          "for"
+        ]
+      }
+    },
+    "mutationFeatures": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "none",
+          "objectProperties",
+          "arrayElements",
+          "propertyRemoval"
+        ]
+      }
+    },
+    "shadowingPolicies": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "none",
+          "nestedScopes",
+          "globals"
+        ]
+      }
+    },
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "types": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/namedType"
+          },
+          "default": []
+        },
+        "globals": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/global"
+          },
+          "default": []
+        },
+        "functions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/function"
+          },
+          "default": []
+        }
+      }
+    },
+    "namedType": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The stable host identity of the type."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name visible to MuLang source."
+        },
+        "isOpen": {
+          "type": "boolean",
+          "default": false
+        },
+        "properties": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/property"
+          },
+          "default": []
+        }
+      }
+    },
+    "property": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "type"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/$defs/typeReference"
+        },
+        "isOptional": {
+          "type": "boolean",
+          "default": false
+        },
+        "isReadOnly": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "global": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "type"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The stable host identity of the global."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name visible to MuLang source."
+        },
+        "type": {
+          "$ref": "#/$defs/typeReference"
+        }
+      }
+    },
+    "function": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "returnType"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The stable host identity of the provider function."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name visible to MuLang source."
+        },
+        "parameters": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/parameter"
+          },
+          "default": []
+        },
+        "returnType": {
+          "$ref": "#/$defs/typeReference"
+        }
+      }
+    },
+    "parameter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "type"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/$defs/typeReference"
+        }
+      }
+    },
+    "typeReference": {
+      "oneOf": [
+        {
+          "type": "string",
+          "description": "An intrinsic type name or the name of a type declared in environment.types."
+        },
+        {
+          "$ref": "#/$defs/nullableType"
+        },
+        {
+          "$ref": "#/$defs/arrayType"
+        }
+      ]
+    },
+    "nullableType": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "underlyingType"
+      ],
+      "properties": {
+        "kind": {
+          "const": "nullable"
+        },
+        "underlyingType": {
+          "$ref": "#/$defs/typeReference"
+        }
+      }
+    },
+    "arrayType": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "elementType"
+      ],
+      "properties": {
+        "kind": {
+          "const": "array"
+        },
+        "elementType": {
+          "$ref": "#/$defs/typeReference"
+        },
+        "readOnly": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    }
+  }
+}

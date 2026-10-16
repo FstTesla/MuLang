@@ -6,6 +6,7 @@ using Microsoft.VisualStudio.Threading;
 using Microsoft.VisualStudio.Utilities;
 using System.ComponentModel.Composition;
 using System.Diagnostics;
+using System.IO;
 using System.Reflection;
 
 namespace MuLang.VisualStudio;

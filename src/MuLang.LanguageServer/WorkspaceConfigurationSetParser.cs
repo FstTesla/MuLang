@@ -16,14 +16,14 @@ internal static class WorkspaceConfigurationSetParser
             throw new FormatException("The configuration must be an object.");
         }
 
-        ValidateProperties(element, "configuration", "overrides");
+        ValidateProperties(element, "$schema", "configuration", "overrides");
 
-        WorkspaceConfiguration configuration = element.TryGetProperty(
+        WorkspaceConfiguration? configuration = element.TryGetProperty(
             "configuration",
             out JsonElement configurationElement
         )
             ? WorkspaceConfigurationParser.Parse(configurationElement)
-            : WorkspaceConfiguration.Default;
+            : null;
         IReadOnlyList<WorkspaceConfigurationOverride> overrides =
             element.TryGetProperty(
                 "overrides",
