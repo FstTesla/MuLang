@@ -74,8 +74,9 @@ bitwise operators show function-shaped signatures based on their bound operand
 and result types. Invalid operators use `<unresolved>` as their result type.
 A sign lexed as part of a numeric literal remains part of the literal hover;
 unary `+` and `-` applied to expressions use operator hover.
-`is`, `has`, `as`, coalescing, assignment, and removal operators do not have
-operator hover.
+Null coalescing uses `??(left, right): result`. Conditional expressions use
+`?:(condition, trueBranch, falseBranch): result` on both the `?` and `:` tokens.
+`is`, `has`, `as`, assignment, and removal operators do not have operator hover.
 When a call target is not a simple function name, its own expression hover is
 preserved without synthesizing a function signature.
 
@@ -95,6 +96,21 @@ text. Moving the caret onto a resolved symbol highlights its declaration and
 references in the current document, with separate LSP kinds for reads and
 writes. Shadowed locals and same-named properties on different object types are
 kept separate.
+
+Control-flow keywords use separate association groups:
+
+- an `if`/`else if`/`else` chain highlights every directly associated `if` and
+  `else`;
+- `try`, `catch`, and `finally` highlight the clauses of the same protected
+  statement;
+- `for` and `while` highlight every `break` and `continue` that resolves to
+  that loop, including multi-level transfers;
+- `func` highlights every `return` and `throw` in that function, and selecting
+  one of those transfers highlights the complete function group.
+
+Top-level `return` and `throw` have no function group. Invalid loop transfers
+are not associated with a loop. A valid group is returned even when it contains
+only its anchor keyword.
 
 Definition navigation resolves locals, catch variables, parameters, user
 functions, source types, and source or inferred object properties. Configured

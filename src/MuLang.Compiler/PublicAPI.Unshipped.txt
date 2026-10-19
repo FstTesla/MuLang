@@ -5,10 +5,12 @@ MuLang.Compiler.HoverInfo.Items.get -> System.Collections.Generic.IReadOnlyList<
 MuLang.Compiler.HoverInfo.Span.get -> MuLang.Core.Text.TextSpan
 MuLang.Compiler.SemanticClassificationKind.Literal = 5 -> MuLang.Compiler.SemanticClassificationKind
 MuLang.Compiler.SemanticClassificationKind.Operator = 6 -> MuLang.Compiler.SemanticClassificationKind
+MuLang.Compiler.SemanticClassificationKind.ControlFlow = 7 -> MuLang.Compiler.SemanticClassificationKind
 MuLang.Compiler.SemanticDocumentResult
 MuLang.Compiler.SemanticDocumentResult.Diagnostics.get -> MuLang.Core.Diagnostics.DiagnosticCollection!
 MuLang.Compiler.SemanticDocumentResult.GetOccurrence(int offset) -> MuLang.Compiler.SemanticOccurrence?
 MuLang.Compiler.SemanticDocumentResult.GetOccurrences(MuLang.Compiler.SemanticSymbolKey! symbol) -> System.Collections.Generic.IReadOnlyList<MuLang.Compiler.SemanticOccurrence!>!
+MuLang.Compiler.SemanticDocumentResult.GetHighlights(int offset) -> System.Collections.Generic.IReadOnlyList<MuLang.Compiler.SemanticOccurrence!>!
 MuLang.Compiler.SemanticDocumentResult.LineMap.get -> MuLang.Core.Text.TextLineMap!
 MuLang.Compiler.SemanticDocumentResult.Occurrences.get -> System.Collections.Generic.IReadOnlyList<MuLang.Compiler.SemanticOccurrence!>!
 MuLang.Compiler.SemanticDocumentResult.SourceDocument.get -> System.Uri?

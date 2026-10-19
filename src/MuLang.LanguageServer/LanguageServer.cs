@@ -637,11 +637,12 @@ internal sealed class LanguageServer
                 uri,
                 cancellationToken
             );
-        SemanticOccurrence? selected = document is null
-            ? null
-            : document.SemanticDocument.GetOccurrence(
-                GetScalarOffset(document.Source, line, character)
-            );
+        IReadOnlyList<SemanticOccurrence> highlights =
+            document is null
+                ? []
+                : document.SemanticDocument.GetHighlights(
+                    GetScalarOffset(document.Source, line, character)
+                );
 
         await writer.WriteResponseAsync(
             id,
@@ -649,7 +650,7 @@ internal sealed class LanguageServer
             {
                 if (
                     document is null ||
-                    selected?.Symbol is not { } symbol
+                    highlights.Count == 0
                 )
                 {
                     result.WriteNullValue();
@@ -659,8 +660,7 @@ internal sealed class LanguageServer
                 result.WriteStartArray();
 
                 foreach (
-                    SemanticOccurrence occurrence
-                        in document.SemanticDocument.GetOccurrences(symbol)
+                    SemanticOccurrence occurrence in highlights
                 )
                 {
                     result.WriteStartObject();

@@ -16,6 +16,8 @@ internal static class SemanticDocumentBuilder
             );
         IDictionary<SemanticSymbolKey, TextSpan> definitions =
             new Dictionary<SemanticSymbolKey, TextSpan>();
+        Stack<object> loopHighlightGroups = [ ];
+        object? functionHighlightGroup = null;
 
         SemanticSymbolKey LocalKey(
             object identity,
@@ -109,7 +111,8 @@ internal static class SemanticDocumentBuilder
                 SemanticClassificationModifiers.None,
             bool isClassification = true,
             SemanticHoverCategory? hoverCategory = null,
-            IReadOnlyList<SemanticHoverItem>? hoverItems = null
+            IReadOnlyList<SemanticHoverItem>? hoverItems = null,
+            object? highlightGroup = null
         )
         {
             TextSpan definitionSpan = default;
@@ -137,7 +140,8 @@ internal static class SemanticDocumentBuilder
                     span,
                     items,
                     hasDefinition ? definitionSpan : null,
-                    isClassification
+                    isClassification,
+                    highlightGroup
                 )
             );
         }
@@ -205,7 +209,8 @@ internal static class SemanticDocumentBuilder
         void AddOperator(
             SyntaxToken token,
             IReadOnlyList<TypeSymbol> operands,
-            TypeSymbol result
+            TypeSymbol result,
+            string? symbol = null
         )
         {
             Add(
@@ -214,11 +219,43 @@ internal static class SemanticDocumentBuilder
                 SemanticOccurrenceRole.Reference,
                 token.Span,
                 SymbolDisplay.Operator(
-                    Source(token.Span),
+                    symbol ?? Source(token.Span),
                     operands,
                     result
                 ),
                 isClassification: false
+            );
+        }
+
+        void AddConditionalOperators(
+            ConditionalExpressionSyntax syntax,
+            IReadOnlyList<TypeSymbol> operands,
+            TypeSymbol result
+        )
+        {
+            AddOperator(
+                syntax.QuestionToken,
+                operands,
+                result,
+                "?:"
+            );
+            AddOperator(
+                syntax.ColonToken,
+                operands,
+                result,
+                "?:"
+            );
+        }
+
+        void AddControlKeyword(SyntaxToken token, object group)
+        {
+            Add(
+                null,
+                SemanticClassificationKind.ControlFlow,
+                SemanticOccurrenceRole.Reference,
+                token.Span,
+                isClassification: false,
+                highlightGroup: group
             );
         }
 
@@ -464,6 +501,43 @@ internal static class SemanticDocumentBuilder
             }
         }
 
+        void VisitIfStatement(
+            BoundStatement.If conditional,
+            object? existingGroup = null
+        )
+        {
+            object group = existingGroup ?? new object();
+            IfStatementSyntax syntax =
+                (IfStatementSyntax)conditional.Syntax;
+            AddControlKeyword(syntax.IfKeyword, group);
+            VisitExpression(
+                conditional.Condition,
+                SemanticOccurrenceRole.Read
+            );
+            VisitStatement(conditional.Then);
+
+            if (conditional.Else is null)
+            {
+                return;
+            }
+
+            if (syntax.ElseKeyword is not null)
+            {
+                AddControlKeyword(syntax.ElseKeyword, group);
+            }
+
+            if (
+                conditional.Else is BoundStatement.If nested &&
+                syntax.ElseStatement is IfStatementSyntax
+            )
+            {
+                VisitIfStatement(nested, group);
+                return;
+            }
+
+            VisitStatement(conditional.Else);
+        }
+
         void VisitStatement(BoundStatement statement)
         {
             switch (statement)
@@ -541,32 +615,35 @@ internal static class SemanticDocumentBuilder
 
                 case BoundStatement.If conditional:
                 {
-                    VisitExpression(
-                        conditional.Condition,
-                        SemanticOccurrenceRole.Read
-                    );
-                    VisitStatement(conditional.Then);
-
-                    if (conditional.Else is not null)
-                    {
-                        VisitStatement(conditional.Else);
-                    }
-
+                    VisitIfStatement(conditional);
                     break;
                 }
 
                 case BoundStatement.While loop:
                 {
+                    object group = new ();
+                    AddControlKeyword(
+                        ((WhileStatementSyntax)loop.Syntax).WhileKeyword,
+                        group
+                    );
                     VisitExpression(
                         loop.Condition,
                         SemanticOccurrenceRole.Read
                     );
+                    loopHighlightGroups.Push(group);
                     VisitStatement(loop.Body);
+                    loopHighlightGroups.Pop();
                     break;
                 }
 
                 case BoundStatement.For loop:
                 {
+                    object group = new ();
+                    AddControlKeyword(
+                        ((ForStatementSyntax)loop.Syntax).ForKeyword,
+                        group
+                    );
+
                     if (loop.Initializer is not null)
                     {
                         VisitStatement(loop.Initializer);
@@ -585,12 +662,61 @@ internal static class SemanticDocumentBuilder
                         VisitStatement(loop.Iterator);
                     }
 
+                    loopHighlightGroups.Push(group);
                     VisitStatement(loop.Body);
+                    loopHighlightGroups.Pop();
+                    break;
+                }
+
+                case BoundStatement.Break loopExit:
+                {
+                    if (
+                        loopExit.Level >= 1 &&
+                        loopExit.Level <= loopHighlightGroups.Count
+                    )
+                    {
+                        AddControlKeyword(
+                            ((BreakStatementSyntax)loopExit.Syntax)
+                                .BreakKeyword,
+                            loopHighlightGroups.ElementAt(
+                                loopExit.Level - 1
+                            )
+                        );
+                    }
+
+                    break;
+                }
+
+                case BoundStatement.Continue iteration:
+                {
+                    if (
+                        iteration.Level >= 1 &&
+                        iteration.Level <= loopHighlightGroups.Count
+                    )
+                    {
+                        AddControlKeyword(
+                            ((ContinueStatementSyntax)iteration.Syntax)
+                                .ContinueKeyword,
+                            loopHighlightGroups.ElementAt(
+                                iteration.Level - 1
+                            )
+                        );
+                    }
+
                     break;
                 }
 
                 case BoundStatement.Return { Value: not null } result:
                 {
+                    if (functionHighlightGroup is not null)
+                    {
+                        AddControlKeyword(
+                            ((ReturnStatementSyntax)result.Syntax)
+                                .ReturnKeyword,
+                            functionHighlightGroup
+                        );
+                    }
+
                     VisitExpression(
                         result.Value,
                         SemanticOccurrenceRole.Read
@@ -598,8 +724,31 @@ internal static class SemanticDocumentBuilder
                     break;
                 }
 
+                case BoundStatement.Return result:
+                {
+                    if (functionHighlightGroup is not null)
+                    {
+                        AddControlKeyword(
+                            ((ReturnStatementSyntax)result.Syntax)
+                                .ReturnKeyword,
+                            functionHighlightGroup
+                        );
+                    }
+
+                    break;
+                }
+
                 case BoundStatement.Throw thrown:
                 {
+                    if (functionHighlightGroup is not null)
+                    {
+                        AddControlKeyword(
+                            ((ThrowStatementSyntax)thrown.Syntax)
+                                .ThrowKeyword,
+                            functionHighlightGroup
+                        );
+                    }
+
                     VisitExpression(
                         thrown.Error,
                         SemanticOccurrenceRole.Read
@@ -609,14 +758,33 @@ internal static class SemanticDocumentBuilder
 
                 case BoundStatement.Try guarded:
                 {
+                    object group = new ();
+                    TryStatementSyntax syntax =
+                        (TryStatementSyntax)guarded.Syntax;
+                    AddControlKeyword(syntax.TryKeyword, group);
+
+                    if (syntax.CatchClause is { } catchClause)
+                    {
+                        AddControlKeyword(
+                            catchClause.CatchKeyword,
+                            group
+                        );
+                    }
+
+                    if (syntax.FinallyClause is { } finallyClause)
+                    {
+                        AddControlKeyword(
+                            finallyClause.FinallyKeyword,
+                            group
+                        );
+                    }
+
                     VisitStatement(guarded.Protected);
 
                     if (guarded.ErrorLocal is not null)
                     {
                         SyntaxToken? identifier =
-                            ((TryStatementSyntax)guarded.Syntax)
-                                .CatchClause
-                                ?.IdentifierToken;
+                            syntax.CatchClause?.IdentifierToken;
 
                         if (identifier is not null)
                         {
@@ -789,6 +957,70 @@ internal static class SemanticDocumentBuilder
                     AddOperator(
                         syntax.OperatorToken,
                         [ left.Type, right.Type ],
+                        TypeSymbols.ErrorRecovery
+                    );
+                    break;
+                }
+
+                case BoundExpression.Error
+                {
+                    Syntax: BinaryExpressionSyntax
+                    {
+                        OperatorToken.Kind: TokenKind.QuestionQuestion,
+                    } syntax,
+                    Children:
+                    [
+                        BoundExpression left,
+                        BoundExpression right,
+                    ],
+                }:
+                {
+                    VisitExpression(
+                        left,
+                        SemanticOccurrenceRole.Read
+                    );
+                    VisitExpression(
+                        right,
+                        SemanticOccurrenceRole.Read
+                    );
+                    AddOperator(
+                        syntax.OperatorToken,
+                        [ left.Type, right.Type ],
+                        TypeSymbols.ErrorRecovery
+                    );
+                    break;
+                }
+
+                case BoundExpression.Error
+                {
+                    Syntax: ConditionalExpressionSyntax syntax,
+                    Children:
+                    [
+                        BoundExpression condition,
+                        BoundExpression whenTrue,
+                        BoundExpression whenFalse,
+                    ],
+                }:
+                {
+                    VisitExpression(
+                        condition,
+                        SemanticOccurrenceRole.Read
+                    );
+                    VisitExpression(
+                        whenTrue,
+                        SemanticOccurrenceRole.Read
+                    );
+                    VisitExpression(
+                        whenFalse,
+                        SemanticOccurrenceRole.Read
+                    );
+                    AddConditionalOperators(
+                        syntax,
+                        [
+                            condition.Type,
+                            whenTrue.Type,
+                            whenFalse.Type,
+                        ],
                         TypeSymbols.ErrorRecovery
                     );
                     break;
@@ -1000,6 +1232,15 @@ internal static class SemanticDocumentBuilder
                         coalescing.Right,
                         SemanticOccurrenceRole.Read
                     );
+                    AddOperator(
+                        ((BinaryExpressionSyntax)coalescing.Syntax)
+                            .OperatorToken,
+                        [
+                            coalescing.Left.Type,
+                            coalescing.Right.Type,
+                        ],
+                        coalescing.Type
+                    );
                     break;
                 }
 
@@ -1086,6 +1327,15 @@ internal static class SemanticDocumentBuilder
                     VisitExpression(
                         conditional.WhenFalse,
                         SemanticOccurrenceRole.Read
+                    );
+                    AddConditionalOperators(
+                        (ConditionalExpressionSyntax)conditional.Syntax,
+                        [
+                            conditional.Condition.Type,
+                            conditional.WhenTrue.Type,
+                            conditional.WhenFalse.Type,
+                        ],
+                        conditional.Type
                     );
                     break;
                 }
@@ -1323,6 +1573,11 @@ internal static class SemanticDocumentBuilder
                 {
                     FunctionDeclarationSyntax declaration =
                         function.Symbol.Declaration;
+                    object group = new ();
+                    AddControlKeyword(
+                        declaration.FuncKeyword,
+                        group
+                    );
                     SemanticSymbolKey functionKey = LocalKey(
                         function.Symbol,
                         SemanticClassificationKind.Function
@@ -1359,10 +1614,17 @@ internal static class SemanticDocumentBuilder
                         VisitType(parameter.Type);
                     }
 
+                    object? previousFunctionGroup =
+                        functionHighlightGroup;
+                    functionHighlightGroup = group;
+
                     foreach (BoundStatement statement in function.Statements)
                     {
                         VisitStatement(statement);
                     }
+
+                    functionHighlightGroup =
+                        previousFunctionGroup;
                 }
 
                 foreach (BoundStatement statement in program.Statements)

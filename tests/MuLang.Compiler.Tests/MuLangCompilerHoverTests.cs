@@ -76,6 +76,11 @@ public sealed class MuLangCompilerHoverTests
     [TestCase("var value = 1 |<< 2;", "[operator] <<(int, int): int", "<<")]
     [TestCase("var value = \"text\" |- 1;", "[operator] -(string, int): <unresolved>", "-")]
     [TestCase("var value = missing |+ 1;", "[operator] +(<unresolved>, int): <unresolved>", "+")]
+    [TestCase("var source: int? = 1; var value = source |?? 0;", "[operator] ??(int?, int): int", "??")]
+    [TestCase("var value = 1 |?? \"fallback\";", "[operator] ??(int, string): <unresolved>", "??")]
+    [TestCase("var value = true |? 1 : 2;", "[operator] ?:(bool, int, int): int", "?")]
+    [TestCase("var value = true ? 1 |: 2;", "[operator] ?:(bool, int, int): int", ":")]
+    [TestCase("func noop(): void { } var value = true |? noop() : 1;", "[operator] ?:(bool, void, int): <unresolved>", "?")]
     [TestCase("var value = (|1)(2);", "[literal] 1: int", "1")]
     [TestCase("var obj = { method = 1 }; var value = obj.|method();", "[property] method: int", "method")]
     public void ReturnsBoundSymbolSignatures(

@@ -23,4 +23,7 @@ public enum SemanticClassificationKind
 
     /// <summary>Identifies an operator for editor information.</summary>
     Operator,
+
+    /// <summary>Identifies a control-flow keyword for editor information.</summary>
+    ControlFlow,
 }

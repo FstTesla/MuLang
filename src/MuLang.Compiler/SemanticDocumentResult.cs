@@ -70,4 +70,31 @@ public sealed class SemanticDocumentResult
             .. Occurrences.Where(occurrence => symbol.Equals(occurrence.Symbol)),
         ];
     }
+
+    /// <summary>Gets the semantic or control-flow highlights containing an offset.</summary>
+    /// <param name="offset">The zero-based Unicode scalar offset.</param>
+    /// <returns>The related occurrences in source order.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="offset" /> is outside the source bounds.</exception>
+    public IReadOnlyList<SemanticOccurrence> GetHighlights(int offset)
+    {
+        SemanticOccurrence? selected = GetOccurrence(offset);
+
+        if (selected?.Symbol is { } symbol)
+        {
+            return GetOccurrences(symbol);
+        }
+
+        if (selected?.HighlightGroup is not { } group)
+        {
+            return [];
+        }
+
+        return
+        [
+            .. Occurrences.Where(
+                occurrence =>
+                    ReferenceEquals(occurrence.HighlightGroup, group)
+            ),
+        ];
+    }
 }

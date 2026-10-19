@@ -1194,6 +1194,118 @@ public sealed class LanguageServerTests
     }
 
     [Test]
+    public async Task HighlightsAssociatedControlFlowKeywords()
+    {
+        const string source =
+            "func run(flag: bool): int { " +
+            "if (flag) return 1; else if (!flag) " +
+            "throw { message = \"failure\" }; else return 2; } " +
+            "func guarded(): void { try { } catch (failure) { } finally { } } " +
+            "func loops(): void { while (true) { for (;;) { " +
+            "continue; break +2; } } }";
+        string HighlightRequest(int id, int character) =>
+            JsonSerializer.Serialize(
+                new
+                {
+                    jsonrpc = "2.0",
+                    id,
+                    method = "textDocument/documentHighlight",
+                    @params = new
+                    {
+                        textDocument = new { uri = "file:///test.mu" },
+                        position = new { line = 0, character },
+                    },
+                }
+            );
+        int function = source.IndexOf(
+            "func run",
+            StringComparison.Ordinal
+        );
+        int result = source.IndexOf(
+            "return",
+            StringComparison.Ordinal
+        );
+        int conditional = source.IndexOf(
+            "if",
+            StringComparison.Ordinal
+        );
+        int guarded = source.IndexOf(
+            "try",
+            StringComparison.Ordinal
+        );
+        int loop = source.IndexOf(
+            "while",
+            StringComparison.Ordinal
+        );
+        int nestedLoop = source.IndexOf(
+            "for",
+            StringComparison.Ordinal
+        );
+        int singletonFunction = source.IndexOf(
+            "func loops",
+            StringComparison.Ordinal
+        );
+        IReadOnlyList<JsonElement> output = await RunServerAsync(
+            """
+            {"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}
+            """,
+            CreateOpenDocumentMessage("file:///test.mu", source),
+            HighlightRequest(3, conditional),
+            HighlightRequest(4, guarded),
+            HighlightRequest(5, loop),
+            HighlightRequest(6, nestedLoop),
+            HighlightRequest(7, function),
+            HighlightRequest(8, result),
+            HighlightRequest(9, singletonFunction),
+            """
+            {"jsonrpc":"2.0","id":2,"method":"shutdown"}
+            """,
+            """
+            {"jsonrpc":"2.0","method":"exit"}
+            """
+        );
+        IReadOnlyList<JsonElement> highlights =
+        [
+            .. output
+                .Where(
+                    static message =>
+                        message.TryGetProperty(
+                            "id",
+                            out JsonElement id
+                        ) &&
+                        id.GetInt32() is >= 3 and <= 9
+                )
+                .OrderBy(
+                    static message =>
+                        message.GetProperty("id").GetInt32()
+                )
+                .Select(
+                    static message =>
+                        message.GetProperty("result")
+                ),
+        ];
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(
+                highlights.Select(
+                    static value => value.GetArrayLength()
+                ),
+                Is.EqualTo([4, 3, 2, 2, 4, 4, 1])
+            );
+            Assert.That(
+                highlights.SelectMany(
+                    static value => value.EnumerateArray()
+                ).Select(
+                    static highlight =>
+                        highlight.GetProperty("kind").GetInt32()
+                ),
+                Is.All.EqualTo(1)
+            );
+        }
+    }
+
+    [Test]
     public async Task ReturnsSourceDefinitionLocations()
     {
         const string source =

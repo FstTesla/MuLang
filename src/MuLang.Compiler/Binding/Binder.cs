@@ -2407,7 +2407,10 @@ internal sealed class Binder
 
         if (left.Type.Kind == TypeKind.ErrorRecovery || right.Type.Kind == TypeKind.ErrorRecovery)
         {
-            return new BoundExpression.Error(syntax);
+            return new BoundExpression.Error(
+                syntax,
+                [ left, right ]
+            );
         }
 
         TypeSymbol? leftValueType = left switch
@@ -2424,7 +2427,10 @@ internal sealed class Binder
                 left.Type,
                 right.Type
             );
-            return new BoundExpression.Error(syntax);
+            return new BoundExpression.Error(
+                syntax,
+                [ left, right ]
+            );
         }
 
         if (right.Type.Kind == TypeKind.Void)
@@ -2434,7 +2440,10 @@ internal sealed class Binder
                 left.Type,
                 right.Type
             );
-            return new BoundExpression.Error(syntax);
+            return new BoundExpression.Error(
+                syntax,
+                [ left, right ]
+            );
         }
 
         if (expectedType is not null)
@@ -2460,7 +2469,10 @@ internal sealed class Binder
 
             if (!leftIsAssignable || !rightIsAssignable)
             {
-                return new BoundExpression.Error(syntax);
+                return new BoundExpression.Error(
+                    syntax,
+                    [ left, right ]
+                );
             }
         }
 
@@ -2478,7 +2490,10 @@ internal sealed class Binder
                 syntax.Span,
                 $"Null-coalescing operands '{left.Type.DisplayName}' and '{right.Type.DisplayName}' have no common result type."
             );
-            return new BoundExpression.Error(syntax);
+            return new BoundExpression.Error(
+                syntax,
+                [ left, right ]
+            );
         }
 
         right = ConvertImplicit(right, resultType);
@@ -2742,7 +2757,10 @@ internal sealed class Binder
                 syntax.Span,
                 $"Conditional branches '{whenTrue.Type.DisplayName}' and '{whenFalse.Type.DisplayName}' have no common type."
             );
-            return new BoundExpression.Error(syntax);
+            return new BoundExpression.Error(
+                syntax,
+                [ condition, whenTrue, whenFalse ]
+            );
         }
 
         whenTrue = ConvertImplicit(whenTrue, resultType);

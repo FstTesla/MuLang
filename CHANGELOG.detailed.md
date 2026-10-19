@@ -16,14 +16,15 @@ Each release heading identifies the incremental version range covered by the sec
 
 ### New features
 
-- Added compiler-backed semantic hover for variables, parameters, functions, types, properties, scalar literals, arithmetic/logical/relational/bitwise operators, unresolved calls and properties, and dynamic element access, including categorized signatures without declaration-keyword prefixes, configured host symbols, inferred types, modifiers, structural signatures, UTF-16 LSP ranges, and Markdown or plain-text rendering.
+- Added compiler-backed semantic hover for variables, parameters, functions, types, properties, scalar literals, arithmetic/logical/relational/bitwise/coalescing/conditional operators, unresolved calls and properties, and dynamic element access, including categorized signatures without declaration-keyword prefixes, configured host symbols, inferred types, modifiers, structural signatures, UTF-16 LSP ranges, and Markdown or plain-text rendering.
 - Added a public semantic-document compiler API with resolved symbol identities, declaration, read, write, and reference occurrences, source definitions, hover content, diagnostics, and source line maps.
-- Added LSP document highlights, source-definition navigation, and Find All References. References search unopened `.mu` and `.mulang` files across the configured workspace, prefer unsaved editor snapshots, respect hierarchical configuration, distinguish shadowed or same-named unrelated symbols, and include explicit intrinsic type tokens and well-known `throw`/`error` properties.
+- Added LSP document highlights, source-definition navigation, and Find All References. Highlights cover semantic symbols and associated `if`/`else`, `try`/`catch`/`finally`, loop-transfer, and function-transfer keywords. References search unopened `.mu` and `.mulang` files across the configured workspace, prefer unsaved editor snapshots, respect hierarchical configuration, distinguish shadowed or same-named unrelated symbols, and include explicit intrinsic type tokens and well-known `throw`/`error` properties.
 - Added complete semantic property classification for declarations, member access, literal-key access, and property tests. Visual Studio now maps properties to its native theme-aware `property name` classification.
 
 ### Fixes
 
-- Fixed semantic hover recovery after source errors. Locals whose type cannot be inferred display `var name: <unresolved>`, undefined variable names display `name: <unresolved>` without becoming navigable or semantically colored, and the compiler uses the same display name for its internal recovery type.
+- Fixed semantic hover recovery after source errors. Locals whose type cannot be inferred and parameters with unresolved declared types display `name: <unresolved>`, undefined variable names use the same signature without becoming navigable or semantically colored, and the compiler uses `<unresolved>` as its recovery-type display name.
+- Fixed missing semantic coloring for symbols in `try`/`catch`/`finally` blocks and thrown expressions, including read-only catch variables.
 
 ## `0.3.0` → `0.4.0-beta.1` - 2026-10-16
 

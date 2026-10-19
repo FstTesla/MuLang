@@ -353,6 +353,39 @@ public sealed class MuLangCompilerSemanticDocumentTests
     }
 
     [Test]
+    public void GroupsAssociatedControlFlowKeywords()
+    {
+        const string source =
+            "if (true) { } else if (false) { } else { }";
+        SemanticDocumentResult result = Analyze(source);
+        IReadOnlyList<SemanticOccurrence> highlights =
+            result.GetHighlights(
+                source.IndexOf("if", StringComparison.Ordinal)
+            );
+        SourceText sourceText = SourceText.From(source);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(highlights, Has.Count.EqualTo(4));
+            Assert.That(
+                highlights.Select(
+                    occurrence =>
+                        sourceText.GetText(occurrence.Span)
+                ),
+                Is.EqualTo(["if", "else", "if", "else"])
+            );
+            Assert.That(
+                highlights,
+                Has.All.Matches<SemanticOccurrence>(
+                    static occurrence =>
+                        occurrence.Symbol is null &&
+                        occurrence.HoverItems.Count == 0
+                )
+            );
+        }
+    }
+
+    [Test]
     public void TreatsLegacyConfiguredPropertyInitializersAsWrites()
     {
         ObjectTypeSymbol itemType = new (
