@@ -13,7 +13,7 @@ internal sealed class LanguageServer
         : StringComparer.Ordinal;
 
     private readonly IDictionary<string, DocumentSnapshot> documents =
-        new Dictionary<string, DocumentSnapshot>(StringComparer.Ordinal);
+        new Dictionary<string, DocumentSnapshot>(UriComparer);
 
     private readonly IDictionary<int, IReadOnlyList<string?>> pendingConfigurationRequests =
         new Dictionary<int, IReadOnlyList<string?>>();
@@ -22,10 +22,12 @@ internal sealed class LanguageServer
         new Dictionary<string, int>(UriComparer);
 
     private readonly SemaphoreSlim stateGate = new (1, 1);
+    private readonly SemanticDocumentCache semanticDocuments = new ();
     private readonly string? fallbackWorkspaceFolder;
     private readonly Stream input;
     private readonly WorkspaceConfigurationFile workspaceConfigurationFile = new ();
     private readonly WorkspaceConfigurationStore workspaceConfigurations = new ();
+    private readonly WorkspaceSourceService workspaceSources = new ();
     private readonly LspMessageWriter writer;
     private bool exitRequested;
     private int nextRequestId = 1;
@@ -140,6 +142,7 @@ internal sealed class LanguageServer
                         }
 
                         workspaceConfigurations.Initialize(initialWorkspaceFolders);
+                        semanticDocuments.InvalidateConfiguration();
 
                         if (hasId)
                         {
@@ -240,6 +243,48 @@ internal sealed class LanguageServer
                         break;
                     }
 
+                case "textDocument/documentHighlight":
+                    {
+                        if (hasId)
+                        {
+                            await WriteDocumentHighlightsAsync(
+                                id,
+                                parameters,
+                                cancellationToken
+                            );
+                        }
+
+                        break;
+                    }
+
+                case "textDocument/definition":
+                    {
+                        if (hasId)
+                        {
+                            await WriteDefinitionAsync(
+                                id,
+                                parameters,
+                                cancellationToken
+                            );
+                        }
+
+                        break;
+                    }
+
+                case "textDocument/references":
+                    {
+                        if (hasId)
+                        {
+                            await WriteReferencesAsync(
+                                id,
+                                parameters,
+                                cancellationToken
+                            );
+                        }
+
+                        break;
+                    }
+
                 case "textDocument/semanticTokens/full":
                     {
                         if (hasId)
@@ -308,6 +353,20 @@ internal sealed class LanguageServer
                 );
             }
         }
+        catch (Exception exception) when (
+            exception is IOException or UnauthorizedAccessException
+        )
+        {
+            if (hasId)
+            {
+                await writer.WriteErrorAsync(
+                    id,
+                    -32603,
+                    exception.Message,
+                    cancellationToken
+                );
+            }
+        }
     }
 
     private async Task ChangeDocumentAsync(
@@ -330,6 +389,7 @@ internal sealed class LanguageServer
             .GetString()!;
         DocumentSnapshot document = new (uri, version, text);
         documents[uri] = document;
+        semanticDocuments.Invalidate(uri);
         await EnsureDocumentConfigurationFileAsync(
             document.Uri,
             cancellationToken
@@ -347,6 +407,7 @@ internal sealed class LanguageServer
             .GetProperty("uri")
             .GetString()!;
         documents.Remove(uri);
+        semanticDocuments.Invalidate(uri);
         return writer.WriteNotificationAsync(
             "textDocument/publishDiagnostics",
             result =>
@@ -373,6 +434,7 @@ internal sealed class LanguageServer
             textDocument.GetProperty("text").GetString()!
         );
         documents[document.Uri] = document;
+        semanticDocuments.Invalidate(document.Uri);
         await EnsureDocumentConfigurationFileAsync(
             document.Uri,
             cancellationToken
@@ -388,23 +450,9 @@ internal sealed class LanguageServer
         WorkspaceConfiguration configuration = workspaceConfigurations.Get(
             document.Uri
         );
-        SourceText source = SourceText.From(document.Text);
-        AnalysisResult analysis = MuLangCompiler.Analyze(
-            document.Text,
-            configuration.Environment,
-            configuration.CompilationMode,
-            new MuLangCompilationOptions
-            {
-                ExpectedResultType = configuration.ExpectedResultType,
-                Profile = configuration.Profile,
-                SourceDocument = Uri.TryCreate(
-                    document.Uri,
-                    UriKind.Absolute,
-                    out Uri? sourceDocument
-                )
-                    ? sourceDocument
-                    : null,
-            }
+        SemanticDocumentSnapshot snapshot = semanticDocuments.Get(
+            document,
+            configuration
         );
 
         return writer.WriteNotificationAsync(
@@ -416,9 +464,16 @@ internal sealed class LanguageServer
                 result.WriteNumber("version", document.Version);
                 result.WriteStartArray("diagnostics");
 
-                foreach (Diagnostic diagnostic in analysis.Diagnostics)
+                foreach (
+                    Diagnostic diagnostic
+                        in snapshot.SemanticDocument.Diagnostics
+                )
                 {
-                    WriteDiagnostic(result, source, diagnostic);
+                    WriteDiagnostic(
+                        result,
+                        snapshot.Source,
+                        diagnostic
+                    );
                 }
 
                 result.WriteEndArray();
@@ -441,6 +496,9 @@ internal sealed class LanguageServer
                 result.WriteStartObject("capabilities");
                 result.WriteString("positionEncoding", "utf-16");
                 result.WriteBoolean("hoverProvider", true);
+                result.WriteBoolean("documentHighlightProvider", true);
+                result.WriteBoolean("definitionProvider", true);
+                result.WriteBoolean("referencesProvider", true);
                 result.WriteStartObject("textDocumentSync");
                 result.WriteBoolean("openClose", true);
                 result.WriteNumber("change", 1);
@@ -461,7 +519,11 @@ internal sealed class LanguageServer
                 );
                 result.WriteStringValue("parameter");
                 result.WriteStringValue("variable");
-                result.WriteStringValue("property");
+                result.WriteStringValue(
+                    useVisualStudioClassifications
+                        ? "property name"
+                        : "property"
+                );
                 result.WriteEndArray();
                 result.WriteStartArray("tokenModifiers");
 
@@ -500,52 +562,30 @@ internal sealed class LanguageServer
         CancellationToken cancellationToken
     )
     {
-        string uri = parameters
-            .GetProperty("textDocument")
-            .GetProperty("uri")
-            .GetString() ?? throw new InvalidOperationException("Missing document URI.");
-        JsonElement position = parameters.GetProperty("position");
-        int line = position.GetProperty("line").GetInt32();
-        int character = position.GetProperty("character").GetInt32();
-
-        if (line < 0 || character < 0)
-        {
-            await writer.WriteErrorAsync(
-                id,
-                -32602,
-                "Invalid hover position.",
+        (
+            string uri,
+            int line,
+            int character
+        ) = GetTextDocumentPosition(parameters);
+        SemanticDocumentSnapshot? document =
+            await GetOpenSemanticDocumentAsync(
+                uri,
                 cancellationToken
             );
-            return;
-        }
-
-        await EnsureDocumentConfigurationFileAsync(uri, cancellationToken);
-        SourceText? source = null;
-        HoverInfo? hover = null;
-
-        if (documents.TryGetValue(uri, out DocumentSnapshot? document))
-        {
-            source = SourceText.From(document.Text);
-            int offset = GetScalarOffset(source, line, character);
-            WorkspaceConfiguration configuration = workspaceConfigurations.Get(uri);
-            hover = MuLangCompiler.GetHover(
-                document.Text,
-                configuration.Environment,
-                configuration.CompilationMode,
-                offset,
-                new MuLangCompilationOptions
-                {
-                    ExpectedResultType = configuration.ExpectedResultType,
-                    Profile = configuration.Profile,
-                }
+        SemanticOccurrence? occurrence = document is null
+            ? null
+            : document.SemanticDocument.GetOccurrence(
+                GetScalarOffset(document.Source, line, character)
             );
-        }
 
         await writer.WriteResponseAsync(
             id,
             result =>
             {
-                if (hover is null || source is null)
+                if (
+                    document is null ||
+                    occurrence is not { HoverItems.Count: > 0 }
+                )
                 {
                     result.WriteNullValue();
                     return;
@@ -557,15 +597,289 @@ internal sealed class LanguageServer
                 result.WriteString(
                     "value",
                     supportsMarkdownHover
-                        ? $"```mulang\n{hover.Content}\n```"
-                        : hover.Content
+                        ? FormatMarkdownHover(occurrence.HoverItems)
+                        : occurrence.HoverContent
                 );
                 result.WriteEndObject();
                 result.WriteStartObject("range");
-                WritePosition(result, "start", source, source.GetPosition(hover.Span.Start));
-                WritePosition(result, "end", source, source.GetPosition(hover.Span.End));
+                WritePosition(
+                    result,
+                    "start",
+                    document.Source,
+                    document.Source.GetPosition(occurrence.Span.Start)
+                );
+                WritePosition(
+                    result,
+                    "end",
+                    document.Source,
+                    document.Source.GetPosition(occurrence.Span.End)
+                );
                 result.WriteEndObject();
                 result.WriteEndObject();
+            },
+            cancellationToken
+        );
+    }
+
+    private async Task WriteDocumentHighlightsAsync(
+        JsonElement id,
+        JsonElement parameters,
+        CancellationToken cancellationToken
+    )
+    {
+        (
+            string uri,
+            int line,
+            int character
+        ) = GetTextDocumentPosition(parameters);
+        SemanticDocumentSnapshot? document =
+            await GetOpenSemanticDocumentAsync(
+                uri,
+                cancellationToken
+            );
+        SemanticOccurrence? selected = document is null
+            ? null
+            : document.SemanticDocument.GetOccurrence(
+                GetScalarOffset(document.Source, line, character)
+            );
+
+        await writer.WriteResponseAsync(
+            id,
+            result =>
+            {
+                if (
+                    document is null ||
+                    selected?.Symbol is not { } symbol
+                )
+                {
+                    result.WriteNullValue();
+                    return;
+                }
+
+                result.WriteStartArray();
+
+                foreach (
+                    SemanticOccurrence occurrence
+                        in document.SemanticDocument.GetOccurrences(symbol)
+                )
+                {
+                    result.WriteStartObject();
+                    WriteRange(
+                        result,
+                        "range",
+                        document.Source,
+                        occurrence.Span
+                    );
+                    result.WriteNumber(
+                        "kind",
+                        occurrence.Role switch
+                        {
+                            SemanticOccurrenceRole.Read => 2,
+                            SemanticOccurrenceRole.Write => 3,
+                            _ => 1,
+                        }
+                    );
+                    result.WriteEndObject();
+                }
+
+                result.WriteEndArray();
+            },
+            cancellationToken
+        );
+    }
+
+    private async Task WriteDefinitionAsync(
+        JsonElement id,
+        JsonElement parameters,
+        CancellationToken cancellationToken
+    )
+    {
+        (
+            string uri,
+            int line,
+            int character
+        ) = GetTextDocumentPosition(parameters);
+        SemanticDocumentSnapshot? document =
+            await GetOpenSemanticDocumentAsync(
+                uri,
+                cancellationToken
+            );
+        SemanticOccurrence? selected = document is null
+            ? null
+            : document.SemanticDocument.GetOccurrence(
+                GetScalarOffset(document.Source, line, character)
+            );
+
+        await writer.WriteResponseAsync(
+            id,
+            result =>
+            {
+                if (
+                    document is null ||
+                    selected?.DefinitionSpan is not { } definitionSpan
+                )
+                {
+                    result.WriteNullValue();
+                    return;
+                }
+
+                WriteLocation(
+                    result,
+                    document.Uri,
+                    document.Source,
+                    definitionSpan
+                );
+            },
+            cancellationToken
+        );
+    }
+
+    private async Task WriteReferencesAsync(
+        JsonElement id,
+        JsonElement parameters,
+        CancellationToken cancellationToken
+    )
+    {
+        (
+            string uri,
+            int line,
+            int character
+        ) = GetTextDocumentPosition(parameters);
+        bool includeDeclaration = parameters
+            .GetProperty("context")
+            .GetProperty("includeDeclaration")
+            .GetBoolean();
+        SemanticDocumentSnapshot? origin =
+            await GetOpenSemanticDocumentAsync(
+                uri,
+                cancellationToken
+            );
+        SemanticOccurrence? selected = origin is null
+            ? null
+            : origin.SemanticDocument.GetOccurrence(
+                GetScalarOffset(origin.Source, line, character)
+            );
+        IList<(
+            SemanticDocumentSnapshot Document,
+            SemanticOccurrence Occurrence
+            )> references = [ ];
+
+        if (origin is not null && selected?.Symbol is { } symbol)
+        {
+            if (symbol.IsWorkspaceStable)
+            {
+                string? originFolder =
+                    workspaceConfigurations.GetFolder(origin.Uri);
+                IReadOnlyCollection<DocumentSnapshot> openDocuments =
+                    originFolder is null
+                        ? [ documents[origin.Uri] ]
+                        :
+                        [
+                            .. documents.Values.Where(
+                                document =>
+                                    workspaceConfigurations.GetFolder(
+                                        document.Uri
+                                    ) is not null
+                            ),
+                        ];
+                IReadOnlyCollection<string> workspaceFolders =
+                    originFolder is null
+                        ? []
+                        : workspaceConfigurations.Folders;
+                IReadOnlyList<string> documentUris =
+                    workspaceSources.GetDocumentUris(
+                        openDocuments,
+                        workspaceFolders,
+                        cancellationToken
+                    );
+
+                foreach (string documentUri in documentUris)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    await EnsureDocumentConfigurationFileAsync(
+                        documentUri,
+                        cancellationToken
+                    );
+                    SemanticDocumentSnapshot? document =
+                        await GetSemanticDocumentAsync(
+                            documentUri,
+                            cancellationToken
+                        );
+
+                    if (document is null)
+                    {
+                        continue;
+                    }
+
+                    foreach (
+                        SemanticOccurrence occurrence
+                            in document.SemanticDocument
+                                .GetOccurrences(symbol)
+                    )
+                    {
+                        if (
+                            includeDeclaration ||
+                            occurrence.Role !=
+                                SemanticOccurrenceRole.Declaration
+                        )
+                        {
+                            references.Add((document, occurrence));
+                        }
+                    }
+                }
+            }
+            else
+            {
+                foreach (
+                    SemanticOccurrence occurrence
+                        in origin.SemanticDocument.GetOccurrences(symbol)
+                )
+                {
+                    if (
+                        includeDeclaration ||
+                        occurrence.Role !=
+                            SemanticOccurrenceRole.Declaration
+                    )
+                    {
+                        references.Add((origin, occurrence));
+                    }
+                }
+            }
+        }
+
+        await writer.WriteResponseAsync(
+            id,
+            result =>
+            {
+                if (origin is null || selected?.Symbol is null)
+                {
+                    result.WriteNullValue();
+                    return;
+                }
+
+                result.WriteStartArray();
+
+                foreach (
+                    (
+                        SemanticDocumentSnapshot document,
+                        SemanticOccurrence occurrence
+                    ) in references
+                        .OrderBy(static item => item.Document.Uri, UriComparer)
+                        .ThenBy(
+                            static item =>
+                                item.Occurrence.Span.Start
+                        )
+                )
+                {
+                    WriteLocation(
+                        result,
+                        document.Uri,
+                        document.Source,
+                        occurrence.Span
+                    );
+                }
+
+                result.WriteEndArray();
             },
             cancellationToken
         );
@@ -610,6 +924,71 @@ internal sealed class LanguageServer
         return start;
     }
 
+    private static (
+        string Uri,
+        int Line,
+        int Character
+        ) GetTextDocumentPosition(JsonElement parameters)
+    {
+        string uri = parameters
+            .GetProperty("textDocument")
+            .GetProperty("uri")
+            .GetString() ??
+            throw new FormatException("Missing document URI.");
+        JsonElement position = parameters.GetProperty("position");
+        int line = position.GetProperty("line").GetInt32();
+        int character = position.GetProperty("character").GetInt32();
+
+        if (line < 0 || character < 0)
+        {
+            throw new FormatException("Invalid document position.");
+        }
+
+        return (uri, line, character);
+    }
+
+    private async Task<SemanticDocumentSnapshot?>
+        GetOpenSemanticDocumentAsync(
+            string uri,
+            CancellationToken cancellationToken
+        )
+    {
+        await EnsureDocumentConfigurationFileAsync(
+            uri,
+            cancellationToken
+        );
+
+        return documents.TryGetValue(
+            uri,
+            out DocumentSnapshot? document
+        )
+            ? semanticDocuments.Get(
+                document,
+                workspaceConfigurations.Get(uri)
+            )
+            : null;
+    }
+
+    private async Task<SemanticDocumentSnapshot?> GetSemanticDocumentAsync(
+        string uri,
+        CancellationToken cancellationToken
+    )
+    {
+        if (documents.TryGetValue(uri, out DocumentSnapshot? document))
+        {
+            return semanticDocuments.Get(
+                document,
+                workspaceConfigurations.Get(uri)
+            );
+        }
+
+        return await semanticDocuments.GetFileAsync(
+            uri,
+            workspaceConfigurations.Get(uri),
+            cancellationToken
+        );
+    }
+
     private async Task WriteSemanticTokensAsync(
         JsonElement id,
         JsonElement parameters,
@@ -622,6 +1001,11 @@ internal sealed class LanguageServer
             .GetString()!;
 
         await EnsureDocumentConfigurationFileAsync(uri, cancellationToken);
+        SemanticDocumentSnapshot? document =
+            await GetOpenSemanticDocumentAsync(
+                uri,
+                cancellationToken
+            );
         await writer.WriteResponseAsync(
             id,
             result =>
@@ -629,12 +1013,11 @@ internal sealed class LanguageServer
                 result.WriteStartObject();
                 result.WriteStartArray("data");
 
-                if (documents.TryGetValue(uri, out DocumentSnapshot? document))
+                if (document is not null)
                 {
                     WriteSemanticTokenData(
                         result,
                         document,
-                        workspaceConfigurations.Get(document.Uri),
                         useVisualStudioClassifications
                     );
                 }
@@ -767,6 +1150,7 @@ internal sealed class LanguageServer
             WorkspaceConfigurationSet configuration =
                 WorkspaceConfigurationSetParser.Parse(element);
             workspaceConfigurations.Set(folder, configuration);
+            semanticDocuments.InvalidateConfiguration();
             return true;
         }
         catch (Exception exception) when (
@@ -824,6 +1208,7 @@ internal sealed class LanguageServer
             file.AbsoluteUri,
             configuration
         );
+        semanticDocuments.InvalidateConfiguration();
         return true;
     }
 
@@ -886,16 +1271,27 @@ internal sealed class LanguageServer
         CancellationToken cancellationToken
     )
     {
+        IReadOnlyList<string> files =
+        [
+            .. parameters
+                .GetProperty("changes")
+                .EnumerateArray()
+                .Select(
+                    static change =>
+                        change.GetProperty("uri").GetString()!
+                ),
+        ];
+
+        foreach (string file in files)
+        {
+            if (!workspaceConfigurationFile.IsConfigurationFile(file))
+            {
+                semanticDocuments.Invalidate(file);
+            }
+        }
+
         await ChangeConfigurationFilesAsync(
-            [
-                .. parameters
-                    .GetProperty("changes")
-                    .EnumerateArray()
-                    .Select(
-                        static change =>
-                            change.GetProperty("uri").GetString()!
-                    ),
-            ],
+            files,
             cancellationToken
         );
     }
@@ -923,7 +1319,15 @@ internal sealed class LanguageServer
 
             if (!File.Exists(fileUri.LocalPath))
             {
-                changed |= workspaceConfigurations.RemoveConfigurationFile(file);
+                bool removed =
+                    workspaceConfigurations.RemoveConfigurationFile(file);
+                changed |= removed;
+
+                if (removed)
+                {
+                    semanticDocuments.InvalidateConfiguration();
+                }
+
                 continue;
             }
 
@@ -957,6 +1361,7 @@ internal sealed class LanguageServer
         if (configurationFileChanged)
         {
             workspaceConfigurationFile.ClearCache();
+            semanticDocuments.InvalidateConfiguration();
 
             foreach (DocumentSnapshot document in documents.Values)
             {
@@ -1046,6 +1451,7 @@ internal sealed class LanguageServer
         }
 
         workspaceConfigurationFile.ClearCache();
+        semanticDocuments.InvalidateConfiguration();
 
         if (
             !useVisualStudioClassifications &&
@@ -1148,27 +1554,28 @@ internal sealed class LanguageServer
 
     private static void WriteSemanticTokenData(
         Utf8JsonWriter writer,
-        DocumentSnapshot document,
-        WorkspaceConfiguration configuration,
+        SemanticDocumentSnapshot document,
         bool useVisualStudioClassifications
     )
     {
-        SourceText source = SourceText.From(document.Text);
-        SemanticClassificationResult result =
-            MuLangCompiler.ClassifySemantically(
-                document.Text,
-                configuration.Environment,
-                configuration.CompilationMode,
-                configuration.ExpectedResultType,
-                configuration.Profile
-            );
         int previousLine = 0;
         int previousCharacter = 0;
 
-        foreach (SemanticClassification classification in result.Classifications)
+        foreach (
+            SemanticOccurrence occurrence
+                in document.SemanticDocument.Occurrences
+                    .Where(
+                        static occurrence =>
+                            occurrence.IsClassification
+                    )
+        )
         {
-            TextPosition start = source.GetPosition(classification.Span.Start);
-            TextPosition end = source.GetPosition(classification.Span.End);
+            TextPosition start = document.Source.GetPosition(
+                occurrence.Span.Start
+            );
+            TextPosition end = document.Source.GetPosition(
+                occurrence.Span.End
+            );
 
             if (start.Line != end.Line)
             {
@@ -1176,8 +1583,8 @@ internal sealed class LanguageServer
             }
 
             int line = start.Line - 1;
-            int startCharacter = GetUtf16Character(source, start);
-            int endCharacter = GetUtf16Character(source, end);
+            int startCharacter = GetUtf16Character(document.Source, start);
+            int endCharacter = GetUtf16Character(document.Source, end);
             int deltaLine = line - previousLine;
             int deltaStart = deltaLine == 0
                 ? startCharacter - previousCharacter
@@ -1186,11 +1593,11 @@ internal sealed class LanguageServer
             writer.WriteNumberValue(deltaLine);
             writer.WriteNumberValue(deltaStart);
             writer.WriteNumberValue(endCharacter - startCharacter);
-            writer.WriteNumberValue((int)classification.Kind);
+            writer.WriteNumberValue((int)occurrence.Kind);
             writer.WriteNumberValue(
                 useVisualStudioClassifications
                     ? 0
-                    : (int)classification.Modifiers
+                    : (int)occurrence.Modifiers
             );
             previousLine = line;
             previousCharacter = startCharacter;
@@ -1322,6 +1729,42 @@ internal sealed class LanguageServer
         writer.WriteEndObject();
     }
 
+    private static void WriteLocation(
+        Utf8JsonWriter writer,
+        string uri,
+        SourceText source,
+        TextSpan span
+    )
+    {
+        writer.WriteStartObject();
+        writer.WriteString("uri", uri);
+        WriteRange(writer, "range", source, span);
+        writer.WriteEndObject();
+    }
+
+    private static void WriteRange(
+        Utf8JsonWriter writer,
+        string propertyName,
+        SourceText source,
+        TextSpan span
+    )
+    {
+        writer.WriteStartObject(propertyName);
+        WritePosition(
+            writer,
+            "start",
+            source,
+            source.GetPosition(span.Start)
+        );
+        WritePosition(
+            writer,
+            "end",
+            source,
+            source.GetPosition(span.End)
+        );
+        writer.WriteEndObject();
+    }
+
     private static void WritePosition(
         Utf8JsonWriter writer,
         string propertyName,
@@ -1344,6 +1787,50 @@ internal sealed class LanguageServer
         return
             source.GetUtf16Offset(position.Offset) -
             source.GetUtf16Offset(lineStart);
+    }
+
+    private static string FormatMarkdownHover(
+        IReadOnlyList<SemanticHoverItem> items
+    )
+    {
+        return string.Join(
+            "\n\n",
+            items.Select(
+                static item =>
+                    $"*({GetHoverCategoryName(item.Category)})* {EscapeMarkdown(item.Content)}"
+            )
+        );
+    }
+
+    private static string GetHoverCategoryName(
+        SemanticHoverCategory category
+    )
+    {
+        return category switch
+        {
+            SemanticHoverCategory.Variable => "variable",
+            SemanticHoverCategory.Parameter => "parameter",
+            SemanticHoverCategory.Function => "function",
+            SemanticHoverCategory.Type => "type",
+            SemanticHoverCategory.Property => "property",
+            SemanticHoverCategory.Literal => "literal",
+            SemanticHoverCategory.Expression => "expression",
+            _ => throw new ArgumentOutOfRangeException(nameof(category)),
+        };
+    }
+
+    private static string EscapeMarkdown(string value)
+    {
+        return value
+            .Replace("\\", "\\\\", StringComparison.Ordinal)
+            .Replace("&", "&amp;", StringComparison.Ordinal)
+            .Replace("<", "&lt;", StringComparison.Ordinal)
+            .Replace(">", "&gt;", StringComparison.Ordinal)
+            .Replace("`", "\\`", StringComparison.Ordinal)
+            .Replace("*", "\\*", StringComparison.Ordinal)
+            .Replace("_", "\\_", StringComparison.Ordinal)
+            .Replace("[", "\\[", StringComparison.Ordinal)
+            .Replace("]", "\\]", StringComparison.Ordinal);
     }
 
     private static int MapSeverity(DiagnosticSeverity severity)

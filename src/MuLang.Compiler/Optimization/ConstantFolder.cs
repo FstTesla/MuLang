@@ -196,7 +196,8 @@ internal sealed class ConstantFolder
                 new BoundExpression.PropertyTest(
                     propertyTest.Syntax,
                     FoldExpression(propertyTest.Target),
-                    FoldExpression(propertyTest.Key)
+                    FoldExpression(propertyTest.Key),
+                    propertyTest.Property
                 ),
             BoundExpression.Conditional conditional => FoldConditional(conditional),
             BoundExpression.ProviderCall call => new BoundExpression.ProviderCall(

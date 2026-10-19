@@ -45,7 +45,7 @@ internal static class SymbolDisplay
 
     public static string Variable(string name, TypeSymbol type, bool isReadOnly)
     {
-        return $"var {name}{(isReadOnly ? "$" : "")}: {Type(type)}";
+        return $"{name}{(isReadOnly ? "$" : "")}: {Type(type)}";
     }
 
     public static string Parameter(string name, TypeSymbol type)
@@ -59,12 +59,27 @@ internal static class SymbolDisplay
         TypeSymbol returnType
     )
     {
-        return $"func {name}({string.Join(", ", parameters)}): {Type(returnType)}";
+        return $"{name}({string.Join(", ", parameters)}): {Type(returnType)}";
     }
 
     public static string Property(ObjectPropertySymbol property)
     {
         return $"{PropertyName(property.Name)}{(property.IsReadOnly ? "$" : "")}{(property.IsOptional ? "?" : "")}: {Type(property.Type)}";
+    }
+
+    public static string Unresolved(string name)
+    {
+        return $"{name}: {Type(TypeSymbols.ErrorRecovery)}";
+    }
+
+    public static string UnresolvedFunction(string name)
+    {
+        return $"{name}(...): {Type(TypeSymbols.ErrorRecovery)}";
+    }
+
+    public static string Expression(string source, TypeSymbol type)
+    {
+        return $"{source}: {Type(type)}";
     }
 
     public static string Type(TypeSymbol type)
@@ -82,7 +97,7 @@ internal static class SymbolDisplay
     public static string TypeDeclaration(TypeSymbol type)
     {
         return type is ObjectTypeSymbol value
-            ? $"type {value.Name} {ObjectBody(value)}"
+            ? $"{value.Name} {ObjectBody(value)}"
             : type.DisplayName;
     }
 

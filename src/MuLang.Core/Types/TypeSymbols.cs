@@ -45,7 +45,7 @@ public static class TypeSymbols
     /// <summary>Gets the internal error-recovery type used in compiler contracts.</summary>
     public static TypeSymbol ErrorRecovery { get; } = new IntrinsicTypeSymbol(
         TypeKind.ErrorRecovery,
-        "<error>"
+        "<unresolved>"
     );
 
     /// <summary>Gets the internal error-recovery type used in compiler contracts.</summary>

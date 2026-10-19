@@ -8,43 +8,59 @@ namespace MuLang.Compiler.Tests;
 
 public sealed class MuLangCompilerHoverTests
 {
-    [TestCase("var |value = 1;", "var value: int", "value")]
-    [TestCase("var value$ = 1; |value;", "var value$: int", "value")]
-    [TestCase("var value = 1; { var value = \"text\"; |value; }", "var value: string", "value")]
-    [TestCase("var value = 1; { var value = \"text\"; } |value;", "var value: int", "value")]
-    [TestCase("func |identity(value: int): int { return value; }", "func identity(value: int): int", "identity")]
-    [TestCase("func identity(value: int): int { return value; } |identity(1);", "func identity(value: int): int", "identity")]
-    [TestCase("func identity(|value: int): int { return value; }", "value: int", "value")]
-    [TestCase("func identity(value: int): int { return |value; }", "value: int", "value")]
-    [TestCase("func |run(): void { }", "func run(): void", "run")]
-    [TestCase("var value: |int = 1;", "int", "int")]
-    [TestCase("type |Node { next?: Node };", "type Node { next?: Node }", "Node")]
-    [TestCase("type Node { next?: |Node };", "type Node { next?: Node }", "Node")]
-    [TestCase("type Node { |next?: Node };", "next?: Node", "next")]
-    [TestCase("type Node { next?: Node }; var value: |Node?;", "type Node { next?: Node }", "Node")]
-    [TestCase("var value: { |count$: int } = { count$ = 1 };", "count$: int", "count")]
-    [TestCase("var value = { |count$ = 1 };", "count$: int", "count")]
-    [TestCase("var value = { |\"first-name\"$ = \"text\" };", "\"first-name\"$: string", "\"first-name\"")]
-    [TestCase("var value = { |\"line\\nbreak\" = 1 };", "\"line\\nbreak\": int", "\"line\\nbreak\"")]
-    [TestCase("var value = { \"first-name\"$ = \"text\" }; value[|\"first-name\"];", "\"first-name\"$: string", "\"first-name\"")]
-    [TestCase("var value = { count$ = 1 }; value.|count;", "count$: int", "count")]
-    [TestCase("var value = { count$ = 1 }; value[|\"count\"];", "count$: int", "\"count\"")]
-    [TestCase("var |value = @{ count? = 1 };", "var value: @{ count?: int }", "value")]
-    [TestCase("var |values = $[1, 2];", "var values: int[]$", "values")]
-    [TestCase("type Node @{ name$: string, next?: Node }; var |nodes: Node?[]$;", "var nodes: Node?[]$", "nodes")]
-    [TestCase("func run(): void { var value: { |count?: int }; }", "count?: int", "count")]
-    [TestCase("type Node { next?: Node }; func run(value: |Node): void { }", "type Node { next?: Node }", "Node")]
-    [TestCase("var values = [1, 2]; values.|length;", "length$: int", "length")]
-    [TestCase("var value = 1; var result = true ? |value : 0;", "var value: int", "value")]
-    [TestCase("var value = 1; while (false) { |value; }", "var value: int", "value")]
-    [TestCase("var value = 1; for (var index = 0; index < 1; index = index + 1) { |value; }", "var value: int", "value")]
-    [TestCase("try { } catch (|failure) { failure.message; }", "var failure$: error", "failure")]
-    [TestCase("try { } catch (failure) { |failure.message; }", "var failure$: error", "failure")]
-    [TestCase("try { } catch (failure) { failure.|message; }", "message$: string", "message")]
-    [TestCase("var value = 1; try { } finally { |value; }", "var value: int", "value")]
-    [TestCase("try { } catch (failure) { throw |failure; }", "var failure$: error", "failure")]
-    [TestCase("var value = 1; |value; missing;", "var value: int", "value")]
-    [TestCase("var value = 1; (|value);", "var value: int", "value")]
+    [TestCase("var |value = 1;", "[variable] value: int", "value")]
+    [TestCase("var value$ = 1; |value;", "[variable] value$: int", "value")]
+    [TestCase("var value = 1; { var value = \"text\"; |value; }", "[variable] value: string", "value")]
+    [TestCase("var value = 1; { var value = \"text\"; } |value;", "[variable] value: int", "value")]
+    [TestCase("func |identity(value: int): int { return value; }", "[function] identity(value: int): int", "identity")]
+    [TestCase("func identity(value: int): int { return value; } |identity(1);", "[function] identity(value: int): int", "identity")]
+    [TestCase("func identity(|value: int): int { return value; }", "[parameter] value: int", "value")]
+    [TestCase("func identity(value: int): int { return |value; }", "[parameter] value: int", "value")]
+    [TestCase("func |run(): void { }", "[function] run(): void", "run")]
+    [TestCase("var value: |int = 1;", "[type] int", "int")]
+    [TestCase("type |Node { next?: Node };", "[type] Node { next?: Node }", "Node")]
+    [TestCase("type Node { next?: |Node };", "[type] Node { next?: Node }", "Node")]
+    [TestCase("type Node { |next?: Node };", "[property] next?: Node", "next")]
+    [TestCase("type Node { next?: Node }; var value: |Node?;", "[type] Node { next?: Node }", "Node")]
+    [TestCase("var value: { |count$: int } = { count$ = 1 };", "[property] count$: int", "count")]
+    [TestCase("var value = { |count$ = 1 };", "[property] count$: int", "count")]
+    [TestCase("var value = { |\"first-name\"$ = \"text\" };", "[property] \"first-name\"$: string", "\"first-name\"")]
+    [TestCase("var value = { |\"line\\nbreak\" = 1 };", "[property] \"line\\nbreak\": int", "\"line\\nbreak\"")]
+    [TestCase("var value = { \"first-name\"$ = \"text\" }; value[|\"first-name\"];", "[property] \"first-name\"$: string", "\"first-name\"")]
+    [TestCase("var value = { count$ = 1 }; value.|count;", "[property] count$: int", "count")]
+    [TestCase("var value = { count$ = 1 }; value[|\"count\"];", "[property] count$: int", "\"count\"")]
+    [TestCase("var |value = @{ count? = 1 };", "[variable] value: @{ count?: int }", "value")]
+    [TestCase("var |values = $[1, 2];", "[variable] values: int[]$", "values")]
+    [TestCase("type Node @{ name$: string, next?: Node }; var |nodes: Node?[]$;", "[variable] nodes: Node?[]$", "nodes")]
+    [TestCase("func run(): void { var value: { |count?: int }; }", "[property] count?: int", "count")]
+    [TestCase("type Node { next?: Node }; func run(value: |Node): void { }", "[type] Node { next?: Node }", "Node")]
+    [TestCase("var values = [1, 2]; values.|length;", "[property] length$: int", "length")]
+    [TestCase("var value = 1; var result = true ? |value : 0;", "[variable] value: int", "value")]
+    [TestCase("var value = 1; while (false) { |value; }", "[variable] value: int", "value")]
+    [TestCase("var value = 1; for (var index = 0; index < 1; index = index + 1) { |value; }", "[variable] value: int", "value")]
+    [TestCase("try { } catch (|failure) { failure.message; }", "[variable] failure$: error", "failure")]
+    [TestCase("try { } catch (failure) { |failure.message; }", "[variable] failure$: error", "failure")]
+    [TestCase("try { } catch (failure) { failure.|message; }", "[property] message$: string", "message")]
+    [TestCase("var value = 1; try { } finally { |value; }", "[variable] value: int", "value")]
+    [TestCase("try { } catch (failure) { throw |failure; }", "[variable] failure$: error", "failure")]
+    [TestCase("var value = 1; |value; missing;", "[variable] value: int", "value")]
+    [TestCase("var value = 1; (|value);", "[variable] value: int", "value")]
+    [TestCase("var |value = missing;", "[variable] value: <unresolved>", "value")]
+    [TestCase("var value = |missing;", "[variable] missing: <unresolved>", "missing")]
+    [TestCase("var value = |1;", "[literal] 1: int", "1")]
+    [TestCase("var value = |-1;", "[literal] -1: int", "-1")]
+    [TestCase("var value = |1.5;", "[literal] 1.5: float", "1.5")]
+    [TestCase("var value = |\"text\";", "[literal] \"text\": string", "\"text\"")]
+    [TestCase("var value = |true;", "[literal] true: bool", "true")]
+    [TestCase("var value = |null;", "[literal] null: <null>", "null")]
+    [TestCase("var value = |infty;", "[literal] infty: float", "infty")]
+    [TestCase("var value = |missing(1);", "[function] missing(...): <unresolved>", "missing")]
+    [TestCase("var value = missing(|1);", "[literal] 1: int", "1")]
+    [TestCase("var value = { known = 1 }; value.|missing;", "[property] missing: <unresolved>", "missing")]
+    [TestCase("var value = @{ }; value.|missing;", "[property] missing: unknown?", "missing")]
+    [TestCase("var value: object = { }; var key = \"name\"; value[|key];", "[variable] key: string\n[expression] value[key]: unknown?", "key")]
+    [TestCase("var value: object = { }; value[|\"name\"];", "[literal] \"name\": string\n[expression] value[\"name\"]: unknown?", "\"name\"")]
+    [TestCase("var value = { known = 1 }; value[|\"missing\"];", "[literal] \"missing\": string\n[expression] value[\"missing\"]: <unresolved>", "\"missing\"")]
     public void ReturnsBoundSymbolSignatures(
         string markedSource,
         string content,
@@ -69,10 +85,10 @@ public sealed class MuLangCompilerHoverTests
         }
     }
 
-    [TestCase("|customer", "var customer$: Customer", "customer")]
-    [TestCase("|load(customer)", "func load(value: Customer): Customer", "load")]
-    [TestCase("customer.|name", "name$?: string", "name")]
-    [TestCase("customer is |Customer", "type Customer { name$?: string }", "Customer")]
+    [TestCase("|customer", "[variable] customer$: Customer", "customer")]
+    [TestCase("|load(customer)", "[function] load(value: Customer): Customer", "load")]
+    [TestCase("customer.|name", "[property] name$?: string", "name")]
+    [TestCase("customer is |Customer", "[type] Customer { name$?: string }", "Customer")]
     public void ReturnsConfiguredHostSymbols(
         string markedSource,
         string content,
@@ -118,14 +134,9 @@ public sealed class MuLangCompilerHoverTests
 
     [TestCase("|var value = 1;")]
     [TestCase("var value| = 1;")]
-    [TestCase("var value = |1;")]
     [TestCase("var value = 1;|")]
-    [TestCase("|missing;")]
     [TestCase("var value: |Missing;")]
-    [TestCase("var value = |missing();")]
     [TestCase("var value = 1; |(value);")]
-    [TestCase("var |value = missing;")]
-    [TestCase("var value = @{ }; value.|missing;")]
     [TestCase("|")]
     public void OmitsUnresolvedSymbolsAndNonSymbolPositions(string markedSource)
     {
@@ -152,8 +163,52 @@ public sealed class MuLangCompilerHoverTests
         );
 
         Assert.That(hover, Is.Not.Null);
-        Assert.That(hover!.Content, Is.EqualTo("var café: int"));
+        Assert.That(
+            hover!.Content,
+            Is.EqualTo("[variable] café: int")
+        );
         Assert.That(SourceText.From(source).GetText(hover.Span), Is.EqualTo("café"));
+    }
+
+    [Test]
+    public void ExposesCategorizedHoverItems()
+    {
+        const string source =
+            "var value: object = { }; var key = \"name\"; value[key];";
+        int offset = source.LastIndexOf(
+            "key",
+            StringComparison.Ordinal
+        );
+        HoverInfo? hover = MuLangCompiler.GetHover(
+            source,
+            new EnvironmentBuilder().Build(),
+            CompilationMode.Program,
+            offset
+        );
+
+        Assert.That(hover, Is.Not.Null);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(
+                hover!.Items.Select(static item => item.Category),
+                Is.EqualTo(
+                    [
+                        SemanticHoverCategory.Variable,
+                        SemanticHoverCategory.Expression,
+                    ]
+                )
+            );
+            Assert.That(
+                hover.Items.Select(static item => item.Content),
+                Is.EqualTo(
+                    [
+                        "key: string",
+                        "value[key]: unknown?",
+                    ]
+                )
+            );
+        }
     }
 
     [TestCase(-1)]

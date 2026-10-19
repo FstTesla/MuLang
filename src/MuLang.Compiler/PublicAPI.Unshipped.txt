@@ -1,5 +1,47 @@
 #nullable enable
 MuLang.Compiler.HoverInfo
 MuLang.Compiler.HoverInfo.Content.get -> string!
+MuLang.Compiler.HoverInfo.Items.get -> System.Collections.Generic.IReadOnlyList<MuLang.Compiler.SemanticHoverItem!>!
 MuLang.Compiler.HoverInfo.Span.get -> MuLang.Core.Text.TextSpan
+MuLang.Compiler.SemanticClassificationKind.Literal = 5 -> MuLang.Compiler.SemanticClassificationKind
+MuLang.Compiler.SemanticDocumentResult
+MuLang.Compiler.SemanticDocumentResult.Diagnostics.get -> MuLang.Core.Diagnostics.DiagnosticCollection!
+MuLang.Compiler.SemanticDocumentResult.GetOccurrence(int offset) -> MuLang.Compiler.SemanticOccurrence?
+MuLang.Compiler.SemanticDocumentResult.GetOccurrences(MuLang.Compiler.SemanticSymbolKey! symbol) -> System.Collections.Generic.IReadOnlyList<MuLang.Compiler.SemanticOccurrence!>!
+MuLang.Compiler.SemanticDocumentResult.LineMap.get -> MuLang.Core.Text.TextLineMap!
+MuLang.Compiler.SemanticDocumentResult.Occurrences.get -> System.Collections.Generic.IReadOnlyList<MuLang.Compiler.SemanticOccurrence!>!
+MuLang.Compiler.SemanticDocumentResult.SourceDocument.get -> System.Uri?
+MuLang.Compiler.SemanticOccurrence
+MuLang.Compiler.SemanticOccurrence.DefinitionSpan.get -> MuLang.Core.Text.TextSpan?
+MuLang.Compiler.SemanticOccurrence.HoverContent.get -> string?
+MuLang.Compiler.SemanticOccurrence.HoverItems.get -> System.Collections.Generic.IReadOnlyList<MuLang.Compiler.SemanticHoverItem!>!
+MuLang.Compiler.SemanticOccurrence.IsClassification.get -> bool
+MuLang.Compiler.SemanticOccurrence.Kind.get -> MuLang.Compiler.SemanticClassificationKind
+MuLang.Compiler.SemanticOccurrence.Modifiers.get -> MuLang.Compiler.SemanticClassificationModifiers
+MuLang.Compiler.SemanticOccurrence.Role.get -> MuLang.Compiler.SemanticOccurrenceRole
+MuLang.Compiler.SemanticOccurrence.Span.get -> MuLang.Core.Text.TextSpan
+MuLang.Compiler.SemanticOccurrence.Symbol.get -> MuLang.Compiler.SemanticSymbolKey?
+MuLang.Compiler.SemanticOccurrenceRole
+MuLang.Compiler.SemanticOccurrenceRole.Declaration = 0 -> MuLang.Compiler.SemanticOccurrenceRole
+MuLang.Compiler.SemanticOccurrenceRole.Read = 1 -> MuLang.Compiler.SemanticOccurrenceRole
+MuLang.Compiler.SemanticOccurrenceRole.Reference = 3 -> MuLang.Compiler.SemanticOccurrenceRole
+MuLang.Compiler.SemanticOccurrenceRole.Write = 2 -> MuLang.Compiler.SemanticOccurrenceRole
+MuLang.Compiler.SemanticHoverCategory
+MuLang.Compiler.SemanticHoverCategory.Expression = 6 -> MuLang.Compiler.SemanticHoverCategory
+MuLang.Compiler.SemanticHoverCategory.Function = 2 -> MuLang.Compiler.SemanticHoverCategory
+MuLang.Compiler.SemanticHoverCategory.Literal = 5 -> MuLang.Compiler.SemanticHoverCategory
+MuLang.Compiler.SemanticHoverCategory.Parameter = 1 -> MuLang.Compiler.SemanticHoverCategory
+MuLang.Compiler.SemanticHoverCategory.Property = 4 -> MuLang.Compiler.SemanticHoverCategory
+MuLang.Compiler.SemanticHoverCategory.Type = 3 -> MuLang.Compiler.SemanticHoverCategory
+MuLang.Compiler.SemanticHoverCategory.Variable = 0 -> MuLang.Compiler.SemanticHoverCategory
+MuLang.Compiler.SemanticHoverItem
+MuLang.Compiler.SemanticHoverItem.Category.get -> MuLang.Compiler.SemanticHoverCategory
+MuLang.Compiler.SemanticHoverItem.Content.get -> string!
+MuLang.Compiler.SemanticSymbolKey
+MuLang.Compiler.SemanticSymbolKey.Equals(MuLang.Compiler.SemanticSymbolKey? other) -> bool
+MuLang.Compiler.SemanticSymbolKey.IsWorkspaceStable.get -> bool
+MuLang.Compiler.SemanticSymbolKey.Kind.get -> MuLang.Compiler.SemanticClassificationKind
+override MuLang.Compiler.SemanticSymbolKey.Equals(object? obj) -> bool
+override MuLang.Compiler.SemanticSymbolKey.GetHashCode() -> int
 static MuLang.Compiler.MuLangCompiler.GetHover(string! source, MuLang.Core.Environment.EnvironmentSchema! environment, MuLang.Core.CompilationMode compilationMode, int offset, MuLang.Compiler.MuLangCompilationOptions? options = null) -> MuLang.Compiler.HoverInfo?
+static MuLang.Compiler.MuLangCompiler.GetSemanticDocument(string! source, MuLang.Core.Environment.EnvironmentSchema! environment, MuLang.Core.CompilationMode compilationMode, MuLang.Compiler.MuLangCompilationOptions? options = null) -> MuLang.Compiler.SemanticDocumentResult!

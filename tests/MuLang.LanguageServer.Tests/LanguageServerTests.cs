@@ -354,6 +354,20 @@ public sealed class LanguageServerTests
             Assert.That(capabilities.GetProperty("hoverProvider").GetBoolean(), Is.True);
             Assert.That(
                 capabilities
+                    .GetProperty("documentHighlightProvider")
+                    .GetBoolean(),
+                Is.True
+            );
+            Assert.That(
+                capabilities.GetProperty("definitionProvider").GetBoolean(),
+                Is.True
+            );
+            Assert.That(
+                capabilities.GetProperty("referencesProvider").GetBoolean(),
+                Is.True
+            );
+            Assert.That(
+                capabilities
                     .GetProperty("textDocumentSync")
                     .GetProperty("change")
                     .GetInt32(),
@@ -415,7 +429,7 @@ public sealed class LanguageServerTests
                         "method name",
                         "parameter",
                         "variable",
-                        "property",
+                        "property name",
                     ]
                 )
             );
@@ -564,7 +578,7 @@ public sealed class LanguageServerTests
             );
             Assert.That(
                 hover.GetProperty("contents").GetProperty("value").GetString(),
-                Is.EqualTo("```mulang\nvar value$: int\n```")
+                Is.EqualTo("*(variable)* value$: int")
             );
             Assert.That(
                 hover.GetProperty("range").GetProperty("start").GetProperty("line").GetInt32(),
@@ -579,6 +593,84 @@ public sealed class LanguageServerTests
                 Is.EqualTo(27)
             );
         }
+    }
+
+    [Test]
+    public async Task FormatsCategorizedMarkdownHover()
+    {
+        const string source =
+            "var obj: object = { }; var key = \"name\"; " +
+            "var missingValue = missing; var access = obj[key];";
+        int missing = source.IndexOf(
+            "missing;",
+            StringComparison.Ordinal
+        );
+        int key = source.IndexOf(
+            "obj[key]",
+            StringComparison.Ordinal
+        ) + "obj[".Length;
+        string HoverRequest(int id, int character) =>
+            JsonSerializer.Serialize(
+                new
+                {
+                    jsonrpc = "2.0",
+                    id,
+                    method = "textDocument/hover",
+                    @params = new
+                    {
+                        textDocument = new { uri = "file:///test.mu" },
+                        position = new { line = 0, character },
+                    },
+                }
+            );
+        IReadOnlyList<JsonElement> output = await RunServerAsync(
+            """
+            {"jsonrpc":"2.0","id":1,"method":"initialize","params":{"capabilities":{"textDocument":{"hover":{"contentFormat":["markdown"]}}}}}
+            """,
+            CreateOpenDocumentMessage("file:///test.mu", source),
+            HoverRequest(3, missing),
+            HoverRequest(4, key),
+            """
+            {"jsonrpc":"2.0","id":2,"method":"shutdown"}
+            """,
+            """
+            {"jsonrpc":"2.0","method":"exit"}
+            """
+        );
+        IReadOnlyList<string?> values =
+        [
+            .. output
+                .Where(
+                    static message =>
+                        message.TryGetProperty(
+                            "id",
+                            out JsonElement id
+                        ) &&
+                        id.GetInt32() is 3 or 4
+                )
+                .OrderBy(
+                    static message =>
+                        message.GetProperty("id").GetInt32()
+                )
+                .Select(
+                    static message =>
+                        message
+                            .GetProperty("result")
+                            .GetProperty("contents")
+                            .GetProperty("value")
+                            .GetString()
+                ),
+        ];
+
+        Assert.That(
+            values,
+            Is.EqualTo(
+                [
+                    "*(variable)* missing: &lt;unresolved&gt;",
+                    "*(variable)* key: string\n\n*(expression)* obj\\[key\\]: unknown?",
+                ]
+            )
+        );
     }
 
     [Test]
@@ -647,15 +739,165 @@ public sealed class LanguageServerTests
                 hovers.Select(static hover => hover.GetProperty("value").GetString()),
                 Is.EqualTo(
                     [
-                        "var value: int",
-                        "var value: string",
-                        "var value$: string",
-                        "var value$: int",
-                        "var value$: int",
+                        "[variable] value: int",
+                        "[variable] value: string",
+                        "[variable] value$: string",
+                        "[variable] value$: int",
+                        "[variable] value$: int",
                     ]
                 )
             );
         }
+    }
+
+    [Test]
+    public async Task ReturnsRecoveryHoverForDeclaredAndUnresolvedNames()
+    {
+        IReadOnlyList<JsonElement> output = await RunServerAsync(
+            """
+            {"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}
+            """,
+            """
+            {"jsonrpc":"2.0","method":"textDocument/didOpen","params":{"textDocument":{"uri":"file:///test.mu","version":1,"text":"var value = missing;"}}}
+            """,
+            """
+            {"jsonrpc":"2.0","id":3,"method":"textDocument/hover","params":{"textDocument":{"uri":"file:///test.mu"},"position":{"line":0,"character":5}}}
+            """,
+            """
+            {"jsonrpc":"2.0","id":4,"method":"textDocument/hover","params":{"textDocument":{"uri":"file:///test.mu"},"position":{"line":0,"character":13}}}
+            """,
+            """
+            {"jsonrpc":"2.0","id":2,"method":"shutdown"}
+            """,
+            """
+            {"jsonrpc":"2.0","method":"exit"}
+            """
+        );
+        JsonElement localHover = output.Single(
+            static message =>
+                message.TryGetProperty("id", out JsonElement id) &&
+                id.GetInt32() == 3
+        ).GetProperty("result");
+        JsonElement missingHover = output.Single(
+            static message =>
+                message.TryGetProperty("id", out JsonElement id) &&
+                id.GetInt32() == 4
+        ).GetProperty("result");
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(
+                localHover
+                    .GetProperty("contents")
+                    .GetProperty("value")
+                    .GetString(),
+                Is.EqualTo("[variable] value: <unresolved>")
+            );
+            Assert.That(
+                missingHover
+                    .GetProperty("contents")
+                    .GetProperty("value")
+                    .GetString(),
+                Is.EqualTo("[variable] missing: <unresolved>")
+            );
+        }
+    }
+
+    [Test]
+    public async Task ReturnsLiteralFunctionPropertyAndDynamicKeyHovers()
+    {
+        const string source =
+            "var obj: object = { }; var key = \"name\"; " +
+            "var literal = 1; var call = missing(2); " +
+            "var access = obj[key]; obj.dynamic;";
+        string HoverRequest(int id, int character) =>
+            JsonSerializer.Serialize(
+                new
+                {
+                    jsonrpc = "2.0",
+                    id,
+                    method = "textDocument/hover",
+                    @params = new
+                    {
+                        textDocument = new { uri = "file:///test.mu" },
+                        position = new { line = 0, character },
+                    },
+                }
+            );
+        int literal = source.IndexOf(
+            "= 1",
+            StringComparison.Ordinal
+        ) + 2;
+        int function = source.IndexOf(
+            "missing",
+            StringComparison.Ordinal
+        );
+        int argument = source.IndexOf(
+            "(2)",
+            StringComparison.Ordinal
+        ) + 1;
+        int key = source.IndexOf(
+            "obj[key]",
+            StringComparison.Ordinal
+        ) + "obj[".Length;
+        int property = source.LastIndexOf(
+            "dynamic",
+            StringComparison.Ordinal
+        );
+        IReadOnlyList<JsonElement> output = await RunServerAsync(
+            """
+            {"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}
+            """,
+            CreateOpenDocumentMessage("file:///test.mu", source),
+            HoverRequest(3, literal),
+            HoverRequest(4, function),
+            HoverRequest(5, argument),
+            HoverRequest(6, key),
+            HoverRequest(7, property),
+            """
+            {"jsonrpc":"2.0","id":2,"method":"shutdown"}
+            """,
+            """
+            {"jsonrpc":"2.0","method":"exit"}
+            """
+        );
+        IReadOnlyList<string?> hovers =
+        [
+            .. output
+                .Where(
+                    static message =>
+                        message.TryGetProperty(
+                            "id",
+                            out JsonElement id
+                        ) &&
+                        id.GetInt32() is >= 3 and <= 7
+                )
+                .OrderBy(
+                    static message =>
+                        message.GetProperty("id").GetInt32()
+                )
+                .Select(
+                    static message =>
+                        message
+                            .GetProperty("result")
+                            .GetProperty("contents")
+                            .GetProperty("value")
+                            .GetString()
+                ),
+        ];
+
+        Assert.That(
+            hovers,
+            Is.EqualTo(
+                [
+                    "[literal] 1: int",
+                    "[function] missing(...): <unresolved>",
+                    "[literal] 2: int",
+                    "[variable] key: string\n[expression] obj[key]: unknown?",
+                    "[property] dynamic: unknown?",
+                ]
+            )
+        );
     }
 
     [TestCase(0, 3)]
@@ -765,6 +1007,607 @@ public sealed class LanguageServerTests
             output[0].GetProperty("error").GetProperty("code").GetInt32(),
             Is.EqualTo(-32602)
         );
+    }
+
+    [Test]
+    public async Task ReturnsSemanticDocumentHighlights()
+    {
+        IReadOnlyList<JsonElement> output = await RunServerAsync(
+            """
+            {"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}
+            """,
+            """
+            {"jsonrpc":"2.0","method":"textDocument/didOpen","params":{"textDocument":{"uri":"file:///test.mu","version":1,"text":"var value = 1; value = 2; var copy = value;"}}}
+            """,
+            """
+            {"jsonrpc":"2.0","id":3,"method":"textDocument/documentHighlight","params":{"textDocument":{"uri":"file:///test.mu"},"position":{"line":0,"character":5}}}
+            """,
+            """
+            {"jsonrpc":"2.0","id":2,"method":"shutdown"}
+            """,
+            """
+            {"jsonrpc":"2.0","method":"exit"}
+            """
+        );
+        JsonElement highlights = output.Single(
+            static message =>
+                message.TryGetProperty("id", out JsonElement id) &&
+                id.GetInt32() == 3
+        ).GetProperty("result");
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(
+                highlights.EnumerateArray().Select(
+                    static highlight =>
+                        highlight.GetProperty("kind").GetInt32()
+                ),
+                Is.EqualTo([1, 3, 2])
+            );
+            Assert.That(
+                highlights.EnumerateArray().Select(
+                    static highlight =>
+                        highlight
+                            .GetProperty("range")
+                            .GetProperty("start")
+                            .GetProperty("character")
+                            .GetInt32()
+                ),
+                Is.EqualTo([4, 15, 37])
+            );
+        }
+    }
+
+    [Test]
+    public async Task HighlightsOnlyTheResolvedProperty()
+    {
+        const string source =
+            "type First { value: int }; type Second { value: int }; " +
+            "var first: First = { value = 1 }; " +
+            "var second: Second = { value = 2 }; " +
+            "var a = first.value; var b = second.value;";
+        string openDocument = CreateOpenDocumentMessage(
+            "file:///test.mu",
+            source
+        );
+        int firstAccess = source.IndexOf(
+            "first.value",
+            StringComparison.Ordinal
+        ) + "first.".Length;
+        string request = JsonSerializer.Serialize(
+            new
+            {
+                jsonrpc = "2.0",
+                id = 3,
+                method = "textDocument/documentHighlight",
+                @params = new
+                {
+                    textDocument = new { uri = "file:///test.mu" },
+                    position = new { line = 0, character = firstAccess },
+                },
+            }
+        );
+        IReadOnlyList<JsonElement> output = await RunServerAsync(
+            """
+            {"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}
+            """,
+            openDocument,
+            request,
+            """
+            {"jsonrpc":"2.0","id":2,"method":"shutdown"}
+            """,
+            """
+            {"jsonrpc":"2.0","method":"exit"}
+            """
+        );
+        JsonElement highlights = output.Single(
+            static message =>
+                message.TryGetProperty("id", out JsonElement id) &&
+                id.GetInt32() == 3
+        ).GetProperty("result");
+
+        Assert.That(highlights.GetArrayLength(), Is.EqualTo(2));
+    }
+
+    [Test]
+    public async Task ReturnsSourceDefinitionLocations()
+    {
+        const string source =
+            "type Node { name: string }; " +
+            "var node: Node = { name = \"root\" }; " +
+            "var selected = node.name;";
+        int propertyAccess = source.LastIndexOf(
+            "name",
+            StringComparison.Ordinal
+        );
+        string request = JsonSerializer.Serialize(
+            new
+            {
+                jsonrpc = "2.0",
+                id = 3,
+                method = "textDocument/definition",
+                @params = new
+                {
+                    textDocument = new { uri = "file:///test.mu" },
+                    position = new { line = 0, character = propertyAccess },
+                },
+            }
+        );
+        IReadOnlyList<JsonElement> output = await RunServerAsync(
+            """
+            {"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}
+            """,
+            CreateOpenDocumentMessage("file:///test.mu", source),
+            request,
+            """
+            {"jsonrpc":"2.0","id":2,"method":"shutdown"}
+            """,
+            """
+            {"jsonrpc":"2.0","method":"exit"}
+            """
+        );
+        JsonElement definition = output.Single(
+            static message =>
+                message.TryGetProperty("id", out JsonElement id) &&
+                id.GetInt32() == 3
+        ).GetProperty("result");
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(
+                definition.GetProperty("uri").GetString(),
+                Is.EqualTo("file:///test.mu")
+            );
+            Assert.That(
+                definition
+                    .GetProperty("range")
+                    .GetProperty("start")
+                    .GetProperty("character")
+                    .GetInt32(),
+                Is.EqualTo(source.IndexOf("name", StringComparison.Ordinal))
+            );
+        }
+    }
+
+    [TestCase(false, 2)]
+    [TestCase(true, 3)]
+    public async Task ReturnsDocumentLocalReferences(
+        bool includeDeclaration,
+        int expectedCount
+    )
+    {
+        const string source =
+            "var value = 1; value = 2; var copy = value;";
+        string request = JsonSerializer.Serialize(
+            new
+            {
+                jsonrpc = "2.0",
+                id = 3,
+                method = "textDocument/references",
+                @params = new
+                {
+                    textDocument = new { uri = "file:///test.mu" },
+                    position = new { line = 0, character = 5 },
+                    context = new { includeDeclaration },
+                },
+            }
+        );
+        IReadOnlyList<JsonElement> output = await RunServerAsync(
+            """
+            {"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}
+            """,
+            CreateOpenDocumentMessage("file:///test.mu", source),
+            request,
+            """
+            {"jsonrpc":"2.0","id":2,"method":"shutdown"}
+            """,
+            """
+            {"jsonrpc":"2.0","method":"exit"}
+            """
+        );
+        JsonElement references = output.Single(
+            static message =>
+                message.TryGetProperty("id", out JsonElement id) &&
+                id.GetInt32() == 3
+        ).GetProperty("result");
+
+        Assert.That(references.GetArrayLength(), Is.EqualTo(expectedCount));
+    }
+
+    [TestCase("textDocument/documentHighlight")]
+    [TestCase("textDocument/definition")]
+    [TestCase("textDocument/references")]
+    public async Task RejectsMalformedNavigationParameters(string method)
+    {
+        string request = JsonSerializer.Serialize(
+            new
+            {
+                jsonrpc = "2.0",
+                id = 3,
+                method,
+                @params = new { },
+            }
+        );
+        IReadOnlyList<JsonElement> output = await RunServerAsync(
+            request,
+            """
+            {"jsonrpc":"2.0","id":2,"method":"shutdown"}
+            """,
+            """
+            {"jsonrpc":"2.0","method":"exit"}
+            """
+        );
+
+        Assert.That(
+            output[0].GetProperty("error").GetProperty("code").GetInt32(),
+            Is.EqualTo(-32602)
+        );
+    }
+
+    [Test]
+    public async Task ReturnsNullNavigationForUnknownDocuments()
+    {
+        IReadOnlyList<JsonElement> output = await RunServerAsync(
+            """
+            {"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}
+            """,
+            """
+            {"jsonrpc":"2.0","id":3,"method":"textDocument/documentHighlight","params":{"textDocument":{"uri":"file:///unknown.mu"},"position":{"line":0,"character":0}}}
+            """,
+            """
+            {"jsonrpc":"2.0","id":4,"method":"textDocument/definition","params":{"textDocument":{"uri":"file:///unknown.mu"},"position":{"line":0,"character":0}}}
+            """,
+            """
+            {"jsonrpc":"2.0","id":5,"method":"textDocument/references","params":{"textDocument":{"uri":"file:///unknown.mu"},"position":{"line":0,"character":0},"context":{"includeDeclaration":true}}}
+            """,
+            """
+            {"jsonrpc":"2.0","id":2,"method":"shutdown"}
+            """,
+            """
+            {"jsonrpc":"2.0","method":"exit"}
+            """
+        );
+
+        Assert.That(
+            output.Where(
+                static message =>
+                    message.TryGetProperty("id", out JsonElement id) &&
+                    id.GetInt32() is 3 or 4 or 5
+            ).Select(
+                static message =>
+                    message.GetProperty("result").ValueKind
+            ),
+            Is.All.EqualTo(JsonValueKind.Null)
+        );
+    }
+
+    [Test]
+    public async Task FindsConfiguredReferencesInUnopenedWorkspaceFiles()
+    {
+        string workspace = Path.Combine(
+            Path.GetTempPath(),
+            $"MuLang.LanguageServer.References-{Guid.NewGuid():N}"
+        );
+        Directory.CreateDirectory(workspace);
+
+        try
+        {
+            string openPath = Path.Combine(workspace, "open.mu");
+            string unopenedPath = Path.Combine(workspace, "unopened.mulang");
+            await File.WriteAllTextAsync(openPath, "0");
+            await File.WriteAllTextAsync(unopenedPath, "current");
+            string workspaceUri = new Uri(workspace).AbsoluteUri;
+            string openUri = new Uri(openPath).AbsoluteUri;
+            string initialize = JsonSerializer.Serialize(
+                new
+                {
+                    jsonrpc = "2.0",
+                    id = 1,
+                    method = "initialize",
+                    @params = new
+                    {
+                        workspaceFolders = new[]
+                        {
+                            new
+                            {
+                                uri = workspaceUri,
+                                name = "workspace",
+                            },
+                        },
+                    },
+                }
+            );
+            string request = JsonSerializer.Serialize(
+                new
+                {
+                    jsonrpc = "2.0",
+                    id = 3,
+                    method = "textDocument/references",
+                    @params = new
+                    {
+                        textDocument = new { uri = openUri },
+                        position = new { line = 0, character = 1 },
+                        context = new { includeDeclaration = false },
+                    },
+                }
+            );
+            IReadOnlyList<JsonElement> output = await RunServerAsync(
+                initialize,
+                """
+                {"jsonrpc":"2.0","method":"workspace/didChangeConfiguration","params":{"settings":{"mulang":{"configuration":{"compilationMode":"expression","environment":{"globals":[{"id":"current","name":"current","type":"int"}]}}}}}}
+                """,
+                CreateOpenDocumentMessage(openUri, "current + current"),
+                request,
+                """
+                {"jsonrpc":"2.0","id":2,"method":"shutdown"}
+                """,
+                """
+                {"jsonrpc":"2.0","method":"exit"}
+                """
+            );
+            JsonElement references = output.Single(
+                static message =>
+                    message.TryGetProperty("id", out JsonElement id) &&
+                    id.GetInt32() == 3
+            ).GetProperty("result");
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(references.GetArrayLength(), Is.EqualTo(3));
+                Assert.That(
+                    references.EnumerateArray().Count(
+                        reference =>
+                            reference
+                                .GetProperty("uri")
+                                .GetString() ==
+                            new Uri(unopenedPath).AbsoluteUri
+                    ),
+                    Is.EqualTo(1)
+                );
+            }
+        }
+        finally
+        {
+            Directory.Delete(workspace, true);
+        }
+    }
+
+    [Test]
+    public async Task KeepsConfiguredReferenceIdentitiesSeparate()
+    {
+        string workspace = Path.Combine(
+            Path.GetTempPath(),
+            $"MuLang.LanguageServer.ReferenceIdentity-{Guid.NewGuid():N}"
+        );
+        string nested = Path.Combine(workspace, "nested");
+        Directory.CreateDirectory(nested);
+
+        try
+        {
+            await File.WriteAllTextAsync(
+                Path.Combine(workspace, WorkspaceConfigurationFile.FileName),
+                """
+                {
+                  "configuration": {
+                    "compilationMode": "expression",
+                    "environment": {
+                      "globals": [
+                        { "id": "root-current", "name": "current", "type": "int" }
+                      ]
+                    }
+                  }
+                }
+                """
+            );
+            await File.WriteAllTextAsync(
+                Path.Combine(nested, WorkspaceConfigurationFile.FileName),
+                """
+                {
+                  "configuration": {
+                    "compilationMode": "expression",
+                    "environment": {
+                      "globals": [
+                        { "id": "nested-current", "name": "current", "type": "int" }
+                      ]
+                    }
+                  }
+                }
+                """
+            );
+            string rootPath = Path.Combine(workspace, "root.mu");
+            string nestedPath = Path.Combine(nested, "nested.mu");
+            await File.WriteAllTextAsync(rootPath, "current");
+            await File.WriteAllTextAsync(nestedPath, "current");
+            string rootUri = new Uri(rootPath).AbsoluteUri;
+            string request = JsonSerializer.Serialize(
+                new
+                {
+                    jsonrpc = "2.0",
+                    id = 3,
+                    method = "textDocument/references",
+                    @params = new
+                    {
+                        textDocument = new { uri = rootUri },
+                        position = new { line = 0, character = 1 },
+                        context = new { includeDeclaration = false },
+                    },
+                }
+            );
+            IReadOnlyList<JsonElement> output =
+                await RunServerWithWorkspaceRootAsync(
+                    new Uri(workspace).AbsoluteUri,
+                    """
+                    {"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}
+                    """,
+                    CreateOpenDocumentMessage(rootUri, "current"),
+                    request,
+                    """
+                    {"jsonrpc":"2.0","id":2,"method":"shutdown"}
+                    """,
+                    """
+                    {"jsonrpc":"2.0","method":"exit"}
+                    """
+                );
+            JsonElement references = output.Single(
+                static message =>
+                    message.TryGetProperty("id", out JsonElement id) &&
+                    id.GetInt32() == 3
+            ).GetProperty("result");
+
+            Assert.That(references.GetArrayLength(), Is.EqualTo(1));
+            Assert.That(
+                references[0].GetProperty("uri").GetString(),
+                Is.EqualTo(rootUri)
+            );
+        }
+        finally
+        {
+            Directory.Delete(workspace, true);
+        }
+    }
+
+    [Test]
+    public async Task RefreshesUnopenedReferencesAfterFileChanges()
+    {
+        string workspace = Path.Combine(
+            Path.GetTempPath(),
+            $"MuLang.LanguageServer.ReferenceRefresh-{Guid.NewGuid():N}"
+        );
+        Directory.CreateDirectory(workspace);
+
+        try
+        {
+            string openPath = Path.Combine(workspace, "open.mu");
+            string unopenedPath = Path.Combine(workspace, "unopened.mu");
+            await File.WriteAllTextAsync(openPath, "current");
+            await File.WriteAllTextAsync(unopenedPath, "current");
+            string openUri = new Uri(openPath).AbsoluteUri;
+            string unopenedUri = new Uri(unopenedPath).AbsoluteUri;
+            string workspaceUri = new Uri(workspace).AbsoluteUri;
+            string initialize = JsonSerializer.Serialize(
+                new
+                {
+                    jsonrpc = "2.0",
+                    id = 1,
+                    method = "initialize",
+                    @params = new
+                    {
+                        workspaceFolders = new[]
+                        {
+                            new
+                            {
+                                uri = workspaceUri,
+                                name = "workspace",
+                            },
+                        },
+                    },
+                }
+            );
+            string ReferencesRequest(int id) => JsonSerializer.Serialize(
+                new
+                {
+                    jsonrpc = "2.0",
+                    id,
+                    method = "textDocument/references",
+                    @params = new
+                    {
+                        textDocument = new { uri = openUri },
+                        position = new { line = 0, character = 1 },
+                        context = new { includeDeclaration = false },
+                    },
+                }
+            );
+            string watchedChange = JsonSerializer.Serialize(
+                new
+                {
+                    jsonrpc = "2.0",
+                    method = "workspace/didChangeWatchedFiles",
+                    @params = new
+                    {
+                        changes = new[]
+                        {
+                            new
+                            {
+                                uri = unopenedUri,
+                                type = 2,
+                            },
+                        },
+                    },
+                }
+            );
+            Pipe inputPipe = new ();
+            await using Stream input = inputPipe.Reader.AsStream();
+            await using Stream inputWriter = inputPipe.Writer.AsStream();
+            using MemoryStream outputStream = new ();
+            LanguageServer server = new (
+                input,
+                outputStream
+            );
+            Task<int> serverTask = server.RunAsync(CancellationToken.None);
+            await WriteMessageAsync(inputWriter, initialize);
+            await WriteMessageAsync(
+                inputWriter,
+                """
+                {"jsonrpc":"2.0","method":"workspace/didChangeConfiguration","params":{"settings":{"mulang":{"configuration":{"compilationMode":"expression","environment":{"globals":[{"id":"current","name":"current","type":"int"}]}}}}}}
+                """
+            );
+            await WriteMessageAsync(
+                inputWriter,
+                CreateOpenDocumentMessage(openUri, "current")
+            );
+            await WriteMessageAsync(inputWriter, ReferencesRequest(3));
+            await Task.Delay(250);
+            await File.WriteAllTextAsync(
+                unopenedPath,
+                "current + current"
+            );
+            await WriteMessageAsync(inputWriter, watchedChange);
+            await WriteMessageAsync(inputWriter, ReferencesRequest(4));
+            await WriteMessageAsync(
+                inputWriter,
+                """
+                {"jsonrpc":"2.0","id":2,"method":"shutdown"}
+                """
+            );
+            await WriteMessageAsync(
+                inputWriter,
+                """
+                {"jsonrpc":"2.0","method":"exit"}
+                """
+            );
+            Assert.That(
+                await serverTask.WaitAsync(TimeSpan.FromSeconds(5)),
+                Is.Zero
+            );
+            outputStream.Position = 0;
+            IReadOnlyList<JsonElement> output =
+                await ReadMessagesAsync(outputStream);
+            IReadOnlyList<JsonElement> responses =
+            [
+                .. output.Where(
+                    static message =>
+                        message.TryGetProperty(
+                            "id",
+                            out JsonElement id
+                        ) &&
+                        id.GetInt32() is 3 or 4
+                ),
+            ];
+
+            Assert.That(
+                responses.Select(
+                    static response =>
+                        response
+                            .GetProperty("result")
+                            .GetArrayLength()
+                ),
+                Is.EqualTo([2, 3])
+            );
+        }
+        finally
+        {
+            Directory.Delete(workspace, true);
+        }
     }
 
     [Test]

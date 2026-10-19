@@ -26,6 +26,8 @@ internal sealed class Binder
     private readonly ISet<(int Start, int Length)> readOnlyAssignmentDiagnostics;
     private readonly string returnContext;
     private readonly string? currentFunctionId;
+    private readonly Dictionary<SyntaxNode, ObjectPropertySymbol> properties;
+    private readonly Dictionary<ObjectPropertySymbol, ObjectTypeSymbol> propertyOwners;
     private readonly Dictionary<SyntaxNode, TypeSymbol> types;
     private BindingScope scope = new (null);
     private FlowState currentFlowState = new ([ ]);
@@ -49,7 +51,9 @@ internal sealed class Binder
         ISet<(int Start, int Length)>? readOnlyAssignmentDiagnostics = null,
         string? currentFunctionId = null,
         string returnContext = "program",
-        Dictionary<SyntaxNode, TypeSymbol>? types = null
+        Dictionary<SyntaxNode, TypeSymbol>? types = null,
+        Dictionary<SyntaxNode, ObjectPropertySymbol>? properties = null,
+        Dictionary<ObjectPropertySymbol, ObjectTypeSymbol>? propertyOwners = null
     )
     {
         this.source = source;
@@ -74,6 +78,14 @@ internal sealed class Binder
         this.types = types ?? new Dictionary<SyntaxNode, TypeSymbol>(
             ReferenceEqualityComparer.Instance
         );
+        this.properties = properties ??
+            new Dictionary<SyntaxNode, ObjectPropertySymbol>(
+                ReferenceEqualityComparer.Instance
+            );
+        this.propertyOwners = propertyOwners ??
+            new Dictionary<ObjectPropertySymbol, ObjectTypeSymbol>(
+                ReferenceEqualityComparer.Instance
+            );
     }
 
     public static BindingResult Bind(
@@ -152,6 +164,8 @@ internal sealed class Binder
             syntaxTree.CompilationMode,
             syntaxTree.LanguageProfile.Fingerprint,
             binder.types,
+            binder.properties,
+            binder.propertyOwners,
             syntaxTree.Source
         );
     }
@@ -439,7 +453,9 @@ internal sealed class Binder
             readOnlyAssignmentDiagnostics,
             function.Id,
             $"function '{function.Name}'",
-            types
+            types,
+            properties,
+            propertyOwners
         );
         userFunctionCalls.TryAdd(
             function.Id,
@@ -1963,6 +1979,11 @@ internal sealed class Binder
         };
         IList<BoundExpression.ObjectProperty> properties = [ ];
         ICollection<ObjectPropertySymbol> propertySymbols = [ ];
+        IList<(
+            ObjectPropertyInitializerSyntax Syntax,
+            ObjectPropertySymbol? Expected,
+            ObjectPropertySymbol? Created
+            )> propertyBindings = [ ];
         ISet<string> names = new HashSet<string>(StringComparer.Ordinal);
 
         if (
@@ -2112,13 +2133,21 @@ internal sealed class Binder
 
             if (isFirstDeclaration && includeProperty)
             {
-                propertySymbols.Add(
-                    new ObjectPropertySymbol(
-                        name,
-                        propertyType,
-                        isOptional,
-                        isReadOnly
-                    )
+                ObjectPropertySymbol property = new (
+                    name,
+                    propertyType,
+                    isOptional,
+                    isReadOnly
+                );
+                propertySymbols.Add(property);
+                propertyBindings.Add(
+                    (propertySyntax, expectedProperty, property)
+                );
+            }
+            else
+            {
+                propertyBindings.Add(
+                    (propertySyntax, expectedProperty, null)
                 );
             }
         }
@@ -2141,6 +2170,26 @@ internal sealed class Binder
         ObjectTypeSymbol objectType = !isFullSyntax && expectedObject is not null
             ? expectedObject
             : ObjectTypeSymbol.CreateAnonymous(syntax.IsOpen, propertySymbols);
+
+        foreach (
+            (
+                ObjectPropertyInitializerSyntax propertySyntax,
+                ObjectPropertySymbol? expectedProperty,
+                ObjectPropertySymbol? createdProperty
+            ) in propertyBindings
+        )
+        {
+            ObjectPropertySymbol? property =
+                !isFullSyntax && expectedObject is not null
+                    ? expectedProperty
+                    : createdProperty;
+
+            if (property is not null)
+            {
+                this.properties[propertySyntax] = property;
+                propertyOwners[property] = objectType;
+            }
+        }
 
         return new BoundExpression.Object(syntax, objectType, properties.AsReadOnly());
     }
@@ -2616,14 +2665,11 @@ internal sealed class Binder
         BoundExpression target = BindExpression(syntax.Target);
         BoundExpression key = BindExpression(syntax.Key, TypeSymbols.String);
         TypeSymbol targetType = GetNonNullable(target.Type);
-        bool isKnownPropertyTest =
-            targetType is ObjectTypeSymbol objectType &&
-            key is BoundExpression.Literal
-            {
-                Type.Kind: TypeKind.String,
-                Value: string propertyName,
-            } &&
-            objectType.TryGetProperty(propertyName, out _);
+        ObjectPropertySymbol? property =
+            targetType is ObjectTypeSymbol objectType
+                ? TryResolveLiteralProperty(key, objectType)
+                : null;
+        bool isKnownPropertyTest = property is not null;
 
         if (
             profile.OpenObjects == OpenObjectsFeature.Disabled &&
@@ -2650,7 +2696,7 @@ internal sealed class Binder
             );
         }
 
-        return new BoundExpression.PropertyTest(syntax, target, key);
+        return new BoundExpression.PropertyTest(syntax, target, key, property);
     }
 
     private BoundExpression BindConditionalExpression(
@@ -2768,7 +2814,10 @@ internal sealed class Binder
 
         if (userFunction is null && providerFunction is null)
         {
-            return new BoundExpression.Error(syntax);
+            return new BoundExpression.Error(
+                syntax,
+                arguments.AsReadOnly()
+            );
         }
 
         int parameterCount = userFunction?.Parameters.Count ??
@@ -2998,7 +3047,7 @@ internal sealed class Binder
             );
         }
 
-        return new BoundExpression.Error(syntax);
+        return new BoundExpression.Error(syntax, [ target ]);
     }
 
     private BoundExpression BindElementAccess(ElementAccessExpressionSyntax syntax)
@@ -3052,7 +3101,10 @@ internal sealed class Binder
                     syntax.Index.Span,
                     $"The selected property is not available on '{target.Type.DisplayName}'."
                 );
-                return new BoundExpression.Error(syntax);
+                return new BoundExpression.Error(
+                    syntax,
+                    [ target, index ]
+                );
             }
 
             ReportOptionalAccess(
@@ -3112,7 +3164,10 @@ internal sealed class Binder
                     syntax.Index.Span,
                     $"The selected property is not available on '{target.Type.DisplayName}'."
                 );
-                return new BoundExpression.Error(syntax);
+                return new BoundExpression.Error(
+                    syntax,
+                    [ target, index ]
+                );
             }
 
             TypeSymbol propertyType = property?.Type ??
@@ -3168,7 +3223,7 @@ internal sealed class Binder
             );
         }
 
-        BindExpression(syntax.Index);
+        BoundExpression invalidIndex = BindExpression(syntax.Index);
 
         if (target.Type.Kind != TypeKind.ErrorRecovery)
         {
@@ -3179,7 +3234,10 @@ internal sealed class Binder
             );
         }
 
-        return new BoundExpression.Error(syntax);
+        return new BoundExpression.Error(
+            syntax,
+            [ target, invalidIndex ]
+        );
     }
 
     private BoundExpression BindAssignmentTarget(
@@ -3378,6 +3436,8 @@ internal sealed class Binder
         );
 
         ICollection<ObjectPropertySymbol> properties = [ ];
+        IList<(ObjectTypePropertySyntax Syntax, ObjectPropertySymbol Symbol)>
+            propertyBindings = [ ];
         ISet<string> names = new HashSet<string>(StringComparer.Ordinal);
 
         foreach (ObjectTypePropertySyntax propertySyntax in syntax.Properties)
@@ -3412,23 +3472,43 @@ internal sealed class Binder
                 continue;
             }
 
-            properties.Add(
-                new ObjectPropertySymbol(
-                    name,
-                    propertyType,
-                    propertySyntax.IsOptional,
-                    propertySyntax.IsReadOnly
-                )
+            ObjectPropertySymbol property = new (
+                name,
+                propertyType,
+                propertySyntax.IsOptional,
+                propertySyntax.IsReadOnly
             );
+            properties.Add(property);
+            propertyBindings.Add((propertySyntax, property));
         }
+
+        ObjectTypeSymbol objectType;
 
         if (target is not null)
         {
             target.Complete(properties);
-            return target;
+            objectType = target;
+        }
+        else
+        {
+            objectType = ObjectTypeSymbol.CreateAnonymous(
+                syntax.IsOpen,
+                properties
+            );
         }
 
-        return ObjectTypeSymbol.CreateAnonymous(syntax.IsOpen, properties);
+        foreach (
+            (
+                ObjectTypePropertySyntax propertySyntax,
+                ObjectPropertySymbol property
+            ) in propertyBindings
+        )
+        {
+            this.properties[propertySyntax] = property;
+            propertyOwners[property] = objectType;
+        }
+
+        return objectType;
     }
 
     private static ObjectPropertySymbol? TryResolveLiteralProperty(

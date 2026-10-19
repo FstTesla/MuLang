@@ -12,8 +12,9 @@ The compiler, .NET exporter, standard library, language server, Visual Studio
 extension, specifications, API baselines, packages, and VSIX have completed the
 stable release cycle. Language samples now separate valid programs, warnings,
 and intentional semantic errors, and the MuIR serialization fixtures cover the
-current format capabilities. Compiler-backed hover is available for symbol
-declarations and references through the language server.
+current format capabilities. Compiler-backed hover, document highlights,
+definition navigation, workspace references, and dedicated property
+classification are available through the language server.
 
 ## Goal: package release `0.4.0`
 
@@ -24,20 +25,18 @@ release-blocking correctness fixes.
 
 ## Sequence
 
-1. **Build semantic editor features on the configured compiler model.** Follow
-   hover with definition navigation and references. Reuse compiler
-   symbols, source spans, and diagnostic-name infrastructure rather than
-   introducing editor-only semantic models.
-2. **Integrate the capabilities through the VSIX.** Extend the existing
-   language client and content-type registration without adding Visual
-   Studio dependencies to the compiler or language server. Preserve TextMate
-   highlighting as the immediate lexical fallback.
-3. **Add lexical MuIR editor support.** Register `.muir` as a separate content
+1. **Integrate the capabilities through the VSIX.** Extend the existing
+   language client and content-type registration without adding Visual Studio
+   dependencies to the compiler or language server. Add native classified
+   Quick Info that renders the compiler-backed hover model with theme-aware
+   Visual Studio classifications while retaining standard LSP hover for other
+   clients. Preserve TextMate highlighting as the immediate lexical fallback.
+2. **Add lexical MuIR editor support.** Register `.muir` as a separate content
    type with its own TextMate grammar for comments, strings, numbers, document
    sections, types, instructions, terminators, attributes, and `t`, `%`, `bb`,
    `lr`, and `er` references. Do not route MuIR documents through the MuLang
    source compiler.
-4. **Stabilize and release.** Validate the language server and VSIX across
+3. **Stabilize and release.** Validate the language server and VSIX across
    supported Visual Studio versions, retain cross-platform compiler and package
    validation, update editor documentation and samples, and publish beta and
    RC prereleases before tagging `0.4.0`.

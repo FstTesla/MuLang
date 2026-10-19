@@ -9,8 +9,14 @@ internal abstract record BoundExpression(
     TypeSymbol Type
 ) : BoundNode(Syntax)
 {
-    internal sealed record Error(SyntaxNode Syntax)
-        : BoundExpression(Syntax, TypeSymbols.ErrorRecovery);
+    internal sealed record Error(
+        SyntaxNode Syntax,
+        IReadOnlyList<BoundExpression> Children
+    ) : BoundExpression(Syntax, TypeSymbols.ErrorRecovery)
+    {
+        public Error(SyntaxNode syntax)
+            : this(syntax, []) { }
+    }
 
     internal sealed record Literal(
         SyntaxNode Syntax,
@@ -94,7 +100,8 @@ internal abstract record BoundExpression(
     internal sealed record PropertyTest(
         SyntaxNode Syntax,
         BoundExpression Target,
-        BoundExpression Key
+        BoundExpression Key,
+        ObjectPropertySymbol? Property
     ) : BoundExpression(Syntax, TypeSymbols.Bool);
 
     internal sealed record Conditional(

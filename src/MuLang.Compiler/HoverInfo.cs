@@ -5,13 +5,20 @@ namespace MuLang.Compiler;
 /// <summary>Represents semantic hover information over a source span.</summary>
 public sealed class HoverInfo
 {
-    internal HoverInfo(string content, TextSpan span)
+    internal HoverInfo(
+        IReadOnlyList<SemanticHoverItem> items,
+        TextSpan span
+    )
     {
-        Content = content;
+        Items = items;
+        Content = SemanticHoverFormatting.PlainText(items);
         Span = span;
     }
 
-    /// <summary>Gets the symbol signature in MuLang source notation.</summary>
+    /// <summary>Gets the categorized hover items.</summary>
+    public IReadOnlyList<SemanticHoverItem> Items { get; }
+
+    /// <summary>Gets the plain-text hover representation.</summary>
     public string Content { get; }
 
     /// <summary>Gets the source span described by the hover.</summary>

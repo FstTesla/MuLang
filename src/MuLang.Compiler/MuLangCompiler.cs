@@ -130,17 +130,71 @@ public static class MuLangCompiler
         LanguageProfile? profile = null
     )
     {
-        BindingResult binding = Bind(
-            CreateSourceText(source, null),
+        SemanticDocumentResult semanticDocument = GetSemanticDocument(
+            source,
             environment,
             compilationMode,
-            expectedResultType,
-            profile
+            new MuLangCompilationOptions
+            {
+                ExpectedResultType = expectedResultType,
+                Profile = profile,
+            }
         );
 
         return new SemanticClassificationResult(
-            SemanticClassifier.Classify(binding),
-            binding.Diagnostics
+            [
+                .. semanticDocument.Occurrences
+                    .Where(
+                        static occurrence =>
+                            occurrence.IsClassification
+                    )
+                    .Select(
+                        static occurrence =>
+                            new SemanticClassification(
+                                occurrence.Kind,
+                                occurrence.Modifiers,
+                                occurrence.Span
+                            )
+                    ),
+            ],
+            semanticDocument.Diagnostics
+        );
+    }
+
+    /// <summary>Gets the resolved semantic model for MuLang source code.</summary>
+    /// <param name="source">The MuLang source code.</param>
+    /// <param name="environment">The environment schema available to the source code.</param>
+    /// <param name="compilationMode">The compilation mode.</param>
+    /// <param name="options">The analysis options, or <c>null</c> to use <see cref="MuLangCompilationOptions.Default" />.</param>
+    /// <returns>The resolved semantic document.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="source" /> or <paramref name="environment" /> is <c>null</c>.</exception>
+    /// <exception cref="ArgumentException">Thrown when the source document URI, result type, or language version is incompatible with the analysis settings.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="compilationMode" /> is not defined.</exception>
+    public static SemanticDocumentResult GetSemanticDocument(
+        string source,
+        EnvironmentSchema environment,
+        CompilationMode compilationMode,
+        MuLangCompilationOptions? options = null
+    )
+    {
+        options ??= MuLangCompilationOptions.Default;
+        SourceText sourceText = CreateSourceText(
+            source,
+            options.SourceDocument
+        );
+        BindingResult binding = Bind(
+            sourceText,
+            environment,
+            compilationMode,
+            options.ExpectedResultType,
+            options.Profile
+        );
+
+        return new SemanticDocumentResult(
+            SemanticDocumentBuilder.Build(binding),
+            binding.Diagnostics,
+            options.SourceDocument,
+            sourceText.LineMap
         );
     }
 
@@ -162,31 +216,17 @@ public static class MuLangCompiler
         MuLangCompilationOptions? options = null
     )
     {
-        options ??= MuLangCompilationOptions.Default;
-        SourceText sourceText = CreateSourceText(source, options.SourceDocument);
-
-        if (offset < 0 || offset > sourceText.Length)
-        {
-            throw new ArgumentOutOfRangeException(nameof(offset));
-        }
-
-        BindingResult binding = Bind(
-            sourceText,
+        SemanticDocumentResult semanticDocument = GetSemanticDocument(
+            source,
             environment,
             compilationMode,
-            options.ExpectedResultType,
-            options.Profile
+            options
         );
-        HoverInfo? hover = null;
-        SemanticClassifier.Classify(
-            binding,
-            offset,
-            (span, content) =>
-            {
-                hover = new HoverInfo(content, span);
-            }
-        );
-        return hover;
+        SemanticOccurrence? occurrence =
+            semanticDocument.GetOccurrence(offset);
+        return occurrence is { HoverItems.Count: > 0 }
+            ? new HoverInfo(occurrence.HoverItems, occurrence.Span)
+            : null;
     }
 
     /// <summary>Compiles MuLang source code using the specified compilation settings.</summary>

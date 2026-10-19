@@ -17,4 +17,7 @@ public enum SemanticClassificationKind
 
     /// <summary>Identifies an object property.</summary>
     Property,
+
+    /// <summary>Identifies a literal value for editor information.</summary>
+    Literal,
 }

@@ -53,6 +53,10 @@ public sealed class TypeSymbolsTests
         {
             Assert.That(TypeSymbols.ErrorValue.Kind, Is.EqualTo(TypeKind.ErrorValue));
             Assert.That(TypeSymbols.ErrorValue.DisplayName, Is.EqualTo("error"));
+            Assert.That(
+                TypeSymbols.ErrorRecovery.DisplayName,
+                Is.EqualTo("<unresolved>")
+            );
             Assert.That(TypeSymbols.Error, Is.SameAs(TypeSymbols.ErrorRecovery));
             Assert.That(TypeKind.Error, Is.EqualTo(TypeKind.ErrorRecovery));
         }

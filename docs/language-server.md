@@ -56,12 +56,62 @@ symbols use the same compiler binding as diagnostics and semantic tokens.
 Signatures include inferred types, read-only and optional modifiers, function
 parameters and return types, and structural type properties. Array `length`,
 literal property indexing, and exception-handler symbols are supported.
+Each item has an editor category such as `variable`, `parameter`, `function`,
+`type`, `property`, `literal`, or `expression`; declaration keywords are not
+part of the signature.
+Locals whose type cannot be inferred because of an earlier source error use
+`<unresolved>` as the compiler recovery type.
+Undefined variable names show `name: <unresolved>` without becoming navigable
+symbols or receiving semantic coloring.
+Scalar literals show their source spelling and bound type. Undefined calls show
+`name(...): <unresolved>`, missing properties show
+`name: <unresolved>`, and valid dynamic properties show their `unknown?` result
+type. For dynamic element access, the key hover also includes the complete
+access expression and its result type.
 Keywords and operators do not have descriptive hover text.
 
 Hover ranges and request positions use UTF-16. Clients advertising Markdown
-receive a MuLang code block; other clients receive plain text. Unresolved
-symbols, whitespace, and unopened or closed documents return `null`. Document
-and configuration changes are reflected in subsequent requests.
+receive italic `(category)` prefixes; other clients receive `[category]`
+prefixes. Whitespace, unsupported atoms, and unopened or closed documents
+return `null`. Document and configuration changes are reflected in subsequent
+requests.
+
+## Semantic navigation
+
+The server advertises `documentHighlightProvider`, `definitionProvider`, and
+`referencesProvider`.
+
+Document highlights use compiler symbol identity rather than matching source
+text. Moving the caret onto a resolved symbol highlights its declaration and
+references in the current document, with separate LSP kinds for reads and
+writes. Shadowed locals and same-named properties on different object types are
+kept separate.
+
+Definition navigation resolves locals, catch variables, parameters, user
+functions, source types, and source or inferred object properties. Configured
+host symbols, intrinsic types, dynamic properties, array `length`, and built-in
+`error` properties have no source definition.
+
+Find All References searches the current document for source-local symbols.
+Configured host symbols and built-in properties are searched across every
+`.mu` and `.mulang` file in the workspace, including unopened files. Open
+documents take precedence over disk content, and each document uses its own
+effective workspace configuration.
+
+All navigation positions and ranges use UTF-16. Unknown documents, unresolved
+symbols, and non-symbol positions return no result.
+
+## Property highlighting
+
+Semantic property highlighting covers object-type and object-literal
+declarations, member access, statically resolved literal-key access, property
+tests, array `length`, and built-in `error` properties. Dynamic member names
+remain property-colored but do not participate in navigation.
+
+Standard LSP clients receive the `property` semantic-token type. Visual Studio
+receives its native `property name` classification, so property colors follow
+the active theme and Fonts and Colors settings independently from types,
+functions, parameters, and variables.
 
 ## Workspace configuration
 

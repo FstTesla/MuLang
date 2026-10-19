@@ -12,5 +12,7 @@ internal sealed record BindingResult(
     CompilationMode CompilationMode,
     LanguageProfileFingerprint LanguageProfileFingerprint,
     IReadOnlyDictionary<SyntaxNode, TypeSymbol> Types,
+    IReadOnlyDictionary<SyntaxNode, ObjectPropertySymbol> Properties,
+    IReadOnlyDictionary<ObjectPropertySymbol, ObjectTypeSymbol> PropertyOwners,
     SourceText Source
 );
