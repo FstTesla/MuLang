@@ -13,6 +13,7 @@ internal static class SemanticHoverFormatting
             SemanticHoverCategory.Property => "property",
             SemanticHoverCategory.Literal => "literal",
             SemanticHoverCategory.Expression => "expression",
+            SemanticHoverCategory.Operator => "operator",
             _ => throw new ArgumentOutOfRangeException(nameof(category)),
         };
     }

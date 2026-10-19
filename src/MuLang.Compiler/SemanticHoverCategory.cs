@@ -23,4 +23,7 @@ public enum SemanticHoverCategory
 
     /// <summary>Identifies an expression result.</summary>
     Expression,
+
+    /// <summary>Identifies an operator signature.</summary>
+    Operator,
 }

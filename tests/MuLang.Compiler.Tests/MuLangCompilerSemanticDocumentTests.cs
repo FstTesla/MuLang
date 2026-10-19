@@ -270,6 +270,89 @@ public sealed class MuLangCompilerSemanticDocumentTests
     }
 
     [Test]
+    public void MatchesIntrinsicTypesAcrossIndependentDocuments()
+    {
+        const string firstSource = "var value: int = 1;";
+        const string secondSource =
+            "func identity(value: int): int { return value; }";
+        SemanticDocumentResult first = Analyze(firstSource);
+        SemanticDocumentResult second = Analyze(secondSource);
+        SemanticSymbolKey firstKey = first.Occurrences.Single(
+            occurrence =>
+                occurrence.Kind == SemanticClassificationKind.Type &&
+                SourceText.From(firstSource).GetText(occurrence.Span) ==
+                "int"
+        ).Symbol!;
+        IReadOnlyList<SemanticSymbolKey> secondKeys =
+        [
+            .. second.Occurrences
+                .Where(
+                    occurrence =>
+                        occurrence.Kind ==
+                        SemanticClassificationKind.Type
+                )
+                .Select(static occurrence => occurrence.Symbol!),
+        ];
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(firstKey.IsWorkspaceStable, Is.True);
+            Assert.That(secondKeys, Has.Count.EqualTo(2));
+            Assert.That(secondKeys, Is.All.EqualTo(firstKey));
+        }
+    }
+
+    [Test]
+    public void UnifiesThrowPrototypeAndErrorProperties()
+    {
+        const string source = """
+                              func run(): void {
+                                  try {
+                                      throw {
+                                          message = "outer",
+                                          cause = {
+                                              message = "inner",
+                                          },
+                                      };
+                                  } catch (failure) {
+                                      var text = failure.message;
+                                  }
+                              }
+                              """;
+        SourceText sourceText = SourceText.From(source);
+        SemanticDocumentResult result = Analyze(source);
+        IReadOnlyList<SemanticOccurrence> messages =
+        [
+            .. result.Occurrences.Where(
+                occurrence =>
+                    occurrence.Kind ==
+                        SemanticClassificationKind.Property &&
+                    sourceText.GetText(occurrence.Span) == "message"
+            ),
+        ];
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(messages, Has.Count.EqualTo(3));
+            Assert.That(
+                messages.Select(static occurrence => occurrence.Symbol),
+                Is.All.EqualTo(messages[0].Symbol)
+            );
+            Assert.That(messages[0].Symbol!.IsWorkspaceStable, Is.True);
+            Assert.That(
+                messages.Select(static occurrence => occurrence.Role),
+                Is.EqualTo(
+                    [
+                        SemanticOccurrenceRole.Write,
+                        SemanticOccurrenceRole.Write,
+                        SemanticOccurrenceRole.Read,
+                    ]
+                )
+            );
+        }
+    }
+
+    [Test]
     public void TreatsLegacyConfiguredPropertyInitializersAsWrites()
     {
         ObjectTypeSymbol itemType = new (

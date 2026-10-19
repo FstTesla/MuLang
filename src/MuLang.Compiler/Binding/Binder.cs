@@ -29,6 +29,7 @@ internal sealed class Binder
     private readonly Dictionary<SyntaxNode, ObjectPropertySymbol> properties;
     private readonly Dictionary<ObjectPropertySymbol, ObjectTypeSymbol> propertyOwners;
     private readonly Dictionary<SyntaxNode, TypeSymbol> types;
+    private readonly HashSet<ObjectPropertySymbol> wellKnownErrorProperties;
     private BindingScope scope = new (null);
     private FlowState currentFlowState = new ([ ]);
     private readonly Stack<LoopFlowContext> loopContexts = [ ];
@@ -53,7 +54,8 @@ internal sealed class Binder
         string returnContext = "program",
         Dictionary<SyntaxNode, TypeSymbol>? types = null,
         Dictionary<SyntaxNode, ObjectPropertySymbol>? properties = null,
-        Dictionary<ObjectPropertySymbol, ObjectTypeSymbol>? propertyOwners = null
+        Dictionary<ObjectPropertySymbol, ObjectTypeSymbol>? propertyOwners = null,
+        HashSet<ObjectPropertySymbol>? wellKnownErrorProperties = null
     )
     {
         this.source = source;
@@ -84,6 +86,10 @@ internal sealed class Binder
             );
         this.propertyOwners = propertyOwners ??
             new Dictionary<ObjectPropertySymbol, ObjectTypeSymbol>(
+                ReferenceEqualityComparer.Instance
+            );
+        this.wellKnownErrorProperties = wellKnownErrorProperties ??
+            new HashSet<ObjectPropertySymbol>(
                 ReferenceEqualityComparer.Instance
             );
     }
@@ -166,6 +172,7 @@ internal sealed class Binder
             binder.types,
             binder.properties,
             binder.propertyOwners,
+            binder.wellKnownErrorProperties,
             syntaxTree.Source
         );
     }
@@ -455,7 +462,8 @@ internal sealed class Binder
             $"function '{function.Name}'",
             types,
             properties,
-            propertyOwners
+            propertyOwners,
+            wellKnownErrorProperties
         );
         userFunctionCalls.TryAdd(
             function.Id,
@@ -2188,6 +2196,14 @@ internal sealed class Binder
             {
                 this.properties[propertySyntax] = property;
                 propertyOwners[property] = objectType;
+
+                if (
+                    isErrorPrototypeContext &&
+                    IsRecognizedErrorPrototypeProperty(property.Name)
+                )
+                {
+                    wellKnownErrorProperties.Add(property);
+                }
             }
         }
 
@@ -2227,7 +2243,7 @@ internal sealed class Binder
         {
             if (operand.Type.Kind == TypeKind.ErrorRecovery)
             {
-                return new BoundExpression.Error(syntax);
+                return new BoundExpression.Error(syntax, [ operand ]);
             }
 
             if (operand.Type.Kind == TypeKind.Void)
@@ -2236,7 +2252,7 @@ internal sealed class Binder
                     syntax.OperatorToken,
                     operand.Type
                 );
-                return new BoundExpression.Error(syntax);
+                return new BoundExpression.Error(syntax, [ operand ]);
             }
 
             operand = NormalizeTruthiness(operand);
@@ -2265,7 +2281,7 @@ internal sealed class Binder
 
         if (operand.Type.Kind == TypeKind.ErrorRecovery)
         {
-            return new BoundExpression.Error(syntax);
+            return new BoundExpression.Error(syntax, [ operand ]);
         }
 
         if (resultType is null)
@@ -2274,7 +2290,7 @@ internal sealed class Binder
                 syntax.OperatorToken,
                 operand.Type
             );
-            return new BoundExpression.Error(syntax);
+            return new BoundExpression.Error(syntax, [ operand ]);
         }
 
         operand = ConvertRequiredOperand(operand, resultType);
@@ -2301,7 +2317,10 @@ internal sealed class Binder
 
         if (left.Type.Kind == TypeKind.ErrorRecovery || right.Type.Kind == TypeKind.ErrorRecovery)
         {
-            return new BoundExpression.Error(syntax);
+            return new BoundExpression.Error(
+                syntax,
+                [ left, right ]
+            );
         }
 
         if (
@@ -2321,7 +2340,10 @@ internal sealed class Binder
                     left.Type,
                     right.Type
                 );
-                return new BoundExpression.Error(syntax);
+                return new BoundExpression.Error(
+                    syntax,
+                    [ left, right ]
+                );
             }
 
             BoundExpression.Binary truthinessResult = new (
@@ -2350,7 +2372,10 @@ internal sealed class Binder
                 left.Type,
                 right.Type
             );
-            return new BoundExpression.Error(syntax);
+            return new BoundExpression.Error(
+                syntax,
+                [ left, right ]
+            );
         }
 
         ApplyBinaryConversions(
@@ -2773,6 +2798,7 @@ internal sealed class Binder
     {
         FunctionSymbol? providerFunction = null;
         UserFunctionSymbol? userFunction = null;
+        BoundExpression? invalidTarget = null;
 
         if (syntax.Target is NameExpressionSyntax nameSyntax)
         {
@@ -2790,7 +2816,7 @@ internal sealed class Binder
         }
         else
         {
-            BindExpression(syntax.Target);
+            invalidTarget = BindExpression(syntax.Target);
             Report(
                 DiagnosticCodes.InvalidCallTarget,
                 syntax.Target.Span,
@@ -2816,7 +2842,13 @@ internal sealed class Binder
         {
             return new BoundExpression.Error(
                 syntax,
-                arguments.AsReadOnly()
+                invalidTarget is null
+                    ? arguments.AsReadOnly()
+                    :
+                    [
+                        invalidTarget,
+                        .. arguments,
+                    ]
             );
         }
 

@@ -600,7 +600,8 @@ public sealed class LanguageServerTests
     {
         const string source =
             "var obj: object = { }; var key = \"name\"; " +
-            "var missingValue = missing; var access = obj[key];";
+            "var missingValue = missing; var access = obj[key]; " +
+            "var comparison = 1 > 2;";
         int missing = source.IndexOf(
             "missing;",
             StringComparison.Ordinal
@@ -609,6 +610,10 @@ public sealed class LanguageServerTests
             "obj[key]",
             StringComparison.Ordinal
         ) + "obj[".Length;
+        int comparison = source.LastIndexOf(
+            ">",
+            StringComparison.Ordinal
+        );
         string HoverRequest(int id, int character) =>
             JsonSerializer.Serialize(
                 new
@@ -630,6 +635,7 @@ public sealed class LanguageServerTests
             CreateOpenDocumentMessage("file:///test.mu", source),
             HoverRequest(3, missing),
             HoverRequest(4, key),
+            HoverRequest(5, comparison),
             """
             {"jsonrpc":"2.0","id":2,"method":"shutdown"}
             """,
@@ -646,7 +652,7 @@ public sealed class LanguageServerTests
                             "id",
                             out JsonElement id
                         ) &&
-                        id.GetInt32() is 3 or 4
+                        id.GetInt32() is 3 or 4 or 5
                 )
                 .OrderBy(
                     static message =>
@@ -668,6 +674,7 @@ public sealed class LanguageServerTests
                 [
                     "*(variable)* missing: &lt;unresolved&gt;",
                     "*(variable)* key: string\n\n*(expression)* obj\\[key\\]: unknown?",
+                    "*(operator)* &gt;(int, int): bool",
                 ]
             )
         );
@@ -1110,6 +1117,83 @@ public sealed class LanguageServerTests
     }
 
     [Test]
+    public async Task HighlightsIntrinsicTypesAndWellKnownErrorProperties()
+    {
+        const string source =
+            "func run(): void { try { throw { message = \"failure\" }; } " +
+            "catch (failure) { var text = failure.message; } } " +
+            "var first: int = 1; var second: int = 2; var inferred = 3;";
+        int intrinsicType = source.IndexOf(
+            "int",
+            StringComparison.Ordinal
+        );
+        int errorProperty = source.IndexOf(
+            "message",
+            StringComparison.Ordinal
+        );
+        string HighlightRequest(int id, int character) =>
+            JsonSerializer.Serialize(
+                new
+                {
+                    jsonrpc = "2.0",
+                    id,
+                    method = "textDocument/documentHighlight",
+                    @params = new
+                    {
+                        textDocument = new { uri = "file:///test.mu" },
+                        position = new { line = 0, character },
+                    },
+                }
+            );
+        IReadOnlyList<JsonElement> output = await RunServerAsync(
+            """
+            {"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}
+            """,
+            CreateOpenDocumentMessage("file:///test.mu", source),
+            HighlightRequest(3, intrinsicType),
+            HighlightRequest(4, errorProperty),
+            """
+            {"jsonrpc":"2.0","id":2,"method":"shutdown"}
+            """,
+            """
+            {"jsonrpc":"2.0","method":"exit"}
+            """
+        );
+        IReadOnlyList<JsonElement> highlights =
+        [
+            .. output
+                .Where(
+                    static message =>
+                        message.TryGetProperty(
+                            "id",
+                            out JsonElement id
+                        ) &&
+                        id.GetInt32() is 3 or 4
+                )
+                .OrderBy(
+                    static message =>
+                        message.GetProperty("id").GetInt32()
+                )
+                .Select(
+                    static message =>
+                        message.GetProperty("result")
+                ),
+        ];
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(
+                highlights[0].GetArrayLength(),
+                Is.EqualTo(2)
+            );
+            Assert.That(
+                highlights[1].GetArrayLength(),
+                Is.EqualTo(2)
+            );
+        }
+    }
+
+    [Test]
     public async Task ReturnsSourceDefinitionLocations()
     {
         const string source =
@@ -1363,6 +1447,129 @@ public sealed class LanguageServerTests
                             new Uri(unopenedPath).AbsoluteUri
                     ),
                     Is.EqualTo(1)
+                );
+            }
+        }
+        finally
+        {
+            Directory.Delete(workspace, true);
+        }
+    }
+
+    [Test]
+    public async Task FindsIntrinsicAndWellKnownPropertyReferencesInWorkspace()
+    {
+        string workspace = Path.Combine(
+            Path.GetTempPath(),
+            $"MuLang.LanguageServer.BuiltInReferences-{Guid.NewGuid():N}"
+        );
+        Directory.CreateDirectory(workspace);
+
+        try
+        {
+            string openPath = Path.Combine(workspace, "open.mu");
+            string unopenedPath = Path.Combine(workspace, "unopened.mu");
+            const string openSource =
+                "func fail(): void { throw { message = \"failure\" }; } " +
+                "var value: int = 1;";
+            const string unopenedSource =
+                "func observe(failure: error): void { " +
+                "var text = failure.message; } " +
+                "var other: int = 2;";
+            await File.WriteAllTextAsync(openPath, openSource);
+            await File.WriteAllTextAsync(
+                unopenedPath,
+                unopenedSource
+            );
+            string openUri = new Uri(openPath).AbsoluteUri;
+            string workspaceUri = new Uri(workspace).AbsoluteUri;
+            string initialize = JsonSerializer.Serialize(
+                new
+                {
+                    jsonrpc = "2.0",
+                    id = 1,
+                    method = "initialize",
+                    @params = new
+                    {
+                        workspaceFolders = new[]
+                        {
+                            new
+                            {
+                                uri = workspaceUri,
+                                name = "workspace",
+                            },
+                        },
+                    },
+                }
+            );
+            string ReferencesRequest(int id, int character) =>
+                JsonSerializer.Serialize(
+                    new
+                    {
+                        jsonrpc = "2.0",
+                        id,
+                        method = "textDocument/references",
+                        @params = new
+                        {
+                            textDocument = new { uri = openUri },
+                            position = new { line = 0, character },
+                            context = new
+                            {
+                                includeDeclaration = true,
+                            },
+                        },
+                    }
+                );
+            int intrinsicType = openSource.IndexOf(
+                "int",
+                StringComparison.Ordinal
+            );
+            int errorProperty = openSource.IndexOf(
+                "message",
+                StringComparison.Ordinal
+            );
+            IReadOnlyList<JsonElement> output = await RunServerAsync(
+                initialize,
+                CreateOpenDocumentMessage(openUri, openSource),
+                ReferencesRequest(3, intrinsicType),
+                ReferencesRequest(4, errorProperty),
+                """
+                {"jsonrpc":"2.0","id":2,"method":"shutdown"}
+                """,
+                """
+                {"jsonrpc":"2.0","method":"exit"}
+                """
+            );
+            IReadOnlyList<JsonElement> references =
+            [
+                .. output
+                    .Where(
+                        static message =>
+                            message.TryGetProperty(
+                                "id",
+                                out JsonElement id
+                            ) &&
+                            id.GetInt32() is 3 or 4
+                    )
+                    .OrderBy(
+                        static message =>
+                            message.GetProperty("id").GetInt32()
+                    )
+                    .Select(
+                        static message =>
+                            message.GetProperty("result")
+                    ),
+            ];
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(
+                    references[0].GetArrayLength(),
+                    Is.EqualTo(2)
+                );
+                Assert.That(
+                    references[1].GetArrayLength(),
+                    Is.EqualTo(2)
                 );
             }
         }

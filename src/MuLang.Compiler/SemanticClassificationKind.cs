@@ -20,4 +20,7 @@ public enum SemanticClassificationKind
 
     /// <summary>Identifies a literal value for editor information.</summary>
     Literal,
+
+    /// <summary>Identifies an operator for editor information.</summary>
+    Operator,
 }

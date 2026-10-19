@@ -57,10 +57,11 @@ Signatures include inferred types, read-only and optional modifiers, function
 parameters and return types, and structural type properties. Array `length`,
 literal property indexing, and exception-handler symbols are supported.
 Each item has an editor category such as `variable`, `parameter`, `function`,
-`type`, `property`, `literal`, or `expression`; declaration keywords are not
-part of the signature.
+`type`, `property`, `literal`, `expression`, or `operator`; declaration
+keywords are not part of the signature.
 Locals whose type cannot be inferred because of an earlier source error use
 `<unresolved>` as the compiler recovery type.
+Parameters whose declared type cannot be resolved use the same recovery type.
 Undefined variable names show `name: <unresolved>` without becoming navigable
 symbols or receiving semantic coloring.
 Scalar literals show their source spelling and bound type. Undefined calls show
@@ -68,7 +69,15 @@ Scalar literals show their source spelling and bound type. Undefined calls show
 `name: <unresolved>`, and valid dynamic properties show their `unknown?` result
 type. For dynamic element access, the key hover also includes the complete
 access expression and its result type.
-Keywords and operators do not have descriptive hover text.
+Unary and binary arithmetic, logical, relational, equality, identity, and
+bitwise operators show function-shaped signatures based on their bound operand
+and result types. Invalid operators use `<unresolved>` as their result type.
+A sign lexed as part of a numeric literal remains part of the literal hover;
+unary `+` and `-` applied to expressions use operator hover.
+`is`, `has`, `as`, coalescing, assignment, and removal operators do not have
+operator hover.
+When a call target is not a simple function name, its own expression hover is
+preserved without synthesizing a function signature.
 
 Hover ranges and request positions use UTF-16. Clients advertising Markdown
 receive italic `(category)` prefixes; other clients receive `[category]`
@@ -97,6 +106,12 @@ Configured host symbols and built-in properties are searched across every
 `.mu` and `.mulang` file in the workspace, including unopened files. Open
 documents take precedence over disk content, and each document uses its own
 effective workspace configuration.
+
+Intrinsic type tokens have workspace-stable identities for highlights and
+references. Literals and symbols whose inferred type is intrinsic are not
+included unless an intrinsic type token is explicitly present. The well-known
+`code`, `message`, `cause`, and `data` properties in `throw` object literals
+share identity with the corresponding built-in properties of `error`.
 
 All navigation positions and ranges use UTF-16. Unknown documents, unresolved
 symbols, and non-symbol positions return no result.

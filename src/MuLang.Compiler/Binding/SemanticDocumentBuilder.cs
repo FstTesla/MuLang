@@ -55,6 +55,13 @@ internal static class SemanticDocumentBuilder
                     type,
                     SemanticClassificationKind.Type
                 ),
+                { Kind: not TypeKind.ErrorRecovery } when
+                    IsIntrinsicType(type.Kind) =>
+                    StableKey(
+                        SemanticClassificationKind.Type,
+                        "intrinsic-type",
+                        type.Kind.ToString()
+                    ),
                 _ => null,
             };
         }
@@ -64,7 +71,9 @@ internal static class SemanticDocumentBuilder
             ObjectTypeSymbol? owner
         )
         {
-            return owner?.Id is { } ownerId
+            return binding.WellKnownErrorProperties.Contains(property)
+                ? BuiltInPropertyKey("error", property.Name)
+                : owner?.Id is { } ownerId
                 ? StableKey(
                     SemanticClassificationKind.Property,
                     $"property:{ownerId.Length}:{ownerId}",
@@ -151,6 +160,8 @@ internal static class SemanticDocumentBuilder
                     SemanticHoverCategory.Property,
                 SemanticClassificationKind.Literal =>
                     SemanticHoverCategory.Literal,
+                SemanticClassificationKind.Operator =>
+                    SemanticHoverCategory.Operator,
                 _ => throw new ArgumentOutOfRangeException(nameof(kind)),
             };
         }
@@ -188,6 +199,26 @@ internal static class SemanticDocumentBuilder
             return SymbolDisplay.Expression(
                 Source(expression.Span),
                 expression.Type
+            );
+        }
+
+        void AddOperator(
+            SyntaxToken token,
+            IReadOnlyList<TypeSymbol> operands,
+            TypeSymbol result
+        )
+        {
+            Add(
+                null,
+                SemanticClassificationKind.Operator,
+                SemanticOccurrenceRole.Reference,
+                token.Span,
+                SymbolDisplay.Operator(
+                    Source(token.Span),
+                    operands,
+                    result
+                ),
+                isClassification: false
             );
         }
 
@@ -719,6 +750,50 @@ internal static class SemanticDocumentBuilder
                     break;
                 }
 
+                case BoundExpression.Error
+                {
+                    Syntax: UnaryExpressionSyntax syntax,
+                    Children: [ BoundExpression operand ],
+                }:
+                {
+                    VisitExpression(
+                        operand,
+                        SemanticOccurrenceRole.Read
+                    );
+                    AddOperator(
+                        syntax.OperatorToken,
+                        [ operand.Type ],
+                        TypeSymbols.ErrorRecovery
+                    );
+                    break;
+                }
+
+                case BoundExpression.Error
+                {
+                    Syntax: BinaryExpressionSyntax syntax,
+                    Children:
+                    [
+                        BoundExpression left,
+                        BoundExpression right,
+                    ],
+                } when IsHoverOperator(syntax.OperatorToken.Kind):
+                {
+                    VisitExpression(
+                        left,
+                        SemanticOccurrenceRole.Read
+                    );
+                    VisitExpression(
+                        right,
+                        SemanticOccurrenceRole.Read
+                    );
+                    AddOperator(
+                        syntax.OperatorToken,
+                        [ left.Type, right.Type ],
+                        TypeSymbols.ErrorRecovery
+                    );
+                    break;
+                }
+
                 case BoundExpression.Error error:
                 {
                     foreach (BoundExpression child in error.Children)
@@ -773,9 +848,7 @@ internal static class SemanticDocumentBuilder
                         SemanticClassificationKind.Parameter,
                         role,
                         parameter.Span,
-                        parameter.Type.Kind == TypeKind.ErrorRecovery
-                            ? null
-                            : SymbolDisplay.Parameter(parameter.Symbol)
+                        SymbolDisplay.Parameter(parameter.Symbol)
                     );
                     break;
                 }
@@ -889,6 +962,12 @@ internal static class SemanticDocumentBuilder
                         unary.Operand,
                         SemanticOccurrenceRole.Read
                     );
+                    AddOperator(
+                        ((UnaryExpressionSyntax)unary.Syntax)
+                            .OperatorToken,
+                        [ unary.Operand.Type ],
+                        unary.Type
+                    );
                     break;
                 }
 
@@ -901,6 +980,12 @@ internal static class SemanticDocumentBuilder
                     VisitExpression(
                         binary.Right,
                         SemanticOccurrenceRole.Read
+                    );
+                    AddOperator(
+                        ((BinaryExpressionSyntax)binary.Syntax)
+                            .OperatorToken,
+                        [ binary.Left.Type, binary.Right.Type ],
+                        binary.Type
                     );
                     break;
                 }
@@ -1268,10 +1353,7 @@ internal static class SemanticDocumentBuilder
                             ),
                             SemanticClassificationKind.Parameter,
                             parameter.IdentifierToken.Span,
-                            parameterSymbol.Type.Kind ==
-                                TypeKind.ErrorRecovery
-                                ? null
-                                : SymbolDisplay.Parameter(parameterSymbol),
+                            SymbolDisplay.Parameter(parameterSymbol),
                             SemanticClassificationModifiers.None
                         );
                         VisitType(parameter.Type);
@@ -1315,6 +1397,48 @@ internal static class SemanticDocumentBuilder
             return type is NullableTypeSymbol nullable
                 ? nullable.UnderlyingType
                 : type;
+        }
+
+        static bool IsHoverOperator(TokenKind kind)
+        {
+            return kind is
+                TokenKind.Plus or
+                TokenKind.Minus or
+                TokenKind.Asterisk or
+                TokenKind.Slash or
+                TokenKind.Percent or
+                TokenKind.LessThan or
+                TokenKind.LessThanOrEqual or
+                TokenKind.GreaterThan or
+                TokenKind.GreaterThanOrEqual or
+                TokenKind.EqualEqual or
+                TokenKind.EqualEqualEqual or
+                TokenKind.BangEqual or
+                TokenKind.BangEqualEqual or
+                TokenKind.Ampersand or
+                TokenKind.AmpersandAmpersand or
+                TokenKind.Caret or
+                TokenKind.Pipe or
+                TokenKind.PipePipe or
+                TokenKind.LeftShift or
+                TokenKind.RightShift or
+                TokenKind.Bang or
+                TokenKind.Tilde;
+        }
+
+        static bool IsIntrinsicType(TypeKind kind)
+        {
+            return kind is
+                TypeKind.Bool or
+                TypeKind.Int or
+                TypeKind.Float or
+                TypeKind.Number or
+                TypeKind.String or
+                TypeKind.Primitive or
+                TypeKind.ErrorValue or
+                TypeKind.Unknown or
+                TypeKind.Object or
+                TypeKind.Void;
         }
     }
 }

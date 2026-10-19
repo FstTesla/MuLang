@@ -82,6 +82,15 @@ internal static class SymbolDisplay
         return $"{source}: {Type(type)}";
     }
 
+    public static string Operator(
+        string symbol,
+        IEnumerable<TypeSymbol> operands,
+        TypeSymbol result
+    )
+    {
+        return $"{symbol}({string.Join(", ", operands.Select(Type))}): {Type(result)}";
+    }
+
     public static string Type(TypeSymbol type)
     {
         return type switch

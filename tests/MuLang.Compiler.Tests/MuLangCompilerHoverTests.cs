@@ -16,6 +16,7 @@ public sealed class MuLangCompilerHoverTests
     [TestCase("func identity(value: int): int { return value; } |identity(1);", "[function] identity(value: int): int", "identity")]
     [TestCase("func identity(|value: int): int { return value; }", "[parameter] value: int", "value")]
     [TestCase("func identity(value: int): int { return |value; }", "[parameter] value: int", "value")]
+    [TestCase("func run(|value: Missing): void { }", "[parameter] value: <unresolved>", "value")]
     [TestCase("func |run(): void { }", "[function] run(): void", "run")]
     [TestCase("var value: |int = 1;", "[type] int", "int")]
     [TestCase("type |Node { next?: Node };", "[type] Node { next?: Node }", "Node")]
@@ -48,7 +49,7 @@ public sealed class MuLangCompilerHoverTests
     [TestCase("var |value = missing;", "[variable] value: <unresolved>", "value")]
     [TestCase("var value = |missing;", "[variable] missing: <unresolved>", "missing")]
     [TestCase("var value = |1;", "[literal] 1: int", "1")]
-    [TestCase("var value = |-1;", "[literal] -1: int", "-1")]
+    [TestCase("var value = -|1;", "[literal] -1: int", "-1")]
     [TestCase("var value = |1.5;", "[literal] 1.5: float", "1.5")]
     [TestCase("var value = |\"text\";", "[literal] \"text\": string", "\"text\"")]
     [TestCase("var value = |true;", "[literal] true: bool", "true")]
@@ -61,6 +62,22 @@ public sealed class MuLangCompilerHoverTests
     [TestCase("var value: object = { }; var key = \"name\"; value[|key];", "[variable] key: string\n[expression] value[key]: unknown?", "key")]
     [TestCase("var value: object = { }; value[|\"name\"];", "[literal] \"name\": string\n[expression] value[\"name\"]: unknown?", "\"name\"")]
     [TestCase("var value = { known = 1 }; value[|\"missing\"];", "[literal] \"missing\": string\n[expression] value[\"missing\"]: <unresolved>", "\"missing\"")]
+    [TestCase("var input = 1; var value = |+input;", "[operator] +(int): int", "+")]
+    [TestCase("var input = 1; var value = |-input;", "[operator] -(int): int", "-")]
+    [TestCase("var value = |!true;", "[operator] !(bool): bool", "!")]
+    [TestCase("var value = |~1;", "[operator] ~(int): int", "~")]
+    [TestCase("var value = 1 |+ 2;", "[operator] +(int, int): int", "+")]
+    [TestCase("var value = 4 |/ 2;", "[operator] /(int, int): int", "/")]
+    [TestCase("var value = true |&& false;", "[operator] &&(bool, bool): bool", "&&")]
+    [TestCase("var value = 1.0 |> 2.0;", "[operator] >(float, float): bool", ">")]
+    [TestCase("var value = 1 |== 2;", "[operator] ==(int, int): bool", "==")]
+    [TestCase("var value = 1 |=== 2;", "[operator] ===(int, int): bool", "===")]
+    [TestCase("var value = 1 |& 2;", "[operator] &(int, int): int", "&")]
+    [TestCase("var value = 1 |<< 2;", "[operator] <<(int, int): int", "<<")]
+    [TestCase("var value = \"text\" |- 1;", "[operator] -(string, int): <unresolved>", "-")]
+    [TestCase("var value = missing |+ 1;", "[operator] +(<unresolved>, int): <unresolved>", "+")]
+    [TestCase("var value = (|1)(2);", "[literal] 1: int", "1")]
+    [TestCase("var obj = { method = 1 }; var value = obj.|method();", "[property] method: int", "method")]
     public void ReturnsBoundSymbolSignatures(
         string markedSource,
         string content,
@@ -81,7 +98,8 @@ public sealed class MuLangCompilerHoverTests
         {
             Assert.That(hover!.Content, Is.EqualTo(content));
             Assert.That(SourceText.From(source).GetText(hover.Span), Is.EqualTo(token));
-            Assert.That(hover.Span.Start, Is.EqualTo(offset));
+            Assert.That(hover.Span.Start, Is.LessThanOrEqualTo(offset));
+            Assert.That(hover.Span.End, Is.GreaterThan(offset));
         }
     }
 
@@ -137,6 +155,8 @@ public sealed class MuLangCompilerHoverTests
     [TestCase("var value = 1;|")]
     [TestCase("var value: |Missing;")]
     [TestCase("var value = 1; |(value);")]
+    [TestCase("var value = 1 |is int;")]
+    [TestCase("var value = { item = 1 } |has \"item\";")]
     [TestCase("|")]
     public void OmitsUnresolvedSymbolsAndNonSymbolPositions(string markedSource)
     {

@@ -16,9 +16,9 @@ Each release heading identifies the incremental version range covered by the sec
 
 ### New features
 
-- Added compiler-backed semantic hover for variables, parameters, functions, types, properties, scalar literals, unresolved calls and properties, and dynamic element access, including categorized signatures without declaration-keyword prefixes, configured host symbols, inferred types, modifiers, structural signatures, UTF-16 LSP ranges, and Markdown or plain-text rendering.
+- Added compiler-backed semantic hover for variables, parameters, functions, types, properties, scalar literals, arithmetic/logical/relational/bitwise operators, unresolved calls and properties, and dynamic element access, including categorized signatures without declaration-keyword prefixes, configured host symbols, inferred types, modifiers, structural signatures, UTF-16 LSP ranges, and Markdown or plain-text rendering.
 - Added a public semantic-document compiler API with resolved symbol identities, declaration, read, write, and reference occurrences, source definitions, hover content, diagnostics, and source line maps.
-- Added LSP document highlights, source-definition navigation, and Find All References. References search unopened `.mu` and `.mulang` files across the configured workspace, prefer unsaved editor snapshots, respect hierarchical configuration, and distinguish shadowed or same-named unrelated symbols.
+- Added LSP document highlights, source-definition navigation, and Find All References. References search unopened `.mu` and `.mulang` files across the configured workspace, prefer unsaved editor snapshots, respect hierarchical configuration, distinguish shadowed or same-named unrelated symbols, and include explicit intrinsic type tokens and well-known `throw`/`error` properties.
 - Added complete semantic property classification for declarations, member access, literal-key access, and property tests. Visual Studio now maps properties to its native theme-aware `property name` classification.
 
 ### Fixes
