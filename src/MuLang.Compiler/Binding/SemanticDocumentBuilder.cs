@@ -1,5 +1,4 @@
 using MuLang.Compiler.Syntax;
-using MuLang.Core.Symbols;
 using MuLang.Core.Text;
 using MuLang.Core.Types;
 
@@ -76,12 +75,12 @@ internal static class SemanticDocumentBuilder
             return binding.WellKnownErrorProperties.Contains(property)
                 ? BuiltInPropertyKey("error", property.Name)
                 : owner?.Id is { } ownerId
-                ? StableKey(
-                    SemanticClassificationKind.Property,
-                    $"property:{ownerId.Length}:{ownerId}",
-                    property.Name
-                )
-                : LocalKey(property, SemanticClassificationKind.Property);
+                    ? StableKey(
+                        SemanticClassificationKind.Property,
+                        $"property:{ownerId.Length}:{ownerId}",
+                        property.Name
+                    )
+                    : LocalKey(property, SemanticClassificationKind.Property);
         }
 
         static SemanticSymbolKey BuiltInPropertyKey(string owner, string name)
@@ -120,17 +119,17 @@ internal static class SemanticDocumentBuilder
                 symbol is not null &&
                 definitions.TryGetValue(symbol, out definitionSpan);
             IReadOnlyList<SemanticHoverItem> items = hoverItems ??
-                (
-                    hoverContent is null
-                        ? []
-                        :
-                        [
-                            new SemanticHoverItem(
-                                hoverCategory ?? GetHoverCategory(kind),
-                                hoverContent
-                            ),
-                        ]
-                );
+            (
+                hoverContent is null
+                    ? [ ]
+                    :
+                    [
+                        new SemanticHoverItem(
+                            hoverCategory ?? GetHoverCategory(kind),
+                            hoverContent
+                        ),
+                    ]
+            );
             occurrences.Add(
                 new SemanticOccurrence(
                     symbol,
@@ -447,14 +446,12 @@ internal static class SemanticDocumentBuilder
                 case NamedTypeSyntax named:
                 {
                     binding.Types.TryGetValue(named, out TypeSymbol? type);
-                    SemanticClassificationKind kind =
-                        SemanticClassificationKind.Type;
                     SemanticSymbolKey? symbol = type is null
                         ? null
                         : TypeKey(type);
                     Add(
                         symbol,
-                        kind,
+                        SemanticClassificationKind.Type,
                         SemanticOccurrenceRole.Reference,
                         named.NameToken.Span,
                         type?.Kind == TypeKind.ErrorRecovery
@@ -463,7 +460,7 @@ internal static class SemanticDocumentBuilder
                                 ? null
                                 : SymbolDisplay.TypeDeclaration(type),
                         isClassification:
-                            named.NameToken.Kind == TokenKind.Identifier
+                        named.NameToken.Kind == TokenKind.Identifier
                     );
                     break;
                 }
@@ -677,7 +674,7 @@ internal static class SemanticDocumentBuilder
                     {
                         AddControlKeyword(
                             ((BreakStatementSyntax)loopExit.Syntax)
-                                .BreakKeyword,
+                            .BreakKeyword,
                             loopHighlightGroups.ElementAt(
                                 loopExit.Level - 1
                             )
@@ -696,7 +693,7 @@ internal static class SemanticDocumentBuilder
                     {
                         AddControlKeyword(
                             ((ContinueStatementSyntax)iteration.Syntax)
-                                .ContinueKeyword,
+                            .ContinueKeyword,
                             loopHighlightGroups.ElementAt(
                                 iteration.Level - 1
                             )
@@ -712,7 +709,7 @@ internal static class SemanticDocumentBuilder
                     {
                         AddControlKeyword(
                             ((ReturnStatementSyntax)result.Syntax)
-                                .ReturnKeyword,
+                            .ReturnKeyword,
                             functionHighlightGroup
                         );
                     }
@@ -730,7 +727,7 @@ internal static class SemanticDocumentBuilder
                     {
                         AddControlKeyword(
                             ((ReturnStatementSyntax)result.Syntax)
-                                .ReturnKeyword,
+                            .ReturnKeyword,
                             functionHighlightGroup
                         );
                     }
@@ -744,7 +741,7 @@ internal static class SemanticDocumentBuilder
                     {
                         AddControlKeyword(
                             ((ThrowStatementSyntax)thrown.Syntax)
-                                .ThrowKeyword,
+                            .ThrowKeyword,
                             functionHighlightGroup
                         );
                     }
@@ -903,7 +900,7 @@ internal static class SemanticDocumentBuilder
                 case BoundExpression.Error
                 {
                     Syntax: ElementAccessExpressionSyntax syntax,
-                    Children: [ BoundExpression target, BoundExpression key ],
+                    Children: [ { } target, { } key ],
                 }:
                 {
                     VisitExpression(
@@ -921,7 +918,7 @@ internal static class SemanticDocumentBuilder
                 case BoundExpression.Error
                 {
                     Syntax: UnaryExpressionSyntax syntax,
-                    Children: [ BoundExpression operand ],
+                    Children: [ { } operand ],
                 }:
                 {
                     VisitExpression(
@@ -941,8 +938,8 @@ internal static class SemanticDocumentBuilder
                     Syntax: BinaryExpressionSyntax syntax,
                     Children:
                     [
-                        BoundExpression left,
-                        BoundExpression right,
+                        { } left,
+                        { } right,
                     ],
                 } when IsHoverOperator(syntax.OperatorToken.Kind):
                 {
@@ -970,8 +967,8 @@ internal static class SemanticDocumentBuilder
                     } syntax,
                     Children:
                     [
-                        BoundExpression left,
-                        BoundExpression right,
+                        { } left,
+                        { } right,
                     ],
                 }:
                 {
@@ -996,9 +993,9 @@ internal static class SemanticDocumentBuilder
                     Syntax: ConditionalExpressionSyntax syntax,
                     Children:
                     [
-                        BoundExpression condition,
-                        BoundExpression whenTrue,
-                        BoundExpression whenFalse,
+                        { } condition,
+                        { } whenTrue,
+                        { } whenFalse,
                     ],
                 }:
                 {
@@ -1123,14 +1120,14 @@ internal static class SemanticDocumentBuilder
 
                     foreach (
                         ObjectPropertyInitializerSyntax propertySyntax
-                            in syntax.Properties
+                        in syntax.Properties
                     )
                     {
                         binding.Properties.TryGetValue(
                             propertySyntax,
                             out ObjectPropertySymbol? property
                         );
-                        ObjectTypeSymbol? owner =
+                        ObjectTypeSymbol owner =
                             property is not null &&
                             binding.PropertyOwners.TryGetValue(
                                 property,
@@ -1176,7 +1173,7 @@ internal static class SemanticDocumentBuilder
 
                     foreach (
                         BoundExpression.ObjectProperty property
-                            in value.Properties
+                        in value.Properties
                     )
                     {
                         VisitExpression(
@@ -1196,7 +1193,7 @@ internal static class SemanticDocumentBuilder
                     );
                     AddOperator(
                         ((UnaryExpressionSyntax)unary.Syntax)
-                            .OperatorToken,
+                        .OperatorToken,
                         [ unary.Operand.Type ],
                         unary.Type
                     );
@@ -1215,7 +1212,7 @@ internal static class SemanticDocumentBuilder
                     );
                     AddOperator(
                         ((BinaryExpressionSyntax)binary.Syntax)
-                            .OperatorToken,
+                        .OperatorToken,
                         [ binary.Left.Type, binary.Right.Type ],
                         binary.Type
                     );
@@ -1234,7 +1231,7 @@ internal static class SemanticDocumentBuilder
                     );
                     AddOperator(
                         ((BinaryExpressionSyntax)coalescing.Syntax)
-                            .OperatorToken,
+                        .OperatorToken,
                         [
                             coalescing.Left.Type,
                             coalescing.Right.Type,
@@ -1398,8 +1395,8 @@ internal static class SemanticDocumentBuilder
                     );
                     TextSpan span =
                         ((MemberAccessExpressionSyntax)member.Syntax)
-                            .NameToken
-                            .Span;
+                        .NameToken
+                        .Span;
                     ObjectTypeSymbol? owner = GetObjectType(member.Target.Type);
                     ObjectPropertySymbol? property = member.Property;
                     SemanticSymbolKey? symbol;
@@ -1409,8 +1406,8 @@ internal static class SemanticDocumentBuilder
                     {
                         symbol = GetNonNullable(member.Target.Type).Kind ==
                             TypeKind.ErrorValue
-                            ? BuiltInPropertyKey("error", property.Name)
-                            : PropertyKey(property, owner);
+                                ? BuiltInPropertyKey("error", property.Name)
+                                : PropertyKey(property, owner);
                         content = SymbolDisplay.Property(property);
                     }
                     else if (member.IsArrayLength)
@@ -1465,7 +1462,7 @@ internal static class SemanticDocumentBuilder
                         );
                         SemanticSymbolKey symbol =
                             GetNonNullable(element.Target.Type).Kind ==
-                                TypeKind.ErrorValue
+                            TypeKind.ErrorValue
                                 ? BuiltInPropertyKey(
                                     "error",
                                     element.Property.Name
@@ -1479,10 +1476,7 @@ internal static class SemanticDocumentBuilder
                             SymbolDisplay.Property(element.Property)
                         );
                     }
-                    else if (
-                        element.IsObjectAccess &&
-                        element.IsDynamic
-                    )
+                    else if (element is { IsObjectAccess: true, IsDynamic: true })
                     {
                         VisitDynamicKey(
                             element.Index,

@@ -42,8 +42,7 @@ internal static class WorkspaceConfigurationParser
                 : LanguageProfiles.Latest;
 
             ObjectTypeGraphBuilder graph = new ();
-            Dictionary<string, ObjectTypeGraphReference> namedTypes =
-                new Dictionary<string, ObjectTypeGraphReference>(StringComparer.Ordinal);
+            Dictionary<string, ObjectTypeGraphReference> namedTypes = new (StringComparer.Ordinal);
             IList<ObjectTypeGraphReference> declaredTypes = new List<ObjectTypeGraphReference>();
             IList<GlobalDeclaration> globals = new List<GlobalDeclaration>();
             IList<FunctionDeclaration> functions = new List<FunctionDeclaration>();
@@ -120,7 +119,7 @@ internal static class WorkspaceConfigurationParser
                 ? null
                 : types[expectedResultType];
             _ = MuLangCompiler.Analyze(
-                string.Empty,
+                "",
                 environment,
                 compilationMode,
                 new MuLangCompilationOptions
@@ -475,7 +474,7 @@ internal static class WorkspaceConfigurationParser
                 "parameters",
                 "returnType"
             );
-            List<ParameterDeclaration> parameters = new ();
+            List<ParameterDeclaration> parameters = [ ];
 
             foreach (
                 JsonElement parameterElement in GetArray(
@@ -583,42 +582,42 @@ internal static class WorkspaceConfigurationParser
         switch (kind)
         {
             case "nullable":
-                {
-                    ValidateProperties(
-                        element,
-                        path,
-                        "kind",
-                        "underlyingType"
-                    );
-                    return graph.Nullable(
-                        ParseType(
-                            GetRequiredProperty(element, "underlyingType", path),
-                            $"{path}.underlyingType",
-                            graph,
-                            namedTypes
-                        )
-                    );
-                }
-
-            case "array":
-                {
-                    ValidateProperties(
-                        element,
-                        path,
-                        "kind",
-                        "elementType",
-                        "readOnly"
-                    );
-                    ObjectTypeGraphReference elementType = ParseType(
-                        GetRequiredProperty(element, "elementType", path),
-                        $"{path}.elementType",
+            {
+                ValidateProperties(
+                    element,
+                    path,
+                    "kind",
+                    "underlyingType"
+                );
+                return graph.Nullable(
+                    ParseType(
+                        GetRequiredProperty(element, "underlyingType", path),
+                        $"{path}.underlyingType",
                         graph,
                         namedTypes
-                    );
-                    return GetOptionalBoolean(element, "readOnly", path)
-                        ? graph.ReadOnlyArray(elementType)
-                        : graph.Array(elementType);
-                }
+                    )
+                );
+            }
+
+            case "array":
+            {
+                ValidateProperties(
+                    element,
+                    path,
+                    "kind",
+                    "elementType",
+                    "readOnly"
+                );
+                ObjectTypeGraphReference elementType = ParseType(
+                    GetRequiredProperty(element, "elementType", path),
+                    $"{path}.elementType",
+                    graph,
+                    namedTypes
+                );
+                return GetOptionalBoolean(element, "readOnly", path)
+                    ? graph.ReadOnlyArray(elementType)
+                    : graph.Array(elementType);
+            }
 
             default:
                 throw new FormatException(

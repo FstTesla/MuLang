@@ -17,7 +17,7 @@ internal sealed class WorkspaceConfigurationFile
         cache.Clear();
     }
 
-    public bool IsConfigurationFile(string file)
+    public static bool IsConfigurationFile(string file)
     {
         if (
             !Uri.TryCreate(file, UriKind.Absolute, out Uri? uri) ||
@@ -63,7 +63,7 @@ internal sealed class WorkspaceConfigurationFile
             !IsWithinRoot(directory, root)
         )
         {
-            files = [];
+            files = [ ];
             return false;
         }
 

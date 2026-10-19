@@ -7,7 +7,7 @@ internal sealed class WorkspaceSourceService
             ? StringComparer.OrdinalIgnoreCase
             : StringComparer.Ordinal;
 
-    public IReadOnlyList<string> GetDocumentUris(
+    public static IReadOnlyList<string> GetDocumentUris(
         IReadOnlyCollection<DocumentSnapshot> openDocuments,
         IReadOnlyCollection<string> workspaceFolders,
         CancellationToken cancellationToken

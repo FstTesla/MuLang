@@ -312,7 +312,7 @@ public sealed class MuLangCompilerEditorTests
                 result.Classifications.Select(
                     classification => source.GetText(classification.Span)
                 ),
-                Is.EqualTo(["value", "copy", "value", "failure", "message", "failure", "message", "failure", "value"])
+                Is.EqualTo([ "value", "copy", "value", "failure", "message", "failure", "message", "failure", "value" ])
             );
             Assert.That(
                 result.Classifications[3].Modifiers,

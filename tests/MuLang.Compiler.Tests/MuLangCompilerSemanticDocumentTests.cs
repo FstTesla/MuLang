@@ -62,7 +62,7 @@ public sealed class MuLangCompilerSemanticDocumentTests
         IReadOnlyList<SemanticOccurrence> values =
         [
             .. result.Occurrences.Where(
-                occurrence =>
+                static occurrence =>
                     SourceText.From(source).GetText(occurrence.Span) ==
                     "value"
             ),
@@ -153,7 +153,7 @@ public sealed class MuLangCompilerSemanticDocumentTests
                 properties.Select(
                     occurrence => sourceText.GetText(occurrence.Span)
                 ),
-                Is.EqualTo(["item", "\"item\"", "\"item\""])
+                Is.EqualTo([ "item", "\"item\"", "\"item\"" ])
             );
             Assert.That(
                 properties.Select(static occurrence => occurrence.Symbol),
@@ -175,10 +175,12 @@ public sealed class MuLangCompilerSemanticDocumentTests
             "var value = @{ dynamic? = 1 }; value.missing;"
         );
         SemanticOccurrence missing = result.Occurrences.Single(
-            occurrence =>
-                occurrence.Kind == SemanticClassificationKind.Property &&
-                occurrence.HoverContent ==
-                "[property] missing: unknown?"
+            static occurrence =>
+                occurrence is
+                {
+                    Kind: SemanticClassificationKind.Property,
+                    HoverContent: "[property] missing: unknown?",
+                }
         );
 
         using (Assert.EnterMultipleScope())
@@ -278,7 +280,7 @@ public sealed class MuLangCompilerSemanticDocumentTests
         SemanticDocumentResult first = Analyze(firstSource);
         SemanticDocumentResult second = Analyze(secondSource);
         SemanticSymbolKey firstKey = first.Occurrences.Single(
-            occurrence =>
+            static occurrence =>
                 occurrence.Kind == SemanticClassificationKind.Type &&
                 SourceText.From(firstSource).GetText(occurrence.Span) ==
                 "int"
@@ -287,7 +289,7 @@ public sealed class MuLangCompilerSemanticDocumentTests
         [
             .. second.Occurrences
                 .Where(
-                    occurrence =>
+                    static occurrence =>
                         occurrence.Kind ==
                         SemanticClassificationKind.Type
                 )
@@ -326,7 +328,7 @@ public sealed class MuLangCompilerSemanticDocumentTests
             .. result.Occurrences.Where(
                 occurrence =>
                     occurrence.Kind ==
-                        SemanticClassificationKind.Property &&
+                    SemanticClassificationKind.Property &&
                     sourceText.GetText(occurrence.Span) == "message"
             ),
         ];
@@ -372,7 +374,7 @@ public sealed class MuLangCompilerSemanticDocumentTests
                     occurrence =>
                         sourceText.GetText(occurrence.Span)
                 ),
-                Is.EqualTo(["if", "else", "if", "else"])
+                Is.EqualTo([ "if", "else", "if", "else" ])
             );
             Assert.That(
                 highlights,
@@ -398,8 +400,8 @@ public sealed class MuLangCompilerSemanticDocumentTests
             .AddType(itemType)
             .Build();
         LanguageProfile profile = new LanguageProfileBuilder(
-            LanguageProfiles.Version1_2
-        )
+                LanguageProfiles.Version1_2
+            )
             .WithObjectLiteralSyntax(ObjectLiteralSyntax.Legacy)
             .Build();
         SemanticDocumentResult result =

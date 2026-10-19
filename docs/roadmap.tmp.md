@@ -14,7 +14,8 @@ stable release cycle. Language samples now separate valid programs, warnings,
 and intentional semantic errors, and the MuIR serialization fixtures cover the
 current format capabilities. Compiler-backed hover, document highlights,
 definition navigation, workspace references, and dedicated property
-classification are available through the language server.
+classification are available through the language server. Visual Studio renders
+the categorized hover model through native theme-aware Quick Info.
 
 ## Goal: package release `0.4.0`
 

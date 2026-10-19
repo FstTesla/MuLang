@@ -7,7 +7,7 @@ internal sealed record WorkspaceConfigurationSet(
 {
     public static WorkspaceConfigurationSet Default { get; } = new (
         null,
-        []
+        [ ]
     );
 
     public WorkspaceConfiguration Get(string path)

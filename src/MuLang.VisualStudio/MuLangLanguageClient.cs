@@ -4,6 +4,7 @@ using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.Threading;
 using Microsoft.VisualStudio.Utilities;
+using StreamJsonRpc;
 using System.ComponentModel.Composition;
 using System.Diagnostics;
 using System.IO;
@@ -13,8 +14,15 @@ namespace MuLang.VisualStudio;
 
 [ContentType(MuLangContentType.Name)]
 [Export(typeof(ILanguageClient))]
-internal sealed class MuLangLanguageClient : ILanguageClient
+[Export(typeof(IMuLangQuickInfoService))]
+[PartCreationPolicy(CreationPolicy.Shared)]
+internal sealed class MuLangLanguageClient
+    : ILanguageClient,
+        ILanguageClientCustomMessage2,
+        IMuLangQuickInfoService
 {
+    private JsonRpc? customMessageRpc;
+
     [Import]
     internal SVsServiceProvider ServiceProvider { get; set; } = null!;
 
@@ -29,6 +37,10 @@ internal sealed class MuLangLanguageClient : ILanguageClient
 
     public bool ShowNotificationOnInitializeFailed => true;
 
+    public object? CustomMessageTarget => null;
+
+    public object? MiddleLayer => null;
+
     public event AsyncEventHandler<EventArgs>? StartAsync;
 
     public event AsyncEventHandler<EventArgs>? StopAsync
@@ -40,6 +52,7 @@ internal sealed class MuLangLanguageClient : ILanguageClient
     public async Task<Connection?> ActivateAsync(CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
+        Volatile.Write(ref customMessageRpc, null);
         await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(token);
         string extensionDirectory = Path.GetDirectoryName(
             Assembly.GetExecutingAssembly().Location
@@ -91,13 +104,50 @@ internal sealed class MuLangLanguageClient : ILanguageClient
         );
     }
 
+    public Task AttachForCustomMessageAsync(JsonRpc rpc)
+    {
+        if (rpc is null)
+        {
+            throw new ArgumentNullException(nameof(rpc));
+        }
+
+        Volatile.Write(ref customMessageRpc, rpc);
+
+        return Task.CompletedTask;
+    }
+
+    public Task<MuLangQuickInfoResponse?> GetQuickInfoAsync(
+        string uri,
+        int line,
+        int character,
+        CancellationToken cancellationToken
+    )
+    {
+        JsonRpc? rpc = Volatile.Read(ref customMessageRpc);
+
+        if (rpc is null)
+        {
+            return Task.FromResult<MuLangQuickInfoResponse?>(null);
+        }
+
+        return rpc.InvokeWithParameterObjectAsync<MuLangQuickInfoResponse?>(
+            "mulang/quickInfo",
+            new
+            {
+                textDocument = new { uri },
+                position = new { line, character },
+            },
+            cancellationToken
+        );
+    }
+
     private string? GetSolutionRoot()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
         if (
             ServiceProvider.GetService(typeof(SVsSolution)) is
-                not IVsSolution solution
+            not IVsSolution solution
         )
         {
             return null;

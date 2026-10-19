@@ -125,7 +125,7 @@ public sealed class LanguageServerTests
         WorkspaceConfigurationSet configuration =
             WorkspaceConfigurationSetParser.Parse(document.RootElement);
         WorkspaceConfigurationStore store = new ();
-        store.Initialize(["file:///workspace"]);
+        store.Initialize([ "file:///workspace" ]);
         store.Set("file:///workspace", configuration);
 
         using (Assert.EnterMultipleScope())
@@ -213,7 +213,7 @@ public sealed class LanguageServerTests
             """
         );
         WorkspaceConfigurationStore store = new ();
-        store.Initialize(["file:///workspace"]);
+        store.Initialize([ "file:///workspace" ]);
         store.SetConfigurationFile(
             "file:///workspace/mulang.config.json",
             WorkspaceConfigurationSetParser.Parse(rootDocument.RootElement)
@@ -381,7 +381,7 @@ public sealed class LanguageServerTests
                     .EnumerateArray()
                     .Select(static token => token.GetString()),
                 Is.EqualTo(
-                    ["type", "method", "parameter", "variable", "property"]
+                    [ "type", "method", "parameter", "variable", "property" ]
                 )
             );
             Assert.That(
@@ -410,14 +410,19 @@ public sealed class LanguageServerTests
             {"jsonrpc":"2.0","method":"exit"}
             """
         );
-        JsonElement legend = output[0]
+        JsonElement capabilities = output[0]
             .GetProperty("result")
-            .GetProperty("capabilities")
+            .GetProperty("capabilities");
+        JsonElement legend = capabilities
             .GetProperty("semanticTokensProvider")
             .GetProperty("legend");
 
         using (Assert.EnterMultipleScope())
         {
+            Assert.That(
+                capabilities.GetProperty("hoverProvider").GetBoolean(),
+                Is.False
+            );
             Assert.That(
                 legend
                     .GetProperty("tokenTypes")
@@ -596,6 +601,74 @@ public sealed class LanguageServerTests
     }
 
     [Test]
+    public async Task ReturnsClassifiedQuickInfoWithUtf16Ranges()
+    {
+        IReadOnlyList<JsonElement> output = await RunServerAsync(
+            true,
+            """
+            {"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}
+            """,
+            """
+            {"jsonrpc":"2.0","method":"textDocument/didOpen","params":{"textDocument":{"uri":"file:///test.mu","version":1,"text":"\"😀\";\r\nvar value$ = 1; value;"}}}
+            """,
+            """
+            {"jsonrpc":"2.0","id":3,"method":"mulang/quickInfo","params":{"textDocument":{"uri":"file:///test.mu"},"position":{"line":1,"character":17}}}
+            """,
+            """
+            {"jsonrpc":"2.0","id":2,"method":"shutdown"}
+            """,
+            """
+            {"jsonrpc":"2.0","method":"exit"}
+            """
+        );
+        JsonElement quickInfo = output.Single(
+            static message =>
+                message.TryGetProperty("id", out JsonElement id) &&
+                id.GetInt32() == 3
+        ).GetProperty("result");
+        JsonElement item = quickInfo
+            .GetProperty("items")
+            .EnumerateArray()
+            .Single();
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(
+                item.GetProperty("category").GetString(),
+                Is.EqualTo("variable")
+            );
+            Assert.That(
+                item.GetProperty("content").GetString(),
+                Is.EqualTo("value$: int")
+            );
+            Assert.That(
+                quickInfo
+                    .GetProperty("range")
+                    .GetProperty("start")
+                    .GetProperty("line")
+                    .GetInt32(),
+                Is.EqualTo(1)
+            );
+            Assert.That(
+                quickInfo
+                    .GetProperty("range")
+                    .GetProperty("start")
+                    .GetProperty("character")
+                    .GetInt32(),
+                Is.EqualTo(16)
+            );
+            Assert.That(
+                quickInfo
+                    .GetProperty("range")
+                    .GetProperty("end")
+                    .GetProperty("character")
+                    .GetInt32(),
+                Is.EqualTo(21)
+            );
+        }
+    }
+
+    [Test]
     public async Task FormatsCategorizedMarkdownHover()
     {
         const string source =
@@ -614,7 +687,8 @@ public sealed class LanguageServerTests
             ">",
             StringComparison.Ordinal
         );
-        string HoverRequest(int id, int character) =>
+
+        static string HoverRequest(int id, int character) =>
             JsonSerializer.Serialize(
                 new
                 {
@@ -628,6 +702,7 @@ public sealed class LanguageServerTests
                     },
                 }
             );
+
         IReadOnlyList<JsonElement> output = await RunServerAsync(
             """
             {"jsonrpc":"2.0","id":1,"method":"initialize","params":{"capabilities":{"textDocument":{"hover":{"contentFormat":["markdown"]}}}}}
@@ -817,7 +892,8 @@ public sealed class LanguageServerTests
             "var obj: object = { }; var key = \"name\"; " +
             "var literal = 1; var call = missing(2); " +
             "var access = obj[key]; obj.dynamic;";
-        string HoverRequest(int id, int character) =>
+
+        static string HoverRequest(int id, int character) =>
             JsonSerializer.Serialize(
                 new
                 {
@@ -831,6 +907,7 @@ public sealed class LanguageServerTests
                     },
                 }
             );
+
         int literal = source.IndexOf(
             "= 1",
             StringComparison.Ordinal
@@ -1000,8 +1077,8 @@ public sealed class LanguageServerTests
     {
         IReadOnlyList<JsonElement> output = await RunServerAsync(
             $$"""
-            {"jsonrpc":"2.0","id":3,"method":"textDocument/hover","params":{{parameters}}}
-            """,
+              {"jsonrpc":"2.0","id":3,"method":"textDocument/hover","params":{{parameters}}}
+              """,
             """
             {"jsonrpc":"2.0","id":2,"method":"shutdown"}
             """,
@@ -1049,7 +1126,7 @@ public sealed class LanguageServerTests
                     static highlight =>
                         highlight.GetProperty("kind").GetInt32()
                 ),
-                Is.EqualTo([1, 3, 2])
+                Is.EqualTo([ 1, 3, 2 ])
             );
             Assert.That(
                 highlights.EnumerateArray().Select(
@@ -1060,7 +1137,7 @@ public sealed class LanguageServerTests
                             .GetProperty("character")
                             .GetInt32()
                 ),
-                Is.EqualTo([4, 15, 37])
+                Is.EqualTo([ 4, 15, 37 ])
             );
         }
     }
@@ -1131,7 +1208,8 @@ public sealed class LanguageServerTests
             "message",
             StringComparison.Ordinal
         );
-        string HighlightRequest(int id, int character) =>
+
+        static string HighlightRequest(int id, int character) =>
             JsonSerializer.Serialize(
                 new
                 {
@@ -1145,6 +1223,7 @@ public sealed class LanguageServerTests
                     },
                 }
             );
+
         IReadOnlyList<JsonElement> output = await RunServerAsync(
             """
             {"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}
@@ -1203,7 +1282,8 @@ public sealed class LanguageServerTests
             "func guarded(): void { try { } catch (failure) { } finally { } } " +
             "func loops(): void { while (true) { for (;;) { " +
             "continue; break +2; } } }";
-        string HighlightRequest(int id, int character) =>
+
+        static string HighlightRequest(int id, int character) =>
             JsonSerializer.Serialize(
                 new
                 {
@@ -1217,6 +1297,7 @@ public sealed class LanguageServerTests
                     },
                 }
             );
+
         int function = source.IndexOf(
             "func run",
             StringComparison.Ordinal
@@ -1291,7 +1372,7 @@ public sealed class LanguageServerTests
                 highlights.Select(
                     static value => value.GetArrayLength()
                 ),
-                Is.EqualTo([4, 3, 2, 2, 4, 4, 1])
+                Is.EqualTo([ 4, 3, 2, 2, 4, 4, 1 ])
             );
             Assert.That(
                 highlights.SelectMany(
@@ -1614,6 +1695,7 @@ public sealed class LanguageServerTests
                     },
                 }
             );
+
             string ReferencesRequest(int id, int character) =>
                 JsonSerializer.Serialize(
                     new
@@ -1632,6 +1714,7 @@ public sealed class LanguageServerTests
                         },
                     }
                 );
+
             int intrinsicType = openSource.IndexOf(
                 "int",
                 StringComparison.Ordinal
@@ -1822,6 +1905,7 @@ public sealed class LanguageServerTests
                     },
                 }
             );
+
             string ReferencesRequest(int id) => JsonSerializer.Serialize(
                 new
                 {
@@ -1836,6 +1920,7 @@ public sealed class LanguageServerTests
                     },
                 }
             );
+
             string watchedChange = JsonSerializer.Serialize(
                 new
                 {
@@ -1920,7 +2005,7 @@ public sealed class LanguageServerTests
                             .GetProperty("result")
                             .GetArrayLength()
                 ),
-                Is.EqualTo([2, 3])
+                Is.EqualTo([ 2, 3 ])
             );
         }
         finally
@@ -2309,7 +2394,7 @@ public sealed class LanguageServerTests
                         static item =>
                             item.GetProperty("scopeUri").GetString()
                     ),
-                Is.EqualTo(["file:///expression/", "file:///program/"])
+                Is.EqualTo([ "file:///expression/", "file:///program/" ])
             );
             Assert.That(
                 diagnosticsByUri["file:///expression/test.mu"].GetArrayLength(),
@@ -2423,22 +2508,24 @@ public sealed class LanguageServerTests
                 {"jsonrpc":"2.0","method":"exit"}
                 """
             );
-            IReadOnlyList<JsonElement> diagnostics = output
-                .Where(
-                    static message =>
-                        message.TryGetProperty(
-                            "method",
-                            out JsonElement method
-                        ) &&
-                        method.GetString() ==
+            IReadOnlyList<JsonElement> diagnostics =
+            [
+                .. output
+                    .Where(
+                        static message =>
+                            message.TryGetProperty(
+                                "method",
+                                out JsonElement method
+                            ) &&
+                            method.GetString() ==
                             "textDocument/publishDiagnostics"
-                )
-                .Select(
-                    static message => message
-                        .GetProperty("params")
-                        .GetProperty("diagnostics")
-                )
-                .ToArray();
+                    )
+                    .Select(
+                        static message => message
+                            .GetProperty("params")
+                            .GetProperty("diagnostics")
+                    ),
+            ];
 
             Assert.That(
                 diagnostics,
@@ -2510,7 +2597,7 @@ public sealed class LanguageServerTests
                             out JsonElement method
                         ) &&
                         method.GetString() ==
-                            "textDocument/publishDiagnostics"
+                        "textDocument/publishDiagnostics"
                 )
                 .GetProperty("params")
                 .GetProperty("diagnostics");
@@ -2647,7 +2734,7 @@ public sealed class LanguageServerTests
                             out JsonElement method
                         ) &&
                         method.GetString() ==
-                            "textDocument/publishDiagnostics"
+                        "textDocument/publishDiagnostics"
                 )
                 .ToDictionary(
                     static message => message
@@ -2741,7 +2828,7 @@ public sealed class LanguageServerTests
             Assert.That(nestedFiles, Has.Count.EqualTo(2));
             Assert.That(
                 nestedFiles.Select(static file => file.LocalPath),
-                Is.EqualTo(new[] { rootConfiguration, nestedConfiguration })
+                Is.EqualTo([ rootConfiguration, nestedConfiguration ])
             );
 
             File.Delete(nestedConfiguration);
@@ -2887,22 +2974,24 @@ public sealed class LanguageServerTests
             );
             output.Position = 0;
             IReadOnlyList<JsonElement> messages = await ReadMessagesAsync(output);
-            IReadOnlyList<JsonElement> diagnostics = messages
-                .Where(
-                    static message =>
-                        message.TryGetProperty(
-                            "method",
-                            out JsonElement method
-                        ) &&
-                        method.GetString() ==
+            IReadOnlyList<JsonElement> diagnostics =
+            [
+                .. messages
+                    .Where(
+                        static message =>
+                            message.TryGetProperty(
+                                "method",
+                                out JsonElement method
+                            ) &&
+                            method.GetString() ==
                             "textDocument/publishDiagnostics"
-                )
-                .Select(
-                    static message => message
-                        .GetProperty("params")
-                        .GetProperty("diagnostics")
-                )
-                .ToArray();
+                    )
+                    .Select(
+                        static message => message
+                            .GetProperty("params")
+                            .GetProperty("diagnostics")
+                    ),
+            ];
 
             using (Assert.EnterMultipleScope())
             {
@@ -2996,18 +3085,20 @@ public sealed class LanguageServerTests
             {"jsonrpc":"2.0","method":"exit"}
             """
         );
-        IReadOnlyList<JsonElement> diagnostics = output
-            .Where(
-                static message =>
-                    message.TryGetProperty("method", out JsonElement method) &&
-                    method.GetString() == "textDocument/publishDiagnostics"
-            )
-            .Select(
-                static message => message
-                    .GetProperty("params")
-                    .GetProperty("diagnostics")
-            )
-            .ToArray();
+        IReadOnlyList<JsonElement> diagnostics =
+        [
+            .. output
+                .Where(
+                    static message =>
+                        message.TryGetProperty("method", out JsonElement method) &&
+                        method.GetString() == "textDocument/publishDiagnostics"
+                )
+                .Select(
+                    static message => message
+                        .GetProperty("params")
+                        .GetProperty("diagnostics")
+                ),
+        ];
         JsonElement error = output.Single(
             static message =>
                 message.TryGetProperty("method", out JsonElement method) &&
@@ -3016,9 +3107,11 @@ public sealed class LanguageServerTests
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(diagnostics, Has.All.Matches<JsonElement>(
-                static value => value.GetArrayLength() == 0
-            ));
+            Assert.That(
+                diagnostics, Has.All.Matches<JsonElement>(
+                    static value => value.GetArrayLength() == 0
+                )
+            );
             Assert.That(
                 error
                     .GetProperty("params")

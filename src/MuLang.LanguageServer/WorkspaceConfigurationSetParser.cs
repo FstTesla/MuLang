@@ -29,8 +29,8 @@ internal static class WorkspaceConfigurationSetParser
                 "overrides",
                 out JsonElement overridesElement
             )
-            ? ParseOverrides(overridesElement)
-            : [];
+                ? ParseOverrides(overridesElement)
+                : [ ];
 
         return new WorkspaceConfigurationSet(configuration, overrides);
     }
@@ -95,7 +95,7 @@ internal static class WorkspaceConfigurationSetParser
                     out JsonElement excludesElement
                 )
                     ? ParseGlobs(excludesElement, $"{path}.excludes", true)
-                    : [];
+                    : [ ];
             WorkspaceConfiguration overrideConfiguration =
                 WorkspaceConfigurationParser.Parse(
                     overrideConfigurationElement

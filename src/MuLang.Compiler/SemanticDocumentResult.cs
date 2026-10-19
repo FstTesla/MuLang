@@ -86,7 +86,7 @@ public sealed class SemanticDocumentResult
 
         if (selected?.HighlightGroup is not { } group)
         {
-            return [];
+            return [ ];
         }
 
         return

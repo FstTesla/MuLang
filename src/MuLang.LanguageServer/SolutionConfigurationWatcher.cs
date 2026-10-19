@@ -13,6 +13,7 @@ internal sealed class SolutionConfigurationWatcher : IAsyncDisposable
     );
 
     private readonly CancellationTokenSource cancellation = new ();
+
     private readonly Func<
         IReadOnlyCollection<string>,
         CancellationToken,
@@ -62,9 +63,7 @@ internal sealed class SolutionConfigurationWatcher : IAsyncDisposable
         }
         catch (OperationCanceledException) when (
             cancellation.IsCancellationRequested
-        )
-        {
-        }
+        ) { }
 
         cancellation.Dispose();
     }
@@ -118,9 +117,7 @@ internal sealed class SolutionConfigurationWatcher : IAsyncDisposable
         }
         catch (OperationCanceledException) when (
             cancellationToken.IsCancellationRequested
-        )
-        {
-        }
+        ) { }
     }
 
     private void ReadPendingFiles(ISet<string> files)

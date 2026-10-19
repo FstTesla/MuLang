@@ -86,6 +86,14 @@ prefixes. Whitespace, unsupported atoms, and unopened or closed documents
 return `null`. Document and configuration changes are reflected in subsequent
 requests.
 
+The Visual Studio extension replaces the generic LSP hover presenter with
+native asynchronous Quick Info. It requests the same categorized hover items
+from the language server, displays one item per line with an italic category
+prefix, and applies theme-aware Visual Studio classifications to each complete
+signature. Variables, parameters, functions, types, properties, literals, and
+operators use their corresponding editor classifications; expression results
+use ordinary text. Other clients continue using standard LSP hover.
+
 ## Semantic navigation
 
 The server advertises `documentHighlightProvider`, `definitionProvider`, and
@@ -406,8 +414,8 @@ aliases after compilation or MuIR round trips.
 ## Current scope
 
 The server supports initialization, workspace folders and configuration, full
-document synchronization, diagnostics, full-document semantic tokens,
-shutdown, and exit.
+document synchronization, diagnostics, full-document semantic tokens, hover,
+document highlights, definitions, references, shutdown, and exit.
 
-It does not yet provide completion, hover, navigation, references, rename,
-formatting, incremental parsing, or incremental semantic-token responses.
+It does not yet provide completion, rename, formatting, incremental parsing,
+or incremental semantic-token responses.

@@ -15,7 +15,7 @@ internal abstract record BoundExpression(
     ) : BoundExpression(Syntax, TypeSymbols.ErrorRecovery)
     {
         public Error(SyntaxNode syntax)
-            : this(syntax, []) { }
+            : this(syntax, [ ]) { }
     }
 
     internal sealed record Literal(

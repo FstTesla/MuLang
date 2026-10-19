@@ -51,10 +51,12 @@ internal sealed class WorkspaceConfigurationStore
 
         foreach (
             string directory in configurationFiles.Keys
-                .Where(directory => directory.StartsWith(
-                    normalizedFolder,
-                    UriComparison
-                ))
+                .Where(
+                    directory => directory.StartsWith(
+                        normalizedFolder,
+                        UriComparison
+                    )
+                )
                 .ToArray()
         )
         {
@@ -68,10 +70,12 @@ internal sealed class WorkspaceConfigurationStore
             inheritedConfigurations =
             [
                 .. configurationFiles
-                    .Where(entry => documentUri.StartsWith(
-                        entry.Key,
-                        UriComparison
-                    ))
+                    .Where(
+                        entry => documentUri.StartsWith(
+                            entry.Key,
+                            UriComparison
+                        )
+                    )
                     .OrderBy(static entry => entry.Key.Length),
             ];
 
@@ -82,12 +86,12 @@ internal sealed class WorkspaceConfigurationStore
 
             foreach (
                 KeyValuePair<string, WorkspaceConfigurationSet> inherited
-                    in inheritedConfigurations
+                in inheritedConfigurations
             )
             {
                 if (
                     inherited.Value.DefaultConfiguration is
-                        { } defaultConfiguration
+                    { } defaultConfiguration
                 )
                 {
                     effectiveConfiguration = defaultConfiguration;
@@ -96,7 +100,7 @@ internal sealed class WorkspaceConfigurationStore
 
             foreach (
                 KeyValuePair<string, WorkspaceConfigurationSet> inherited
-                    in inheritedConfigurations
+                in inheritedConfigurations
             )
             {
                 effectiveConfiguration = inherited.Value.ApplyOverrides(
@@ -121,14 +125,14 @@ internal sealed class WorkspaceConfigurationStore
             return configuration.Get(GetRelativePath(folder, documentUri));
         }
 
-        return configurations.TryGetValue(string.Empty, out WorkspaceConfigurationSet? fallback)
+        return configurations.TryGetValue("", out WorkspaceConfigurationSet? fallback)
             ? fallback.DefaultConfiguration ?? WorkspaceConfiguration.Default
             : WorkspaceConfiguration.Default;
     }
 
     public void Set(string? folder, WorkspaceConfigurationSet configuration)
     {
-        configurations[folder is null ? string.Empty : NormalizeFolder(folder)] = configuration;
+        configurations[folder is null ? "" : NormalizeFolder(folder)] = configuration;
     }
 
     public string? GetFolder(string uri)
