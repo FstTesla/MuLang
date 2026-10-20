@@ -57,6 +57,26 @@ MuLang `1.2` compilations. Update the parser, diagnostics, language specificatio
 editor support, samples, and tests together. This syntax change belongs to the
 next release cycle, not `0.4.x` servicing releases.
 
+Add a feature-flag-controlled declaration-mutability mode for MuLang `1.3`.
+When enabled, local variables and user-defined function parameters are read-only
+by default; an explicit modifier makes their bindings read-write. Keep `$`
+valid as an explicit, redundant read-only modifier in this mode. With the flag
+disabled, preserve existing defaults: mutable locals and read-only parameters.
+
+Choose the final modifier before implementation, with `%` as a candidate, and
+define the flag, its defaults in standard profiles, and modifier availability
+when the flag is disabled. Binding mutability is independent of object-property
+and array-element capabilities; this work does
+not change their defaults or host-global mutability. Read-only locals retain
+the existing definite-assignment and single-assignment rules. Read-write
+parameters permit rebinding inside the callee, not `ref`/`out` passing or
+reassignment of the caller's binding.
+
+Update declaration syntax, binding and flow analysis, profile validation and
+fingerprints, diagnostics, specifications, editor configuration, highlighting,
+hover, samples, and tests together. Preserve existing language-version behavior
+and assess any necessary IR or exporter changes without assuming a format bump.
+
 ## Deferred beyond `0.4.0`
 
 Add VS Code support through a dedicated language-client extension that reuses

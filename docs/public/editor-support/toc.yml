@@ -1,0 +1,8 @@
+- name: Overview and installation
+  href: index.md
+- name: Editor features
+  href: editor-features.md
+- name: Workspace configuration
+  href: configuration.md
+- name: Language-server integration
+  href: language-server.md

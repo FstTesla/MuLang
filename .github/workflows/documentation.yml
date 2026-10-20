@@ -12,6 +12,7 @@ on:
       - 'MuLang.png'
       - 'docs/docfx.json'
       - 'docs/public/**'
+      - 'docs/schemas/**'
       - 'global.json'
       - 'src/**'
   workflow_dispatch:

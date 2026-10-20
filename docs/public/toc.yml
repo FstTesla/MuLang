@@ -4,6 +4,8 @@
   href: examples.md
 - name: 📦 Packages
   href: packages.md
+- name: 🛠️ Editor support
+  href: editor-support/
 - name: 📚 Standard library
   href: standard-library/
 - name: 🧭 Language

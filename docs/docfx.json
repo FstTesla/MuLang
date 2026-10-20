@@ -42,6 +42,13 @@
         ],
         "src": "..",
         "dest": "images"
+      },
+      {
+        "files": [
+          "mulang.config.schema.json"
+        ],
+        "src": "schemas",
+        "dest": "schemas"
       }
     ],
     "output": "../artifacts/docs/site",
