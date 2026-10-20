@@ -9,6 +9,7 @@ on:
       - '.github/workflows/documentation.yml'
       - 'Directory.Build.props'
       - 'Directory.Build.targets'
+      - 'MuLang.ico'
       - 'MuLang.png'
       - 'docs/docfx.json'
       - 'docs/public/**'

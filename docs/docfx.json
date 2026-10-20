@@ -38,6 +38,7 @@
     "resource": [
       {
         "files": [
+          "MuLang.ico",
           "MuLang.png"
         ],
         "src": "..",
@@ -59,6 +60,7 @@
     ],
     "globalMetadata": {
       "_appBasePath": "/MuLang/",
+      "_appFaviconPath": "images/MuLang.ico",
       "_appLogoPath": "images/MuLang.png",
       "_appName": "MuLang",
       "_appTitle": "MuLang Documentation",
