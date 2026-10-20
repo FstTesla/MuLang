@@ -10,6 +10,18 @@ public sealed class MuLangCompilerHoverTests
 {
     [TestCase("var |value = 1;", "[variable] value: int", "value")]
     [TestCase("var value$ = 1; |value;", "[variable] value$: int", "value")]
+    [TestCase("var value|$ = 1;", "[variable] value$: int", "$")]
+    [TestCase("\"😀\"; var café |$ = 1;", "[variable] café$: int", "$")]
+    [TestCase("var value|$ = missing;", "[variable] value$: <unresolved>", "$")]
+    [TestCase("type Node { next|?: Node };", "[property] next?: Node", "?")]
+    [TestCase("type Node { next|$?: Node };", "[property] next$?: Node", "$")]
+    [TestCase("type Node { next$|?: Node };", "[property] next$?: Node", "?")]
+    [TestCase("var value: { count|$: int };", "[property] count$: int", "$")]
+    [TestCase("var value = { count|$ = 1 };", "[property] count$: int", "$")]
+    [TestCase("var value = @{ count|? = 1 };", "[property] count?: int", "?")]
+    [TestCase("var value = { count|$? = 1 };", "[property] count$?: int", "$")]
+    [TestCase("var value = { count$ |? = 1 };", "[property] count$?: int", "?")]
+    [TestCase("var value = { \"first-name\"$|? = \"text\" };", "[property] \"first-name\"$?: string", "?")]
     [TestCase("var value = 1; { var value = \"text\"; |value; }", "[variable] value: string", "value")]
     [TestCase("var value = 1; { var value = \"text\"; } |value;", "[variable] value: int", "value")]
     [TestCase("func |identity(value: int): int { return value; }", "[function] identity(value: int): int", "identity")]
@@ -32,6 +44,8 @@ public sealed class MuLangCompilerHoverTests
     [TestCase("var value = { count$ = 1 }; value[|\"count\"];", "[property] count$: int", "\"count\"")]
     [TestCase("var |value = @{ count? = 1 };", "[variable] value: @{ count?: int }", "value")]
     [TestCase("var |values = $[1, 2];", "[variable] values: int[]$", "values")]
+    [TestCase("var |values = [];", "[variable] values: <unresolved>", "values")]
+    [TestCase("var |values = [null];", "[variable] values: <unresolved>", "values")]
     [TestCase("type Node @{ name$: string, next?: Node }; var |nodes: Node?[]$;", "[variable] nodes: Node?[]$", "nodes")]
     [TestCase("func run(): void { var value: { |count?: int }; }", "[property] count?: int", "count")]
     [TestCase("type Node { next?: Node }; func run(value: |Node): void { }", "[type] Node { next?: Node }", "Node")]
@@ -59,9 +73,21 @@ public sealed class MuLangCompilerHoverTests
     [TestCase("var value = missing(|1);", "[literal] 1: int", "1")]
     [TestCase("var value = { known = 1 }; value.|missing;", "[property] missing: <unresolved>", "missing")]
     [TestCase("var value = @{ }; value.|missing;", "[property] missing: unknown?", "missing")]
-    [TestCase("var value: object = { }; var key = \"name\"; value[|key];", "[variable] key: string\n[expression] value[key]: unknown?", "key")]
-    [TestCase("var value: object = { }; value[|\"name\"];", "[literal] \"name\": string\n[expression] value[\"name\"]: unknown?", "\"name\"")]
-    [TestCase("var value = { known = 1 }; value[|\"missing\"];", "[literal] \"missing\": string\n[expression] value[\"missing\"]: <unresolved>", "\"missing\"")]
+    [TestCase("var value: object = { }; var key = \"name\"; value[|key];", "[variable] key: string", "key")]
+    [TestCase("var value: object = { }; value[|\"name\"];", "[literal] \"name\": string", "\"name\"")]
+    [TestCase("var value = { known = 1 }; value[|\"missing\"];", "[literal] \"missing\": string", "\"missing\"")]
+    [TestCase("var value: object = { }; value[|missing];", "[variable] missing: <unresolved>", "missing")]
+    [TestCase("var value: object = { }; var key = \"name\"; value[(|key)];", "[variable] key: string", "key")]
+    [TestCase("var value: object = { }; var key = \"name\"; value[key |+ \"suffix\"];", "[operator] +(string, string): string", "+")]
+    [TestCase("func read(value: object, key: string): void { value[|key]; }", "[parameter] key: string", "key")]
+    [TestCase("var |value = { };", "[variable] value: {}", "value")]
+    [TestCase("type |Empty { };", "[type] Empty {}", "Empty")]
+    [TestCase("var |value = { first = 1, second = \"two\" };", "[variable] value: {\n  first: int,\n  second: string\n}", "value")]
+    [TestCase("type |Node { name$: string, next?: Node };", "[type] Node {\n  name$: string,\n  next?: Node\n}", "Node")]
+    [TestCase("func |run(first: int, second: string): void { }", "[function] run(\n  first: int,\n  second: string\n): void", "run")]
+    [TestCase("func |run(value: { first: int, second: string }): void { }", "[function] run(value: {\n  first: int,\n  second: string\n}): void", "run")]
+    [TestCase("func |run(first: { x: int, y: string }, second: int): void { }", "[function] run(\n  first: {\n    x: int,\n    y: string\n  },\n  second: int\n): void", "run")]
+    [TestCase("var |value = @{ first = $[{ x = 1, y = \"two\" }], second = true };", "[variable] value: @{\n  first: {\n    x: int,\n    y: string\n  }[]$,\n  second: bool\n}", "value")]
     [TestCase("var input = 1; var value = |+input;", "[operator] +(int): int", "+")]
     [TestCase("var input = 1; var value = |-input;", "[operator] -(int): int", "-")]
     [TestCase("var value = |!true;", "[operator] !(bool): bool", "!")]
@@ -157,6 +183,13 @@ public sealed class MuLangCompilerHoverTests
 
     [TestCase("|var value = 1;")]
     [TestCase("var value| = 1;")]
+    [TestCase("var value| $ = 1;")]
+    [TestCase("var value$| = 1;")]
+    [TestCase("type Node { next$| ?: Node };")]
+    [TestCase("type Node { next$?|: Node };")]
+    [TestCase("var value: int|?;")]
+    [TestCase("var values: int[]|$;")]
+    [TestCase("var values = |$[1, 2];")]
     [TestCase("var value = 1;|")]
     [TestCase("var value: |Missing;")]
     [TestCase("var value = 1; |(value);")]
@@ -220,7 +253,6 @@ public sealed class MuLangCompilerHoverTests
                 Is.EqualTo(
                     [
                         SemanticHoverCategory.Variable,
-                        SemanticHoverCategory.Expression,
                     ]
                 )
             );
@@ -229,9 +261,53 @@ public sealed class MuLangCompilerHoverTests
                 Is.EqualTo(
                     [
                         "key: string",
-                        "value[key]: unknown?",
                     ]
                 )
+            );
+        }
+    }
+
+    [TestCase("type Customer { name: string }; func |load(value: Customer, count: int): Customer { return value; }", "load", SemanticHoverPartKind.Function)]
+    [TestCase("type Customer { name: string }; func |load(value: Customer, count: int): Customer { return value; }", "value", SemanticHoverPartKind.Parameter)]
+    [TestCase("type Customer { name: string }; func |load(value: Customer, count: int): Customer { return value; }", "Customer", SemanticHoverPartKind.Type)]
+    [TestCase("type Customer { name: string }; func |load(value: Customer, count: int): Customer { return value; }", "int", SemanticHoverPartKind.Keyword)]
+    [TestCase("type |Customer { name$?: string };", "name", SemanticHoverPartKind.Property)]
+    [TestCase("type |Customer { name$?: string };", "$", SemanticHoverPartKind.Operator)]
+    [TestCase("type |Customer { name$?: string };", "?", SemanticHoverPartKind.Operator)]
+    [TestCase("type |Customer { name$?: string };", ":", SemanticHoverPartKind.Punctuation)]
+    [TestCase("var value = |\"text\";", "\"text\"", SemanticHoverPartKind.String)]
+    [TestCase("var value = |42;", "42", SemanticHoverPartKind.Number)]
+    [TestCase("var value = |true;", "true", SemanticHoverPartKind.Keyword)]
+    [TestCase("var value = |infty;", "infty", SemanticHoverPartKind.Keyword)]
+    [TestCase("var |value = 1;", "value", SemanticHoverPartKind.Variable)]
+    [TestCase("var value = { known = 1 }; value.|missing;", "missing", SemanticHoverPartKind.Property)]
+    [TestCase("var value: object = { }; value.|dynamic;", "dynamic", SemanticHoverPartKind.Property)]
+    public void ClassifiesIndividualSignatureParts(
+        string markedSource,
+        string text,
+        SemanticHoverPartKind kind
+    )
+    {
+        (string source, int offset) = GetPosition(markedSource);
+        HoverInfo? hover = MuLangCompiler.GetHover(
+            source,
+            new EnvironmentBuilder().Build(),
+            CompilationMode.Program,
+            offset
+        );
+
+        Assert.That(hover, Is.Not.Null);
+        SemanticHoverItem item = hover!.Items.Single();
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(
+                string.Concat(item.Parts.Select(static part => part.Text)),
+                Is.EqualTo(item.Content)
+            );
+            Assert.That(
+                item.Parts.Where(part => part.Text == text).Select(static part => part.Kind),
+                Is.Not.Empty.And.All.EqualTo(kind)
             );
         }
     }

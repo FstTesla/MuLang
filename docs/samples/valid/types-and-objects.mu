@@ -38,6 +38,7 @@ var optionalNode: Node? = root;
 var firstValue = mutableValues[0];
 var propertyValue = root.payload.count;
 var dynamicValue = dynamicObject["dynamic"];
+var dynamicValueAgain = dynamicObject[alias.name];
 var hasDynamic = dynamicObject has "dynamic";
 
 mutableValues[1] = firstValue;

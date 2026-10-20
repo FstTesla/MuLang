@@ -28,6 +28,7 @@ internal sealed class Binder
     private readonly string? currentFunctionId;
     private readonly Dictionary<SyntaxNode, ObjectPropertySymbol> properties;
     private readonly Dictionary<ObjectPropertySymbol, ObjectTypeSymbol> propertyOwners;
+    private readonly Dictionary<ObjectPropertySymbol, ObjectPropertySymbol> contextualProperties;
     private readonly Dictionary<SyntaxNode, TypeSymbol> types;
     private readonly HashSet<ObjectPropertySymbol> wellKnownErrorProperties;
     private BindingScope scope = new (null);
@@ -55,6 +56,7 @@ internal sealed class Binder
         Dictionary<SyntaxNode, TypeSymbol>? types = null,
         Dictionary<SyntaxNode, ObjectPropertySymbol>? properties = null,
         Dictionary<ObjectPropertySymbol, ObjectTypeSymbol>? propertyOwners = null,
+        Dictionary<ObjectPropertySymbol, ObjectPropertySymbol>? contextualProperties = null,
         HashSet<ObjectPropertySymbol>? wellKnownErrorProperties = null
     )
     {
@@ -86,6 +88,10 @@ internal sealed class Binder
             );
         this.propertyOwners = propertyOwners ??
             new Dictionary<ObjectPropertySymbol, ObjectTypeSymbol>(
+                ReferenceEqualityComparer.Instance
+            );
+        this.contextualProperties = contextualProperties ??
+            new Dictionary<ObjectPropertySymbol, ObjectPropertySymbol>(
                 ReferenceEqualityComparer.Instance
             );
         this.wellKnownErrorProperties = wellKnownErrorProperties ??
@@ -172,6 +178,7 @@ internal sealed class Binder
             binder.types,
             binder.properties,
             binder.propertyOwners,
+            binder.contextualProperties,
             binder.wellKnownErrorProperties,
             syntaxTree.Source
         );
@@ -463,6 +470,7 @@ internal sealed class Binder
             types,
             properties,
             propertyOwners,
+            contextualProperties,
             wellKnownErrorProperties
         );
         userFunctionCalls.TryAdd(
@@ -638,7 +646,12 @@ internal sealed class Binder
         BoundExpression? initializer
     )
     {
-        if (initializer is not (null or { Type.Kind: TypeKind.Null or TypeKind.ErrorRecovery or TypeKind.Void }))
+        if (initializer?.Type.Kind == TypeKind.ErrorRecovery)
+        {
+            return TypeSymbols.ErrorRecovery;
+        }
+
+        if (initializer is not (null or { Type.Kind: TypeKind.Null or TypeKind.Void }))
         {
             return initializer.Type;
         }
@@ -1930,7 +1943,7 @@ internal sealed class Binder
                     ? "The element type of an empty array literal cannot be inferred."
                     : "An array element type cannot be inferred exclusively from null values."
             );
-            hasInvalidElementType = true;
+            return new BoundExpression.Error(syntax, elements.AsReadOnly());
         }
 
         ArrayTypeSymbol arrayType =
@@ -2196,6 +2209,16 @@ internal sealed class Binder
             {
                 this.properties[propertySyntax] = property;
                 propertyOwners[property] = objectType;
+
+                if (
+                    isFullSyntax &&
+                    expectedObject is not null &&
+                    expectedProperty is not null
+                )
+                {
+                    contextualProperties[property] = expectedProperty;
+                    propertyOwners.TryAdd(expectedProperty, expectedObject);
+                }
 
                 if (
                     isErrorPrototypeContext &&

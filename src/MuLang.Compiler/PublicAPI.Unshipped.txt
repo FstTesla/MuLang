@@ -1,1 +1,18 @@
 #nullable enable
+MuLang.Compiler.SemanticDocumentResult.GetHover(int offset) -> MuLang.Compiler.HoverInfo?
+MuLang.Compiler.SemanticHoverItem.Parts.get -> System.Collections.Generic.IReadOnlyList<MuLang.Compiler.SemanticHoverPart!>!
+MuLang.Compiler.SemanticHoverPart
+MuLang.Compiler.SemanticHoverPart.Kind.get -> MuLang.Compiler.SemanticHoverPartKind
+MuLang.Compiler.SemanticHoverPart.Text.get -> string!
+MuLang.Compiler.SemanticHoverPartKind
+MuLang.Compiler.SemanticHoverPartKind.Function = 5 -> MuLang.Compiler.SemanticHoverPartKind
+MuLang.Compiler.SemanticHoverPartKind.Keyword = 1 -> MuLang.Compiler.SemanticHoverPartKind
+MuLang.Compiler.SemanticHoverPartKind.Number = 8 -> MuLang.Compiler.SemanticHoverPartKind
+MuLang.Compiler.SemanticHoverPartKind.Operator = 9 -> MuLang.Compiler.SemanticHoverPartKind
+MuLang.Compiler.SemanticHoverPartKind.Parameter = 4 -> MuLang.Compiler.SemanticHoverPartKind
+MuLang.Compiler.SemanticHoverPartKind.Property = 6 -> MuLang.Compiler.SemanticHoverPartKind
+MuLang.Compiler.SemanticHoverPartKind.Punctuation = 10 -> MuLang.Compiler.SemanticHoverPartKind
+MuLang.Compiler.SemanticHoverPartKind.String = 7 -> MuLang.Compiler.SemanticHoverPartKind
+MuLang.Compiler.SemanticHoverPartKind.Text = 0 -> MuLang.Compiler.SemanticHoverPartKind
+MuLang.Compiler.SemanticHoverPartKind.Type = 2 -> MuLang.Compiler.SemanticHoverPartKind
+MuLang.Compiler.SemanticHoverPartKind.Variable = 3 -> MuLang.Compiler.SemanticHoverPartKind

@@ -14,6 +14,7 @@ internal sealed record BindingResult(
     IReadOnlyDictionary<SyntaxNode, TypeSymbol> Types,
     IReadOnlyDictionary<SyntaxNode, ObjectPropertySymbol> Properties,
     IReadOnlyDictionary<ObjectPropertySymbol, ObjectTypeSymbol> PropertyOwners,
+    IReadOnlyDictionary<ObjectPropertySymbol, ObjectPropertySymbol> ContextualProperties,
     IReadOnlySet<ObjectPropertySymbol> WellKnownErrorProperties,
     SourceText Source
 );

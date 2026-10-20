@@ -72,6 +72,17 @@ internal static class SemanticDocumentBuilder
             ObjectTypeSymbol? owner
         )
         {
+            while (
+                binding.ContextualProperties.TryGetValue(
+                    property,
+                    out ObjectPropertySymbol? contextualProperty
+                )
+            )
+            {
+                property = contextualProperty;
+                owner = binding.PropertyOwners[property];
+            }
+
             return binding.WellKnownErrorProperties.Contains(property)
                 ? BuiltInPropertyKey("error", property.Name)
                 : owner?.Id is { } ownerId
@@ -105,13 +116,14 @@ internal static class SemanticDocumentBuilder
             SemanticClassificationKind kind,
             SemanticOccurrenceRole role,
             TextSpan span,
-            string? hoverContent = null,
+            IReadOnlyList<SemanticHoverPart>? hoverParts = null,
             SemanticClassificationModifiers modifiers =
                 SemanticClassificationModifiers.None,
             bool isClassification = true,
             SemanticHoverCategory? hoverCategory = null,
             IReadOnlyList<SemanticHoverItem>? hoverItems = null,
-            object? highlightGroup = null
+            object? highlightGroup = null,
+            IReadOnlyList<TextSpan>? additionalHoverSpans = null
         )
         {
             TextSpan definitionSpan = default;
@@ -120,13 +132,13 @@ internal static class SemanticDocumentBuilder
                 definitions.TryGetValue(symbol, out definitionSpan);
             IReadOnlyList<SemanticHoverItem> items = hoverItems ??
             (
-                hoverContent is null
+                hoverParts is null
                     ? [ ]
                     :
                     [
                         new SemanticHoverItem(
                             hoverCategory ?? GetHoverCategory(kind),
-                            hoverContent
+                            hoverParts
                         ),
                     ]
             );
@@ -140,7 +152,8 @@ internal static class SemanticDocumentBuilder
                     items,
                     hasDefinition ? definitionSpan : null,
                     isClassification,
-                    highlightGroup
+                    highlightGroup,
+                    additionalHoverSpans
                 )
             );
         }
@@ -173,8 +186,9 @@ internal static class SemanticDocumentBuilder
             SemanticSymbolKey? symbol,
             SemanticClassificationKind kind,
             TextSpan span,
-            string? hoverContent,
-            SemanticClassificationModifiers modifiers
+            IReadOnlyList<SemanticHoverPart>? hoverParts,
+            SemanticClassificationModifiers modifiers,
+            IReadOnlyList<TextSpan>? additionalHoverSpans = null
         )
         {
             if (symbol?.IsWorkspaceStable != true)
@@ -187,9 +201,30 @@ internal static class SemanticDocumentBuilder
                 kind,
                 SemanticOccurrenceRole.Declaration,
                 span,
-                hoverContent,
-                modifiers | SemanticClassificationModifiers.Declaration
+                hoverParts,
+                modifiers | SemanticClassificationModifiers.Declaration,
+                additionalHoverSpans: additionalHoverSpans
             );
+        }
+
+        static IReadOnlyList<TextSpan> ModifierSpans(
+            SyntaxToken? dollar,
+            SyntaxToken? question = null
+        )
+        {
+            IList<TextSpan> spans = new List<TextSpan>();
+
+            if (dollar is not null)
+            {
+                spans.Add(dollar.Span);
+            }
+
+            if (question is not null)
+            {
+                spans.Add(question.Span);
+            }
+
+            return [ .. spans ];
         }
 
         string Source(TextSpan span)
@@ -197,11 +232,19 @@ internal static class SemanticDocumentBuilder
             return binding.Source.GetText(span);
         }
 
-        string ExpressionDisplay(BoundExpression expression)
+        IReadOnlyList<SemanticHoverPart> ExpressionDisplay(BoundExpression expression)
         {
             return SymbolDisplay.Expression(
                 Source(expression.Span),
-                expression.Type
+                expression.Type,
+                expression.Syntax is LiteralExpressionSyntax literal
+                    ? literal.LiteralToken.Kind switch
+                    {
+                        TokenKind.StringLiteral => SemanticHoverPartKind.String,
+                        TokenKind.IntegerLiteral or TokenKind.NumberLiteral => SemanticHoverPartKind.Number,
+                        _ => SemanticHoverPartKind.Keyword,
+                    }
+                    : SemanticHoverPartKind.Text
             );
         }
 
@@ -256,182 +299,6 @@ internal static class SemanticDocumentBuilder
                 isClassification: false,
                 highlightGroup: group
             );
-        }
-
-        void VisitDynamicKey(
-            BoundExpression key,
-            ElementAccessExpressionSyntax syntax,
-            TypeSymbol resultType
-        )
-        {
-            string accessDisplay = SymbolDisplay.Expression(
-                Source(syntax.Span),
-                resultType
-            );
-
-            switch (key)
-            {
-                case BoundExpression.Local local:
-                {
-                    Add(
-                        LocalKey(
-                            local.Symbol,
-                            SemanticClassificationKind.Variable
-                        ),
-                        SemanticClassificationKind.Variable,
-                        SemanticOccurrenceRole.Read,
-                        local.Span,
-                        null,
-                        local.Symbol.IsReadOnly
-                            ? SemanticClassificationModifiers.ReadOnly
-                            : SemanticClassificationModifiers.None,
-                        hoverItems:
-                        [
-                            new SemanticHoverItem(
-                                SemanticHoverCategory.Variable,
-                                SymbolDisplay.Variable(local.Symbol)
-                            ),
-                            new SemanticHoverItem(
-                                SemanticHoverCategory.Expression,
-                                accessDisplay
-                            ),
-                        ]
-                    );
-                    break;
-                }
-
-                case BoundExpression.Parameter parameter:
-                {
-                    Add(
-                        LocalKey(
-                            parameter.Symbol,
-                            SemanticClassificationKind.Parameter
-                        ),
-                        SemanticClassificationKind.Parameter,
-                        SemanticOccurrenceRole.Read,
-                        parameter.Span,
-                        hoverItems:
-                        [
-                            new SemanticHoverItem(
-                                SemanticHoverCategory.Parameter,
-                                SymbolDisplay.Parameter(parameter.Symbol)
-                            ),
-                            new SemanticHoverItem(
-                                SemanticHoverCategory.Expression,
-                                accessDisplay
-                            ),
-                        ]
-                    );
-                    break;
-                }
-
-                case BoundExpression.Global global:
-                {
-                    Add(
-                        StableKey(
-                            SemanticClassificationKind.Variable,
-                            "global",
-                            global.Symbol.Id
-                        ),
-                        SemanticClassificationKind.Variable,
-                        SemanticOccurrenceRole.Read,
-                        global.Span,
-                        null,
-                        SemanticClassificationModifiers.ReadOnly |
-                        SemanticClassificationModifiers.DefaultLibrary,
-                        hoverItems:
-                        [
-                            new SemanticHoverItem(
-                                SemanticHoverCategory.Variable,
-                                SymbolDisplay.Variable(global.Symbol)
-                            ),
-                            new SemanticHoverItem(
-                                SemanticHoverCategory.Expression,
-                                accessDisplay
-                            ),
-                        ]
-                    );
-                    break;
-                }
-
-                case BoundExpression.Literal:
-                {
-                    Add(
-                        null,
-                        SemanticClassificationKind.Literal,
-                        SemanticOccurrenceRole.Reference,
-                        key.Span,
-                        isClassification: false,
-                        hoverItems:
-                        [
-                            new SemanticHoverItem(
-                                SemanticHoverCategory.Literal,
-                                ExpressionDisplay(key)
-                            ),
-                            new SemanticHoverItem(
-                                SemanticHoverCategory.Expression,
-                                accessDisplay
-                            ),
-                        ]
-                    );
-                    break;
-                }
-
-                case BoundExpression.Error
-                {
-                    Syntax: NameExpressionSyntax name,
-                }:
-                {
-                    Add(
-                        null,
-                        SemanticClassificationKind.Variable,
-                        SemanticOccurrenceRole.Read,
-                        name.IdentifierToken.Span,
-                        isClassification: false,
-                        hoverItems:
-                        [
-                            new SemanticHoverItem(
-                                SemanticHoverCategory.Variable,
-                                SymbolDisplay.Unresolved(
-                                    Source(name.IdentifierToken.Span)
-                                )
-                            ),
-                            new SemanticHoverItem(
-                                SemanticHoverCategory.Expression,
-                                accessDisplay
-                            ),
-                        ]
-                    );
-                    break;
-                }
-
-                default:
-                {
-                    VisitExpression(
-                        key,
-                        SemanticOccurrenceRole.Read
-                    );
-                    Add(
-                        null,
-                        SemanticClassificationKind.Literal,
-                        SemanticOccurrenceRole.Reference,
-                        key.Span,
-                        isClassification: false,
-                        hoverItems:
-                        [
-                            new SemanticHoverItem(
-                                SemanticHoverCategory.Expression,
-                                ExpressionDisplay(key)
-                            ),
-                            new SemanticHoverItem(
-                                SemanticHoverCategory.Expression,
-                                accessDisplay
-                            ),
-                        ]
-                    );
-                    break;
-                }
-            }
         }
 
         void VisitType(TypeSyntax? syntax)
@@ -492,7 +359,11 @@ internal static class SemanticDocumentBuilder
                     SemanticClassificationKind.Property,
                     propertySyntax.NameToken.Span,
                     property is null ? null : SymbolDisplay.Property(property),
-                    SemanticClassificationModifiers.None
+                    SemanticClassificationModifiers.None,
+                    ModifierSpans(
+                        propertySyntax.DollarToken,
+                        propertySyntax.QuestionToken
+                    )
                 );
                 VisitType(propertySyntax.Type);
             }
@@ -564,7 +435,8 @@ internal static class SemanticDocumentBuilder
                         SymbolDisplay.Variable(declaration.Local),
                         declaration.Local.IsReadOnly
                             ? SemanticClassificationModifiers.ReadOnly
-                            : SemanticClassificationModifiers.None
+                            : SemanticClassificationModifiers.None,
+                        ModifierSpans(syntax.DollarToken)
                     );
                     VisitType(syntax.Type);
 
@@ -890,7 +762,8 @@ internal static class SemanticDocumentBuilder
                         role,
                         syntax.NameToken.Span,
                         SymbolDisplay.Unresolved(
-                            Source(syntax.NameToken.Span)
+                            Source(syntax.NameToken.Span),
+                            SemanticHoverPartKind.Property
                         ),
                         isClassification: false
                     );
@@ -899,7 +772,7 @@ internal static class SemanticDocumentBuilder
 
                 case BoundExpression.Error
                 {
-                    Syntax: ElementAccessExpressionSyntax syntax,
+                    Syntax: ElementAccessExpressionSyntax,
                     Children: [ { } target, { } key ],
                 }:
                 {
@@ -907,10 +780,9 @@ internal static class SemanticDocumentBuilder
                         target,
                         SemanticOccurrenceRole.Read
                     );
-                    VisitDynamicKey(
+                    VisitExpression(
                         key,
-                        syntax,
-                        TypeSymbols.ErrorRecovery
+                        SemanticOccurrenceRole.Read
                     );
                     break;
                 }
@@ -1138,7 +1010,7 @@ internal static class SemanticDocumentBuilder
                         SemanticSymbolKey? symbol = property is null
                             ? null
                             : PropertyKey(property, owner);
-                        string? content = property is null
+                        IReadOnlyList<SemanticHoverPart>? content = property is null
                             ? null
                             : SymbolDisplay.Property(property);
 
@@ -1153,7 +1025,11 @@ internal static class SemanticDocumentBuilder
                                 SemanticClassificationKind.Property,
                                 propertySyntax.NameToken.Span,
                                 content,
-                                SemanticClassificationModifiers.None
+                                SemanticClassificationModifiers.None,
+                                ModifierSpans(
+                                    propertySyntax.DollarToken,
+                                    propertySyntax.QuestionToken
+                                )
                             );
                         }
                         else
@@ -1164,7 +1040,11 @@ internal static class SemanticDocumentBuilder
                                 SemanticOccurrenceRole.Write,
                                 propertySyntax.NameToken.Span,
                                 content,
-                                SemanticClassificationModifiers.Declaration
+                                SemanticClassificationModifiers.Declaration,
+                                additionalHoverSpans: ModifierSpans(
+                                    propertySyntax.DollarToken,
+                                    propertySyntax.QuestionToken
+                                )
                             );
                         }
 
@@ -1400,7 +1280,7 @@ internal static class SemanticDocumentBuilder
                     ObjectTypeSymbol? owner = GetObjectType(member.Target.Type);
                     ObjectPropertySymbol? property = member.Property;
                     SemanticSymbolKey? symbol;
-                    string? content;
+                    IReadOnlyList<SemanticHoverPart>? content;
 
                     if (property is not null)
                     {
@@ -1426,7 +1306,8 @@ internal static class SemanticDocumentBuilder
                         symbol = null;
                         content = SymbolDisplay.Expression(
                             member.Name,
-                            member.Type
+                            member.Type,
+                            SemanticHoverPartKind.Property
                         );
                     }
                     else
@@ -1474,14 +1355,6 @@ internal static class SemanticDocumentBuilder
                             role,
                             element.Index.Span,
                             SymbolDisplay.Property(element.Property)
-                        );
-                    }
-                    else if (element is { IsObjectAccess: true, IsDynamic: true })
-                    {
-                        VisitDynamicKey(
-                            element.Index,
-                            (ElementAccessExpressionSyntax)element.Syntax,
-                            element.Type
                         );
                     }
                     else

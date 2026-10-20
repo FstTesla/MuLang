@@ -11,6 +11,15 @@ internal sealed class MuLangQuickInfoResponse
         public string Category { get; set; } = "";
 
         public string Content { get; set; } = "";
+
+        public Part[] Parts { get; set; } = [ ];
+    }
+
+    internal sealed class Part
+    {
+        public string Kind { get; set; } = "";
+
+        public string Text { get; set; } = "";
     }
 
     internal sealed class SourceRange

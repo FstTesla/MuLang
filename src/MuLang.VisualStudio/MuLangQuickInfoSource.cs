@@ -108,35 +108,67 @@ internal sealed class MuLangQuickInfoSource : IAsyncQuickInfoSource
         );
     }
 
-    private static ClassifiedTextElement CreateElement(
+    private static ContainerElement CreateElement(
         MuLangQuickInfoResponse.Item item
     )
     {
-        return new ClassifiedTextElement(
+        IList<object> lines = new List<object>();
+        IList<ClassifiedTextRun> runs = new List<ClassifiedTextRun>
+        {
             new ClassifiedTextRun(
                 ClassifiedTextElement.TextClassificationTypeName,
                 $"({item.Category}) ",
                 ClassifiedTextRunStyle.Italic
             ),
-            new ClassifiedTextRun(
-                GetClassification(item.Category),
-                item.Content
-            )
-        );
+        };
+
+        foreach (MuLangQuickInfoResponse.Part part in item.Parts)
+        {
+            string[] segments = part.Text.Split('\n');
+
+            for (int index = 0; index < segments.Length; index++)
+            {
+                if (index > 0)
+                {
+                    lines.Add(new ClassifiedTextElement([ .. runs ]));
+                    runs.Clear();
+                }
+
+                if (segments[index].Length > 0)
+                {
+                    runs.Add(
+                        new ClassifiedTextRun(
+                            GetClassification(part.Kind),
+                            segments[index],
+                            ClassifiedTextRunStyle.UseClassificationFont
+                        )
+                    );
+                }
+            }
+        }
+
+        lines.Add(new ClassifiedTextElement([ .. runs ]));
+        return new ContainerElement(ContainerElementStyle.Stacked, lines);
     }
 
-    private static string GetClassification(string category)
+    private static string GetClassification(string kind)
     {
-        return category switch
+        return kind switch
         {
+            "text" => ClassifiedTextElement.TextClassificationTypeName,
+            "keyword" => "keyword",
             "variable" => "variable",
             "parameter" => "parameter",
             "function" => "method name",
             "type" => "class name",
             "property" => "property name",
-            "literal" => "literal",
+            "string" => "string",
+            "number" => "number",
             "operator" => "operator",
-            _ => ClassifiedTextElement.TextClassificationTypeName,
+            "punctuation" => "punctuation",
+            _ => throw new InvalidOperationException(
+                $"Unsupported MuLang Quick Info part kind '{kind}'."
+            ),
         };
     }
 

@@ -4,6 +4,7 @@ using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.Threading;
 using Microsoft.VisualStudio.Utilities;
+using Newtonsoft.Json.Linq;
 using StreamJsonRpc;
 using System.ComponentModel.Composition;
 using System.Diagnostics;
@@ -19,6 +20,7 @@ namespace MuLang.VisualStudio;
 internal sealed class MuLangLanguageClient
     : ILanguageClient,
         ILanguageClientCustomMessage2,
+        ILanguageClientMiddleLayer2<JToken>,
         IMuLangQuickInfoService
 {
     private JsonRpc? customMessageRpc;
@@ -39,7 +41,7 @@ internal sealed class MuLangLanguageClient
 
     public object? CustomMessageTarget => null;
 
-    public object? MiddleLayer => null;
+    public object? MiddleLayer => this;
 
     public event AsyncEventHandler<EventArgs>? StartAsync;
 
@@ -114,6 +116,44 @@ internal sealed class MuLangLanguageClient
         Volatile.Write(ref customMessageRpc, rpc);
 
         return Task.CompletedTask;
+    }
+
+    public bool CanHandle(string methodName)
+    {
+        return methodName == "textDocument/references";
+    }
+
+    public Task HandleNotificationAsync(
+        string methodName,
+        JToken methodParam,
+        Func<JToken, Task> sendNotification
+    )
+    {
+        return sendNotification(methodParam);
+    }
+
+    public async Task<JToken?> HandleRequestAsync(
+        string methodName,
+        JToken methodParam,
+        Func<JToken, Task<JToken?>> sendRequest
+    )
+    {
+        if (CanHandle(methodName))
+        {
+            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+            IReadOnlyCollection<string>? documentUris =
+                MuLangSolutionSourceService.GetDocumentUris(ServiceProvider);
+
+            if (documentUris is not null)
+            {
+                JObject parameters = (JObject)methodParam.DeepClone();
+                parameters["_muLang_solutionDocumentUris"] =
+                    new JArray(documentUris);
+                methodParam = parameters;
+            }
+        }
+
+        return await sendRequest(methodParam);
     }
 
     public Task<MuLangQuickInfoResponse?> GetQuickInfoAsync(

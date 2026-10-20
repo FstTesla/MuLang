@@ -204,7 +204,7 @@ public static class MuLangCompiler
     /// <param name="compilationMode">The compilation mode.</param>
     /// <param name="offset">The zero-based Unicode scalar offset.</param>
     /// <param name="options">The analysis options, or <c>null</c> to use <see cref="MuLangCompilationOptions.Default" />.</param>
-    /// <returns>The hover information, or <c>null</c> when no resolved symbol covers the offset.</returns>
+    /// <returns>The hover information, or <c>null</c> when no hover target covers the offset.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="source" /> or <paramref name="environment" /> is <c>null</c>.</exception>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when the offset is outside the source or the compilation mode is not defined.</exception>
     /// <exception cref="ArgumentException">Thrown when the source document URI, result type, or language version is incompatible with the analysis settings.</exception>
@@ -222,11 +222,7 @@ public static class MuLangCompiler
             compilationMode,
             options
         );
-        SemanticOccurrence? occurrence =
-            semanticDocument.GetOccurrence(offset);
-        return occurrence is { HoverItems.Count: > 0 }
-            ? new HoverInfo(occurrence.HoverItems, occurrence.Span)
-            : null;
+        return semanticDocument.GetHover(offset);
     }
 
     /// <summary>Compiles MuLang source code using the specified compilation settings.</summary>

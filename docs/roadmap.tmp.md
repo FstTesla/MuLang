@@ -26,18 +26,12 @@ release-blocking correctness fixes.
 
 ## Sequence
 
-1. **Integrate the capabilities through the VSIX.** Extend the existing
-   language client and content-type registration without adding Visual Studio
-   dependencies to the compiler or language server. Add native classified
-   Quick Info that renders the compiler-backed hover model with theme-aware
-   Visual Studio classifications while retaining standard LSP hover for other
-   clients. Preserve TextMate highlighting as the immediate lexical fallback.
-2. **Add lexical MuIR editor support.** Register `.muir` as a separate content
+1. **Add lexical MuIR editor support.** Register `.muir` as a separate content
    type with its own TextMate grammar for comments, strings, numbers, document
    sections, types, instructions, terminators, attributes, and `t`, `%`, `bb`,
    `lr`, and `er` references. Do not route MuIR documents through the MuLang
    source compiler.
-3. **Stabilize and release.** Validate the language server and VSIX across
+2. **Stabilize and release.** Validate the language server and VSIX across
    supported Visual Studio versions, retain cross-platform compiler and package
    validation, update editor documentation and samples, and publish beta and
    RC prereleases before tagging `0.4.0`.
@@ -54,7 +48,23 @@ and navigation between slots, blocks, lifetime regions, and exception regions
 added only after the independent lexical content type is established. These
 features may ship in `0.4.x` without blocking the first tooling release.
 
+## Next release cycle after `0.4.0`
+
+Introduce MuLang `1.3` with strict semicolon-free user-defined type declarations:
+the declaration ends at its closing brace, and a following semicolon is rejected
+rather than accepted as optional syntax. Preserve the required semicolon for
+MuLang `1.2` compilations. Update the parser, diagnostics, language specification,
+editor support, samples, and tests together. This syntax change belongs to the
+next release cycle, not `0.4.x` servicing releases.
+
 ## Deferred beyond `0.4.0`
+
+Add VS Code support through a dedicated language-client extension that reuses
+the existing language server and shared TextMate grammars and language
+configuration assets. Define configuration-file and editor-settings precedence,
+cross-platform server distribution, packaging, and release integration without
+duplicating compiler functionality or introducing editor dependencies into the
+language server.
 
 Completion, standard-library expansion, comments, first-class functions, and
 function types remain potential future work and are not part of the tooling

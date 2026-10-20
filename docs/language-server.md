@@ -59,6 +59,18 @@ literal property indexing, and exception-handler symbols are supported.
 Each item has an editor category such as `variable`, `parameter`, `function`,
 `type`, `property`, `literal`, `expression`, or `operator`; declaration
 keywords are not part of the signature.
+Object bodies with at least two properties and function signatures with at
+least two parameters place each entry on its own line with two spaces of
+indentation per multiline nesting level. Empty and single-entry lists remain
+compact. Named types remain named inside signatures, including recursive types.
+Hover items expose classified signature parts alongside their plain-text
+content, and the item collection continues to support multiple entries.
+Declaration modifiers also trigger the associated symbol's hover: `$` for
+variables, and `$` and `?` for object properties in type bodies and object
+literals. Modifier tokens have separate hover-only ranges; semantic coloring,
+highlights, definitions, and references continue to cover only symbol names.
+Whitespace between the name and modifiers has no hover. Nullable-type `?`
+and array read-only `$` do not trigger this symbol hover.
 Locals whose type cannot be inferred because of an earlier source error use
 `<unresolved>` as the compiler recovery type.
 Parameters whose declared type cannot be resolved use the same recovery type.
@@ -67,8 +79,9 @@ symbols or receiving semantic coloring.
 Scalar literals show their source spelling and bound type. Undefined calls show
 `name(...): <unresolved>`, missing properties show
 `name: <unresolved>`, and valid dynamic properties show their `unknown?` result
-type. For dynamic element access, the key hover also includes the complete
-access expression and its result type.
+type. Dynamic element access shows only the symbol, literal, or operator
+immediately under the pointer, without adding the complete access expression
+and its result type.
 Unary and binary arithmetic, logical, relational, equality, identity, and
 bitwise operators show function-shaped signatures based on their bound operand
 and result types. Invalid operators use `<unresolved>` as their result type.
@@ -81,18 +94,22 @@ When a call target is not a simple function name, its own expression hover is
 preserved without synthesizing a function signature.
 
 Hover ranges and request positions use UTF-16. Clients advertising Markdown
-receive italic `(category)` prefixes; other clients receive `[category]`
-prefixes. Whitespace, unsupported atoms, and unopened or closed documents
+receive italic `(category)` prefixes and fenced MuLang code blocks for multiline
+signatures; other clients receive `[category]` prefixes with the same signature
+layout. Whitespace, unsupported atoms, and unopened or closed documents
 return `null`. Document and configuration changes are reflected in subsequent
 requests.
 
 The Visual Studio extension replaces the generic LSP hover presenter with
 native asynchronous Quick Info. It requests the same categorized hover items
-from the language server, displays one item per line with an italic category
-prefix, and applies theme-aware Visual Studio classifications to each complete
-signature. Variables, parameters, functions, types, properties, literals, and
-operators use their corresponding editor classifications; expression results
-use ordinary text. Other clients continue using standard LSP hover.
+from the language server, displays each item as a block with an italic category
+prefix, and applies theme-aware Visual Studio classifications to the individual
+signature parts rather than coloring the entire signature by the hovered
+symbol's category. Names use their semantic roles; intrinsic types and keyword
+literals use keyword classification, strings and numbers use their literal
+classifications, and operators and punctuation retain separate classifications.
+Line breaks and indentation are preserved. Other clients continue using
+standard LSP hover.
 
 ## Semantic navigation
 
@@ -104,6 +121,14 @@ text. Moving the caret onto a resolved symbol highlights its declaration and
 references in the current document, with separate LSP kinds for reads and
 writes. Shadowed locals and same-named properties on different object types are
 kept separate.
+
+Object literal properties share navigation identity with matching properties
+of their contextual structured object type. Their inferred types, mutability,
+optionality, and hover signatures remain those of the literal. Additional
+properties without a contextual match retain their own identity. Nested
+literals follow their effective context, including explicit property type
+annotations; structural assignments between existing objects do not merge
+property identities.
 
 Control-flow keywords use separate association groups:
 
@@ -130,6 +155,17 @@ Configured host symbols and built-in properties are searched across every
 `.mu` and `.mulang` file in the workspace, including unopened files. Open
 documents take precedence over disk content, and each document uses its own
 effective workspace configuration.
+
+In Visual Studio Solution View, each search uses an up-to-date list of MuLang
+files included in the solution or its loaded projects, including linked files
+outside the solution directory. Files that are merely present on disk or open
+in the editor are not included. This excludes ordinary `bin` and `obj` output
+copies without excluding files explicitly included from those directories.
+Folder View retains recursive workspace discovery.
+
+Visual Studio reference results distinguish declarations, reads, writes, and
+other references using the compiler's occurrence roles. Other LSP clients
+continue to receive standard locations.
 
 Intrinsic type tokens have workspace-stable identities for highlights and
 references. Literals and symbols whose inferred type is intrinsic are not

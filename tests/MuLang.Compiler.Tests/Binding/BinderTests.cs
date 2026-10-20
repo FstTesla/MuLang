@@ -629,12 +629,33 @@ public sealed class BinderTests
         }
     }
 
-    [Test]
-    public void ReportsNullOnlyArrayWithoutThrowing()
+    [TestCase("var values = [];")]
+    [TestCase("var values = [null];")]
+    public void LeavesArrayAndInferredLocalUnresolvedWhenElementTypeCannotBeInferred(
+        string source
+    )
     {
-        BindingResult result = BindExpression("[null]", CreateEmptyEnvironment());
+        BindingResult result = BindProgram(
+            source,
+            CreateEmptyEnvironment(),
+            TypeSymbols.Void
+        );
+        BoundRoot.Program root = (BoundRoot.Program)result.Root;
+        BoundStatement.VariableDeclaration declaration =
+            (BoundStatement.VariableDeclaration)root.Statements[0];
 
-        AssertDiagnostic(result, DiagnosticCodes.CannotInferType);
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(declaration.Local.Type, Is.SameAs(TypeSymbols.ErrorRecovery));
+            Assert.That(declaration.Initializer?.Type, Is.SameAs(TypeSymbols.ErrorRecovery));
+            Assert.That(
+                result.Diagnostics.Count(
+                    static diagnostic =>
+                        diagnostic.Code == DiagnosticCodes.CannotInferType
+                ),
+                Is.EqualTo(1)
+            );
+        }
     }
 
     [Test]
@@ -679,14 +700,6 @@ public sealed class BinderTests
         );
 
         Assert.That(result.Diagnostics, Is.Empty);
-    }
-
-    [Test]
-    public void ReportsEmptyArrayWithoutExpectedType()
-    {
-        BindingResult result = BindExpression("[]", CreateEmptyEnvironment());
-
-        AssertDiagnostic(result, DiagnosticCodes.CannotInferType);
     }
 
     [Test]

@@ -115,7 +115,7 @@ public sealed class MuLangCompilerEditorTests
     }
 
     [Test]
-    public void TypeSampleClassifiesUserDefinedTypes()
+    public void TypeSampleClassifiesTypesAndAssociatesContextualProperties()
     {
         string repositoryRoot = Path.GetFullPath(
             Path.Combine(
@@ -136,25 +136,46 @@ public sealed class MuLangCompilerEditorTests
                 "types-and-objects.mu"
             )
         );
-        SemanticClassificationResult result = MuLangCompiler.ClassifySemantically(
+        SemanticDocumentResult result = MuLangCompiler.GetSemanticDocument(
             source,
             new EnvironmentBuilder().Build(LanguageVersion.Version1_2),
             CompilationMode.Program,
-            profile: LanguageProfiles.Version1_2
+            new MuLangCompilationOptions
+            {
+                Profile = LanguageProfiles.Version1_2,
+            }
         );
         SourceText sourceText = SourceText.From(source);
-
-        Assert.That(
-            result.Classifications.Any(
-                classification =>
-                    classification.Kind == SemanticClassificationKind.Type &&
-                    classification.Modifiers.HasFlag(
-                        SemanticClassificationModifiers.Declaration
-                    ) &&
-                    sourceText.GetText(classification.Span) == "Node"
+        IReadOnlyList<SemanticOccurrence> names =
+        [
+            .. result.Occurrences.Where(
+                occurrence =>
+                    occurrence.Kind == SemanticClassificationKind.Property &&
+                    sourceText.GetText(occurrence.Span) == "name"
             ),
-            Is.True
-        );
+        ];
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(
+                result.Occurrences.Any(
+                    occurrence =>
+                        occurrence.IsClassification &&
+                        occurrence.Kind == SemanticClassificationKind.Type &&
+                        occurrence.Modifiers.HasFlag(
+                            SemanticClassificationModifiers.Declaration
+                        ) &&
+                        sourceText.GetText(occurrence.Span) == "Node"
+                ),
+                Is.True
+            );
+            Assert.That(result.Diagnostics.HasErrors, Is.False);
+            Assert.That(names, Has.Count.EqualTo(4));
+            Assert.That(names[2].Symbol, Is.EqualTo(names[0].Symbol));
+            Assert.That(names[2].DefinitionSpan, Is.EqualTo(names[0].Span));
+            Assert.That(names[3].Symbol, Is.EqualTo(names[1].Symbol));
+            Assert.That(names[0].Symbol, Is.Not.EqualTo(names[1].Symbol));
+        }
     }
 
     [Test]

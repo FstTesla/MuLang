@@ -8,6 +8,52 @@ namespace MuLang.Compiler.Tests;
 
 public sealed class MuLangCompilerSemanticDocumentTests
 {
+    [TestCase("var value$ = 1; value;", "value")]
+    [TestCase("type Node { next$?: Node };", "next")]
+    [TestCase("var obj = { count$? = 1 }; obj.count;", "count")]
+    public void KeepsModifierHoverSeparateFromSemanticOccurrences(
+        string source,
+        string name
+    )
+    {
+        SemanticDocumentResult result = Analyze(source);
+        SourceText sourceText = SourceText.From(source);
+        int nameOffset = source.IndexOf(name, StringComparison.Ordinal);
+        SemanticOccurrence declaration = result.GetOccurrence(nameOffset)!;
+        HoverInfo nameHover = result.GetHover(nameOffset)!;
+
+        foreach (
+            int offset in Enumerable.Range(0, sourceText.Length).Where(
+                offset => sourceText.GetText(new TextSpan(offset, 1)) is "$" or "?"
+            )
+        )
+        {
+            HoverInfo? modifierHover = result.GetHover(offset);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(modifierHover, Is.Not.Null);
+                Assert.That(modifierHover!.Items, Is.SameAs(nameHover.Items));
+                Assert.That(modifierHover.Span, Is.EqualTo(new TextSpan(offset, 1)));
+                Assert.That(result.GetOccurrence(offset), Is.Null);
+                Assert.That(result.GetHighlights(offset), Is.Empty);
+                Assert.That(
+                    result.Occurrences.Where(static occurrence => occurrence.IsClassification)
+                        .Any(occurrence => occurrence.Span.Contains(offset)),
+                    Is.False
+                );
+            }
+        }
+
+        Assert.That(declaration.DefinitionSpan, Is.EqualTo(new TextSpan(nameOffset, name.Length)));
+        Assert.That(
+            result.GetOccurrences(declaration.Symbol!).Select(
+                occurrence => sourceText.GetText(occurrence.Span)
+            ),
+            Is.All.EqualTo(name)
+        );
+    }
+
     [Test]
     public void TracksDeclarationReadAndWriteOccurrences()
     {
@@ -123,8 +169,199 @@ public sealed class MuLangCompilerSemanticDocumentTests
                 firstAccess.Symbol,
                 Is.Not.EqualTo(secondAccess.Symbol)
             );
-            Assert.That(properties[2].Symbol, Is.Not.EqualTo(firstAccess.Symbol));
-            Assert.That(properties[3].Symbol, Is.Not.EqualTo(secondAccess.Symbol));
+            Assert.That(properties[2].Symbol, Is.EqualTo(firstAccess.Symbol));
+            Assert.That(properties[3].Symbol, Is.EqualTo(secondAccess.Symbol));
+            Assert.That(properties[2].Role, Is.EqualTo(SemanticOccurrenceRole.Write));
+            Assert.That(properties[3].Role, Is.EqualTo(SemanticOccurrenceRole.Write));
+            Assert.That(
+                result.GetHighlights(properties[2].Span.Start),
+                Is.EqualTo([ firstDeclaration, properties[2], firstAccess ])
+            );
+            Assert.That(
+                properties[2].DefinitionSpan,
+                Is.EqualTo(firstDeclaration.Span)
+            );
+        }
+    }
+
+    [TestCase("type Node { name$: string }; var node: Node? = { name$ = \"root\" };")]
+    [TestCase("var node: { name$: string } = { name$ = \"root\" };")]
+    [TestCase("type Node { name$: string }; var node: Node; node = { name$ = \"root\" };")]
+    [TestCase("type Node { name$: string }; var nodes: Node[] = [{ name$ = \"root\" }];")]
+    [TestCase("type Node { name$: string }; func create(): Node { return { name$ = \"root\" }; }")]
+    [TestCase("type Node { name$: string }; func use(node: Node): void { } use({ name$ = \"root\" });")]
+    [TestCase("type Node { name$: string }; var node: Node = true ? { name$ = \"first\" } : { name$ = \"second\" };")]
+    [TestCase("type Node { name$: string }; var node: Node = null ?? { name$ = \"root\" };")]
+    public void AssociatesLiteralPropertiesWithTheirEffectiveContext(string source)
+    {
+        SemanticDocumentResult result = Analyze(source);
+        IReadOnlyList<SemanticOccurrence> properties =
+        [
+            .. result.Occurrences.Where(
+                static occurrence =>
+                    occurrence.Kind == SemanticClassificationKind.Property
+            ),
+        ];
+        SemanticOccurrence declaration = properties[0];
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.Diagnostics.HasErrors, Is.False);
+            Assert.That(properties.Count, Is.GreaterThanOrEqualTo(2));
+            Assert.That(
+                properties.Select(static occurrence => occurrence.Symbol),
+                Is.All.EqualTo(declaration.Symbol)
+            );
+            Assert.That(
+                properties.Select(static occurrence => occurrence.DefinitionSpan),
+                Is.All.EqualTo(declaration.Span)
+            );
+            Assert.That(
+                properties.Skip(1).Select(static occurrence => occurrence.Role),
+                Is.All.EqualTo(SemanticOccurrenceRole.Write)
+            );
+        }
+    }
+
+    [Test]
+    public void PreservesLiteralPropertyHoverWhenUsingContextualIdentity()
+    {
+        const string source = """
+                              type Node { value$?: primitive };
+                              var node: Node = { value: int = 1 };
+                              var selected = node.value;
+                              """;
+        SemanticDocumentResult result = Analyze(source);
+        IReadOnlyList<SemanticOccurrence> properties =
+        [
+            .. result.Occurrences.Where(
+                static occurrence =>
+                    occurrence.Kind == SemanticClassificationKind.Property
+            ),
+        ];
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.Diagnostics.HasErrors, Is.False);
+            Assert.That(
+                properties.Select(static occurrence => occurrence.Symbol),
+                Is.All.EqualTo(properties[0].Symbol)
+            );
+            Assert.That(
+                properties[0].HoverContent,
+                Is.EqualTo("[property] value$?: primitive")
+            );
+            Assert.That(
+                properties[1].HoverContent,
+                Is.EqualTo("[property] value: int")
+            );
+            Assert.That(
+                properties[2].HoverContent,
+                Is.EqualTo(properties[0].HoverContent)
+            );
+        }
+    }
+
+    [Test]
+    public void RespectsExplicitNestedPropertyTypeContexts()
+    {
+        const string source = """
+                              type Node { payload: { count: int } };
+                              var first: Node = { payload = { count = 1 } };
+                              var second: Node = {
+                                  payload: { count: int } = { count = 2 },
+                              };
+                              var firstCount = first.payload.count;
+                              var secondCount = second.payload.count;
+                              """;
+        SourceText sourceText = SourceText.From(source);
+        SemanticDocumentResult result = Analyze(source);
+        IReadOnlyList<SemanticOccurrence> counts =
+        [
+            .. result.Occurrences.Where(
+                occurrence =>
+                    occurrence.Kind == SemanticClassificationKind.Property &&
+                    sourceText.GetText(occurrence.Span) == "count"
+            ),
+        ];
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.Diagnostics.HasErrors, Is.False);
+            Assert.That(counts, Has.Count.EqualTo(6));
+            Assert.That(counts[1].Symbol, Is.EqualTo(counts[0].Symbol));
+            Assert.That(counts[1].DefinitionSpan, Is.EqualTo(counts[0].Span));
+            Assert.That(counts[3].Symbol, Is.EqualTo(counts[2].Symbol));
+            Assert.That(counts[3].DefinitionSpan, Is.EqualTo(counts[2].Span));
+            Assert.That(counts[3].Symbol, Is.Not.EqualTo(counts[0].Symbol));
+            Assert.That(counts[4].Symbol, Is.EqualTo(counts[0].Symbol));
+            Assert.That(counts[5].Symbol, Is.EqualTo(counts[0].Symbol));
+        }
+    }
+
+    [Test]
+    public void KeepsUncontextualizedAndStructurallyAssignedPropertiesSeparate()
+    {
+        const string source = """
+                              type Node @{ value: int };
+                              type NodeAlias @{ value: int };
+                              var node: Node = @{ value = 1 };
+                              var alias: NodeAlias = node;
+                              var anonymous = { value = 3, extra = 2 };
+                              var nodeValue = node.value;
+                              var aliasValue = alias.value;
+                              var anonymousValue = anonymous.value;
+                              """;
+        SourceText sourceText = SourceText.From(source);
+        SemanticDocumentResult result = Analyze(source);
+        IReadOnlyList<SemanticOccurrence> values =
+        [
+            .. result.Occurrences.Where(
+                occurrence =>
+                    occurrence.Kind == SemanticClassificationKind.Property &&
+                    sourceText.GetText(occurrence.Span) == "value"
+            ),
+        ];
+        SemanticOccurrence extra = result.Occurrences.Single(
+            occurrence =>
+                occurrence.Kind == SemanticClassificationKind.Property &&
+                sourceText.GetText(occurrence.Span) == "extra"
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.Diagnostics.HasErrors, Is.False);
+            Assert.That(values, Has.Count.EqualTo(7));
+            Assert.That(values[2].Symbol, Is.EqualTo(values[0].Symbol));
+            Assert.That(values[4].Symbol, Is.EqualTo(values[0].Symbol));
+            Assert.That(values[5].Symbol, Is.EqualTo(values[1].Symbol));
+            Assert.That(values[6].Symbol, Is.EqualTo(values[3].Symbol));
+            Assert.That(values[0].Symbol, Is.Not.EqualTo(values[1].Symbol));
+            Assert.That(values[0].Symbol, Is.Not.EqualTo(values[3].Symbol));
+            Assert.That(extra.Role, Is.EqualTo(SemanticOccurrenceRole.Declaration));
+            Assert.That(extra.DefinitionSpan, Is.EqualTo(extra.Span));
+        }
+    }
+
+    [Test]
+    public void KeepsUnmatchedContextualLiteralPropertiesAsLocalDeclarations()
+    {
+        const string source =
+            "type Node { value: int }; var node: Node = { value = 1, extra = 2 };";
+        SourceText sourceText = SourceText.From(source);
+        SemanticDocumentResult result = Analyze(source);
+        SemanticOccurrence extra = result.Occurrences.Single(
+            occurrence =>
+                occurrence.Kind == SemanticClassificationKind.Property &&
+                sourceText.GetText(occurrence.Span) == "extra"
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(extra.Symbol, Is.Not.Null);
+            Assert.That(extra.Symbol!.IsWorkspaceStable, Is.False);
+            Assert.That(extra.Role, Is.EqualTo(SemanticOccurrenceRole.Declaration));
+            Assert.That(extra.DefinitionSpan, Is.EqualTo(extra.Span));
         }
     }
 
@@ -387,8 +624,12 @@ public sealed class MuLangCompilerSemanticDocumentTests
         }
     }
 
-    [Test]
-    public void TreatsLegacyConfiguredPropertyInitializersAsWrites()
+    [TestCase(ObjectLiteralSyntax.Legacy, "{ name: \"value\" }")]
+    [TestCase(ObjectLiteralSyntax.Full, "{ name = \"value\" }")]
+    public void TreatsConfiguredPropertyInitializersAsWrites(
+        ObjectLiteralSyntax objectLiteralSyntax,
+        string source
+    )
     {
         ObjectTypeSymbol itemType = new (
             "item",
@@ -402,11 +643,11 @@ public sealed class MuLangCompilerSemanticDocumentTests
         LanguageProfile profile = new LanguageProfileBuilder(
                 LanguageProfiles.Version1_2
             )
-            .WithObjectLiteralSyntax(ObjectLiteralSyntax.Legacy)
+            .WithObjectLiteralSyntax(objectLiteralSyntax)
             .Build();
         SemanticDocumentResult result =
             MuLangCompiler.GetSemanticDocument(
-                "{ name: \"value\" }",
+                source,
                 environment,
                 CompilationMode.Expression,
                 new MuLangCompilationOptions

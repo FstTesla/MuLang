@@ -52,6 +52,37 @@ public sealed class SemanticDocumentResult
             .FirstOrDefault();
     }
 
+    /// <summary>Gets semantic hover information for a symbol or its declaration modifiers.</summary>
+    /// <param name="offset">The zero-based Unicode scalar offset.</param>
+    /// <returns>The hover information, or <c>null</c> when no hover target contains the offset.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="offset" /> is outside the source bounds.</exception>
+    public HoverInfo? GetHover(int offset)
+    {
+        SemanticOccurrence? occurrence = GetOccurrence(offset);
+        TextSpan hoverSpan = occurrence?.Span ?? default;
+
+        if (occurrence is null)
+        {
+            occurrence = Occurrences.FirstOrDefault(
+                candidate =>
+                    candidate.AdditionalHoverSpans.Any(
+                        span => span.Contains(offset)
+                    )
+            );
+
+            if (occurrence is not null)
+            {
+                hoverSpan = occurrence.AdditionalHoverSpans.First(
+                    span => span.Contains(offset)
+                );
+            }
+        }
+
+        return occurrence is { HoverItems.Count: > 0 }
+            ? new HoverInfo(occurrence.HoverItems, hoverSpan)
+            : null;
+    }
+
     /// <summary>Gets all occurrences of a resolved symbol.</summary>
     /// <param name="symbol">The semantic symbol identity.</param>
     /// <returns>The matching occurrences in source order.</returns>

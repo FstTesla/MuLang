@@ -10,10 +10,22 @@ internal sealed class WorkspaceSourceService
     public static IReadOnlyList<string> GetDocumentUris(
         IReadOnlyCollection<DocumentSnapshot> openDocuments,
         IReadOnlyCollection<string> workspaceFolders,
-        CancellationToken cancellationToken
+        CancellationToken cancellationToken,
+        IReadOnlyCollection<string>? solutionDocumentUris = null
     )
     {
         ISet<string> uris = new HashSet<string>(UriComparer);
+
+        if (solutionDocumentUris is not null)
+        {
+            foreach (string uri in solutionDocumentUris)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                uris.Add(uri);
+            }
+
+            return [ .. uris.Order(UriComparer) ];
+        }
 
         foreach (DocumentSnapshot document in openDocuments)
         {

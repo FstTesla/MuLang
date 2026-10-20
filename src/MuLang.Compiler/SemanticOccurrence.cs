@@ -14,7 +14,8 @@ public sealed class SemanticOccurrence
         IReadOnlyList<SemanticHoverItem> hoverItems,
         TextSpan? definitionSpan,
         bool isClassification,
-        object? highlightGroup
+        object? highlightGroup,
+        IReadOnlyList<TextSpan>? additionalHoverSpans = null
     )
     {
         Symbol = symbol;
@@ -26,6 +27,7 @@ public sealed class SemanticOccurrence
         DefinitionSpan = definitionSpan;
         IsClassification = isClassification;
         HighlightGroup = highlightGroup;
+        AdditionalHoverSpans = additionalHoverSpans ?? [ ];
     }
 
     /// <summary>Gets the resolved symbol identity, or <c>null</c> for a non-navigable occurrence.</summary>
@@ -58,4 +60,6 @@ public sealed class SemanticOccurrence
     public bool IsClassification { get; }
 
     internal object? HighlightGroup { get; }
+
+    internal IReadOnlyList<TextSpan> AdditionalHoverSpans { get; }
 }
