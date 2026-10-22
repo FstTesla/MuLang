@@ -1,6 +1,7 @@
 using Microsoft.VisualStudio.LanguageServer.Client;
 using Microsoft.VisualStudio.Shell;
 using Newtonsoft.Json.Linq;
+using System.Diagnostics.CodeAnalysis;
 
 namespace MuLang.VisualStudio;
 
@@ -28,7 +29,12 @@ internal sealed class MuLangLanguageClientMiddleLayer
         return sendNotification(methodParam);
     }
 
-    public async Task<JToken?> HandleRequestAsync(
+    [SuppressMessage(
+        "Usage",
+        "VSTHRD103",
+        Justification = "The middle-layer contract requires synchronous invocation of sendRequest."
+    )]
+    public Task<JToken?> HandleRequestAsync(
         string methodName,
         JToken methodParam,
         Func<JToken, Task<JToken?>> sendRequest
@@ -36,9 +42,16 @@ internal sealed class MuLangLanguageClientMiddleLayer
     {
         if (CanHandle(methodName))
         {
-            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
             IReadOnlyCollection<string>? documentUris =
-                MuLangSolutionSourceService.GetDocumentUris(serviceProvider);
+                ThreadHelper.JoinableTaskFactory.Run(async () =>
+                {
+                    await ThreadHelper.JoinableTaskFactory
+                        .SwitchToMainThreadAsync();
+
+                    return MuLangSolutionSourceService.GetDocumentUris(
+                        serviceProvider
+                    );
+                });
 
             if (documentUris is not null)
             {
@@ -49,6 +62,6 @@ internal sealed class MuLangLanguageClientMiddleLayer
             }
         }
 
-        return await sendRequest(methodParam);
+        return sendRequest(methodParam);
     }
 }

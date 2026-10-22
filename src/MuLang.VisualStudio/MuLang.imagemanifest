@@ -3,7 +3,7 @@
                xmlns:xsd="http://www.w3.org/2001/XMLSchema"
                xmlns="http://schemas.microsoft.com/VisualStudio/ImageManifestSchema/2014">
   <Symbols>
-    <String Name="Resources" Value="/MuLang.VisualStudio;Component/Icons" />
+    <String Name="Resources" Value="/MuLang.VisualStudio;v1.0.0.0;cf9a0e9f02f7978b;Component/Icons" />
     <Guid Name="AssetsGuid" Value="{bf198d4e-6b17-4e1e-874e-b38e2012d82b}" />
     <ID Name="MuLangFile" Value="0" />
   </Symbols>
