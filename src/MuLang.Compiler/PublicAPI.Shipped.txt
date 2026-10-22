@@ -51,6 +51,7 @@ MuLang.Compiler.SemanticClassificationResult.Diagnostics.get -> MuLang.Core.Diag
 MuLang.Compiler.SemanticDocumentResult
 MuLang.Compiler.SemanticDocumentResult.Diagnostics.get -> MuLang.Core.Diagnostics.DiagnosticCollection!
 MuLang.Compiler.SemanticDocumentResult.GetHighlights(int offset) -> System.Collections.Generic.IReadOnlyList<MuLang.Compiler.SemanticOccurrence!>!
+MuLang.Compiler.SemanticDocumentResult.GetHover(int offset) -> MuLang.Compiler.HoverInfo?
 MuLang.Compiler.SemanticDocumentResult.GetOccurrence(int offset) -> MuLang.Compiler.SemanticOccurrence?
 MuLang.Compiler.SemanticDocumentResult.GetOccurrences(MuLang.Compiler.SemanticSymbolKey! symbol) -> System.Collections.Generic.IReadOnlyList<MuLang.Compiler.SemanticOccurrence!>!
 MuLang.Compiler.SemanticDocumentResult.LineMap.get -> MuLang.Core.Text.TextLineMap!
@@ -68,6 +69,22 @@ MuLang.Compiler.SemanticHoverCategory.Variable = 0 -> MuLang.Compiler.SemanticHo
 MuLang.Compiler.SemanticHoverItem
 MuLang.Compiler.SemanticHoverItem.Category.get -> MuLang.Compiler.SemanticHoverCategory
 MuLang.Compiler.SemanticHoverItem.Content.get -> string!
+MuLang.Compiler.SemanticHoverItem.Parts.get -> System.Collections.Generic.IReadOnlyList<MuLang.Compiler.SemanticHoverPart!>!
+MuLang.Compiler.SemanticHoverPart
+MuLang.Compiler.SemanticHoverPart.Kind.get -> MuLang.Compiler.SemanticHoverPartKind
+MuLang.Compiler.SemanticHoverPart.Text.get -> string!
+MuLang.Compiler.SemanticHoverPartKind
+MuLang.Compiler.SemanticHoverPartKind.Function = 5 -> MuLang.Compiler.SemanticHoverPartKind
+MuLang.Compiler.SemanticHoverPartKind.Keyword = 1 -> MuLang.Compiler.SemanticHoverPartKind
+MuLang.Compiler.SemanticHoverPartKind.Number = 8 -> MuLang.Compiler.SemanticHoverPartKind
+MuLang.Compiler.SemanticHoverPartKind.Operator = 9 -> MuLang.Compiler.SemanticHoverPartKind
+MuLang.Compiler.SemanticHoverPartKind.Parameter = 4 -> MuLang.Compiler.SemanticHoverPartKind
+MuLang.Compiler.SemanticHoverPartKind.Property = 6 -> MuLang.Compiler.SemanticHoverPartKind
+MuLang.Compiler.SemanticHoverPartKind.Punctuation = 10 -> MuLang.Compiler.SemanticHoverPartKind
+MuLang.Compiler.SemanticHoverPartKind.String = 7 -> MuLang.Compiler.SemanticHoverPartKind
+MuLang.Compiler.SemanticHoverPartKind.Text = 0 -> MuLang.Compiler.SemanticHoverPartKind
+MuLang.Compiler.SemanticHoverPartKind.Type = 2 -> MuLang.Compiler.SemanticHoverPartKind
+MuLang.Compiler.SemanticHoverPartKind.Variable = 3 -> MuLang.Compiler.SemanticHoverPartKind
 MuLang.Compiler.SemanticOccurrence
 MuLang.Compiler.SemanticOccurrence.DefinitionSpan.get -> MuLang.Core.Text.TextSpan?
 MuLang.Compiler.SemanticOccurrence.HoverContent.get -> string?

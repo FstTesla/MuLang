@@ -12,6 +12,22 @@ Stable entries describe the incremental change since the preceding prerelease. T
 
 Each release heading identifies the incremental version range covered by the section, from the comparison version to the released version.
 
+## `0.4.0-beta.2` → `0.4.0-beta.3` - 2026-10-22
+
+### New features
+
+- Added native Visual Studio Quick Info with theme-aware syntax coloring and multiline function and structural-type signatures. Standard LSP hover retains Markdown and plain-text support.
+- Added [`SemanticDocumentResult.GetHover`](https://fsttesla.github.io/MuLang/api/MuLang.Compiler.SemanticDocumentResult.html) for querying hover from an existing semantic document and [classified hover signature parts](https://fsttesla.github.io/MuLang/api/MuLang.Compiler.SemanticHoverItem.html) for custom editor rendering. Hover now also works on declaration-level read-only `$` and optional-property `?` modifiers without treating them as separate symbol occurrences.
+- Published editor-support guides covering installation, editor features, workspace configuration, and LSP integration, together with a hosted [workspace configuration JSON Schema](https://fsttesla.github.io/MuLang/schemas/mulang.config.schema.json) for schema-aware editing.
+
+### Fixes
+
+- Fixed object-initializer property identities to match their effective contextual type declarations. Go to Definition, document highlights, and references now connect those initializers to the corresponding properties while keeping unrelated properties and explicit nested type contexts distinct.
+- Fixed Visual Studio Find All References to search files included in the current solution or its projects, including linked files outside the solution directory, rather than unrelated files on disk. Results now include declaration/read/write/reference kinds and source-line previews.
+- Fixed type-inference recovery for empty and null-only array literals without an expected element type. Their inferred locals now remain `<unresolved>`, and the compiler reports a single type-inference diagnostic instead of cascading errors.
+- Fixed dynamic element-access hover to describe the key symbol, literal, or operator without appending an unrelated enclosing-access signature.
+- Fixed Visual Studio file-icon resource resolution for the signed extension assembly.
+
 ## `0.4.0-beta.1` → `0.4.0-beta.2` - 2026-10-19
 
 ### New features
