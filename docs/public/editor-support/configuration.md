@@ -158,7 +158,21 @@ under `expressions`, excluding generated files.
 Configuration-file changes are applied automatically and refresh diagnostics
 for open documents.
 
-Invalid updates report an error and leave the last valid configuration active.
+Invalid configuration files produce MuLang diagnostics on the configuration file.
+Malformed JSON produces an error with diagnostic code `MULCFG001`; invalid
+configuration properties, values, or compilation settings produce a warning with
+code `MULCFG002`. The first validation failure is reported with its source range,
+without requiring a `$schema` property or network access. Comments and trailing
+commas remain valid.
+
+In Visual Studio, diagnostics update while editing `mulang.config.json`, including
+unsaved changes. JSON editor support is retained, and other JSON files are not
+handled by the MuLang language server. Live validation does not apply unsaved
+settings: compilation settings are reloaded from disk after saving. Closing an
+unsaved configuration restores diagnostics for its on-disk contents.
+
+Invalid updates leave the last valid configuration active. Diagnostics are cleared
+when the file becomes valid or is deleted.
 Documents with no configuration file in their ancestor chain use the
 standalone defaults.
 

@@ -115,7 +115,7 @@ internal sealed class MuLangQuickInfoSource : IAsyncQuickInfoSource
         IList<object> lines = new List<object>();
         IList<ClassifiedTextRun> runs = new List<ClassifiedTextRun>
         {
-            new ClassifiedTextRun(
+            new (
                 ClassifiedTextElement.TextClassificationTypeName,
                 $"({item.Category}) ",
                 ClassifiedTextRunStyle.Italic

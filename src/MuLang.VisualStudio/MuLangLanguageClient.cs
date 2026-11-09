@@ -13,6 +13,7 @@ using System.Reflection;
 namespace MuLang.VisualStudio;
 
 [ContentType(MuLangContentType.Name)]
+[ContentType(MuLangConfigurationContentType.Name)]
 [Export(typeof(ILanguageClient))]
 [Export(typeof(IMuLangQuickInfoService))]
 [PartCreationPolicy(CreationPolicy.Shared)]

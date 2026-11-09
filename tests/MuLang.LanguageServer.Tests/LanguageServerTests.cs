@@ -1,4 +1,6 @@
 using MuLang.Core;
+using MuLang.Core.Diagnostics;
+using MuLang.Core.Text;
 using MuLang.Core.Types;
 using System.IO.Pipelines;
 using System.Text;
@@ -289,7 +291,7 @@ public sealed class LanguageServerTests
 
         Assert.That(
             () => WorkspaceConfigurationSetParser.Parse(document.RootElement),
-            Throws.TypeOf<FormatException>()
+            Throws.InstanceOf<FormatException>()
         );
     }
 
@@ -323,8 +325,449 @@ public sealed class LanguageServerTests
 
         Assert.That(
             () => WorkspaceConfigurationSetParser.Parse(document.RootElement),
-            Throws.TypeOf<FormatException>()
+            Throws.InstanceOf<FormatException>()
         );
+    }
+
+    [TestCase("null", "null")]
+    [TestCase("{\"$schema\":42}", "42")]
+    [TestCase("{\"configuration\":null}", "null")]
+    [TestCase("{\"overrides\":{}}", "{}")]
+    [TestCase("{\"configuration\":{\"compilationMode\":\"invalid\"}}", "\"invalid\"")]
+    [TestCase("{\"configuration\":{\"compilationMode\":\"1\"}}", "\"1\"")]
+    [TestCase("{\"configuration\":{\"compilationMode\":\"Program\"}}", "\"Program\"")]
+    [TestCase("{\"configuration\":{\"unexpected\":true}}", "true")]
+    [TestCase(
+        "{\"$schema\":\"\U0001F600\",\"configuration\":{\"profile\":\"invalid\"}}",
+        "\"invalid\""
+    )]
+    [TestCase("{\"configuration\":{\"expectedResultType\":\"Missing\"}}", "\"Missing\"")]
+    [TestCase(
+        "{\"overrides\":[{\"includes\":[\"../*.mu\"],\"configuration\":{}}]}",
+        "\"../*.mu\""
+    )]
+    [TestCase(
+        "{\"overrides\":[{\"includes\":[\"*.mu\"],\"configuration\":{\"environment\":{\"globals\":[{\"id\":\"g\",\"name\":\"g\",\"type\":42}]}}}]}",
+        "42"
+    )]
+    public void LocatesConfigurationValidationWarnings(string json, string invalidText)
+    {
+        (WorkspaceConfigurationSet? configuration, Diagnostic? diagnostic) =
+            WorkspaceConfigurationValidation.Validate(json);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(configuration, Is.Null);
+            Assert.That(diagnostic, Is.Not.Null);
+            Assert.That(diagnostic!.Code, Is.EqualTo("MULCFG002"));
+            Assert.That(
+                SourceText.From(json).GetText(diagnostic.Span),
+                Is.EqualTo(invalidText)
+            );
+        }
+    }
+
+    [Test]
+    public async Task ValidatesConfigurationBuffersWithoutCompilingOrApplyingThem()
+    {
+        string workspace = Path.Combine(
+            Path.GetTempPath(),
+            $"MuLang.LanguageServer.Tests-{Guid.NewGuid():N}"
+        );
+        Directory.CreateDirectory(workspace);
+
+        try
+        {
+            string configurationFile = Path.Combine(
+                workspace,
+                WorkspaceConfigurationFile.FileName
+            );
+            string configurationUri = new Uri(configurationFile).AbsoluteUri;
+            string documentUri = new Uri(Path.Combine(workspace, "test.mu")).AbsoluteUri;
+            string workspaceUri = new Uri(
+                $"{workspace}{Path.DirectorySeparatorChar}"
+            ).AbsoluteUri;
+            await File.WriteAllTextAsync(
+                configurationFile,
+                """{"configuration":{"compilationMode":"expression"}}"""
+            );
+            const string malformedJson = """
+                                         {
+                                           "$schema": "😀", "configuration": !
+                                         }
+                                         """;
+            IReadOnlyList<JsonElement> output = await RunServerAsync(
+                true,
+                JsonSerializer.Serialize(
+                    new
+                    {
+                        jsonrpc = "2.0",
+                        id = 1,
+                        method = "initialize",
+                        @params = new { rootUri = workspaceUri },
+                    }
+                ),
+                CreateOpenDocumentMessage(documentUri, "1"),
+                CreateOpenDocumentMessage(
+                    configurationUri,
+                    """{"configuration":{"compilationMode":"invalid"}}"""
+                ),
+                CreateChangeDocumentMessage(configurationUri, 2, malformedJson),
+                CreateChangeDocumentMessage(documentUri, 2, "2"),
+                CreateChangeDocumentMessage(
+                    configurationUri,
+                    3,
+                    """{"configuration":{"compilationMode":"program"}}"""
+                ),
+                CreateChangeDocumentMessage(documentUri, 3, "3"),
+                JsonSerializer.Serialize(
+                    new
+                    {
+                        jsonrpc = "2.0",
+                        id = 3,
+                        method = "textDocument/semanticTokens/full",
+                        @params = new { textDocument = new { uri = configurationUri } },
+                    }
+                ),
+                JsonSerializer.Serialize(
+                    new
+                    {
+                        jsonrpc = "2.0",
+                        method = "textDocument/didClose",
+                        @params = new { textDocument = new { uri = configurationUri } },
+                    }
+                ),
+                """{"jsonrpc":"2.0","method":"shutdown","id":99}""",
+                """{"jsonrpc":"2.0","method":"exit"}"""
+            );
+            JsonElement[] diagnostics =
+            [
+                .. output
+                    .Where(
+                        static message =>
+                            message.TryGetProperty("method", out JsonElement method) &&
+                            method.GetString() == "textDocument/publishDiagnostics"
+                    )
+                    .Select(static message => message.GetProperty("params")),
+            ];
+            JsonElement[] configurationDiagnostics =
+            [
+                .. diagnostics
+                    .Where(
+                        message => message.GetProperty("uri").GetString() == configurationUri
+                    ),
+            ];
+            JsonElement syntaxError = configurationDiagnostics[1]
+                .GetProperty("diagnostics")[0];
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(configurationDiagnostics, Has.Length.EqualTo(4));
+                Assert.That(
+                    configurationDiagnostics[0].GetProperty("diagnostics")[0]
+                        .GetProperty("code").GetString(),
+                    Is.EqualTo("MULCFG002")
+                );
+                Assert.That(
+                    configurationDiagnostics[0].GetProperty("diagnostics")[0]
+                        .GetProperty("severity").GetInt32(),
+                    Is.EqualTo(2)
+                );
+                Assert.That(syntaxError.GetProperty("severity").GetInt32(), Is.EqualTo(1));
+                Assert.That(syntaxError.GetProperty("code").GetString(), Is.EqualTo("MULCFG001"));
+                Assert.That(
+                    syntaxError.GetProperty("range").GetProperty("start")
+                        .GetProperty("line").GetInt32(),
+                    Is.EqualTo(1)
+                );
+                Assert.That(
+                    syntaxError.GetProperty("range").GetProperty("start")
+                        .GetProperty("character").GetInt32(),
+                    Is.EqualTo(malformedJson.IndexOf('!') - malformedJson.IndexOf('\n') - 1)
+                );
+                Assert.That(
+                    configurationDiagnostics.Take(3)
+                        .Select(static diagnostic => diagnostic.GetProperty("version").GetInt32()),
+                    Is.EqualTo([ 1, 2, 3 ])
+                );
+                Assert.That(
+                    configurationDiagnostics.Skip(2)
+                        .Select(static diagnostic => diagnostic.GetProperty("diagnostics").GetArrayLength()),
+                    Has.All.Zero
+                );
+                Assert.That(
+                    diagnostics.Where(
+                            diagnostic => diagnostic.GetProperty("uri").GetString() == documentUri
+                        )
+                        .Select(static diagnostic => diagnostic.GetProperty("diagnostics").GetArrayLength()),
+                    Has.All.Zero
+                );
+                Assert.That(
+                    output.Single(
+                            static message =>
+                                message.TryGetProperty("id", out JsonElement id) &&
+                                id.GetInt32() == 3
+                        )
+                        .GetProperty("result").GetProperty("data").GetArrayLength(),
+                    Is.Zero
+                );
+                Assert.That(
+                    output.Any(
+                        static message =>
+                            message.TryGetProperty("method", out JsonElement method) &&
+                            method.GetString() == "window/showMessage"
+                    ),
+                    Is.False
+                );
+            }
+        }
+        finally
+        {
+            Directory.Delete(workspace, true);
+        }
+    }
+
+    [Test]
+    public async Task RetainsConfigurationAndClearsFileWarningsAfterRecoveryOrDeletion()
+    {
+        string workspace = Path.Combine(
+            Path.GetTempPath(),
+            $"MuLang.LanguageServer.Tests-{Guid.NewGuid():N}"
+        );
+        Directory.CreateDirectory(workspace);
+        using CancellationTokenSource cancellation = new (TimeSpan.FromSeconds(15));
+        Pipe inputPipe = new ();
+        Pipe outputPipe = new ();
+        await using Stream input = inputPipe.Reader.AsStream();
+        await using Stream inputWriter = inputPipe.Writer.AsStream();
+        await using Stream output = outputPipe.Reader.AsStream();
+        await using Stream outputWriter = outputPipe.Writer.AsStream();
+        LanguageServer server = new (input, outputWriter, true);
+        Task<int> serverTask = server.RunAsync(cancellation.Token);
+
+        try
+        {
+            string configurationFile = Path.Combine(workspace, WorkspaceConfigurationFile.FileName);
+            string configurationUri = new Uri(configurationFile).AbsoluteUri;
+            string documentUri = new Uri(Path.Combine(workspace, "test.mu")).AbsoluteUri;
+            string workspaceUri = new Uri(
+                $"{workspace}{Path.DirectorySeparatorChar}"
+            ).AbsoluteUri;
+            await File.WriteAllTextAsync(
+                configurationFile,
+                """{"configuration":{"compilationMode":"expression"}}"""
+            );
+            await WriteMessageAsync(
+                inputWriter,
+                JsonSerializer.Serialize(
+                    new
+                    {
+                        jsonrpc = "2.0",
+                        id = 1,
+                        method = "initialize",
+                        @params = new { rootUri = workspaceUri },
+                    }
+                )
+            );
+            await WriteMessageAsync(inputWriter, CreateOpenDocumentMessage(documentUri, "1"));
+            Assert.That((await ReadDiagnosticsAsync(documentUri)).GetArrayLength(), Is.Zero);
+
+            await File.WriteAllTextAsync(configurationFile, "{");
+            await NotifyFileChangeAsync();
+            JsonElement syntaxError = (await ReadDiagnosticsAsync(configurationUri))[0];
+            Assert.That(syntaxError.GetProperty("code").GetString(), Is.EqualTo("MULCFG001"));
+            Assert.That(syntaxError.GetProperty("severity").GetInt32(), Is.EqualTo(1));
+            await WriteMessageAsync(
+                inputWriter,
+                CreateChangeDocumentMessage(documentUri, 2, "2")
+            );
+            Assert.That((await ReadDiagnosticsAsync(documentUri)).GetArrayLength(), Is.Zero);
+
+            await WriteMessageAsync(
+                inputWriter,
+                CreateOpenDocumentMessage(configurationUri, "{}")
+            );
+            Assert.That((await ReadDiagnosticsAsync(configurationUri)).GetArrayLength(), Is.Zero);
+            await File.WriteAllTextAsync(configurationFile, """{"configuration":{}}""");
+            await NotifyConfigurationDocumentAsync("textDocument/didSave");
+            Assert.That((await ReadDiagnosticsAsync(documentUri)).GetArrayLength(), Is.GreaterThan(0));
+            await NotifyConfigurationDocumentAsync("textDocument/didClose");
+            Assert.That((await ReadDiagnosticsAsync(configurationUri)).GetArrayLength(), Is.Zero);
+            Assert.That((await ReadDiagnosticsAsync(documentUri)).GetArrayLength(), Is.GreaterThan(0));
+
+            await File.WriteAllTextAsync(configurationFile, """{"unexpected":true}""");
+            await NotifyFileChangeAsync();
+            Assert.That(
+                (await ReadDiagnosticsAsync(configurationUri))[0].GetProperty("code").GetString(),
+                Is.EqualTo("MULCFG002")
+            );
+            await WriteMessageAsync(
+                inputWriter,
+                CreateOpenDocumentMessage(configurationUri, "{}")
+            );
+            Assert.That((await ReadDiagnosticsAsync(configurationUri)).GetArrayLength(), Is.Zero);
+            await NotifyConfigurationDocumentAsync("textDocument/didClose");
+            Assert.That((await ReadDiagnosticsAsync(configurationUri)).GetArrayLength(), Is.Zero);
+            Assert.That(
+                (await ReadDiagnosticsAsync(configurationUri))[0].GetProperty("code").GetString(),
+                Is.EqualTo("MULCFG002")
+            );
+
+            File.Delete(configurationFile);
+            await NotifyFileChangeAsync();
+            Assert.That((await ReadDiagnosticsAsync(configurationUri)).GetArrayLength(), Is.Zero);
+            await WriteMessageAsync(inputWriter, """{"jsonrpc":"2.0","method":"shutdown","id":99}""");
+            await WriteMessageAsync(inputWriter, """{"jsonrpc":"2.0","method":"exit"}""");
+            Assert.That(await serverTask, Is.Zero);
+
+            async Task<JsonElement> ReadDiagnosticsAsync(string uri)
+            {
+                while (true)
+                {
+                    using JsonDocument? message = await LspMessageReader.ReadAsync(
+                        output,
+                        cancellation.Token
+                    );
+                    Assert.That(message, Is.Not.Null);
+                    JsonElement root = message!.RootElement;
+
+                    if (
+                        root.TryGetProperty("method", out JsonElement method) &&
+                        method.GetString() == "textDocument/publishDiagnostics" &&
+                        root.GetProperty("params").GetProperty("uri").GetString() == uri
+                    )
+                    {
+                        return root.GetProperty("params").GetProperty("diagnostics").Clone();
+                    }
+                }
+            }
+
+            Task NotifyFileChangeAsync()
+            {
+                return WriteMessageAsync(
+                    inputWriter,
+                    JsonSerializer.Serialize(
+                        new
+                        {
+                            jsonrpc = "2.0",
+                            method = "workspace/didChangeWatchedFiles",
+                            @params = new
+                            {
+                                changes = new[] { new { uri = configurationUri, type = 2 } },
+                            },
+                        }
+                    )
+                );
+            }
+
+            Task NotifyConfigurationDocumentAsync(string method)
+            {
+                return WriteMessageAsync(
+                    inputWriter,
+                    JsonSerializer.Serialize(
+                        new
+                        {
+                            jsonrpc = "2.0",
+                            method,
+                            @params = new { textDocument = new { uri = configurationUri } },
+                        }
+                    )
+                );
+            }
+        }
+        finally
+        {
+            cancellation.Cancel();
+
+            try
+            {
+                await serverTask;
+            }
+            catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { }
+
+            Directory.Delete(workspace, true);
+        }
+    }
+
+    [Test]
+    public async Task ReloadsConfigurationAfterRemovingOverlappingWorkspaceFolder()
+    {
+        string workspace = Path.Combine(
+            Path.GetTempPath(),
+            $"MuLang.LanguageServer.Tests-{Guid.NewGuid():N}"
+        );
+        string nested = Path.Combine(workspace, "nested");
+        Directory.CreateDirectory(nested);
+
+        try
+        {
+            await File.WriteAllTextAsync(
+                Path.Combine(nested, WorkspaceConfigurationFile.FileName),
+                """{"configuration":{"compilationMode":"expression"}}"""
+            );
+            string workspaceUri = new Uri(
+                $"{workspace}{Path.DirectorySeparatorChar}"
+            ).AbsoluteUri;
+            string nestedUri = new Uri(
+                $"{nested}{Path.DirectorySeparatorChar}"
+            ).AbsoluteUri;
+            string documentUri = new Uri(Path.Combine(nested, "test.mu")).AbsoluteUri;
+            IReadOnlyList<JsonElement> output = await RunServerAsync(
+                true,
+                JsonSerializer.Serialize(
+                    new
+                    {
+                        jsonrpc = "2.0",
+                        id = 1,
+                        method = "initialize",
+                        @params = new
+                        {
+                            workspaceFolders = new[]
+                            {
+                                new { uri = workspaceUri, name = "workspace" },
+                                new { uri = nestedUri, name = "nested" },
+                            },
+                        },
+                    }
+                ),
+                CreateOpenDocumentMessage(documentUri, "1"),
+                JsonSerializer.Serialize(
+                    new
+                    {
+                        jsonrpc = "2.0",
+                        method = "workspace/didChangeWorkspaceFolders",
+                        @params = new
+                        {
+                            @event = new
+                            {
+                                removed = new[] { new { uri = nestedUri, name = "nested" } },
+                            },
+                        },
+                    }
+                ),
+                """{"jsonrpc":"2.0","method":"shutdown","id":99}""",
+                """{"jsonrpc":"2.0","method":"exit"}"""
+            );
+            int[] diagnosticCounts =
+            [
+                .. output
+                    .Where(
+                        static message =>
+                            message.TryGetProperty("method", out JsonElement method) &&
+                            method.GetString() == "textDocument/publishDiagnostics"
+                    )
+                    .Select(
+                        static message => message.GetProperty("params")
+                            .GetProperty("diagnostics").GetArrayLength()
+                    ),
+            ];
+
+            Assert.That(diagnosticCounts, Is.EqualTo([ 0, 0 ]));
+        }
+        finally
+        {
+            Directory.Delete(workspace, true);
+        }
     }
 
     [Test]
@@ -651,10 +1094,10 @@ public sealed class LanguageServerTests
         IReadOnlyList<JsonElement> results =
         [
             .. output.Where(
-                static message =>
-                    message.TryGetProperty("id", out JsonElement id) &&
-                    id.GetInt32() is >= 3 and <= 7
-            ).OrderBy(static message => message.GetProperty("id").GetInt32())
+                    static message =>
+                        message.TryGetProperty("id", out JsonElement id) &&
+                        id.GetInt32() is >= 3 and <= 7
+                ).OrderBy(static message => message.GetProperty("id").GetInt32())
                 .Select(static message => message.GetProperty("result")),
         ];
         string contentProperty = method == "mulang/quickInfo" ? "items" : "contents";
@@ -746,14 +1189,13 @@ public sealed class LanguageServerTests
                     )
                 ),
                 Is.EqualTo(
-                    new (string, string)[]
-                    {
+                    [
                         ("variable", "value"),
                         ("operator", "$"),
                         ("punctuation", ":"),
                         ("text", " "),
                         ("keyword", "int"),
-                    }
+                    ]
                 )
             );
             Assert.That(
@@ -853,7 +1295,7 @@ public sealed class LanguageServerTests
                 item.GetProperty("parts").EnumerateArray().Where(
                     static part => part.GetProperty("kind").GetString() == "property"
                 ).Select(static part => part.GetProperty("text").GetString()),
-                Is.EqualTo(new[] { "first", "x", "y", "second" })
+                Is.EqualTo([ "first", "x", "y", "second" ])
             );
         }
     }
@@ -1802,8 +2244,8 @@ public sealed class LanguageServerTests
                         .GetProperty("range").GetProperty("start")
                         .GetProperty("line").GetInt32()
                 ),
-                Is.EqualTo(
-                    includeDeclaration ? new[] { 0, 1, 2 } : new[] { 1, 2 }
+                Is.EqualTo<int>(
+                    includeDeclaration ? [ 0, 1, 2 ] : [ 1, 2 ]
                 )
             );
         }
@@ -2128,7 +2570,7 @@ public sealed class LanguageServerTests
                         static reference =>
                             reference.GetProperty("uri").GetString()
                     ),
-                    Is.EquivalentTo(new[] { openUri, memberUri, linkedUri })
+                    Is.EquivalentTo([ openUri, memberUri, linkedUri ])
                 );
                 Assert.That(references[1].GetArrayLength(), Is.EqualTo(1));
                 Assert.That(
@@ -2143,14 +2585,13 @@ public sealed class LanguageServerTests
                             reference.GetProperty("uri").GetString()
                     ),
                     Is.EquivalentTo(
-                        new[]
-                        {
+                        [
                             openUri,
                             memberUri,
                             new Uri(excludedPath).AbsoluteUri,
                             new Uri(binPath).AbsoluteUri,
                             new Uri(objPath).AbsoluteUri,
-                        }
+                        ]
                     )
                 );
             }
@@ -3729,6 +4170,22 @@ public sealed class LanguageServerTests
                         version = 1,
                         text,
                     },
+                },
+            }
+        );
+    }
+
+    private static string CreateChangeDocumentMessage(string uri, int version, string text)
+    {
+        return JsonSerializer.Serialize(
+            new
+            {
+                jsonrpc = "2.0",
+                method = "textDocument/didChange",
+                @params = new
+                {
+                    textDocument = new { uri, version },
+                    contentChanges = new[] { new { text } },
                 },
             }
         );

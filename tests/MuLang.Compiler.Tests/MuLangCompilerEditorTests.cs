@@ -160,8 +160,7 @@ public sealed class MuLangCompilerEditorTests
             Assert.That(
                 result.Occurrences.Any(
                     occurrence =>
-                        occurrence.IsClassification &&
-                        occurrence.Kind == SemanticClassificationKind.Type &&
+                        occurrence is { IsClassification: true, Kind: SemanticClassificationKind.Type } &&
                         occurrence.Modifiers.HasFlag(
                             SemanticClassificationModifiers.Declaration
                         ) &&

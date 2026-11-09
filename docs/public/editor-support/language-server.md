@@ -34,6 +34,12 @@ Clients must use full document synchronization and UTF-16 positions.
 Semantic tokens are available through `textDocument/semanticTokens/full`;
 incremental token responses are not supported.
 
+Clients can also synchronize `mulang.config.json` documents to receive live
+syntax errors and configuration warnings through `textDocument/publishDiagnostics`.
+Configuration documents use the same full synchronization and UTF-16 positions,
+but are never analyzed as MuLang source. Send `textDocument/didSave` after saving
+and `textDocument/didClose` when closing a configuration document.
+
 A client can pair semantic tokens with the shared
 [TextMate grammar](https://github.com/FstTesla/MuLang/blob/main/src/MuLang.VisualStudio/Grammars/MuLang.tmLanguage.json)
 and [language configuration](https://github.com/FstTesla/MuLang/blob/main/src/MuLang.VisualStudio/MuLang-language-configuration.json)

@@ -63,3 +63,8 @@ and Find All References. Exercise Folder View and Solution View, including
 linked MuLang files and configuration-file changes. Compare the results with
 the public [editor features](public/editor-support/editor-features.md) and
 [configuration rules](public/editor-support/configuration.md).
+
+Verify live syntax errors and configuration warnings in `mulang.config.json`,
+diagnostic removal after correction or deletion, and restoration of disk
+diagnostics after discarding unsaved changes. Confirm that JSON coloring and
+schema-aware editing still work and that unrelated JSON files are unaffected.

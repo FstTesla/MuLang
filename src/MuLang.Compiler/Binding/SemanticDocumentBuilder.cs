@@ -1267,46 +1267,53 @@ internal static class SemanticDocumentBuilder
                     break;
                 }
 
-                case BoundExpression.MemberAccess member:
+                case BoundExpression.MemberAccess(
+                    var syntaxNode,
+                    var typeSymbol,
+                    var boundExpression,
+                    var name,
+                    var property,
+                    var isDynamic,
+                    _,
+                    var isArrayLength):
                 {
                     VisitExpression(
-                        member.Target,
+                        boundExpression,
                         SemanticOccurrenceRole.Read
                     );
                     TextSpan span =
-                        ((MemberAccessExpressionSyntax)member.Syntax)
+                        ((MemberAccessExpressionSyntax)syntaxNode)
                         .NameToken
                         .Span;
-                    ObjectTypeSymbol? owner = GetObjectType(member.Target.Type);
-                    ObjectPropertySymbol? property = member.Property;
+                    ObjectTypeSymbol? owner = GetObjectType(boundExpression.Type);
                     SemanticSymbolKey? symbol;
                     IReadOnlyList<SemanticHoverPart>? content;
 
                     if (property is not null)
                     {
-                        symbol = GetNonNullable(member.Target.Type).Kind ==
+                        symbol = GetNonNullable(boundExpression.Type).Kind ==
                             TypeKind.ErrorValue
                                 ? BuiltInPropertyKey("error", property.Name)
                                 : PropertyKey(property, owner);
                         content = SymbolDisplay.Property(property);
                     }
-                    else if (member.IsArrayLength)
+                    else if (isArrayLength)
                     {
                         symbol = BuiltInPropertyKey("array", "length");
                         content = SymbolDisplay.Property(
                             new ObjectPropertySymbol(
                                 "length",
-                                member.Type,
+                                typeSymbol,
                                 isReadOnly: true
                             )
                         );
                     }
-                    else if (member.IsDynamic)
+                    else if (isDynamic)
                     {
                         symbol = null;
                         content = SymbolDisplay.Expression(
-                            member.Name,
-                            member.Type,
+                            name,
+                            typeSymbol,
                             SemanticHoverPartKind.Property
                         );
                     }

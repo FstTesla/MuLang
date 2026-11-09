@@ -5,105 +5,41 @@ applyTo: '**/*.cs'
 
 # C\#
 
-Use compact `namespace` declarations.
+- Use compact `namespace` declarations.
+- Sort `using` directives in alphabetical order (no `System` first).
+- Put top-level types in their own files, and name the file after the type. Of course, the only exception are `file`-scoped types.
+- Mark lambdas and local functions as `static` whenever possible.
+- Leverage local functions for small helper functions.
+- Avoid primary constructors for non-`record` types.
+- Put `[MethodImpl(MethodImplOptions.AggressiveInlining)]` on small methods and local functions when possible, especially in hot paths.
+- Prefer `throw new ArgumentException` (or similar argument-related exceptions) over `ArgumentException.ThrowIfWhatever` (or similar argument-related methods).
+- Prefer explicit types over `var` for local variables, except for lengthy types or when mandatory (e.g. anonymous types, LINQ queries, `var` pattern, etc.).
+- Use `{ } someVar` instead of `SomeType someVar` when pattern-matching against the nullable counterpart, i.e. `SomeType?`.
+- Prefer interface collections over concrete collections, unless the concrete collection is required for some reason.
 
----
+  Among the interface collections, choose the most appropriate one for the use case.
+  For example:
+  - `IReadOnlyCollection<T>` over `IEnumerable<T>`, when count is required or when the underlying instance is not lazy;
+  - `IReadOnlyList<T>` over `IReadOnlyCollection<T>`, when indexing is required;
+  - writable collections over read-only collections, when the collection is expected to be modified.
 
-Sort `using` directives in alphabetical order (no `System` first).
+  All rules above can be relaxed if other APIs make it necessary or more convenient to use a different collection type.
 
----
-
-Put top-level types in their own files, and name the file after the type. Of course, the only exception are `file`-scoped types.
-
----
-
-Mark lambdas and local functions as `static` whenever possible.
-
----
-
-Leverage local functions for small helper functions.
-
----
-
-Avoid primary constructors for non-`record` types.
-
----
-
-Put `[MethodImpl(MethodImplOptions.AggressiveInlining)]` on small methods and local functions when possible, especially in hot paths.
-
----
-
-Prefer `throw new ArgumentException` (or similar argument-related exceptions) over `ArgumentException.ThrowIfWhatever` (or similar argument-related methods).
-
----
-
-Prefer explicit types over `var` for local variables, except for lengthy types or when mandatory (e.g. anonymous types, LINQ queries, `var` pattern, etc.).
-
----
-
-Use `{ } someVar` instead of `SomeType someVar` when pattern-matching against the nullable counterpart, i.e. `SomeType?`.
-
----
-
-Prefer interface collections over concrete collections, unless the concrete collection is required for some reason.
-
-Among the interface collections, choose the most appropriate one for the use case.
-For example:
-- `IReadOnlyCollection<T>` over `IEnumerable<T>`, when count is required or when the underlying instance is not lazy;
-- `IReadOnlyList<T>` over `IReadOnlyCollection<T>`, when indexing is required;
-- writable collections over read-only collections, when the collection is expected to be modified.
-
-All rules above can be relaxed if other APIs make it necessary or more convenient to use a different collection type.
-
-Choosing the correct collection type is difficult and sometimes is just a matter of taste. In practice, try to mimic existing patterns in the codebase and choose the minimal necessary collection type.
-
----
-
-In project files, avoid project and package references that are already transitively referenced by other project or package references.
+  Choosing the correct collection type is difficult and sometimes is just a matter of taste. In practice, try to mimic existing patterns in the codebase and choose the minimal necessary collection type.
+- In project files, avoid project and package references that are already transitively referenced by other project or package references.
 
 # C# XML Documentation
 
-Do not touch functional code. Only add or modify XML documentation comments.
-
----
-
-Do not touch generated files (e.g. `*.g.cs`, `*.designer.cs`).
-
----
-
-Do not alter the `GenerateDocumentationFile` project property or other project settings related to XML documentation.
-
----
-
-Unless told otherwise, write documentation only for symbols with effective visibility outside the solution. In other words, a `public` or `protected` member declared inside an `internal` type (or otherwise not exposed beyond the assembly) should not be documented; the same applies to nested members whose chain of containing types is not public.
-
----
-
-If a method has non-obvious semantics, deduce it by reading the implementation; if it remains ambiguous, use a factual and neutral description instead of inventing details.
-
----
-
-Every parameter, type parameter, and non-void return value must have its own tag, unless the symbol is omitted.
-
----
-
-Do not leave "contentful" tags empty or with placeholders (`TODO`, `...`).
-
----
-
-Keep descriptions concise, factual, and within the component's domain.
-
----
-
-Do not restate the signature or list parameters in the `<summary>`.
-
----
-
-Prefer meaning over mechanical restatement. In other words, write plain descriptions like "Gets or sets the Foo" only if there is nothing else to add value.
-
----
-
-If a pattern is already used elsewhere in the documentation, reuse it. This implies that, if a new shared style is established, you may ask me whether you can proceed updating existing documentation to match it.
+- Do not touch functional code. Only add or modify XML documentation comments.
+- Do not touch generated files (e.g. `*.g.cs`, `*.designer.cs`).
+- Do not alter the `GenerateDocumentationFile` project property or other project settings related to XML documentation.
+- Unless told otherwise, write documentation only for symbols with effective visibility outside the solution. In other words, a `public` or `protected` member declared inside an `internal` type (or otherwise not exposed beyond the assembly) should not be documented; the same applies to nested members whose chain of containing types is not public.
+- If a method has non-obvious semantics, deduce it by reading the implementation; if it remains ambiguous, use a factual and neutral description instead of inventing details.
+- Every parameter, type parameter, and non-void return value must have its own tag, unless the symbol is omitted.
+- Do not leave "contentful" tags empty or with placeholders (`TODO`, `...`).
+- Keep descriptions concise, factual, and within the component's domain.
+- Do not restate the signature or list parameters in the `<summary>`.
+- Prefer meaning over mechanical restatement. In other words, write plain descriptions - If a pattern is already used elsewhere in the documentation, reuse it. This implies that, if a new shared style is established, you may ask me whether you can proceed updating existing documentation to match it.
 
 ## Style guide
 

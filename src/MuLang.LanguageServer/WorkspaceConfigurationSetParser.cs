@@ -13,16 +13,30 @@ internal static class WorkspaceConfigurationSetParser
 
         if (element.ValueKind != JsonValueKind.Object)
         {
-            throw new FormatException("The configuration must be an object.");
+            throw new WorkspaceConfigurationException(
+                "The configuration must be an object.",
+                element
+            );
         }
 
         ValidateProperties(element, "$schema", "configuration", "overrides");
+
+        if (
+            element.TryGetProperty("$schema", out JsonElement schemaElement) &&
+            schemaElement.ValueKind != JsonValueKind.String
+        )
+        {
+            throw new WorkspaceConfigurationException(
+                "'$schema' must be a string.",
+                schemaElement
+            );
+        }
 
         WorkspaceConfiguration? configuration = element.TryGetProperty(
             "configuration",
             out JsonElement configurationElement
         )
-            ? WorkspaceConfigurationParser.Parse(configurationElement)
+            ? ParseConfiguration(configurationElement)
             : null;
         IReadOnlyList<WorkspaceConfigurationOverride> overrides =
             element.TryGetProperty(
@@ -41,7 +55,10 @@ internal static class WorkspaceConfigurationSetParser
     {
         if (element.ValueKind != JsonValueKind.Array)
         {
-            throw new FormatException("'overrides' must be an array.");
+            throw new WorkspaceConfigurationException(
+                "'overrides' must be an array.",
+                element
+            );
         }
 
         IList<WorkspaceConfigurationOverride> overrides =
@@ -54,7 +71,10 @@ internal static class WorkspaceConfigurationSetParser
 
             if (configurationOverride.ValueKind != JsonValueKind.Object)
             {
-                throw new FormatException($"'{path}' must be an object.");
+                throw new WorkspaceConfigurationException(
+                    $"'{path}' must be an object.",
+                    configurationOverride
+                );
             }
 
             ValidateProperties(
@@ -71,7 +91,10 @@ internal static class WorkspaceConfigurationSetParser
                 )
             )
             {
-                throw new FormatException($"'{path}.includes' is required.");
+                throw new WorkspaceConfigurationException(
+                    $"'{path}.includes' is required.",
+                    configurationOverride
+                );
             }
 
             if (
@@ -81,7 +104,10 @@ internal static class WorkspaceConfigurationSetParser
                 )
             )
             {
-                throw new FormatException($"'{path}.configuration' is required.");
+                throw new WorkspaceConfigurationException(
+                    $"'{path}.configuration' is required.",
+                    configurationOverride
+                );
             }
 
             IReadOnlyList<WorkspacePathGlob> includes = ParseGlobs(
@@ -97,7 +123,7 @@ internal static class WorkspaceConfigurationSetParser
                     ? ParseGlobs(excludesElement, $"{path}.excludes", true)
                     : [ ];
             WorkspaceConfiguration overrideConfiguration =
-                WorkspaceConfigurationParser.Parse(
+                ParseConfiguration(
                     overrideConfigurationElement
                 );
             overrides.Add(
@@ -121,7 +147,10 @@ internal static class WorkspaceConfigurationSetParser
     {
         if (element.ValueKind != JsonValueKind.Array)
         {
-            throw new FormatException($"'{path}' must be an array of strings.");
+            throw new WorkspaceConfigurationException(
+                $"'{path}' must be an array of strings.",
+                element
+            );
         }
 
         IList<WorkspacePathGlob> globs = new List<WorkspacePathGlob>();
@@ -129,17 +158,29 @@ internal static class WorkspaceConfigurationSetParser
 
         foreach (JsonElement item in element.EnumerateArray())
         {
-            globs.Add(
-                new WorkspacePathGlob(
-                    ReadString(item, $"{path}[{index}]")
-                )
-            );
+            string glob = ReadString(item, $"{path}[{index}]");
+
+            try
+            {
+                globs.Add(new WorkspacePathGlob(glob));
+            }
+            catch (FormatException exception)
+            {
+                throw new WorkspaceConfigurationException(
+                    exception.Message,
+                    item
+                );
+            }
+
             index++;
         }
 
         if (!allowEmpty && globs.Count == 0)
         {
-            throw new FormatException($"'{path}' must not be empty.");
+            throw new WorkspaceConfigurationException(
+                $"'{path}' must not be empty.",
+                element
+            );
         }
 
         return [ .. globs ];
@@ -149,14 +190,20 @@ internal static class WorkspaceConfigurationSetParser
     {
         if (element.ValueKind != JsonValueKind.String)
         {
-            throw new FormatException($"'{path}' must be a string.");
+            throw new WorkspaceConfigurationException(
+                $"'{path}' must be a string.",
+                element
+            );
         }
 
         string? value = element.GetString();
 
         if (string.IsNullOrWhiteSpace(value))
         {
-            throw new FormatException($"'{path}' must not be empty.");
+            throw new WorkspaceConfigurationException(
+                $"'{path}' must not be empty.",
+                element
+            );
         }
 
         return value;
@@ -171,10 +218,24 @@ internal static class WorkspaceConfigurationSetParser
         {
             if (!allowedProperties.Contains(property.Name, StringComparer.Ordinal))
             {
-                throw new FormatException(
-                    $"Unknown configuration property '{property.Name}'."
+                throw new WorkspaceConfigurationException(
+                    $"Unknown configuration property '{property.Name}'.",
+                    property.Value
                 );
             }
         }
+    }
+
+    private static WorkspaceConfiguration ParseConfiguration(JsonElement element)
+    {
+        if (element.ValueKind != JsonValueKind.Object)
+        {
+            throw new WorkspaceConfigurationException(
+                "'configuration' must be an object.",
+                element
+            );
+        }
+
+        return WorkspaceConfigurationParser.Parse(element);
     }
 }

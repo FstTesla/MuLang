@@ -43,15 +43,17 @@ internal sealed class MuLangLanguageClientMiddleLayer
         if (CanHandle(methodName))
         {
             IReadOnlyCollection<string>? documentUris =
-                ThreadHelper.JoinableTaskFactory.Run(async () =>
-                {
-                    await ThreadHelper.JoinableTaskFactory
-                        .SwitchToMainThreadAsync();
+                ThreadHelper.JoinableTaskFactory.Run(
+                    async () =>
+                    {
+                        await ThreadHelper.JoinableTaskFactory
+                            .SwitchToMainThreadAsync();
 
-                    return MuLangSolutionSourceService.GetDocumentUris(
-                        serviceProvider
-                    );
-                });
+                        return MuLangSolutionSourceService.GetDocumentUris(
+                            serviceProvider
+                        );
+                    }
+                );
 
             if (documentUris is not null)
             {

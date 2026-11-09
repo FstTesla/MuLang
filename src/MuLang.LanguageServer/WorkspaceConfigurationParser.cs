@@ -136,9 +136,13 @@ internal static class WorkspaceConfigurationParser
                 resolvedExpectedResultType
             );
         }
-        catch (FormatException)
+        catch (WorkspaceConfigurationException)
         {
             throw;
+        }
+        catch (FormatException exception)
+        {
+            throw new WorkspaceConfigurationException(exception.Message, element);
         }
         catch (
             Exception exception
@@ -146,7 +150,7 @@ internal static class WorkspaceConfigurationParser
             exception is ArgumentException or InvalidOperationException or KeyNotFoundException
         )
         {
-            throw new FormatException(exception.Message, exception);
+            throw new WorkspaceConfigurationException(exception.Message, element);
         }
     }
 
@@ -154,7 +158,7 @@ internal static class WorkspaceConfigurationParser
     {
         if (element.ValueKind == JsonValueKind.String)
         {
-            return ParseBaseProfile(ReadString(element, "profile"));
+            return ParseBaseProfile(element, "profile");
         }
 
         EnsureObject(element, "profile");
@@ -183,7 +187,7 @@ internal static class WorkspaceConfigurationParser
             "base",
             out JsonElement baseElement
         )
-            ? ParseBaseProfile(ReadString(baseElement, "profile.base"))
+            ? ParseBaseProfile(baseElement, "profile.base")
             : LanguageProfiles.Latest;
         LanguageProfileBuilder builder = new (baseProfile);
 
@@ -569,8 +573,9 @@ internal static class WorkspaceConfigurationParser
                     "object" => TypeSymbols.Object,
                     "void" => TypeSymbols.Void,
                     "error" => TypeSymbols.ErrorValue,
-                    _ => throw new FormatException(
-                        $"{path} references unknown type '{name}'."
+                    _ => throw new WorkspaceConfigurationException(
+                        $"{path} references unknown type '{name}'.",
+                        element
                     ),
                 }
             );
@@ -620,22 +625,24 @@ internal static class WorkspaceConfigurationParser
             }
 
             default:
-                throw new FormatException(
-                    $"{path}.kind must be 'nullable' or 'array'."
+                throw new WorkspaceConfigurationException(
+                    $"{path}.kind must be 'nullable' or 'array'.",
+                    element.GetProperty("kind")
                 );
         }
     }
 
-    private static LanguageProfile ParseBaseProfile(string value)
+    private static LanguageProfile ParseBaseProfile(JsonElement element, string path)
     {
-        return value switch
+        return ReadString(element, path) switch
         {
             "latest" => LanguageProfiles.Latest,
             "1" => LanguageProfiles.Version1,
             "1.1" => LanguageProfiles.Version1_1,
             "1.2" => LanguageProfiles.Version1_2,
-            _ => throw new FormatException(
-                "profile.base must be 'latest', '1', '1.1', or '1.2'."
+            _ => throw new WorkspaceConfigurationException(
+                $"{path} must be 'latest', '1', '1.1', or '1.2'.",
+                element
             ),
         };
     }
@@ -647,8 +654,9 @@ internal static class WorkspaceConfigurationParser
             "1" => LanguageVersion.Version1,
             "1.1" => LanguageVersion.Version1_1,
             "1.2" => LanguageVersion.Version1_2,
-            _ => throw new FormatException(
-                "profile.languageVersion must be '1', '1.1', or '1.2'."
+            _ => throw new WorkspaceConfigurationException(
+                "profile.languageVersion must be '1', '1.1', or '1.2'.",
+                element
             ),
         };
     }
@@ -658,12 +666,19 @@ internal static class WorkspaceConfigurationParser
     {
         string value = ReadString(element, path);
 
-        if (Enum.TryParse(value, true, out T result) && Enum.IsDefined(result))
+        if (
+            Enum.TryParse(value, true, out T result) &&
+            Enum.IsDefined(result) &&
+            JsonNamingPolicy.CamelCase.ConvertName(result.ToString()) == value
+        )
         {
             return result;
         }
 
-        throw new FormatException($"{path} has unsupported value '{value}'.");
+        throw new WorkspaceConfigurationException(
+            $"{path} has unsupported value '{value}'.",
+            element
+        );
     }
 
     private static T ParseFlags<T>(JsonElement element, string path)
@@ -671,7 +686,10 @@ internal static class WorkspaceConfigurationParser
     {
         if (element.ValueKind != JsonValueKind.Array)
         {
-            throw new FormatException($"{path} must be an array.");
+            throw new WorkspaceConfigurationException(
+                $"{path} must be an array.",
+                element
+            );
         }
 
         long result = 0;
@@ -711,7 +729,10 @@ internal static class WorkspaceConfigurationParser
 
         if (value.ValueKind != JsonValueKind.Array)
         {
-            throw new FormatException($"{path}.{propertyName} must be an array.");
+            throw new WorkspaceConfigurationException(
+                $"{path}.{propertyName} must be an array.",
+                value
+            );
         }
 
         return value;
@@ -728,7 +749,10 @@ internal static class WorkspaceConfigurationParser
             return value;
         }
 
-        throw new FormatException($"{path}.{propertyName} is required.");
+        throw new WorkspaceConfigurationException(
+            $"{path}.{propertyName} is required.",
+            element
+        );
     }
 
     private static string GetRequiredString(
@@ -759,14 +783,20 @@ internal static class WorkspaceConfigurationParser
             return value.GetBoolean();
         }
 
-        throw new FormatException($"{path}.{propertyName} must be a boolean.");
+        throw new WorkspaceConfigurationException(
+            $"{path}.{propertyName} must be a boolean.",
+            value
+        );
     }
 
     private static string ReadString(JsonElement element, string path)
     {
         if (element.ValueKind != JsonValueKind.String)
         {
-            throw new FormatException($"{path} must be a string.");
+            throw new WorkspaceConfigurationException(
+                $"{path} must be a string.",
+                element
+            );
         }
 
         return element.GetString()!;
@@ -776,7 +806,10 @@ internal static class WorkspaceConfigurationParser
     {
         if (element.ValueKind != JsonValueKind.Object)
         {
-            throw new FormatException($"{path} must be an object.");
+            throw new WorkspaceConfigurationException(
+                $"{path} must be an object.",
+                element
+            );
         }
     }
 
@@ -794,8 +827,9 @@ internal static class WorkspaceConfigurationParser
         {
             if (!allowedProperties.Contains(property.Name))
             {
-                throw new FormatException(
-                    $"{path} contains unsupported property '{property.Name}'."
+                throw new WorkspaceConfigurationException(
+                    $"{path} contains unsupported property '{property.Name}'.",
+                    property.Value
                 );
             }
         }

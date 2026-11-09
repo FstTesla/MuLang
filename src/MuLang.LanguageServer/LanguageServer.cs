@@ -14,6 +14,15 @@ internal sealed class LanguageServer
     private readonly IDictionary<string, DocumentSnapshot> documents =
         new Dictionary<string, DocumentSnapshot>(UriComparer);
 
+    private readonly IDictionary<string, DocumentSnapshot> configurationDocuments =
+        new Dictionary<string, DocumentSnapshot>(UriComparer);
+
+    private readonly ISet<string> loadedConfigurationFiles =
+        new HashSet<string>(UriComparer);
+
+    private readonly ISet<string> configurationDiagnosticFiles =
+        new HashSet<string>(UriComparer);
+
     private readonly IDictionary<int, IReadOnlyList<string?>> pendingConfigurationRequests =
         new Dictionary<int, IReadOnlyList<string?>>();
 
@@ -247,6 +256,27 @@ internal sealed class LanguageServer
                     break;
                 }
 
+                case "textDocument/didSave":
+                {
+                    string uri = parameters.GetProperty("textDocument")
+                        .GetProperty("uri")
+                        .GetString()!;
+
+                    if (
+                        WorkspaceConfigurationFile.IsConfigurationFile(uri) &&
+                        await ApplyConfigurationFileAsync(
+                            new Uri(uri),
+                            true,
+                            cancellationToken
+                        )
+                    )
+                    {
+                        await PublishAllDiagnosticsAsync(cancellationToken);
+                    }
+
+                    break;
+                }
+
                 case "textDocument/hover":
                 {
                     if (hasId)
@@ -416,6 +446,14 @@ internal sealed class LanguageServer
             .GetProperty("text")
             .GetString()!;
         DocumentSnapshot document = new (uri, version, text);
+
+        if (WorkspaceConfigurationFile.IsConfigurationFile(uri))
+        {
+            configurationDocuments[uri] = document;
+            await ValidateConfigurationDocumentAsync(document, cancellationToken);
+            return;
+        }
+
         documents[uri] = document;
         semanticDocuments.Invalidate(uri);
         await EnsureDocumentConfigurationFileAsync(
@@ -425,7 +463,7 @@ internal sealed class LanguageServer
         await PublishDiagnosticsAsync(document, cancellationToken);
     }
 
-    private Task CloseDocumentAsync(
+    private async Task CloseDocumentAsync(
         JsonElement parameters,
         CancellationToken cancellationToken
     )
@@ -434,9 +472,35 @@ internal sealed class LanguageServer
             .GetProperty("textDocument")
             .GetProperty("uri")
             .GetString()!;
+
+        if (configurationDocuments.Remove(uri))
+        {
+            await PublishConfigurationDiagnosticsAsync(
+                uri,
+                "",
+                null,
+                null,
+                cancellationToken,
+                true
+            );
+
+            if (
+                await ApplyConfigurationFileAsync(
+                    new Uri(uri),
+                    true,
+                    cancellationToken
+                )
+            )
+            {
+                await PublishAllDiagnosticsAsync(cancellationToken);
+            }
+
+            return;
+        }
+
         documents.Remove(uri);
         semanticDocuments.Invalidate(uri);
-        return writer.WriteNotificationAsync(
+        await writer.WriteNotificationAsync(
             "textDocument/publishDiagnostics",
             result =>
             {
@@ -461,6 +525,25 @@ internal sealed class LanguageServer
             textDocument.GetProperty("version").GetInt32(),
             textDocument.GetProperty("text").GetString()!
         );
+
+        if (WorkspaceConfigurationFile.IsConfigurationFile(document.Uri))
+        {
+            configurationDocuments[document.Uri] = document;
+            await ValidateConfigurationDocumentAsync(document, cancellationToken);
+
+            if (
+                await EnsureDocumentConfigurationFileAsync(
+                    document.Uri,
+                    cancellationToken
+                )
+            )
+            {
+                await PublishAllDiagnosticsAsync(cancellationToken);
+            }
+
+            return;
+        }
+
         documents[document.Uri] = document;
         semanticDocuments.Invalidate(document.Uri);
         await EnsureDocumentConfigurationFileAsync(
@@ -533,7 +616,7 @@ internal sealed class LanguageServer
                 result.WriteStartObject("textDocumentSync");
                 result.WriteBoolean("openClose", true);
                 result.WriteNumber("change", 1);
-                result.WriteBoolean("save", false);
+                result.WriteBoolean("save", true);
                 result.WriteEndObject();
                 result.WriteStartObject("semanticTokensProvider");
                 result.WriteStartObject("legend");
@@ -1366,7 +1449,7 @@ internal sealed class LanguageServer
     {
         if (
             !force &&
-            workspaceConfigurations.ContainsConfigurationFile(file.AbsoluteUri)
+            loadedConfigurationFiles.Contains(file.AbsoluteUri)
         )
         {
             return false;
@@ -1374,31 +1457,144 @@ internal sealed class LanguageServer
 
         if (!File.Exists(file.LocalPath))
         {
-            return workspaceConfigurations.RemoveConfigurationFile(
+            loadedConfigurationFiles.Remove(file.AbsoluteUri);
+
+            if (!configurationDocuments.ContainsKey(file.AbsoluteUri))
+            {
+                await PublishConfigurationDiagnosticsAsync(
+                    file.AbsoluteUri,
+                    "",
+                    null,
+                    null,
+                    cancellationToken
+                );
+            }
+
+            bool removed = workspaceConfigurations.RemoveConfigurationFile(
                 file.AbsoluteUri
+            );
+
+            if (removed)
+            {
+                semanticDocuments.InvalidateConfiguration();
+            }
+
+            return removed;
+        }
+
+        string json;
+
+        try
+        {
+            json = await File.ReadAllTextAsync(
+                file.LocalPath,
+                cancellationToken
+            );
+        }
+        catch (Exception exception) when (
+            exception is IOException or UnauthorizedAccessException
+        )
+        {
+            await ShowConfigurationErrorAsync(
+                $"Could not read MuLang configuration file '{file.LocalPath}': {exception.Message}",
+                cancellationToken
+            );
+            return false;
+        }
+        (
+            WorkspaceConfigurationSet? configuration,
+            Diagnostic? diagnostic
+        ) = WorkspaceConfigurationValidation.Validate(json);
+        loadedConfigurationFiles.Add(file.AbsoluteUri);
+
+        if (!configurationDocuments.ContainsKey(file.AbsoluteUri))
+        {
+            await PublishConfigurationDiagnosticsAsync(
+                file.AbsoluteUri,
+                json,
+                null,
+                diagnostic,
+                cancellationToken
             );
         }
 
-        string json = await File.ReadAllTextAsync(
-            file.LocalPath,
-            cancellationToken
-        );
-        using JsonDocument document = JsonDocument.Parse(
-            json,
-            new JsonDocumentOptions
-            {
-                AllowTrailingCommas = true,
-                CommentHandling = JsonCommentHandling.Skip,
-            }
-        );
-        WorkspaceConfigurationSet configuration =
-            WorkspaceConfigurationSetParser.Parse(document.RootElement);
+        if (
+            configuration is null ||
+            !useVisualStudioClassifications ||
+            workspaceConfigurations.GetFolder(file.AbsoluteUri) is null
+        )
+        {
+            return false;
+        }
+
         workspaceConfigurations.SetConfigurationFile(
             file.AbsoluteUri,
             configuration
         );
         semanticDocuments.InvalidateConfiguration();
         return true;
+    }
+
+    private Task ValidateConfigurationDocumentAsync(
+        DocumentSnapshot document,
+        CancellationToken cancellationToken
+    )
+    {
+        (_, Diagnostic? diagnostic) =
+            WorkspaceConfigurationValidation.Validate(document.Text);
+        return PublishConfigurationDiagnosticsAsync(
+            document.Uri,
+            document.Text,
+            document.Version,
+            diagnostic,
+            cancellationToken
+        );
+    }
+
+    private Task PublishConfigurationDiagnosticsAsync(
+        string uri,
+        string text,
+        int? version,
+        Diagnostic? diagnostic,
+        CancellationToken cancellationToken,
+        bool force = false
+    )
+    {
+        bool hadDiagnostics = configurationDiagnosticFiles.Remove(uri);
+
+        if (diagnostic is not null)
+        {
+            configurationDiagnosticFiles.Add(uri);
+        }
+        else if (!hadDiagnostics && version is null && !force)
+        {
+            return Task.CompletedTask;
+        }
+
+        return writer.WriteNotificationAsync(
+            "textDocument/publishDiagnostics",
+            result =>
+            {
+                result.WriteStartObject();
+                result.WriteString("uri", uri);
+
+                if (version is { } documentVersion)
+                {
+                    result.WriteNumber("version", documentVersion);
+                }
+
+                result.WriteStartArray("diagnostics");
+
+                if (diagnostic is not null)
+                {
+                    WriteDiagnostic(result, SourceText.From(text), diagnostic);
+                }
+
+                result.WriteEndArray();
+                result.WriteEndObject();
+            },
+            cancellationToken
+        );
     }
 
     private async Task<bool> EnsureDocumentConfigurationFileAsync(
@@ -1506,25 +1702,6 @@ internal sealed class LanguageServer
             configurationFileChanged = true;
             Uri fileUri = new (file, UriKind.Absolute);
 
-            if (!File.Exists(fileUri.LocalPath))
-            {
-                bool removed =
-                    workspaceConfigurations.RemoveConfigurationFile(file);
-                changed |= removed;
-
-                if (removed)
-                {
-                    semanticDocuments.InvalidateConfiguration();
-                }
-
-                continue;
-            }
-
-            if (!workspaceConfigurations.ContainsConfigurationFile(file))
-            {
-                continue;
-            }
-
             try
             {
                 changed |= await ApplyConfigurationFileAsync(
@@ -1627,6 +1804,28 @@ internal sealed class LanguageServer
             }
         }
 
+        foreach (
+            string file in loadedConfigurationFiles
+                .Where(
+                    file => workspaceConfigurations.GetFolder(file) is null
+                )
+                .ToArray()
+        )
+        {
+            loadedConfigurationFiles.Remove(file);
+
+            if (!configurationDocuments.ContainsKey(file))
+            {
+                await PublishConfigurationDiagnosticsAsync(
+                    file,
+                    "",
+                    null,
+                    null,
+                    cancellationToken
+                );
+            }
+        }
+
         IList<string?> addedFolderUris = new List<string?>();
 
         if (eventElement.TryGetProperty("added", out JsonElement addedFolders))
@@ -1640,6 +1839,7 @@ internal sealed class LanguageServer
         }
 
         workspaceConfigurationFile.ClearCache();
+        loadedConfigurationFiles.Clear();
         semanticDocuments.InvalidateConfiguration();
 
         if (
