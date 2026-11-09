@@ -6,6 +6,7 @@ using System.ComponentModel.Composition;
 namespace MuLang.VisualStudio;
 
 [ContentType(MuLangContentType.Name)]
+[ContentType(MuIrContentType.Name)]
 [Export(typeof(IAsyncQuickInfoSourceProvider))]
 [Name("MuLang Quick Info")]
 internal sealed class MuLangQuickInfoSourceProvider : IAsyncQuickInfoSourceProvider

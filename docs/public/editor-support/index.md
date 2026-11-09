@@ -2,7 +2,8 @@
 
 MuLang provides editor support for `.mu` and `.mulang` source files through a
 Visual Studio extension, with syntax highlighting, hover information,
-diagnostics, and navigation.
+diagnostics, and navigation. The same extension supports consulting `.muir`
+documents in MuIR formats 1 and 2, without configuring a host environment.
 
 ## Release availability
 
@@ -24,7 +25,7 @@ Download the VSIX attached to the desired
 [GitHub Release](https://github.com/FstTesla/MuLang/releases).
 
 Close running Visual Studio instances, open the VSIX, and complete the
-installer. Opening a `.mu` or `.mulang` file activates the extension.
+installer. Opening a `.mu`, `.mulang`, or `.muir` file activates the extension.
 No separate language-server installation is required.
 
 ## Using the editor
@@ -44,3 +45,8 @@ Visual Studio is the provided editor integration. Other LSP clients can use the
 server, but a dedicated VS Code extension is not yet provided.
 
 Completion, rename, and formatting are not yet available.
+
+MuIR files remain normally editable. Their semantic features require complete
+successful reading; invalid or unsupported documents retain lexical coloring
+only. MuIR diagnostics, execution validation, source-MuLang navigation, and
+automatic generation or regeneration are not provided.

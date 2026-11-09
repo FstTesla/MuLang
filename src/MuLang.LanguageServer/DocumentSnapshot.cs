@@ -1,3 +1,3 @@
 namespace MuLang.LanguageServer;
 
-internal sealed record DocumentSnapshot(string Uri, int Version, string Text);
+internal sealed record DocumentSnapshot(string Uri, int Version, string Text, string? LanguageId = null);

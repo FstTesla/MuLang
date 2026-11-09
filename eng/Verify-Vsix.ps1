@@ -18,10 +18,12 @@ try
     $requiredEntries = @(
         'extension.vsixmanifest'
         'Grammars/MuLang.tmLanguage.json'
+        'Grammars/MuIR.tmLanguage.json'
         'LanguageServer/MuLang.LanguageServer.dll'
         'LanguageServer/MuLang.LanguageServer.exe'
         'LanguageServer/MuLang.LanguageServer.runtimeconfig.json'
         'MuLang-language-configuration.json'
+        'MuIR-language-configuration.json'
         'MuLang.pkgdef'
         'MuLang.VisualStudio.dll'
     )

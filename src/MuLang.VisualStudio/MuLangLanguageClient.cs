@@ -14,6 +14,7 @@ namespace MuLang.VisualStudio;
 
 [ContentType(MuLangContentType.Name)]
 [ContentType(MuLangConfigurationContentType.Name)]
+[ContentType(MuIrContentType.Name)]
 [Export(typeof(ILanguageClient))]
 [Export(typeof(IMuLangQuickInfoService))]
 [PartCreationPolicy(CreationPolicy.Shared)]

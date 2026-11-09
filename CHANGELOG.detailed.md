@@ -12,6 +12,18 @@ Stable entries describe the incremental change since the preceding prerelease. T
 
 Each release heading identifies the incremental version range covered by the section, from the comparison version to the released version.
 
+## `0.4.0-beta.3` → `0.4.0-beta.4` - 2026-11-09
+
+### New features
+
+- Added MuIR 1 and 2 consultation in the existing language server and Visual Studio extension: `.muir` activation, lexical fallback, semantic coloring, classified hover with IR signatures and available original names, document-local definitions and references, read/write occurrence highlights, hierarchical document symbols, and structural folding. Files remain editable; unreadable or unsupported documents retain lexical coloring without stale semantic data. Consultation requires no MuLang host configuration and adds no MuIR diagnostics, execution validation, source navigation, or generation commands.
+- Added `MuIrReader.Analyze` and a shared parsed-document result with complete wire type identities, decoded tokens, grammatical operand roles, declaration ranges, and structural ranges measured in the MuIR document's UTF-16 positions. Existing reader overloads, rejection rules, and canonical writer output remain compatible.
+- Added live `mulang.config.json` diagnostics in the language server and Visual Studio JSON editor: `MULCFG001` for malformed JSON and `MULCFG002` for invalid settings, with source ranges, comment/trailing-comma support, and no schema download requirement. Unsaved settings are validated without applying them; invalid updates retain the last valid configuration.
+
+### Fixes
+
+- Fixed configuration enum validation to accept the documented camel-case values rather than numeric or differently cased alternatives.
+
 ## `0.4.0-beta.2` → `0.4.0-beta.3` - 2026-10-22
 
 ### New features

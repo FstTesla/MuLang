@@ -824,7 +824,7 @@ public sealed class LanguageServerTests
                     .EnumerateArray()
                     .Select(static token => token.GetString()),
                 Is.EqualTo(
-                    [ "type", "method", "parameter", "variable", "property" ]
+                    [ "type", "method", "parameter", "variable", "property", "label" ]
                 )
             );
             Assert.That(
@@ -878,6 +878,7 @@ public sealed class LanguageServerTests
                         "parameter",
                         "variable",
                         "property name",
+                        "label name",
                     ]
                 )
             );
@@ -4074,6 +4075,327 @@ public sealed class LanguageServerTests
             );
         }
     }
+
+    [TestCase("complete.muir", false)]
+    [TestCase("diagnostic-attributes-v2.muir", true)]
+    public async Task ProvidesMuIrSemanticProtocolWithoutCompilation(string fixture, bool visualStudio)
+    {
+        string source = ReadMuIrFixture(fixture);
+        int declaration = source.IndexOf("slot %0 ", StringComparison.Ordinal) + 5;
+        int read = source.IndexOf("%0", source.IndexOf(visualStudio ? "ins create-object" : "ins copy", StringComparison.Ordinal), StringComparison.Ordinal);
+        IReadOnlyList<JsonElement> output = await RunServerAsync(
+            visualStudio,
+            """
+            {"jsonrpc":"2.0","id":1,"method":"initialize","params":{"capabilities":{"textDocument":{"documentSymbol":{"hierarchicalDocumentSymbolSupport":true}}}}}
+            """,
+            CreateOpenDocumentMessage("file:///test.muir", source),
+            CreateMuIrRequest(10, "textDocument/hover", source, declaration),
+            CreateMuIrRequest(11, "mulang/quickInfo", source, declaration),
+            CreateMuIrRequest(12, "textDocument/definition", source, read),
+            CreateMuIrRequest(13, "textDocument/references", source, declaration),
+            CreateMuIrRequest(14, "textDocument/documentHighlight", source, declaration),
+            CreateMuIrRequest(15, "textDocument/semanticTokens/full", source),
+            CreateMuIrRequest(16, "textDocument/documentSymbol", source),
+            CreateMuIrRequest(17, "textDocument/foldingRange", source),
+            """
+            {"jsonrpc":"2.0","method":"shutdown","id":99}
+            """,
+            """
+            {"jsonrpc":"2.0","method":"exit"}
+            """
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(output.Any(static message => message.TryGetProperty("method", out JsonElement method) &&
+                method.GetString() == "textDocument/publishDiagnostics"), Is.False);
+            Assert.That(MuIrResponse(output, 10).GetProperty("contents").GetProperty("value").GetString(),
+                Does.Contain(visualStudio ? "result" : "input").And.Contain("%0").And.Contain("int"));
+            Assert.That(MuIrResponse(output, 11).GetProperty("items")[0].GetProperty("parts").GetArrayLength(), Is.GreaterThan(1));
+            Assert.That(MuIrResponse(output, 12).GetProperty("uri").GetString(), Is.EqualTo("file:///test.muir"));
+            Assert.That(MuIrResponse(output, 12).GetProperty("range").GetProperty("start").GetRawText(), Is.EqualTo(MuIrPosition(source, declaration).GetRawText()));
+            Assert.That(MuIrResponse(output, 13).GetArrayLength(), Is.GreaterThan(1));
+            Assert.That(MuIrResponse(output, 14).EnumerateArray().Any(static highlight => highlight.GetProperty("kind").GetInt32() == 2), Is.True);
+            Assert.That(MuIrResponse(output, 14).EnumerateArray().Any(static highlight => highlight.GetProperty("kind").GetInt32() == 3), Is.True);
+            Assert.That(MuIrResponse(output, 15).GetProperty("data").GetArrayLength(), Is.GreaterThan(0));
+            JsonElement function = MuIrResponse(output, 16).EnumerateArray().Single(static symbol => symbol.GetProperty("name").GetString() == "\"$entry\"");
+            Assert.That(function.GetProperty("children").EnumerateArray().Any(static symbol => symbol.GetProperty("name").GetString() == "%0"), Is.True);
+            Assert.That(function.GetProperty("children").EnumerateArray().Any(static symbol => symbol.GetProperty("name").GetString() == "lr0"), Is.EqualTo(visualStudio));
+            Assert.That(MuIrResponse(output, 17).EnumerateArray().All(static fold =>
+                fold.GetProperty("endLine").GetInt32() > fold.GetProperty("startLine").GetInt32()), Is.True);
+        }
+    }
+
+    [Test]
+    public async Task MuIrEditsDiscardInvalidSemanticsAndRecoverWithLanguageIdRouting()
+    {
+        const string uri = "file:///test.ir";
+        string source = ReadMuIrFixture("diagnostic-attributes-v2.muir");
+        int slot = source.IndexOf("slot %0", StringComparison.Ordinal) + 5;
+        IReadOnlyList<JsonElement> output = await RunServerAsync(
+            """
+            {"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}
+            """,
+            CreateOpenDocumentMessage(uri, source).Replace("\"languageId\":\"mulang\"", "\"languageId\":\"muir\"", StringComparison.Ordinal),
+            CreateMuIrRequest(10, "textDocument/hover", source, slot, uri),
+            CreateChangeDocumentMessage(uri, 2, "muir 2\nmode program"),
+            CreateMuIrRequest(11, "textDocument/hover", source, slot, uri),
+            CreateMuIrRequest(12, "textDocument/semanticTokens/full", source, 0, uri),
+            CreateMuIrRequest(13, "textDocument/documentSymbol", source, 0, uri),
+            CreateMuIrRequest(14, "textDocument/foldingRange", source, 0, uri),
+            CreateChangeDocumentMessage(uri, 3, "muir 3"),
+            CreateMuIrRequest(15, "textDocument/definition", source, slot, uri),
+            CreateMuIrRequest(16, "textDocument/references", source, slot, uri),
+            CreateMuIrRequest(17, "textDocument/documentHighlight", source, slot, uri),
+            CreateChangeDocumentMessage(uri, 4, source),
+            CreateMuIrRequest(18, "textDocument/hover", source, slot, uri),
+            """
+            {"jsonrpc":"2.0","method":"textDocument/didClose","params":{"textDocument":{"uri":"file:///test.ir"}}}
+            """,
+            CreateMuIrRequest(19, "textDocument/hover", source, slot, uri),
+            CreateOpenDocumentMessage(uri, source).Replace("\"languageId\":\"mulang\"", "\"languageId\":\"muir\"", StringComparison.Ordinal),
+            CreateMuIrRequest(20, "textDocument/hover", source, slot, uri),
+            """
+            {"jsonrpc":"2.0","method":"shutdown","id":99}
+            """,
+            """
+            {"jsonrpc":"2.0","method":"exit"}
+            """
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(MuIrResponse(output, 10).ValueKind, Is.EqualTo(JsonValueKind.Object));
+            Assert.That(MuIrResponse(output, 11).ValueKind, Is.EqualTo(JsonValueKind.Null));
+            Assert.That(MuIrResponse(output, 12).GetProperty("data").GetArrayLength(), Is.Zero);
+            Assert.That(MuIrResponse(output, 13).GetArrayLength(), Is.Zero);
+            Assert.That(MuIrResponse(output, 14).GetArrayLength(), Is.Zero);
+            Assert.That(MuIrResponse(output, 15).ValueKind, Is.EqualTo(JsonValueKind.Null));
+            Assert.That(MuIrResponse(output, 16).ValueKind, Is.EqualTo(JsonValueKind.Null));
+            Assert.That(MuIrResponse(output, 17).ValueKind, Is.EqualTo(JsonValueKind.Null));
+            Assert.That(MuIrResponse(output, 18).ValueKind, Is.EqualTo(JsonValueKind.Object));
+            Assert.That(MuIrResponse(output, 19).ValueKind, Is.EqualTo(JsonValueKind.Null));
+            Assert.That(MuIrResponse(output, 20).ValueKind, Is.EqualTo(JsonValueKind.Object));
+            Assert.That(output.Any(static message => message.TryGetProperty("method", out JsonElement method) &&
+                method.GetString() == "textDocument/publishDiagnostics"), Is.False);
+        }
+    }
+
+    [Test]
+    public async Task MuIrReferencesRemainScopedAndHonorDeclarations()
+    {
+        string source = ReadMuIrFixture("complete.muir");
+        int entrySlot = source.IndexOf("slot %0", StringComparison.Ordinal) + 5;
+        int userSlot = source.LastIndexOf("slot %0", StringComparison.Ordinal) + 5;
+        IReadOnlyList<JsonElement> output = await RunServerAsync(
+            """
+            {"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}
+            """,
+            CreateOpenDocumentMessage("file:///test.muir", source),
+            CreateOpenDocumentMessage("file:///other.muir", source),
+            CreateMuIrRequest(10, "textDocument/references", source, entrySlot),
+            CreateMuIrRequest(11, "textDocument/references", source, userSlot, includeDeclaration: true),
+            CreateMuIrRequest(12, "textDocument/references", source, entrySlot, includeDeclaration: true),
+            CreateMuIrRequest(13, "textDocument/definition", source, source.IndexOf("\"user.call\"", StringComparison.Ordinal)),
+            """
+            {"jsonrpc":"2.0","method":"shutdown","id":99}
+            """,
+            """
+            {"jsonrpc":"2.0","method":"exit"}
+            """
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(MuIrResponse(output, 11).GetArrayLength(), Is.EqualTo(1));
+            Assert.That(MuIrResponse(output, 12).GetArrayLength(), Is.EqualTo(MuIrResponse(output, 10).GetArrayLength() + 1));
+            Assert.That(MuIrResponse(output, 12).EnumerateArray().All(static location =>
+                location.GetProperty("uri").GetString() == "file:///test.muir"), Is.True);
+            Assert.That(MuIrResponse(output, 13).GetProperty("range").GetProperty("start").GetRawText(),
+                Is.EqualTo(MuIrPosition(source, source.LastIndexOf("\"user.call\"", StringComparison.Ordinal)).GetRawText()));
+        }
+    }
+
+    [Test]
+    public async Task MuIrWireTypesUnicodeAndUnknownAttributesKeepExactIdentity()
+    {
+        string source = ReadMuIrFixture("diagnostic-attributes-v2.muir")
+            .Replace("types 2", "types 3", StringComparison.Ordinal)
+            .Replace("entry \"$entry\" t0", "type t2 intrinsic int\nentry \"😀\" t2", StringComparison.Ordinal)
+            .Replace("attributes 10 {", "attributes 11 {\n  attribute program future { \"%0 t0 bb0\" t2 }\n", StringComparison.Ordinal)
+            .Replace("\r\n", "\n", StringComparison.Ordinal);
+        source = $"# 😀 t0 %0\r\n{source.Replace("\n", "\r\n", StringComparison.Ordinal)}";
+        int equalTypeReference = source.IndexOf("\"😀\" t2", StringComparison.Ordinal) + "\"😀\" ".Length;
+        int attribute = source.IndexOf("attribute type t1", StringComparison.Ordinal) + "attribute type ".Length;
+        int unknown = source.IndexOf("\"%0 t0 bb0\"", StringComparison.Ordinal) + 2;
+        IReadOnlyList<JsonElement> output = await RunServerAsync(
+            """
+            {"jsonrpc":"2.0","id":1,"method":"initialize","params":{"capabilities":{"textDocument":{"hover":{"contentFormat":["markdown"]},"foldingRange":{"lineFoldingOnly":true}}}}}
+            """,
+            CreateOpenDocumentMessage("file:///test.muir", source),
+            CreateMuIrRequest(10, "textDocument/definition", source, equalTypeReference),
+            CreateMuIrRequest(11, "textDocument/hover", source, attribute),
+            CreateMuIrRequest(12, "textDocument/hover", source, unknown),
+            CreateMuIrRequest(13, "textDocument/documentSymbol", source),
+            CreateMuIrRequest(14, "textDocument/foldingRange", source),
+            CreateMuIrRequest(15, "textDocument/semanticTokens/full", source),
+            """
+            {"jsonrpc":"2.0","method":"shutdown","id":99}
+            """,
+            """
+            {"jsonrpc":"2.0","method":"exit"}
+            """
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(MuIrResponse(output, 10).GetProperty("range").GetProperty("start").GetRawText(),
+                Is.EqualTo(MuIrPosition(source, source.IndexOf("type t2", StringComparison.Ordinal) + 5).GetRawText()));
+            Assert.That(MuIrResponse(output, 11).GetProperty("contents").GetProperty("value").GetString(), Does.Contain("Item, Record"));
+            Assert.That(MuIrResponse(output, 12).ValueKind, Is.EqualTo(JsonValueKind.Null));
+            Assert.That(MuIrResponse(output, 13).EnumerateArray().Count(static symbol => symbol.GetProperty("kind").GetInt32() == 5), Is.EqualTo(3));
+            Assert.That(MuIrResponse(output, 14).GetArrayLength(), Is.GreaterThan(0));
+            Assert.That(MuIrResponse(output, 14).EnumerateArray().Any(static fold => fold.TryGetProperty("startCharacter", out _)), Is.False);
+            JsonElement data = MuIrResponse(output, 15).GetProperty("data");
+            IList<(int Line, int Character, int Length, int Kind)> tokens = new List<(int, int, int, int)>();
+            int line = 0;
+            int character = 0;
+
+            for (int index = 0; index < data.GetArrayLength(); index += 5)
+            {
+                int deltaLine = data[index].GetInt32();
+                line += deltaLine;
+                character = (deltaLine == 0 ? character : 0) + data[index + 1].GetInt32();
+                tokens.Add((line, character, data[index + 2].GetInt32(), data[index + 3].GetInt32()));
+            }
+
+            JsonElement expected = MuIrPosition(source, equalTypeReference);
+            Assert.That(tokens, Does.Contain((expected.GetProperty("line").GetInt32(), expected.GetProperty("character").GetInt32(), 2, 0)));
+        }
+    }
+
+    private static string ReadMuIrFixture(string name) =>
+        File.ReadAllText(Path.Combine(TestContext.CurrentContext.TestDirectory, "MuIrFixtures", name));
+
+    [TestCase("exception-regions-v2.muir")]
+    [TestCase("recursive-types-v2.muir")]
+    public async Task MuIrStructuralDeclarationsResolveWithoutExecutionValidation(string fixture)
+    {
+        string source = ReadMuIrFixture(fixture);
+        SourceText text = SourceText.From(source);
+        MuIrEditorDocument projection = new (source, text);
+        IReadOnlyList<EditorOccurrence> declarations =
+            [ .. projection.Occurrences.Where(static occurrence => occurrence.Role == MuLang.Compiler.SemanticOccurrenceRole.Declaration) ];
+        IList<string> messages = new List<string>
+        {
+            """{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}""",
+            CreateOpenDocumentMessage("file:///test.muir", source),
+        };
+
+        for (int index = 0; index < declarations.Count; index++)
+        {
+            messages.Add(CreateMuIrRequest(10 + index, "textDocument/definition", source,
+                text.GetUtf16Offset(declarations[index].Span.Start)));
+        }
+
+        messages.Add("""{"jsonrpc":"2.0","method":"shutdown","id":99}""");
+        messages.Add("""{"jsonrpc":"2.0","method":"exit"}""");
+        IReadOnlyList<JsonElement> output = await RunServerAsync([ .. messages ]);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(projection.Analysis.ReadResult.Success, Is.True);
+
+            for (int index = 0; index < declarations.Count; index++)
+            {
+                Assert.That(MuIrResponse(output, 10 + index).GetProperty("range").GetProperty("start").GetRawText(),
+                    Is.EqualTo(MuIrPosition(source, text.GetUtf16Offset(declarations[index].Span.Start)).GetRawText()));
+                Assert.That(declarations[index].HoverItems, Is.Not.Empty);
+            }
+
+            if (fixture == "exception-regions-v2.muir")
+            {
+                Assert.That(projection.Symbols.SelectMany(static symbol => symbol.Children).Any(
+                    static symbol => symbol.Name.StartsWith("er", StringComparison.Ordinal)), Is.True);
+            }
+            else
+            {
+                Assert.That(projection.Occurrences.Any(static occurrence =>
+                    occurrence.HoverItems.Any(static item => item.Content.Contains("object closed", StringComparison.Ordinal))), Is.True);
+            }
+        }
+    }
+
+    [Test]
+    public async Task MuIrUnresolvedCallsAndConfigurationRefreshDoNotPublishDiagnostics()
+    {
+        string source = ReadMuIrFixture("complete.muir");
+        int call = source.IndexOf("\"user.call\"", StringComparison.Ordinal);
+        source = source[..call] + "\"undefined\"" + source[(call + "\"user.call\"".Length)..];
+        IReadOnlyList<JsonElement> output = await RunServerAsync(
+            """
+            {"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}
+            """,
+            CreateOpenDocumentMessage("file:///test.muir", source),
+            CreateOpenDocumentMessage("file:///source.mu", "var value = 1;"),
+            """
+            {"jsonrpc":"2.0","method":"workspace/didChangeConfiguration","params":{"settings":{"mulang":{"compilationMode":"expression"}}}}
+            """,
+            CreateMuIrRequest(10, "textDocument/hover", source, call),
+            CreateMuIrRequest(11, "textDocument/definition", source, call),
+            CreateMuIrRequest(12, "textDocument/semanticTokens/full", source),
+            """
+            {"jsonrpc":"2.0","method":"shutdown","id":99}
+            """,
+            """
+            {"jsonrpc":"2.0","method":"exit"}
+            """
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(MuIrResponse(output, 10).ValueKind, Is.EqualTo(JsonValueKind.Null));
+            Assert.That(MuIrResponse(output, 11).ValueKind, Is.EqualTo(JsonValueKind.Null));
+            Assert.That(MuIrResponse(output, 12).GetProperty("data").GetArrayLength(), Is.GreaterThan(0));
+            Assert.That(output.Where(static message => message.TryGetProperty("method", out JsonElement method) &&
+                method.GetString() == "textDocument/publishDiagnostics").All(static message =>
+                    message.GetProperty("params").GetProperty("uri").GetString() == "file:///source.mu"), Is.True);
+        }
+    }
+
+    private static JsonElement MuIrResponse(IReadOnlyList<JsonElement> output, int id) =>
+        output.Single(message => message.TryGetProperty("id", out JsonElement value) && value.GetInt32() == id).GetProperty("result");
+
+    private static JsonElement MuIrPosition(string source, int offset)
+    {
+        using JsonDocument position = JsonDocument.Parse(JsonSerializer.Serialize(new
+        {
+            line = source[..offset].Count(static character => character == '\n'),
+            character = offset - source.LastIndexOf('\n', Math.Max(0, offset - 1)) - 1,
+        }));
+        return position.RootElement.Clone();
+    }
+
+    private static string CreateMuIrRequest(
+        int id,
+        string method,
+        string source,
+        int offset = 0,
+        string uri = "file:///test.muir",
+        bool includeDeclaration = false
+    ) => JsonSerializer.Serialize(new
+    {
+        jsonrpc = "2.0",
+        id,
+        method,
+        @params = new
+        {
+            textDocument = new { uri },
+            position = MuIrPosition(source, offset),
+            context = new { includeDeclaration },
+            _muLang_solutionDocumentUris = Array.Empty<string>(),
+        },
+    });
 
     private static Task<IReadOnlyList<JsonElement>> RunServerAsync(
         params string[] messages

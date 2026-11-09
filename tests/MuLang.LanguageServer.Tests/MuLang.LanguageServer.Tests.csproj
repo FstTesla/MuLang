@@ -10,6 +10,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="..\MuLang.IR.Tests\Serialization\Fixtures\*.muir" Link="MuIrFixtures\%(Filename)%(Extension)">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="..\..\docs\samples\**\*.mu" Link="Samples\%(RecursiveDir)%(Filename)%(Extension)">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

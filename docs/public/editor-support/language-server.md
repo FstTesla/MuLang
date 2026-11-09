@@ -45,6 +45,30 @@ A client can pair semantic tokens with the shared
 and [language configuration](https://github.com/FstTesla/MuLang/blob/main/src/MuLang.VisualStudio/MuLang-language-configuration.json)
 for immediate lexical fallback and editing behavior.
 
+## MuIR documents
+
+Use language ID `muir` for MuIR 1 and 2 documents. `.muir` URI recognition is
+also supported, including the existing Visual Studio integration. Use the same
+server process, full synchronization, and UTF-16 positions.
+
+MuIR reuses hover, `mulang/quickInfo`, definitions, references, highlights, and
+full semantic tokens. It also supports `textDocument/documentSymbol` and
+`textDocument/foldingRange`; those requests return empty arrays for MuLang
+source. Advertise `hierarchicalDocumentSymbolSupport` for nested symbols;
+otherwise the server returns flat symbol information with container names.
+`lineFoldingOnly` omits character positions and preserves closing-delimiter
+lines. The existing semantic-token indices remain unchanged; the appended
+`label` classification covers blocks and regions (`label name` in Visual Studio).
+
+Pair this with the
+[MuIR TextMate grammar](https://github.com/FstTesla/MuLang/blob/main/src/MuLang.VisualStudio/Grammars/MuIR.tmLanguage.json)
+and [MuIR language configuration](https://github.com/FstTesla/MuLang/blob/main/src/MuLang.VisualStudio/MuIR-language-configuration.json).
+
+No MuIR diagnostics are published, including on document close or configuration
+refresh. Invalid documents expose no partial or stale semantic result. Navigation
+and references are document-local, and consultation does not consult MuLang
+host configuration or validate execution eligibility.
+
 ## Workspace configuration
 
 Workspace-aware LSP clients can provide a `mulang` configuration independently

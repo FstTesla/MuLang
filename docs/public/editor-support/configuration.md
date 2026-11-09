@@ -4,6 +4,9 @@ Workspace configuration selects how the editor analyzes your MuLang files.
 See [release availability](index.md#release-availability) for the versions
 covered by this documentation.
 
+These settings do not apply to `.muir` consultation. Reading existing IR needs
+neither a configured host environment nor a selected MuLang language profile.
+
 ## Standalone defaults
 
 Every standalone `.mu` or `.mulang` file is analyzed as:

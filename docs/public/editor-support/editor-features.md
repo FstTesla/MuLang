@@ -10,6 +10,8 @@ and highlighted source location. They use the document's
 [workspace configuration](configuration.md), including its language profile
 and host environment.
 
+Diagnostics apply to MuLang source and configuration files, not `.muir` files.
+
 ## Highlighting
 
 Syntax coloring distinguishes keywords, literals, operators, and punctuation.
@@ -58,3 +60,30 @@ open documents are included.
 In Visual Studio Solution View, searches cover MuLang files included in the
 solution or its projects, including linked files. In Folder View, searches
 cover MuLang files under the workspace folders.
+
+## MuIR consultation
+
+MuIR 1 and 2 documents use lexical fallback and semantic coloring for wire
+types, functions, slots, blocks, and explicit lifetime and exception regions.
+Hover describes IR identifiers, slot types and mutability, function signatures,
+and original names or type aliases when attributes provide them. Original-source
+spans are metadata; all editor positions refer to the current `.muir` file.
+
+Go to Definition, Find All References, and occurrence highlights stay within
+that document. Slot, block, and region identities also stay within their
+containing function. Equal numeric IDs or original names do not join unrelated
+symbols, and structurally equivalent wire types keep separate definitions.
+Instruction slot reads and definitions are distinguished.
+
+Document symbols list types and functions, with declared slots, blocks, and
+explicit regions under each function. Folding covers multiline structural
+bodies, including type-property and attribute bodies. MuIR 1's implicit root
+region has no textual outline entry or definition. The client's presentation
+of symbols and folds depends on its LSP support; no MuLang outline or folding
+behavior is added.
+
+Edits immediately invalidate semantic data. An unreadable or unsupported
+document returns no hover, navigation, references, semantic tokens, symbols,
+or structural folds until corrected, while lexical coloring remains.
+Consultation needs no MuLang profile or host configuration and does not replace
+IR validation before execution or export.

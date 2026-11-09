@@ -33,7 +33,7 @@ internal sealed class SemanticDocumentCache
 
     public SemanticDocumentSnapshot Get(
         DocumentSnapshot document,
-        WorkspaceConfiguration configuration
+        WorkspaceConfiguration? configuration
     )
     {
         string stamp =
@@ -42,13 +42,14 @@ internal sealed class SemanticDocumentCache
             document.Uri,
             document.Text,
             stamp,
-            configuration
+            configuration,
+            document.LanguageId == "muir"
         );
     }
 
     public async Task<SemanticDocumentSnapshot?> GetFileAsync(
         string uri,
-        WorkspaceConfiguration configuration,
+        WorkspaceConfiguration? configuration,
         CancellationToken cancellationToken
     )
     {
@@ -101,7 +102,8 @@ internal sealed class SemanticDocumentCache
         string uri,
         string text,
         string stamp,
-        WorkspaceConfiguration configuration
+        WorkspaceConfiguration? configuration,
+        bool isMuIr = false
     )
     {
         if (
@@ -119,8 +121,21 @@ internal sealed class SemanticDocumentCache
         )
             ? parsedUri
             : null;
-        SemanticDocumentResult semanticDocument =
-            MuLangCompiler.GetSemanticDocument(
+        SourceText source = SourceText.From(text);
+        EditorDocument semanticDocument;
+
+        if (isMuIr || MuIrEditorDocument.IsMuIr(uri))
+        {
+            semanticDocument = new MuIrEditorDocument(text, source);
+        }
+        else
+        {
+            if (configuration is null)
+            {
+                throw new InvalidOperationException("MuLang analysis requires a compilation configuration.");
+            }
+
+            semanticDocument = new MuLangEditorDocument(MuLangCompiler.GetSemanticDocument(
                 text,
                 configuration.Environment,
                 configuration.CompilationMode,
@@ -131,11 +146,12 @@ internal sealed class SemanticDocumentCache
                     Profile = configuration.Profile,
                     SourceDocument = sourceDocument,
                 }
-            );
+            ));
+        }
         SemanticDocumentSnapshot snapshot = new (
             uri,
             text,
-            SourceText.From(text),
+            source,
             semanticDocument
         );
         Add(uri, stamp, snapshot);
@@ -152,7 +168,7 @@ internal sealed class SemanticDocumentCache
         entries[uri] = new CacheEntry(stamp, snapshot, generation);
         insertionOrder.Enqueue((uri, generation));
 
-        while (entries.Count > Capacity)
+        while (insertionOrder.Count > Capacity)
         {
             (string oldestUri, int oldestGeneration) =
                 insertionOrder.Dequeue();

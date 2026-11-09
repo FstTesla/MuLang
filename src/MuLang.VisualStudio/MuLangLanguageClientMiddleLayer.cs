@@ -42,6 +42,21 @@ internal sealed class MuLangLanguageClientMiddleLayer
     {
         if (CanHandle(methodName))
         {
+            if (
+                Uri.TryCreate(
+                    methodParam["textDocument"]?["uri"]?.Value<string>(),
+                    UriKind.Absolute,
+                    out Uri? documentUri
+                ) &&
+                documentUri.AbsolutePath.EndsWith(
+                    ".muir",
+                    StringComparison.OrdinalIgnoreCase
+                )
+            )
+            {
+                return sendRequest(methodParam);
+            }
+
             IReadOnlyCollection<string>? documentUris =
                 ThreadHelper.JoinableTaskFactory.Run(
                     async () =>

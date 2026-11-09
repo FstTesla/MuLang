@@ -1,0 +1,118 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "MuIR",
+  "scopeName": "source.muir",
+  "fileTypes": [
+    "muir"
+  ],
+  "patterns": [
+    {
+      "include": "#comments"
+    },
+    {
+      "include": "#strings"
+    },
+    {
+      "include": "#references"
+    },
+    {
+      "include": "#numbers"
+    },
+    {
+      "include": "#keywords"
+    },
+    {
+      "include": "#operators"
+    },
+    {
+      "name": "punctuation.section.muir",
+      "match": "[{}\\[\\],:]"
+    }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.number-sign.muir",
+          "begin": "#",
+          "end": "$"
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.muir",
+          "begin": "\"",
+          "end": "\"|(?=$)",
+          "patterns": [
+            {
+              "name": "constant.character.escape.muir",
+              "match": "\\\\(?:[\"\\\\nrt]|u\\{[0-9A-Fa-f]{1,6}\\})"
+            },
+            {
+              "name": "invalid.illegal.escape.muir",
+              "match": "\\\\."
+            }
+          ]
+        }
+      ]
+    },
+    "references": {
+      "patterns": [
+        {
+          "name": "entity.name.type.muir",
+          "match": "(?<![^\\s#\"{}\\[\\],:])t[0-9]+(?![^\\s#\"{}\\[\\],:])"
+        },
+        {
+          "name": "variable.other.muir",
+          "match": "(?<![^\\s#\"{}\\[\\],:])%[0-9]+(?![^\\s#\"{}\\[\\],:])"
+        },
+        {
+          "name": "entity.name.label.muir",
+          "match": "(?<![^\\s#\"{}\\[\\],:])(?:bb|lr|er)[0-9]+(?![^\\s#\"{}\\[\\],:])"
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.muir",
+          "match": "(?<![^\\s#\"{}\\[\\],:])-?[0-9]+(?:\\.[0-9]+)?(?:[eE][+-]?[0-9]+)?(?![^\\s#\"{}\\[\\],:])"
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.declaration.muir",
+          "match": "(?<![^\\s#\"{}\\[\\],:])(?:muir|mode|environment|profile|types|type|entry|users|user|slots|slot|blocks|block|instructions|ins|term|lifetime-regions|lifetime-region|exception-regions|exception-region|attributes|attribute|function|end)(?![^\\s#\"{}\\[\\],:])"
+        },
+        {
+          "name": "storage.type.muir",
+          "match": "(?<![^\\s#\"{}\\[\\],:])(?:intrinsic|nullable|array|object|bool|int|float|number|string|primitive|error|unknown|void)(?![^\\s#\"{}\\[\\],:])"
+        },
+        {
+          "name": "storage.modifier.muir",
+          "match": "(?<![^\\s#\"{}\\[\\],:])(?:expression|program|parameter|local|temporary|mutable|readonly|open|closed|required|optional|region|parent|parent-part|protected|handler|cleanup|value|checked)(?![^\\s#\"{}\\[\\],:])"
+        },
+        {
+          "name": "constant.language.muir",
+          "match": "(?<![^\\s#\"{}\\[\\],:])(?:true|false|null|none|positive-infinity|negative-infinity|negative-zero|nan)(?![^\\s#\"{}\\[\\],:])"
+        },
+        {
+          "name": "keyword.control.muir",
+          "match": "(?<![^\\s#\"{}\\[\\],:])(?:jump|branch|return|throw|resume)(?![^\\s#\"{}\\[\\],:])"
+        }
+      ]
+    },
+    "operators": {
+      "patterns": [
+        {
+          "name": "keyword.operator.muir",
+          "match": "(?<![^\\s#\"{}\\[\\],:])(?:constant|copy|load-global|unary|binary|convert|truthiness|type-test|is-null|has-property|create-array|create-object|get-property|set-property|remove-property|get-element|set-element|remove-element-property|provider-call|user-call|identity|negate|logical-not|bitwise-not|add|subtract|multiply|divide|remainder|left-shift|right-shift|less-than|less-than-or-equal|greater-than|greater-than-or-equal|structural-equal|structural-not-equal|identity-equal|identity-not-equal|bitwise-and|bitwise-xor|bitwise-or)(?![^\\s#\"{}\\[\\],:])"
+        }
+      ]
+    }
+  }
+}

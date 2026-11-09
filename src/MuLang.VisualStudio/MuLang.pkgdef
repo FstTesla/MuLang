@@ -3,12 +3,17 @@
 
 [$RootKey$\TextMate\LanguageConfiguration\GrammarMapping]
 "source.mulang"="$PackageFolder$\MuLang-language-configuration.json"
+"source.muir"="$PackageFolder$\MuIR-language-configuration.json"
 
 [$RootKey$\TextMate\LanguageConfiguration\ContentTypeMapping]
 "MuLang"="$PackageFolder$\MuLang-language-configuration.json"
+"MuIR"="$PackageFolder$\MuIR-language-configuration.json"
 
 [$RootKey$\ShellFileAssociations\.mu]
 "DefaultIconMoniker"="bf198d4e-6b17-4e1e-874e-b38e2012d82b:0"
 
 [$RootKey$\ShellFileAssociations\.mulang]
+"DefaultIconMoniker"="bf198d4e-6b17-4e1e-874e-b38e2012d82b:0"
+
+[$RootKey$\ShellFileAssociations\.muir]
 "DefaultIconMoniker"="bf198d4e-6b17-4e1e-874e-b38e2012d82b:0"

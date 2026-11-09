@@ -45,6 +45,8 @@ internal sealed class LanguageServer
     private bool supportsMarkdownHover;
     private bool supportsVisualStudioExtensions;
     private bool useVisualStudioClassifications;
+    private bool supportsHierarchicalSymbols;
+    private bool lineFoldingOnly;
 
     public LanguageServer(
         Stream input,
@@ -139,6 +141,12 @@ internal sealed class LanguageServer
                         SupportsWorkspaceConfiguration(parameters);
                     supportsMarkdownHover =
                         SupportsMarkdownHover(parameters);
+                    supportsHierarchicalSymbols = SupportsTextDocumentCapability(
+                        parameters, "documentSymbol", "hierarchicalDocumentSymbolSupport"
+                    );
+                    lineFoldingOnly = SupportsTextDocumentCapability(
+                        parameters, "foldingRange", "lineFoldingOnly"
+                    );
                     supportsVisualStudioExtensions =
                         parameters.ValueKind == JsonValueKind.Object &&
                         parameters.TryGetProperty(
@@ -357,6 +365,26 @@ internal sealed class LanguageServer
                     break;
                 }
 
+                case "textDocument/documentSymbol":
+                {
+                    if (hasId)
+                    {
+                        await WriteDocumentSymbolsAsync(id, parameters, cancellationToken);
+                    }
+
+                    break;
+                }
+
+                case "textDocument/foldingRange":
+                {
+                    if (hasId)
+                    {
+                        await WriteFoldingRangesAsync(id, parameters, cancellationToken);
+                    }
+
+                    break;
+                }
+
                 case "shutdown":
                 {
                     shutdownRequested = true;
@@ -445,7 +473,10 @@ internal sealed class LanguageServer
         string text = changes[changes.GetArrayLength() - 1]
             .GetProperty("text")
             .GetString()!;
-        DocumentSnapshot document = new (uri, version, text);
+        DocumentSnapshot document = new (
+            uri, version, text,
+            documents.TryGetValue(uri, out DocumentSnapshot? previous) ? previous.LanguageId : null
+        );
 
         if (WorkspaceConfigurationFile.IsConfigurationFile(uri))
         {
@@ -498,8 +529,15 @@ internal sealed class LanguageServer
             return;
         }
 
+        bool isMuIr = IsMuIrDocument(uri);
         documents.Remove(uri);
         semanticDocuments.Invalidate(uri);
+
+        if (isMuIr)
+        {
+            return;
+        }
+
         await writer.WriteNotificationAsync(
             "textDocument/publishDiagnostics",
             result =>
@@ -523,7 +561,8 @@ internal sealed class LanguageServer
         DocumentSnapshot document = new (
             textDocument.GetProperty("uri").GetString()!,
             textDocument.GetProperty("version").GetInt32(),
-            textDocument.GetProperty("text").GetString()!
+            textDocument.GetProperty("text").GetString()!,
+            textDocument.TryGetProperty("languageId", out JsonElement languageId) ? languageId.GetString() : null
         );
 
         if (WorkspaceConfigurationFile.IsConfigurationFile(document.Uri))
@@ -558,6 +597,11 @@ internal sealed class LanguageServer
         CancellationToken cancellationToken
     )
     {
+        if (IsMuIrDocument(document.Uri))
+        {
+            return Task.CompletedTask;
+        }
+
         WorkspaceConfiguration configuration = workspaceConfigurations.Get(
             document.Uri
         );
@@ -613,6 +657,8 @@ internal sealed class LanguageServer
                 result.WriteBoolean("documentHighlightProvider", true);
                 result.WriteBoolean("definitionProvider", true);
                 result.WriteBoolean("referencesProvider", true);
+                result.WriteBoolean("documentSymbolProvider", true);
+                result.WriteBoolean("foldingRangeProvider", true);
                 result.WriteStartObject("textDocumentSync");
                 result.WriteBoolean("openClose", true);
                 result.WriteNumber("change", 1);
@@ -638,6 +684,7 @@ internal sealed class LanguageServer
                         ? "property name"
                         : "property"
                 );
+                result.WriteStringValue(useVisualStudioClassifications ? "label name" : "label");
                 result.WriteEndArray();
                 result.WriteStartArray("tokenModifiers");
 
@@ -678,7 +725,7 @@ internal sealed class LanguageServer
     {
         (
             SemanticDocumentSnapshot? document,
-            HoverInfo? hover
+            EditorHover? hover
         ) = await GetHoverAsync(parameters, cancellationToken);
 
         await writer.WriteResponseAsync(
@@ -700,7 +747,7 @@ internal sealed class LanguageServer
                 result.WriteString(
                     "value",
                     supportsMarkdownHover
-                        ? FormatMarkdownHover(hover.Items)
+                        ? FormatMarkdownHover(hover.Items, document.SemanticDocument.LanguageId)
                         : hover.Content
                 );
                 result.WriteEndObject();
@@ -724,7 +771,7 @@ internal sealed class LanguageServer
     {
         (
             SemanticDocumentSnapshot? document,
-            HoverInfo? hover
+            EditorHover? hover
         ) = await GetHoverAsync(parameters, cancellationToken);
 
         await writer.WriteResponseAsync(
@@ -743,17 +790,17 @@ internal sealed class LanguageServer
                 result.WriteStartObject();
                 result.WriteStartArray("items");
 
-                foreach (SemanticHoverItem item in hover.Items)
+                foreach (EditorHoverItem item in hover.Items)
                 {
                     result.WriteStartObject();
                     result.WriteString(
                         "category",
-                        GetHoverCategoryName(item.Category)
+                        item.Category
                     );
                     result.WriteString("content", item.Content);
                     result.WriteStartArray("parts");
 
-                    foreach (SemanticHoverPart part in item.Parts)
+                    foreach (EditorHoverPart part in item.Parts)
                     {
                         result.WriteStartObject();
                         result.WriteString(
@@ -783,7 +830,7 @@ internal sealed class LanguageServer
 
     private async Task<(
         SemanticDocumentSnapshot? Document,
-        HoverInfo? Hover
+        EditorHover? Hover
         )> GetHoverAsync(
         JsonElement parameters,
         CancellationToken cancellationToken
@@ -799,8 +846,8 @@ internal sealed class LanguageServer
                 uri,
                 cancellationToken
             );
-        HoverInfo? hover = document?.SemanticDocument.GetHover(
-            GetScalarOffset(document.Source, line, character)
+        EditorHover? hover = document?.SemanticDocument.GetHover(
+            EditorPositions.GetScalarOffset(document.Source, line, character)
         );
 
         return (document, hover);
@@ -822,11 +869,11 @@ internal sealed class LanguageServer
                 uri,
                 cancellationToken
             );
-        IReadOnlyList<SemanticOccurrence> highlights =
+        IReadOnlyList<EditorOccurrence> highlights =
             document is null
                 ? [ ]
                 : document.SemanticDocument.GetHighlights(
-                    GetScalarOffset(document.Source, line, character)
+                    EditorPositions.GetScalarOffset(document.Source, line, character)
                 );
 
         await writer.WriteResponseAsync(
@@ -845,7 +892,7 @@ internal sealed class LanguageServer
                 result.WriteStartArray();
 
                 foreach (
-                    SemanticOccurrence occurrence in highlights
+                    EditorOccurrence occurrence in highlights
                 )
                 {
                     result.WriteStartObject();
@@ -889,8 +936,8 @@ internal sealed class LanguageServer
                 uri,
                 cancellationToken
             );
-        SemanticOccurrence? selected = document?.SemanticDocument.GetOccurrence(
-            GetScalarOffset(document.Source, line, character)
+        EditorOccurrence? selected = document?.SemanticDocument.GetOccurrence(
+            EditorPositions.GetScalarOffset(document.Source, line, character)
         );
 
         await writer.WriteResponseAsync(
@@ -935,6 +982,7 @@ internal sealed class LanguageServer
         IReadOnlyCollection<string>? solutionDocumentUris = null;
 
         if (
+            !IsMuIrDocument(uri) &&
             parameters.TryGetProperty(
                 "_muLang_solutionDocumentUris",
                 out JsonElement solutionDocuments
@@ -970,24 +1018,25 @@ internal sealed class LanguageServer
                 uri,
                 cancellationToken
             );
-        SemanticOccurrence? selected = origin?.SemanticDocument.GetOccurrence(
-            GetScalarOffset(origin.Source, line, character)
+        EditorOccurrence? selected = origin?.SemanticDocument.GetOccurrence(
+            EditorPositions.GetScalarOffset(origin.Source, line, character)
         );
         IList<(
             SemanticDocumentSnapshot Document,
-            SemanticOccurrence Occurrence
+            EditorOccurrence Occurrence
             )> references = [ ];
 
         if (
             origin is not null &&
             selected?.Symbol is { } symbol &&
             (
+                origin.SemanticDocument.LanguageId == "muir" ||
                 solutionDocumentUris is null ||
                 solutionDocumentUris.Contains(origin.Uri, UriComparer)
             )
         )
         {
-            if (symbol.IsWorkspaceStable)
+            if (symbol is SemanticSymbolKey { IsWorkspaceStable: true })
             {
                 string? originFolder =
                     workspaceConfigurations.GetFolder(origin.Uri);
@@ -998,6 +1047,7 @@ internal sealed class LanguageServer
                         [
                             .. documents.Values.Where(
                                 document =>
+                                    !IsMuIrDocument(document.Uri) &&
                                     workspaceConfigurations.GetFolder(
                                         document.Uri
                                     ) is not null
@@ -1034,7 +1084,7 @@ internal sealed class LanguageServer
                     }
 
                     foreach (
-                        SemanticOccurrence occurrence
+                        EditorOccurrence occurrence
                         in document.SemanticDocument
                             .GetOccurrences(symbol)
                     )
@@ -1053,7 +1103,7 @@ internal sealed class LanguageServer
             else
             {
                 foreach (
-                    SemanticOccurrence occurrence
+                    EditorOccurrence occurrence
                     in origin.SemanticDocument.GetOccurrences(symbol)
                 )
                 {
@@ -1085,7 +1135,7 @@ internal sealed class LanguageServer
                 foreach (
                     (
                         SemanticDocumentSnapshot document,
-                        SemanticOccurrence occurrence
+                        EditorOccurrence occurrence
                     ) in references
                         .OrderBy(static item => item.Document.Uri, UriComparer)
                         .ThenBy(
@@ -1111,7 +1161,7 @@ internal sealed class LanguageServer
     private void WriteReference(
         Utf8JsonWriter writer,
         SemanticDocumentSnapshot document,
-        SemanticOccurrence occurrence,
+        EditorOccurrence occurrence,
         int id
     )
     {
@@ -1157,45 +1207,6 @@ internal sealed class LanguageServer
         writer.WriteEndObject();
     }
 
-    private static int GetScalarOffset(SourceText source, int line, int character)
-    {
-        if (line >= source.LineCount)
-        {
-            return source.Length;
-        }
-
-        int start = source.LineMap.LineStarts[line];
-        int end = line + 1 < source.LineCount
-            ? source.LineMap.LineStarts[line + 1]
-            : source.Length;
-
-        while (end > start && source.GetRune(end - 1).Value is '\r' or '\n')
-        {
-            end--;
-        }
-
-        long utf16Offset = Math.Min(
-            (long)source.GetUtf16Offset(start) + character,
-            source.GetUtf16Offset(end)
-        );
-
-        while (start < end)
-        {
-            int middle = start + (end - start) / 2;
-
-            if (source.GetUtf16Offset(middle) < utf16Offset)
-            {
-                start = middle + 1;
-            }
-            else
-            {
-                end = middle;
-            }
-        }
-
-        return start;
-    }
-
     private static (
         string Uri,
         int Line,
@@ -1236,7 +1247,7 @@ internal sealed class LanguageServer
         )
             ? semanticDocuments.Get(
                 document,
-                workspaceConfigurations.Get(uri)
+                IsMuIrDocument(uri) ? null : workspaceConfigurations.Get(uri)
             )
             : null;
     }
@@ -1250,13 +1261,13 @@ internal sealed class LanguageServer
         {
             return semanticDocuments.Get(
                 document,
-                workspaceConfigurations.Get(uri)
+                IsMuIrDocument(uri) ? null : workspaceConfigurations.Get(uri)
             );
         }
 
         return await semanticDocuments.GetFileAsync(
             uri,
-            workspaceConfigurations.Get(uri),
+            IsMuIrDocument(uri) ? null : workspaceConfigurations.Get(uri),
             cancellationToken
         );
     }
@@ -1602,7 +1613,7 @@ internal sealed class LanguageServer
         CancellationToken cancellationToken
     )
     {
-        if (!useVisualStudioClassifications)
+        if (!useVisualStudioClassifications || IsMuIrDocument(document))
         {
             return false;
         }
@@ -1951,7 +1962,7 @@ internal sealed class LanguageServer
         int previousCharacter = 0;
 
         foreach (
-            SemanticOccurrence occurrence
+            EditorOccurrence occurrence
             in document.SemanticDocument.Occurrences
                 .Where(
                     static occurrence =>
@@ -2056,6 +2067,136 @@ internal sealed class LanguageServer
                     format.ValueKind == JsonValueKind.String &&
                     format.GetString() == "markdown"
             );
+    }
+
+    private bool IsMuIrDocument(string uri) =>
+        MuIrEditorDocument.IsMuIr(uri) ||
+        documents.TryGetValue(uri, out DocumentSnapshot? document) && document.LanguageId == "muir";
+
+    private static bool SupportsTextDocumentCapability(JsonElement parameters, string feature, string capability) =>
+        parameters.ValueKind == JsonValueKind.Object &&
+        parameters.TryGetProperty("capabilities", out JsonElement capabilities) &&
+        capabilities.ValueKind == JsonValueKind.Object &&
+        capabilities.TryGetProperty("textDocument", out JsonElement textDocument) &&
+        textDocument.ValueKind == JsonValueKind.Object &&
+        textDocument.TryGetProperty(feature, out JsonElement featureCapabilities) &&
+        featureCapabilities.ValueKind == JsonValueKind.Object &&
+        featureCapabilities.TryGetProperty(capability, out JsonElement value) &&
+        value.ValueKind == JsonValueKind.True;
+
+    private async Task WriteDocumentSymbolsAsync(JsonElement id, JsonElement parameters, CancellationToken cancellationToken)
+    {
+        string uri = parameters.GetProperty("textDocument").GetProperty("uri").GetString()!;
+        SemanticDocumentSnapshot? document = await GetOpenSemanticDocumentAsync(uri, cancellationToken);
+
+        await writer.WriteResponseAsync(
+            id,
+            result =>
+            {
+                result.WriteStartArray();
+
+                if (document is not null)
+                {
+                    foreach (EditorDocumentSymbol symbol in document.SemanticDocument.Symbols)
+                    {
+                        WriteSymbol(result, document, symbol, null);
+                    }
+                }
+
+                result.WriteEndArray();
+            },
+            cancellationToken
+        );
+    }
+
+    private void WriteSymbol(
+        Utf8JsonWriter result,
+        SemanticDocumentSnapshot document,
+        EditorDocumentSymbol symbol,
+        string? containerName
+    )
+    {
+        result.WriteStartObject();
+        result.WriteString("name", symbol.Name);
+        result.WriteNumber("kind", symbol.Kind);
+
+        if (supportsHierarchicalSymbols)
+        {
+            WriteRange(result, "range", document.Source, symbol.Range);
+            WriteRange(result, "selectionRange", document.Source, symbol.SelectionRange);
+            result.WriteStartArray("children");
+
+            foreach (EditorDocumentSymbol child in symbol.Children)
+            {
+                WriteSymbol(result, document, child, symbol.Name);
+            }
+
+            result.WriteEndArray();
+        }
+        else
+        {
+            result.WritePropertyName("location");
+            WriteLocation(result, document.Uri, document.Source, symbol.Range);
+
+            if (containerName is not null)
+            {
+                result.WriteString("containerName", containerName);
+            }
+        }
+
+        result.WriteEndObject();
+
+        if (!supportsHierarchicalSymbols)
+        {
+            foreach (EditorDocumentSymbol child in symbol.Children)
+            {
+                WriteSymbol(result, document, child, symbol.Name);
+            }
+        }
+    }
+
+    private async Task WriteFoldingRangesAsync(JsonElement id, JsonElement parameters, CancellationToken cancellationToken)
+    {
+        string uri = parameters.GetProperty("textDocument").GetProperty("uri").GetString()!;
+        SemanticDocumentSnapshot? document = await GetOpenSemanticDocumentAsync(uri, cancellationToken);
+
+        await writer.WriteResponseAsync(
+            id,
+            result =>
+            {
+                result.WriteStartArray();
+
+                if (document is not null)
+                {
+                    foreach (TextSpan range in document.SemanticDocument.FoldingRanges)
+                    {
+                        TextPosition start = document.Source.GetPosition(range.Start);
+                        TextPosition end = document.Source.GetPosition(range.End);
+                        int endLine = end.Line - 1 - (lineFoldingOnly ? 1 : 0);
+
+                        if (endLine <= start.Line - 1)
+                        {
+                            continue;
+                        }
+
+                        result.WriteStartObject();
+                        result.WriteNumber("startLine", start.Line - 1);
+                        result.WriteNumber("endLine", endLine);
+
+                        if (!lineFoldingOnly)
+                        {
+                            result.WriteNumber("startCharacter", GetUtf16Character(document.Source, start));
+                            result.WriteNumber("endCharacter", GetUtf16Character(document.Source, end) - 1);
+                        }
+
+                        result.WriteEndObject();
+                    }
+                }
+
+                result.WriteEndArray();
+            },
+            cancellationToken
+        );
     }
 
     private static bool SupportsWorkspaceConfiguration(JsonElement parameters)
@@ -2179,36 +2320,19 @@ internal sealed class LanguageServer
     }
 
     private static string FormatMarkdownHover(
-        IReadOnlyList<SemanticHoverItem> items
+        IReadOnlyList<EditorHoverItem> items,
+        string languageId
     )
     {
         return string.Join(
             "\n\n",
             items.Select(
-                static item =>
+                item =>
                     item.Content.Contains('\n')
-                        ? $"*({GetHoverCategoryName(item.Category)})*\n```mulang\n{item.Content}\n```"
-                        : $"*({GetHoverCategoryName(item.Category)})* {EscapeMarkdown(item.Content)}"
+                        ? $"*({item.Category})*\n```{languageId}\n{item.Content}\n```"
+                        : $"*({item.Category})* {EscapeMarkdown(item.Content)}"
             )
         );
-    }
-
-    private static string GetHoverCategoryName(
-        SemanticHoverCategory category
-    )
-    {
-        return category switch
-        {
-            SemanticHoverCategory.Variable => "variable",
-            SemanticHoverCategory.Parameter => "parameter",
-            SemanticHoverCategory.Function => "function",
-            SemanticHoverCategory.Type => "type",
-            SemanticHoverCategory.Property => "property",
-            SemanticHoverCategory.Literal => "literal",
-            SemanticHoverCategory.Expression => "expression",
-            SemanticHoverCategory.Operator => "operator",
-            _ => throw new ArgumentOutOfRangeException(nameof(category)),
-        };
     }
 
     private static string EscapeMarkdown(string value)
