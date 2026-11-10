@@ -38,7 +38,7 @@ public sealed class SemanticDocumentResult
     /// <summary>Gets the syntax-derived declaration outline in source order, including recoverable declarations in invalid source.</summary>
     public IReadOnlyList<SemanticDocumentSymbol> DocumentSymbols { get; }
 
-    /// <summary>Gets the multiline instruction-block spans with present opening and closing braces, in Unicode scalar offsets.</summary>
+    /// <summary>Gets the multiline instruction-block, type, object, and array spans with present delimiters, including the closing delimiter, in Unicode scalar offsets.</summary>
     public IReadOnlyList<TextSpan> FoldingSpans { get; }
 
     /// <summary>Gets the smallest semantic occurrence containing an offset.</summary>

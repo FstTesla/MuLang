@@ -2172,7 +2172,7 @@ internal sealed class LanguageServer
                     {
                         TextPosition start = document.Source.GetPosition(range.Start);
                         TextPosition end = document.Source.GetPosition(range.End);
-                        int endLine = end.Line - 1 - (lineFoldingOnly ? 1 : 0);
+                        int endLine = end.Line - 1;
 
                         if (endLine <= start.Line - 1)
                         {
@@ -2186,7 +2186,7 @@ internal sealed class LanguageServer
                         if (!lineFoldingOnly)
                         {
                             result.WriteNumber("startCharacter", GetUtf16Character(document.Source, start));
-                            result.WriteNumber("endCharacter", GetUtf16Character(document.Source, end) - 1);
+                            result.WriteNumber("endCharacter", GetUtf16Character(document.Source, end));
                         }
 
                         result.WriteEndObject();

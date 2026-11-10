@@ -46,7 +46,10 @@ and `FoldingSpans`, produced from the same recovered syntax used for binding.
 `SemanticDocumentSymbol` describes source declarations without exposing parser
 nodes or LSP types. Spans use Unicode scalar offsets; the existing shared
 handlers serialize UTF-16 positions. Do not derive MuLang folds from arbitrary
-brace tokens: object and type bodies must remain excluded.
+brace tokens: traverse the recovered type and expression syntax so that nested
+type, object, and array bodies are included without treating string contents
+as structural delimiters. Only constructs with both delimiters present produce
+folds, and ranges include the closing delimiter.
 
 ## Build
 
@@ -114,15 +117,19 @@ which outline UI a particular client version provides.
 
 Check gutter outlining or **Edit > Outlining > Toggle Outlining Expansion** for
 multiline function bodies, standalone blocks, branches, loops, and all
-`try`/`catch`/`finally` bodies. Type/object bodies, arrays, and single-line blocks
-must not gain server folds. Check that closing braces remain visible with
-line-only folding.
+`try`/`catch`/`finally` bodies, as well as named/inline types, object literals,
+and arrays. Check nested constructs in function signatures, initializers,
+arguments, and return values. Single-line or incomplete constructs must not
+gain server folds. Confirm that closing braces and brackets disappear into the
+collapsed region, including two-line constructs and clients using line-only
+folding.
 
 Make unsaved valid-to-invalid-to-valid edits: recoverable declarations and
 complete instruction blocks remain available, missing names do not appear,
 and incomplete blocks lose their folds without retaining old ranges. Repeat
 with CRLF and non-BMP characters, and switch between program and expression
-configuration to confirm that expression mode has no instruction-block folds.
+configuration to confirm that expression mode folds nested types, objects, and
+arrays without adding declaration symbols.
 Check mixed MuLang/MuIR files without changing MuIR's all-or-nothing behavior.
 Install and interact manually as described above; do not automate VSIX dialogs.
 

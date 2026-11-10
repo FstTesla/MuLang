@@ -71,19 +71,22 @@ Top-level variables remain top-level entries.
 
 Code folding covers multiline instruction blocks: function bodies, standalone
 blocks, conditional branches, loop bodies, and `try`, `catch`, and `finally`
-bodies. Type and object bodies, arrays, and comments do not generate folds.
-Single-line blocks and blocks with a missing opening or closing brace do not
-generate folds either.
+bodies. It also covers named and inline object types, object literals, and
+array literals, including nested constructs in signatures and expressions.
+Comments, single-line constructs, and constructs with missing opening or
+closing delimiters do not generate folds.
 
 Outline and folding use the recovered syntax from the current analysis, so
 recoverable declarations and complete blocks remain available while editing
 invalid source. Missing declaration names are omitted, and edits never reuse
 old positions. The configured compilation mode and language profile apply;
-expression mode provides no declaration outline or instruction-block folds.
+expression mode provides type, object, and array folds without introducing
+a declaration outline.
 
 The server provides hierarchical symbols when supported by the client and a
-flat list with container names otherwise. Folding respects line-only clients,
-leaving closing-delimiter lines visible. Visual Studio uses the existing LSP
+flat list with container names otherwise. Folded ranges include the closing
+brace or bracket; line-only clients receive the closing line as part of the
+folded region. Visual Studio uses the existing LSP
 integration; the concrete navigation and outlining surfaces depend on the
 client version.
 

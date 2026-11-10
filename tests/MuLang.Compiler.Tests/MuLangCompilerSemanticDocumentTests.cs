@@ -9,7 +9,7 @@ namespace MuLang.Compiler.Tests;
 public sealed class MuLangCompilerSemanticDocumentTests
 {
     [Test]
-    public void DescribesDeclarationHierarchyAndOnlyInstructionBlockFolds()
+    public void DescribesDeclarationHierarchyAndStructuralFolds()
     {
         const string source = """
                               type Node {
@@ -65,8 +65,8 @@ public sealed class MuLangCompilerSemanticDocumentTests
                 Is.EqualTo([ "input", "items", "local", "other", "index", "loopValue", "attempted", "errorValue", "handled", "cleaned" ])
             );
             Assert.That(function.Children[0].Kind, Is.EqualTo(SemanticDocumentSymbolKind.Parameter));
-            Assert.That(result.FoldingSpans, Has.Count.EqualTo(8));
-            Assert.That(result.FoldingSpans.All(span => function.Span.Start < span.Start && span.End <= function.Span.End), Is.True);
+            Assert.That(result.FoldingSpans, Has.Count.EqualTo(13));
+            Assert.That(result.FoldingSpans.Count(span => function.Span.Start < span.Start && span.End <= function.Span.End), Is.EqualTo(9));
 
             foreach (SemanticDocumentSymbol symbol in Flatten(result.DocumentSymbols))
             {
@@ -77,7 +77,9 @@ public sealed class MuLangCompilerSemanticDocumentTests
 
             foreach (TextSpan fold in result.FoldingSpans)
             {
-                Assert.That(text.GetText(fold), Does.StartWith("{").And.EndWith("}"));
+                string folded = text.GetText(fold);
+                Assert.That(folded, Does.StartWith("{").Or.StartWith("["));
+                Assert.That(folded, Does.EndWith("}").Or.EndWith("]"));
             }
         }
 
@@ -111,14 +113,14 @@ public sealed class MuLangCompilerSemanticDocumentTests
             Assert.That(first.Children.Select(static symbol => symbol.Name), Is.EqualTo([ "local" ]));
             Assert.That(second.Children.Select(static symbol => symbol.Name), Is.EqualTo([ "kept" ]));
             Assert.That(result.DocumentSymbols[0].Children.Select(static symbol => symbol.Name), Is.EqualTo([ "kept" ]));
-            Assert.That(result.FoldingSpans, Has.Count.EqualTo(2));
+            Assert.That(result.FoldingSpans, Has.Count.EqualTo(3));
             Assert.That(result.FoldingSpans.Any(static span => span.Start == source.IndexOf('{', source.IndexOf("first", StringComparison.Ordinal))), Is.False);
         }
     }
 
     [TestCase(CompilationMode.Program)]
     [TestCase(CompilationMode.Expression)]
-    public void DoesNotFoldTypesObjectsArraysCommentsOrSingleLineBlocks(CompilationMode mode)
+    public void FoldsMultilineTypesObjectsAndArraysInBothCompilationModes(CompilationMode mode)
     {
         string source = mode == CompilationMode.Program
             ? """
@@ -146,13 +148,92 @@ public sealed class MuLangCompilerSemanticDocumentTests
         using (Assert.EnterMultipleScope())
         {
             Assert.That(result.Diagnostics.HasErrors, Is.False, string.Join("\n", result.Diagnostics.Select(static diagnostic => diagnostic.Message)));
-            Assert.That(result.FoldingSpans, Is.Empty);
+            Assert.That(result.FoldingSpans, Has.Count.EqualTo(mode == CompilationMode.Program ? 3 : 2));
 
             if (mode == CompilationMode.Expression)
             {
                 Assert.That(result.DocumentSymbols, Is.Empty);
             }
         }
+    }
+
+    [Test]
+    public void FindsFoldsInSignaturesTypedInitializersReturnsAssignmentsAndArguments()
+    {
+        const string source = """
+            func echo(value: {
+              payload: int[]
+            }): {
+              payload: int[]
+            } {
+              return {
+                payload = [
+                  1
+                ]
+              };
+            }
+            var typed: {
+              payload: int[]
+            } = {
+              payload = [
+                2
+              ]
+            };
+            typed = {
+              payload = [
+                3
+              ]
+            };
+            echo({
+              payload = [
+                4
+              ]
+            });
+            """;
+        SemanticDocumentResult result = Analyze(source);
+        SourceText text = SourceText.From(source);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.Diagnostics.HasErrors, Is.False, string.Join("\n", result.Diagnostics.Select(static diagnostic => diagnostic.Message)));
+            Assert.That(result.FoldingSpans, Has.Count.EqualTo(12));
+            Assert.That(result.FoldingSpans.Count(span => text.GetText(span).StartsWith("[", StringComparison.Ordinal)), Is.EqualTo(4));
+            Assert.That(result.DocumentSymbols.Select(static symbol => symbol.Name), Is.EqualTo([ "echo", "typed" ]));
+        }
+    }
+
+    [TestCase("(\n$[\n @{ value = 1 }\n]\n)[0]", 1)]
+    [TestCase("{\n value = [\n  1\n ]\n}.value[0]", 2)]
+    [TestCase("true ? {\n value = 1\n} : {\n value = 2\n}", 2)]
+    [TestCase("({\n value = 1\n} as {\n value: int\n}) is {\n value: int\n}", 3)]
+    [TestCase("!({\n value = 1\n} has ([\n \"value\"\n][0]))", 2)]
+    [TestCase("([\n 1\n][0] + [\n 2\n][0]) > 0", 2)]
+    public void FindsNestedFoldsInExpressionOperands(string source, int foldCount)
+    {
+        SemanticDocumentResult result = Analyze(source, compilationMode: CompilationMode.Expression);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.Diagnostics.HasErrors, Is.False, string.Join("\n", result.Diagnostics.Select(static diagnostic => diagnostic.Message)));
+            Assert.That(result.FoldingSpans, Has.Count.EqualTo(foldCount));
+            Assert.That(result.DocumentSymbols, Is.Empty);
+        }
+    }
+
+    [TestCase("type Broken {\n value: int", CompilationMode.Program, 0)]
+    [TestCase("{\n value = 1", CompilationMode.Expression, 0)]
+    [TestCase("[\n { value = 1 }", CompilationMode.Expression, 0)]
+    [TestCase("[\n {\n value = [\n  1\n ]\n}", CompilationMode.Expression, 2)]
+    [TestCase("\"{\\n[\\n]\\n}\"", CompilationMode.Expression, 0)]
+    [TestCase("[1, 2]", CompilationMode.Expression, 0)]
+    public void OmitsIncompleteAndSingleLineConstructsButRetainsCompleteNestedFolds(
+        string source,
+        CompilationMode mode,
+        int foldCount
+    )
+    {
+        SemanticDocumentResult result = Analyze(source, compilationMode: mode);
+        Assert.That(result.FoldingSpans, Has.Count.EqualTo(foldCount));
     }
 
     [TestCase("var value$ = 1; value;", "value")]

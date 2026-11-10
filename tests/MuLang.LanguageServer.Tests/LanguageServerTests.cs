@@ -4299,7 +4299,7 @@ public sealed class LanguageServerTests
 
     [TestCase(false)]
     [TestCase(true)]
-    public async Task ReturnsMuLangHierarchicalSymbolsAndOnlyInstructionFolding(bool lineOnly)
+    public async Task ReturnsMuLangHierarchicalSymbolsAndStructuralFolding(bool lineOnly)
     {
         const string uri = "file:///test.mu";
         const string source = """
@@ -4376,10 +4376,10 @@ public sealed class LanguageServerTests
                 function.GetProperty("children")[2].GetProperty("selectionRange").GetProperty("start").GetRawText(),
                 Is.EqualTo(MuIrPosition(source, source.IndexOf("nested =", StringComparison.Ordinal)).GetRawText())
             );
-            Assert.That(folds.GetArrayLength(), Is.EqualTo(2));
-            JsonElement nested = folds[1];
+            Assert.That(folds.GetArrayLength(), Is.EqualTo(5));
+            JsonElement nested = folds[2];
             Assert.That(nested.GetProperty("startLine").GetInt32(), Is.EqualTo(openPosition.GetProperty("line").GetInt32()));
-            Assert.That(nested.GetProperty("endLine").GetInt32(), Is.EqualTo(closePosition.GetProperty("line").GetInt32() - (lineOnly ? 1 : 0)));
+            Assert.That(nested.GetProperty("endLine").GetInt32(), Is.EqualTo(closePosition.GetProperty("line").GetInt32()));
 
             if (lineOnly)
             {
@@ -4388,7 +4388,7 @@ public sealed class LanguageServerTests
             else
             {
                 Assert.That(nested.GetProperty("startCharacter").GetInt32(), Is.EqualTo(openPosition.GetProperty("character").GetInt32()));
-                Assert.That(nested.GetProperty("endCharacter").GetInt32(), Is.EqualTo(closePosition.GetProperty("character").GetInt32()));
+                Assert.That(nested.GetProperty("endCharacter").GetInt32(), Is.EqualTo(closePosition.GetProperty("character").GetInt32() + 1));
             }
         }
     }
@@ -4436,9 +4436,75 @@ public sealed class LanguageServerTests
             Assert.That(MuIrResponse(output, 13).GetArrayLength(), Is.Zero);
             Assert.That(MuIrResponse(output, 14).GetArrayLength(), Is.EqualTo(1));
             Assert.That(MuIrResponse(output, 15).GetArrayLength(), Is.Zero);
-            Assert.That(MuIrResponse(output, 16).GetArrayLength(), Is.Zero);
+            Assert.That(MuIrResponse(output, 16).GetArrayLength(), Is.EqualTo(1));
             Assert.That(MuIrResponse(output, 17).GetArrayLength(), Is.EqualTo(3));
             Assert.That(MuIrResponse(output, 18).GetArrayLength(), Is.EqualTo(1));
+        }
+    }
+
+    [TestCase("mulang", false)]
+    [TestCase("mulang", true)]
+    [TestCase("minimal.muir", false)]
+    [TestCase("minimal.muir", true)]
+    [TestCase("minimal-v2.muir", false)]
+    [TestCase("minimal-v2.muir", true)]
+    public async Task FoldingIncludesClosingDelimitersAndTwoLineRegions(string language, bool lineOnly)
+    {
+        string source = language == "mulang"
+            ? "var items = [\r\n \"😀\"]; var after = 1;"
+            : ReadMuIrFixture(language).Replace("\r\n", "\n", StringComparison.Ordinal).Replace("\n", "\r\n", StringComparison.Ordinal);
+        string uri = language == "mulang" ? "file:///test.mu" : "file:///test.muir";
+        int closingOffset = language == "mulang"
+            ? source.IndexOf(']')
+            : source.LastIndexOf('}');
+        JsonElement closingPosition = MuIrPosition(source, closingOffset + 1);
+        string initialize = JsonSerializer.Serialize(
+            new
+            {
+                jsonrpc = "2.0",
+                id = 1,
+                method = "initialize",
+                @params = new
+                {
+                    capabilities = new
+                    {
+                        textDocument = new
+                        {
+                            foldingRange = new { lineFoldingOnly = lineOnly },
+                        },
+                    },
+                },
+            }
+        );
+        IReadOnlyList<JsonElement> output = await RunServerAsync(
+            initialize,
+            CreateOpenDocumentMessage(uri, source),
+            CreateMuIrRequest(10, "textDocument/foldingRange", source, uri: uri),
+            """{"jsonrpc":"2.0","method":"shutdown","id":99}""",
+            """{"jsonrpc":"2.0","method":"exit"}"""
+        );
+        JsonElement folds = MuIrResponse(output, 10);
+        JsonElement region = folds.EnumerateArray().Single(
+            fold => fold.GetProperty("endLine").GetInt32() == closingPosition.GetProperty("line").GetInt32()
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(folds.GetArrayLength(), Is.EqualTo(language == "mulang" ? 1 : language == "minimal.muir" ? 2 : 3));
+
+            if (lineOnly)
+            {
+                Assert.That(region.TryGetProperty("endCharacter", out _), Is.False);
+            }
+            else
+            {
+                Assert.That(region.GetProperty("endCharacter").GetInt32(), Is.EqualTo(closingPosition.GetProperty("character").GetInt32()));
+            }
+
+            if (language != "minimal.muir")
+            {
+                Assert.That(region.GetProperty("endLine").GetInt32(), Is.EqualTo(region.GetProperty("startLine").GetInt32() + 1));
+            }
         }
     }
 

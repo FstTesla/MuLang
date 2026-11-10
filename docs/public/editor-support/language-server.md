@@ -27,7 +27,7 @@ Building and packaging the server is covered by the
 ## Supported features
 
 The server provides diagnostics, semantic highlighting, hover, document
-highlights, definitions, references, document symbols, and instruction-block
+highlights, definitions, references, document symbols, and structural
 folding. See [editor features](editor-features.md)
 for their behavior and limitations.
 
@@ -62,8 +62,9 @@ MuIR reuses hover, `mulang/quickInfo`, definitions, references, highlights, and
 full semantic tokens. It also supports `textDocument/documentSymbol` and
 `textDocument/foldingRange`. Advertise `hierarchicalDocumentSymbolSupport` for nested symbols;
 otherwise the server returns flat symbol information with container names.
-`lineFoldingOnly` omits character positions and preserves closing-delimiter
-lines. The existing semantic-token indices remain unchanged; the appended
+Fold ranges include their closing delimiters. `lineFoldingOnly` omits character
+positions and includes the closing line. The existing semantic-token indices
+remain unchanged; the appended
 `label` classification covers blocks and regions (`label name` in Visual Studio).
 
 Pair this with the
