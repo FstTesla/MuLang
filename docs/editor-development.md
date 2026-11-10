@@ -51,6 +51,14 @@ type, object, and array bodies are included without treating string contents
 as structural delimiters. Only constructs with both delimiters present produce
 folds, and ranges include the closing delimiter.
 
+Visual Studio navigation-bar startup uses deferred document-symbol registration
+when the client advertises dynamic support. The server omits the initial static
+provider in that case and sends one `client/registerCapability` request after
+the first MuLang or MuIR document is stored. The registration uses the client's
+default document selector, without timers, native-client reflection, or a
+replacement navigation bar. Configuration-only opens do not trigger it;
+registration replies are tracked independently from configuration requests.
+
 ## Build
 
 After restoring the required dependencies, build the extension project on
@@ -108,6 +116,13 @@ diagnostics after discarding unsaved changes. Confirm that JSON coloring and
 schema-aware editing still work and that unrelated JSON files are unaffected.
 
 ### MuLang outline and folding checks
+
+In a fresh VS session, open a `.muir` as the first MuLang-family document and
+confirm that both navigation dropdowns appear without opening a second file.
+Repeat with `.mu`, in Folder View and Solution View, including first opening
+`mulang.config.json`. Check close/reopen and verify that the first file behaves
+like later files. If registration fails, record the reported client error;
+passing protocol tests alone does not establish that the startup race is gone.
 
 In `.mu` and `.mulang` files, verify the client navigation/outline presentation
 of types, properties, functions, parameters, and locals. Confirm identifier-only

@@ -18,7 +18,7 @@ The executable accepts two optional arguments:
 
 | Argument | Purpose |
 | --- | --- |
-| `--visual-studio` | Selects Visual Studio-specific semantic-token presentation. Other clients should omit it. |
+| `--visual-studio` | Selects Visual Studio-specific presentation and capability activation. Other clients should omit it. |
 | `--workspace-root=` | Supplies an absolute file URI as the fallback workspace root. Standard LSP workspace information takes precedence. |
 
 Building and packaging the server is covered by the
@@ -40,6 +40,17 @@ and MuIR. Advertise `hierarchicalDocumentSymbolSupport` for nested declarations
 and `lineFoldingOnly` when the client cannot consume character-based folds.
 MuLang retains recoverable syntax-based results after source errors; MuIR
 requires successful complete reading.
+
+In Visual Studio mode, clients advertising
+`textDocument.documentSymbol.dynamicRegistration` receive the document-symbol
+registration after the first MuLang or MuIR `textDocument/didOpen`, rather than
+through the initial static capability. Registration happens once per server
+session, after storing the open document, and does not wait for successful
+semantic analysis. Opening a configuration file alone does not trigger it.
+This defers navigation-bar activation until a source document is associated
+with the client. Other clients and Visual Studio clients without dynamic
+registration retain the initial static capability. Registration errors are
+reported through `window/showMessage`.
 
 Clients can also synchronize `mulang.config.json` documents to receive live
 syntax errors and configuration warnings through `textDocument/publishDiagnostics`.

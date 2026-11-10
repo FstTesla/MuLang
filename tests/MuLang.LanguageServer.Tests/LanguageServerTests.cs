@@ -890,6 +890,149 @@ public sealed class LanguageServerTests
         }
     }
 
+    [TestCase("file:///first.muir")]
+    [TestCase("file:///first.mu")]
+    public async Task RegistersVisualStudioDocumentSymbolsOnceAfterFirstSourceDocumentOpens(string uri)
+    {
+        string source = uri.EndsWith(".muir", StringComparison.Ordinal)
+            ? ReadMuIrFixture("complete.muir")
+            : "func run(): void { var value = 1; }";
+        IReadOnlyList<JsonElement> output = await RunServerAsync(
+            true,
+            """
+            {"jsonrpc":"2.0","id":10,"method":"initialize","params":{"capabilities":{"workspace":{"configuration":true},"textDocument":{"documentSymbol":{"dynamicRegistration":true}}}}}
+            """,
+            """{"jsonrpc":"2.0","method":"initialized","params":{}}""",
+            """{"jsonrpc":"2.0","method":"workspace/didChangeConfiguration","params":{"settings":{}}}""",
+            """{"jsonrpc":"2.0","id":1,"result":[{"configuration":{"compilationMode":"program"}}]}""",
+            CreateOpenDocumentMessage("file:///mulang.config.json", "{}"),
+            CreateMuIrRequest(11, "textDocument/documentSymbol", source, uri: uri),
+            CreateOpenDocumentMessage(uri, source),
+            """{"jsonrpc":"2.0","id":2,"result":null}""",
+            CreateMuIrRequest(12, "textDocument/documentSymbol", source, uri: uri),
+            CreateOpenDocumentMessage("file:///second.mu", "var second = 2;"),
+            JsonSerializer.Serialize(
+                new
+                {
+                    jsonrpc = "2.0",
+                    method = "textDocument/didClose",
+                    @params = new { textDocument = new { uri } },
+                }
+            ),
+            CreateOpenDocumentMessage(uri, source),
+            CreateMuIrRequest(13, "textDocument/documentSymbol", source, uri: uri),
+            """{"jsonrpc":"2.0","method":"shutdown","id":99}""",
+            """{"jsonrpc":"2.0","method":"exit"}"""
+        );
+        JsonElement registration = output.Single(static message =>
+            message.TryGetProperty("method", out JsonElement method) &&
+            method.GetString() == "client/registerCapability");
+        JsonElement options = registration.GetProperty("params").GetProperty("registrations")[0];
+        List<JsonElement> messages = [ .. output ];
+        int registrationIndex = messages.FindIndex(static message =>
+            message.TryGetProperty("method", out JsonElement method) &&
+            method.GetString() == "client/registerCapability");
+        int beforeOpenIndex = messages.FindIndex(static message =>
+            message.TryGetProperty("id", out JsonElement id) &&
+            id.GetInt32() == 11);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(MuIrResponse(output, 10).GetProperty("capabilities").GetProperty("documentSymbolProvider").GetBoolean(), Is.False);
+            Assert.That(registrationIndex, Is.GreaterThan(beforeOpenIndex));
+            Assert.That(registration.GetProperty("id").GetInt32(), Is.EqualTo(2));
+            Assert.That(options.GetProperty("id").GetString(), Is.EqualTo("mulang.documentSymbol"));
+            Assert.That(options.GetProperty("method").GetString(), Is.EqualTo("textDocument/documentSymbol"));
+            Assert.That(options.GetProperty("registerOptions").GetProperty("documentSelector").ValueKind, Is.EqualTo(JsonValueKind.Null));
+            Assert.That(MuIrResponse(output, 11).GetArrayLength(), Is.Zero);
+            Assert.That(MuIrResponse(output, 12).GetArrayLength(), Is.GreaterThan(0));
+            Assert.That(MuIrResponse(output, 13).GetArrayLength(), Is.EqualTo(MuIrResponse(output, 12).GetArrayLength()));
+            Assert.That(output.Any(static message =>
+                message.TryGetProperty("method", out JsonElement method) &&
+                method.GetString() == "window/showMessage"), Is.False);
+        }
+    }
+
+    [TestCase(true, false)]
+    [TestCase(false, true)]
+    [TestCase(false, false)]
+    public async Task RetainsStaticDocumentSymbolsWithoutVisualStudioDynamicSupport(bool visualStudio, bool dynamicRegistration)
+    {
+        string initialize = JsonSerializer.Serialize(
+            new
+            {
+                jsonrpc = "2.0",
+                id = 10,
+                method = "initialize",
+                @params = new
+                {
+                    capabilities = new
+                    {
+                        textDocument = new
+                        {
+                            documentSymbol = new { dynamicRegistration },
+                        },
+                    },
+                },
+            }
+        );
+        IReadOnlyList<JsonElement> output = await RunServerAsync(
+            visualStudio,
+            initialize,
+            """{"jsonrpc":"2.0","method":"initialized","params":{}}""",
+            CreateOpenDocumentMessage("file:///first.muir", ReadMuIrFixture("complete.muir")),
+            CreateMuIrRequest(11, "textDocument/documentSymbol", "", uri: "file:///first.muir"),
+            """{"jsonrpc":"2.0","method":"shutdown","id":99}""",
+            """{"jsonrpc":"2.0","method":"exit"}"""
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(MuIrResponse(output, 10).GetProperty("capabilities").GetProperty("documentSymbolProvider").GetBoolean(), Is.True);
+            Assert.That(MuIrResponse(output, 11).GetArrayLength(), Is.GreaterThan(0));
+            Assert.That(output.Any(static message =>
+                message.TryGetProperty("method", out JsonElement method) &&
+                method.GetString() == "client/registerCapability"), Is.False);
+        }
+    }
+
+    [TestCase("""{"jsonrpc":"2.0","id":2,"error":{"code":-32601,"message":"Unsupported registration"}}""", "Unsupported registration")]
+    [TestCase("""{"jsonrpc":"2.0","id":2,"result":{}}""", "invalid result")]
+    public async Task ReportsDocumentSymbolRegistrationFailureWithoutConsumingConfigurationResponse(string response, string error)
+    {
+        IReadOnlyList<JsonElement> output = await RunServerAsync(
+            true,
+            """
+            {"jsonrpc":"2.0","id":10,"method":"initialize","params":{"capabilities":{"workspace":{"configuration":true},"textDocument":{"documentSymbol":{"dynamicRegistration":true}}}}}
+            """,
+            """{"jsonrpc":"2.0","method":"initialized","params":{}}""",
+            """{"jsonrpc":"2.0","method":"workspace/didChangeConfiguration","params":{"settings":{}}}""",
+            CreateOpenDocumentMessage("file:///first.muir", ReadMuIrFixture("complete.muir")),
+            response,
+            """{"jsonrpc":"2.0","id":1,"result":[{"configuration":{"compilationMode":"expression"}}]}""",
+            CreateOpenDocumentMessage("file:///second.mu", "1"),
+            """{"jsonrpc":"2.0","method":"shutdown","id":99}""",
+            """{"jsonrpc":"2.0","method":"exit"}"""
+        );
+        JsonElement notification = output.Single(static message =>
+            message.TryGetProperty("method", out JsonElement method) &&
+            method.GetString() == "window/showMessage").GetProperty("params");
+        JsonElement diagnostics = output.Single(static message =>
+            message.TryGetProperty("method", out JsonElement method) &&
+            method.GetString() == "textDocument/publishDiagnostics").GetProperty("params");
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(notification.GetProperty("type").GetInt32(), Is.EqualTo(1));
+            Assert.That(notification.GetProperty("message").GetString(), Does.Contain(error));
+            Assert.That(diagnostics.GetProperty("uri").GetString(), Is.EqualTo("file:///second.mu"));
+            Assert.That(diagnostics.GetProperty("diagnostics").GetArrayLength(), Is.Zero);
+            Assert.That(output.Count(static message =>
+                message.TryGetProperty("method", out JsonElement method) &&
+                method.GetString() == "client/registerCapability"), Is.EqualTo(1));
+        }
+    }
+
     [Test]
     public async Task PublishesVersionedDiagnosticsUsingUtf16Characters()
     {

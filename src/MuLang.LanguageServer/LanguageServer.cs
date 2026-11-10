@@ -47,6 +47,9 @@ internal sealed class LanguageServer
     private bool useVisualStudioClassifications;
     private bool supportsHierarchicalSymbols;
     private bool lineFoldingOnly;
+    private bool useDynamicDocumentSymbols;
+    private bool documentSymbolRegistrationRequested;
+    private int? documentSymbolRegistrationRequestId;
 
     public LanguageServer(
         Stream input,
@@ -144,6 +147,13 @@ internal sealed class LanguageServer
                     supportsHierarchicalSymbols = SupportsTextDocumentCapability(
                         parameters, "documentSymbol", "hierarchicalDocumentSymbolSupport"
                     );
+                    useDynamicDocumentSymbols =
+                        useVisualStudioClassifications &&
+                        SupportsTextDocumentCapability(
+                            parameters, "documentSymbol", "dynamicRegistration"
+                        );
+                    documentSymbolRegistrationRequested = false;
+                    documentSymbolRegistrationRequestId = null;
                     lineFoldingOnly = SupportsTextDocumentCapability(
                         parameters, "foldingRange", "lineFoldingOnly"
                     );
@@ -585,6 +595,7 @@ internal sealed class LanguageServer
 
         documents[document.Uri] = document;
         semanticDocuments.Invalidate(document.Uri);
+        await RegisterDocumentSymbolsAsync(cancellationToken);
         await EnsureDocumentConfigurationFileAsync(
             document.Uri,
             cancellationToken
@@ -657,7 +668,7 @@ internal sealed class LanguageServer
                 result.WriteBoolean("documentHighlightProvider", true);
                 result.WriteBoolean("definitionProvider", true);
                 result.WriteBoolean("referencesProvider", true);
-                result.WriteBoolean("documentSymbolProvider", true);
+                result.WriteBoolean("documentSymbolProvider", !useDynamicDocumentSymbols);
                 result.WriteBoolean("foldingRangeProvider", true);
                 result.WriteStartObject("textDocumentSync");
                 result.WriteBoolean("openClose", true);
@@ -1320,7 +1331,44 @@ internal sealed class LanguageServer
         if (
             !message.TryGetProperty("id", out JsonElement idElement) ||
             idElement.ValueKind != JsonValueKind.Number ||
-            !idElement.TryGetInt32(out int id) ||
+            !idElement.TryGetInt32(out int id)
+        )
+        {
+            return;
+        }
+
+        if (documentSymbolRegistrationRequestId == id)
+        {
+            documentSymbolRegistrationRequestId = null;
+
+            if (message.TryGetProperty("error", out JsonElement registrationError))
+            {
+                string errorMessage =
+                    registrationError.ValueKind == JsonValueKind.Object &&
+                    registrationError.TryGetProperty("message", out JsonElement errorText) &&
+                    errorText.ValueKind == JsonValueKind.String
+                        ? errorText.GetString()!
+                        : "Unknown client error.";
+                await ShowErrorAsync(
+                    $"Unable to register document symbols: {errorMessage}",
+                    cancellationToken
+                );
+            }
+            else if (
+                !message.TryGetProperty("result", out JsonElement registrationResult) ||
+                registrationResult.ValueKind != JsonValueKind.Null
+            )
+            {
+                await ShowErrorAsync(
+                    "client/registerCapability returned an invalid result for document symbols.",
+                    cancellationToken
+                );
+            }
+
+            return;
+        }
+
+        if (
             !pendingConfigurationRequests.Remove(
                 id,
                 out IReadOnlyList<string?>? folders
@@ -1338,7 +1386,7 @@ internal sealed class LanguageServer
             )
                 ? errorMessageElement.GetString() ?? "Unknown client error."
                 : "Unknown client error.";
-            await ShowConfigurationErrorAsync(errorMessage, cancellationToken);
+            await ShowErrorAsync(errorMessage, cancellationToken);
             return;
         }
 
@@ -1348,7 +1396,7 @@ internal sealed class LanguageServer
             result.GetArrayLength() != folders.Count
         )
         {
-            await ShowConfigurationErrorAsync(
+            await ShowErrorAsync(
                 "workspace/configuration returned an invalid result.",
                 cancellationToken
             );
@@ -1444,7 +1492,7 @@ internal sealed class LanguageServer
         )
         {
             string scope = folder is null ? "the workspace" : $"'{folder}'";
-            await ShowConfigurationErrorAsync(
+            await ShowErrorAsync(
                 $"Invalid MuLang configuration for {scope}: {exception.Message}",
                 cancellationToken
             );
@@ -1506,7 +1554,7 @@ internal sealed class LanguageServer
             exception is IOException or UnauthorizedAccessException
         )
         {
-            await ShowConfigurationErrorAsync(
+            await ShowErrorAsync(
                 $"Could not read MuLang configuration file '{file.LocalPath}': {exception.Message}",
                 cancellationToken
             );
@@ -1654,7 +1702,7 @@ internal sealed class LanguageServer
                 UnauthorizedAccessException
         )
         {
-            await ShowConfigurationErrorAsync(
+            await ShowErrorAsync(
                 $"Invalid MuLang configuration for '{document}': {exception.Message}",
                 cancellationToken
             );
@@ -1728,7 +1776,7 @@ internal sealed class LanguageServer
                     UnauthorizedAccessException
             )
             {
-                await ShowConfigurationErrorAsync(
+                await ShowErrorAsync(
                     $"Invalid MuLang configuration file '{fileUri.LocalPath}': {exception.Message}",
                     cancellationToken
                 );
@@ -1934,7 +1982,38 @@ internal sealed class LanguageServer
         }
     }
 
-    private Task ShowConfigurationErrorAsync(
+    private Task RegisterDocumentSymbolsAsync(CancellationToken cancellationToken)
+    {
+        if (!useDynamicDocumentSymbols || documentSymbolRegistrationRequested)
+        {
+            return Task.CompletedTask;
+        }
+
+        int id = nextRequestId++;
+        documentSymbolRegistrationRequested = true;
+        documentSymbolRegistrationRequestId = id;
+        return writer.WriteRequestAsync(
+            id,
+            "client/registerCapability",
+            static parameters =>
+            {
+                parameters.WriteStartObject();
+                parameters.WriteStartArray("registrations");
+                parameters.WriteStartObject();
+                parameters.WriteString("id", "mulang.documentSymbol");
+                parameters.WriteString("method", "textDocument/documentSymbol");
+                parameters.WriteStartObject("registerOptions");
+                parameters.WriteNull("documentSelector");
+                parameters.WriteEndObject();
+                parameters.WriteEndObject();
+                parameters.WriteEndArray();
+                parameters.WriteEndObject();
+            },
+            cancellationToken
+        );
+    }
+
+    private Task ShowErrorAsync(
         string message,
         CancellationToken cancellationToken
     )

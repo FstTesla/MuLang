@@ -24,6 +24,7 @@ Each release heading identifies the incremental version range covered by the sec
 
 ### Fixes
 
+- Deferred document-symbol registration in Visual Studio clients that support dynamic registration until the first MuLang or MuIR document is opened, addressing navigation-bar startup ordering without changing static registration for other clients.
 - Fixed MuLang and MuIR folding ranges to include the final brace or bracket rather than leaving it visible outside the collapsed region. Line-only clients now include the closing line, including for two-line regions.
 - Fixed configuration enum validation to accept the documented camel-case values rather than numeric or differently cased alternatives.
 
