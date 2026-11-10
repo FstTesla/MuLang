@@ -1,1 +1,75 @@
 #nullable enable
+MuLang.IR.Serialization.MuIrAnalysisResult
+MuLang.IR.Serialization.MuIrAnalysisResult.Document.get -> MuLang.IR.Serialization.MuIrDocument?
+MuLang.IR.Serialization.MuIrAnalysisResult.ReadResult.get -> MuLang.IR.Serialization.MuIrReadResult!
+MuLang.IR.Serialization.MuIrDocument
+MuLang.IR.Serialization.MuIrDocument.FormatVersion.get -> int
+MuLang.IR.Serialization.MuIrDocument.Occurrences.get -> System.Collections.Generic.IReadOnlyList<MuLang.IR.Serialization.MuIrOccurrence!>!
+MuLang.IR.Serialization.MuIrDocument.StructuralRanges.get -> System.Collections.Generic.IReadOnlyList<MuLang.IR.Serialization.MuIrRange>!
+MuLang.IR.Serialization.MuIrDocument.Tokens.get -> System.Collections.Generic.IReadOnlyList<MuLang.IR.Serialization.MuIrToken!>!
+MuLang.IR.Serialization.MuIrDocument.Types.get -> System.Collections.Generic.IReadOnlyList<MuLang.Core.Types.TypeSymbol!>!
+MuLang.IR.Serialization.MuIrOccurrence
+MuLang.IR.Serialization.MuIrOccurrence.<Clone>$() -> MuLang.IR.Serialization.MuIrOccurrence!
+MuLang.IR.Serialization.MuIrOccurrence.Deconstruct(out MuLang.IR.Serialization.MuIrSymbolKind Kind, out string! Id, out string? FunctionId, out MuLang.IR.Serialization.MuIrOccurrenceRole Role, out MuLang.IR.Serialization.MuIrRange SelectionRange, out MuLang.IR.Serialization.MuIrRange Range) -> void
+MuLang.IR.Serialization.MuIrOccurrence.Equals(MuLang.IR.Serialization.MuIrOccurrence? other) -> bool
+MuLang.IR.Serialization.MuIrOccurrence.FunctionId.get -> string?
+MuLang.IR.Serialization.MuIrOccurrence.FunctionId.init -> void
+MuLang.IR.Serialization.MuIrOccurrence.Id.get -> string!
+MuLang.IR.Serialization.MuIrOccurrence.Id.init -> void
+MuLang.IR.Serialization.MuIrOccurrence.Kind.get -> MuLang.IR.Serialization.MuIrSymbolKind
+MuLang.IR.Serialization.MuIrOccurrence.Kind.init -> void
+MuLang.IR.Serialization.MuIrOccurrence.MuIrOccurrence(MuLang.IR.Serialization.MuIrSymbolKind Kind, string! Id, string? FunctionId, MuLang.IR.Serialization.MuIrOccurrenceRole Role, MuLang.IR.Serialization.MuIrRange SelectionRange, MuLang.IR.Serialization.MuIrRange Range) -> void
+MuLang.IR.Serialization.MuIrOccurrence.Range.get -> MuLang.IR.Serialization.MuIrRange
+MuLang.IR.Serialization.MuIrOccurrence.Range.init -> void
+MuLang.IR.Serialization.MuIrOccurrence.Role.get -> MuLang.IR.Serialization.MuIrOccurrenceRole
+MuLang.IR.Serialization.MuIrOccurrence.Role.init -> void
+MuLang.IR.Serialization.MuIrOccurrence.SelectionRange.get -> MuLang.IR.Serialization.MuIrRange
+MuLang.IR.Serialization.MuIrOccurrence.SelectionRange.init -> void
+MuLang.IR.Serialization.MuIrOccurrenceRole
+MuLang.IR.Serialization.MuIrOccurrenceRole.Declaration = 0 -> MuLang.IR.Serialization.MuIrOccurrenceRole
+MuLang.IR.Serialization.MuIrOccurrenceRole.Read = 1 -> MuLang.IR.Serialization.MuIrOccurrenceRole
+MuLang.IR.Serialization.MuIrOccurrenceRole.Reference = 3 -> MuLang.IR.Serialization.MuIrOccurrenceRole
+MuLang.IR.Serialization.MuIrOccurrenceRole.Write = 2 -> MuLang.IR.Serialization.MuIrOccurrenceRole
+MuLang.IR.Serialization.MuIrRange
+MuLang.IR.Serialization.MuIrRange.Deconstruct(out int Offset, out int Length) -> void
+MuLang.IR.Serialization.MuIrRange.Equals(MuLang.IR.Serialization.MuIrRange other) -> bool
+MuLang.IR.Serialization.MuIrRange.Length.get -> int
+MuLang.IR.Serialization.MuIrRange.Length.init -> void
+MuLang.IR.Serialization.MuIrRange.MuIrRange() -> void
+MuLang.IR.Serialization.MuIrRange.MuIrRange(int Offset, int Length) -> void
+MuLang.IR.Serialization.MuIrRange.Offset.get -> int
+MuLang.IR.Serialization.MuIrRange.Offset.init -> void
+MuLang.IR.Serialization.MuIrSymbolKind
+MuLang.IR.Serialization.MuIrSymbolKind.Block = 3 -> MuLang.IR.Serialization.MuIrSymbolKind
+MuLang.IR.Serialization.MuIrSymbolKind.ExceptionRegion = 5 -> MuLang.IR.Serialization.MuIrSymbolKind
+MuLang.IR.Serialization.MuIrSymbolKind.Function = 1 -> MuLang.IR.Serialization.MuIrSymbolKind
+MuLang.IR.Serialization.MuIrSymbolKind.LifetimeRegion = 4 -> MuLang.IR.Serialization.MuIrSymbolKind
+MuLang.IR.Serialization.MuIrSymbolKind.Slot = 2 -> MuLang.IR.Serialization.MuIrSymbolKind
+MuLang.IR.Serialization.MuIrSymbolKind.Type = 0 -> MuLang.IR.Serialization.MuIrSymbolKind
+MuLang.IR.Serialization.MuIrToken
+MuLang.IR.Serialization.MuIrToken.<Clone>$() -> MuLang.IR.Serialization.MuIrToken!
+MuLang.IR.Serialization.MuIrToken.Deconstruct(out string! Value, out MuLang.IR.Serialization.MuIrRange Range, out bool IsString) -> void
+MuLang.IR.Serialization.MuIrToken.Equals(MuLang.IR.Serialization.MuIrToken? other) -> bool
+MuLang.IR.Serialization.MuIrToken.IsString.get -> bool
+MuLang.IR.Serialization.MuIrToken.IsString.init -> void
+MuLang.IR.Serialization.MuIrToken.MuIrToken(string! Value, MuLang.IR.Serialization.MuIrRange Range, bool IsString) -> void
+MuLang.IR.Serialization.MuIrToken.Range.get -> MuLang.IR.Serialization.MuIrRange
+MuLang.IR.Serialization.MuIrToken.Range.init -> void
+MuLang.IR.Serialization.MuIrToken.Value.get -> string!
+MuLang.IR.Serialization.MuIrToken.Value.init -> void
+override MuLang.IR.Serialization.MuIrOccurrence.Equals(object? obj) -> bool
+override MuLang.IR.Serialization.MuIrOccurrence.GetHashCode() -> int
+override MuLang.IR.Serialization.MuIrOccurrence.ToString() -> string!
+override MuLang.IR.Serialization.MuIrRange.GetHashCode() -> int
+override MuLang.IR.Serialization.MuIrToken.Equals(object? obj) -> bool
+override MuLang.IR.Serialization.MuIrToken.GetHashCode() -> int
+override MuLang.IR.Serialization.MuIrToken.ToString() -> string!
+static MuLang.IR.Serialization.MuIrOccurrence.operator !=(MuLang.IR.Serialization.MuIrOccurrence? left, MuLang.IR.Serialization.MuIrOccurrence? right) -> bool
+static MuLang.IR.Serialization.MuIrOccurrence.operator ==(MuLang.IR.Serialization.MuIrOccurrence? left, MuLang.IR.Serialization.MuIrOccurrence? right) -> bool
+static MuLang.IR.Serialization.MuIrRange.operator !=(MuLang.IR.Serialization.MuIrRange left, MuLang.IR.Serialization.MuIrRange right) -> bool
+static MuLang.IR.Serialization.MuIrRange.operator ==(MuLang.IR.Serialization.MuIrRange left, MuLang.IR.Serialization.MuIrRange right) -> bool
+static MuLang.IR.Serialization.MuIrReader.Analyze(string! text, MuLang.IR.Serialization.MuIrReaderOptions? options = null) -> MuLang.IR.Serialization.MuIrAnalysisResult!
+static MuLang.IR.Serialization.MuIrToken.operator !=(MuLang.IR.Serialization.MuIrToken? left, MuLang.IR.Serialization.MuIrToken? right) -> bool
+static MuLang.IR.Serialization.MuIrToken.operator ==(MuLang.IR.Serialization.MuIrToken? left, MuLang.IR.Serialization.MuIrToken? right) -> bool
+~override MuLang.IR.Serialization.MuIrRange.Equals(object obj) -> bool
+~override MuLang.IR.Serialization.MuIrRange.ToString() -> string
