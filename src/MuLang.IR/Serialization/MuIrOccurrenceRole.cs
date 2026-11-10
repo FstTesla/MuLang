@@ -5,10 +5,13 @@ public enum MuIrOccurrenceRole
 {
     /// <summary>Identifies a declaration.</summary>
     Declaration,
+
     /// <summary>Identifies a slot read.</summary>
     Read,
+
     /// <summary>Identifies a slot definition.</summary>
     Write,
+
     /// <summary>Identifies a structural reference.</summary>
     Reference,
 }

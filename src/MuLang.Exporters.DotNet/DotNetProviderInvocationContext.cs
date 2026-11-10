@@ -515,8 +515,10 @@ public sealed class DotNetProviderInvocationContext
     public void ThrowApplicationError(
         string code,
         string message,
+        // ReSharper disable MethodOverloadWithOptionalParameter
         RuntimeError? cause = null,
         object? data = null
+        // ReSharper restore MethodOverloadWithOptionalParameter
     )
     {
         ThrowApplicationError(

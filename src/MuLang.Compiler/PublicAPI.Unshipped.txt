@@ -1,1 +1,15 @@
 #nullable enable
+MuLang.Compiler.SemanticDocumentResult.DocumentSymbols.get -> System.Collections.Generic.IReadOnlyList<MuLang.Compiler.SemanticDocumentSymbol!>!
+MuLang.Compiler.SemanticDocumentResult.FoldingSpans.get -> System.Collections.Generic.IReadOnlyList<MuLang.Core.Text.TextSpan>!
+MuLang.Compiler.SemanticDocumentSymbol
+MuLang.Compiler.SemanticDocumentSymbol.Children.get -> System.Collections.Generic.IReadOnlyList<MuLang.Compiler.SemanticDocumentSymbol!>!
+MuLang.Compiler.SemanticDocumentSymbol.Kind.get -> MuLang.Compiler.SemanticDocumentSymbolKind
+MuLang.Compiler.SemanticDocumentSymbol.Name.get -> string!
+MuLang.Compiler.SemanticDocumentSymbol.SelectionSpan.get -> MuLang.Core.Text.TextSpan
+MuLang.Compiler.SemanticDocumentSymbol.Span.get -> MuLang.Core.Text.TextSpan
+MuLang.Compiler.SemanticDocumentSymbolKind
+MuLang.Compiler.SemanticDocumentSymbolKind.Function = 1 -> MuLang.Compiler.SemanticDocumentSymbolKind
+MuLang.Compiler.SemanticDocumentSymbolKind.Parameter = 3 -> MuLang.Compiler.SemanticDocumentSymbolKind
+MuLang.Compiler.SemanticDocumentSymbolKind.Property = 2 -> MuLang.Compiler.SemanticDocumentSymbolKind
+MuLang.Compiler.SemanticDocumentSymbolKind.Type = 0 -> MuLang.Compiler.SemanticDocumentSymbolKind
+MuLang.Compiler.SemanticDocumentSymbolKind.Variable = 4 -> MuLang.Compiler.SemanticDocumentSymbolKind

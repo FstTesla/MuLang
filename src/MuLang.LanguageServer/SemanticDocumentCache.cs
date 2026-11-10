@@ -135,18 +135,20 @@ internal sealed class SemanticDocumentCache
                 throw new InvalidOperationException("MuLang analysis requires a compilation configuration.");
             }
 
-            semanticDocument = new MuLangEditorDocument(MuLangCompiler.GetSemanticDocument(
-                text,
-                configuration.Environment,
-                configuration.CompilationMode,
-                new MuLangCompilationOptions
-                {
-                    ExpectedResultType =
-                        configuration.ExpectedResultType,
-                    Profile = configuration.Profile,
-                    SourceDocument = sourceDocument,
-                }
-            ));
+            semanticDocument = new MuLangEditorDocument(
+                MuLangCompiler.GetSemanticDocument(
+                    text,
+                    configuration.Environment,
+                    configuration.CompilationMode,
+                    new MuLangCompilationOptions
+                    {
+                        ExpectedResultType =
+                            configuration.ExpectedResultType,
+                        Profile = configuration.Profile,
+                        SourceDocument = sourceDocument,
+                    }
+                )
+            );
         }
         SemanticDocumentSnapshot snapshot = new (
             uri,

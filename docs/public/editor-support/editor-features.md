@@ -61,6 +61,32 @@ In Visual Studio Solution View, searches cover MuLang files included in the
 solution or its projects, including linked files. In Folder View, searches
 cover MuLang files under the workspace folders.
 
+## Outline and code folding
+
+MuLang document symbols include declared types and functions, type properties,
+parameters, and variables. Parameters and locals appear under their function;
+properties of inline types and direct object initializers appear under their
+owning declaration. Nested statement blocks do not introduce artificial symbols.
+Top-level variables remain top-level entries.
+
+Code folding covers multiline instruction blocks: function bodies, standalone
+blocks, conditional branches, loop bodies, and `try`, `catch`, and `finally`
+bodies. Type and object bodies, arrays, and comments do not generate folds.
+Single-line blocks and blocks with a missing opening or closing brace do not
+generate folds either.
+
+Outline and folding use the recovered syntax from the current analysis, so
+recoverable declarations and complete blocks remain available while editing
+invalid source. Missing declaration names are omitted, and edits never reuse
+old positions. The configured compilation mode and language profile apply;
+expression mode provides no declaration outline or instruction-block folds.
+
+The server provides hierarchical symbols when supported by the client and a
+flat list with container names otherwise. Folding respects line-only clients,
+leaving closing-delimiter lines visible. Visual Studio uses the existing LSP
+integration; the concrete navigation and outlining surfaces depend on the
+client version.
+
 ## MuIR consultation
 
 MuIR 1 and 2 documents use lexical fallback and semantic coloring for wire
@@ -79,8 +105,7 @@ Document symbols list types and functions, with declared slots, blocks, and
 explicit regions under each function. Folding covers multiline structural
 bodies, including type-property and attribute bodies. MuIR 1's implicit root
 region has no textual outline entry or definition. The client's presentation
-of symbols and folds depends on its LSP support; no MuLang outline or folding
-behavior is added.
+of symbols and folds depends on its LSP support.
 
 Edits immediately invalidate semantic data. An unreadable or unsupported
 document returns no hover, navigation, references, semantic tokens, symbols,

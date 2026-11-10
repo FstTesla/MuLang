@@ -190,11 +190,17 @@ public static class MuLangCompiler
             options.Profile
         );
 
+        DocumentStructureBuilder structure = DocumentStructureBuilder.Build(
+            binding.Root.Syntax,
+            sourceText
+        );
         return new SemanticDocumentResult(
             SemanticDocumentBuilder.Build(binding),
             binding.Diagnostics,
             options.SourceDocument,
-            sourceText.LineMap
+            sourceText.LineMap,
+            structure.Symbols,
+            structure.FoldingSpans
         );
     }
 

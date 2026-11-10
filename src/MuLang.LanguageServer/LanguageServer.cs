@@ -1993,7 +1993,7 @@ internal sealed class LanguageServer
             writer.WriteNumberValue(deltaLine);
             writer.WriteNumberValue(deltaStart);
             writer.WriteNumberValue(endCharacter - startCharacter);
-            writer.WriteNumberValue((int)occurrence.Kind);
+            writer.WriteNumberValue(occurrence.Kind);
             writer.WriteNumberValue(
                 useVisualStudioClassifications
                     ? 0

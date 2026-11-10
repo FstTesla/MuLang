@@ -1,9 +1,11 @@
 using Microsoft.VisualStudio.LanguageServer.Client;
 using Microsoft.VisualStudio.Utilities;
 using System.ComponentModel.Composition;
+using System.Diagnostics.CodeAnalysis;
 
 namespace MuLang.VisualStudio;
 
+[SuppressMessage("ReSharper", "InconsistentNaming")]
 internal static class MuLangConfigurationContentType
 {
     public const string Name = "MuLangConfiguration";

@@ -61,22 +61,24 @@ internal sealed class MuIrEditorDocument : EditorDocument
                 modifiers |= SemanticClassificationModifiers.ReadOnly;
             }
 
-            occurrences.Add(new EditorOccurrence(
-                (this, occurrence.Kind, occurrence.Id, occurrence.FunctionId),
-                kind,
-                occurrence.Role switch
-                {
-                    MuIrOccurrenceRole.Declaration => SemanticOccurrenceRole.Declaration,
-                    MuIrOccurrenceRole.Read => SemanticOccurrenceRole.Read,
-                    MuIrOccurrenceRole.Write => SemanticOccurrenceRole.Write,
-                    _ => SemanticOccurrenceRole.Reference,
-                },
-                modifiers,
-                ConvertRange(source, occurrence.SelectionRange),
-                [ CreateHover(occurrence, document, program, function, slot) ],
-                ConvertRange(source, declaration.SelectionRange),
-                true
-            ));
+            occurrences.Add(
+                new EditorOccurrence(
+                    (this, occurrence.Kind, occurrence.Id, occurrence.FunctionId),
+                    kind,
+                    occurrence.Role switch
+                    {
+                        MuIrOccurrenceRole.Declaration => SemanticOccurrenceRole.Declaration,
+                        MuIrOccurrenceRole.Read => SemanticOccurrenceRole.Read,
+                        MuIrOccurrenceRole.Write => SemanticOccurrenceRole.Write,
+                        _ => SemanticOccurrenceRole.Reference,
+                    },
+                    modifiers,
+                    ConvertRange(source, occurrence.SelectionRange),
+                    [ CreateHover(occurrence, document, program, function, slot) ],
+                    ConvertRange(source, declaration.SelectionRange),
+                    true
+                )
+            );
         }
 
         Occurrences = [ .. occurrences.OrderBy(static occurrence => occurrence.Span.Start) ];
@@ -312,10 +314,13 @@ internal sealed class MuIrEditorDocument : EditorDocument
         ConvertRange(source, declaration.Range),
         ConvertRange(source, declaration.SelectionRange),
         declaration.Kind == MuIrSymbolKind.Function
-            ? [ .. declarations
-                .Where(child => child.FunctionId == declaration.Id)
-                .OrderBy(static child => child.SelectionRange.Offset)
-                .Select(child => CreateSymbol(child, [ ], source)) ]
+            ?
+            [
+                .. declarations
+                    .Where(child => child.FunctionId == declaration.Id)
+                    .OrderBy(static child => child.SelectionRange.Offset)
+                    .Select(child => CreateSymbol(child, [ ], source)),
+            ]
             : [ ]
     );
 

@@ -17,11 +17,15 @@ internal static class MuIrParser
         if (text.Length > options.MaximumDocumentLength)
         {
             return new MuIrAnalysisResult(
-                new MuIrReadResult(null, [
-                    new MuIrDiagnostic(MuIrDiagnosticCodes.LimitExceeded,
-                        DiagnosticSeverity.Error, 0, 0, 1, 1,
-                        $"The document exceeds the {options.MaximumDocumentLength} character limit."),
-                ]),
+                new MuIrReadResult(
+                    null, [
+                        new MuIrDiagnostic(
+                            MuIrDiagnosticCodes.LimitExceeded,
+                            DiagnosticSeverity.Error, 0, 0, 1, 1,
+                            $"The document exceeds the {options.MaximumDocumentLength} character limit."
+                        ),
+                    ]
+                ),
                 null
             );
         }
@@ -581,7 +585,7 @@ internal static class MuIrParser
         {
             Expect("{");
             int depth = 1;
-            int tokens = 0;
+            int tokenCount = 0;
 
             while (depth > 0)
             {
@@ -603,9 +607,9 @@ internal static class MuIrParser
                 }
 
                 Advance();
-                tokens++;
+                tokenCount++;
 
-                if (tokens > options.MaximumUnknownAttributePayloadTokens)
+                if (tokenCount > options.MaximumUnknownAttributePayloadTokens)
                 {
                     Fail(
                         MuIrDiagnosticCodes.LimitExceeded,
@@ -1026,7 +1030,7 @@ internal static class MuIrParser
             writeNextSlot = opcode is not (
                 "set-property" or "remove-property" or
                 "set-element" or "remove-element-property"
-            );
+                );
 
             try
             {
@@ -1875,14 +1879,16 @@ internal static class MuIrParser
             }
 
             MuIrRange range = new (token.Offset, token.Length);
-            occurrences.Add(new MuIrOccurrence(
-                kind,
-                id.ToString(CultureInfo.InvariantCulture),
-                kind == MuIrSymbolKind.Type ? null : currentFunction,
-                role,
-                range,
-                range
-            ));
+            occurrences.Add(
+                new MuIrOccurrence(
+                    kind,
+                    id.ToString(CultureInfo.InvariantCulture),
+                    kind == MuIrSymbolKind.Type ? null : currentFunction,
+                    role,
+                    range,
+                    range
+                )
+            );
         }
 
         private string ReadFunctionId()
@@ -1896,9 +1902,11 @@ internal static class MuIrParser
         private void RecordFunction(string id, Token token)
         {
             MuIrRange range = new (token.Offset, token.Length);
-            occurrences.Add(new MuIrOccurrence(
-                MuIrSymbolKind.Function, id, null, MuIrOccurrenceRole.Reference, range, range
-            ));
+            occurrences.Add(
+                new MuIrOccurrence(
+                    MuIrSymbolKind.Function, id, null, MuIrOccurrenceRole.Reference, range, range
+                )
+            );
         }
 
         private int Declare(int start)
@@ -1917,10 +1925,10 @@ internal static class MuIrParser
             MuIrOccurrence occurrence = occurrences[index];
             occurrences[index] = occurrence with
             {
-                Range = new MuIrRange(
-                    occurrence.Range.Offset,
-                    previous.Offset + previous.Length - occurrence.Range.Offset
-                ),
+                Range = occurrence.Range with
+                {
+                    Length = previous.Offset + previous.Length - occurrence.Range.Offset,
+                },
             };
         }
 

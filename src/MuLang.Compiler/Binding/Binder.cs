@@ -1998,7 +1998,7 @@ internal sealed class Binder
             LanguageVersion: >= LanguageVersion.Version1_2,
             ObjectLiteralSyntax: ObjectLiteralSyntax.Full,
         };
-        IList<BoundExpression.ObjectProperty> properties = [ ];
+        IList<BoundExpression.ObjectProperty> objectProperties = [ ];
         ICollection<ObjectPropertySymbol> propertySymbols = [ ];
         IList<(
             ObjectPropertyInitializerSyntax Syntax,
@@ -2149,7 +2149,7 @@ internal sealed class Binder
 
             if (value is not null && includeProperty)
             {
-                properties.Add(new BoundExpression.ObjectProperty(name, value));
+                objectProperties.Add(new BoundExpression.ObjectProperty(name, value));
             }
 
             if (isFirstDeclaration && includeProperty)
@@ -2230,7 +2230,7 @@ internal sealed class Binder
             }
         }
 
-        return new BoundExpression.Object(syntax, objectType, properties.AsReadOnly());
+        return new BoundExpression.Object(syntax, objectType, objectProperties.AsReadOnly());
     }
 
     private static TypeSymbol? GetErrorPrototypePropertyType(
@@ -3508,7 +3508,7 @@ internal sealed class Binder
             syntax.CommaTokens.Count == syntax.Properties.Count
         );
 
-        ICollection<ObjectPropertySymbol> properties = [ ];
+        ICollection<ObjectPropertySymbol> propertySymbols = [ ];
         IList<(ObjectTypePropertySyntax Syntax, ObjectPropertySymbol Symbol)>
             propertyBindings = [ ];
         ISet<string> names = new HashSet<string>(StringComparer.Ordinal);
@@ -3551,7 +3551,7 @@ internal sealed class Binder
                 propertySyntax.IsOptional,
                 propertySyntax.IsReadOnly
             );
-            properties.Add(property);
+            propertySymbols.Add(property);
             propertyBindings.Add((propertySyntax, property));
         }
 
@@ -3559,14 +3559,14 @@ internal sealed class Binder
 
         if (target is not null)
         {
-            target.Complete(properties);
+            target.Complete(propertySymbols);
             objectType = target;
         }
         else
         {
             objectType = ObjectTypeSymbol.CreateAnonymous(
                 syntax.IsOpen,
-                properties
+                propertySymbols
             );
         }
 

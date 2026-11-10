@@ -8,6 +8,153 @@ namespace MuLang.Compiler.Tests;
 
 public sealed class MuLangCompilerSemanticDocumentTests
 {
+    [Test]
+    public void DescribesDeclarationHierarchyAndOnlyInstructionBlockFolds()
+    {
+        const string source = """
+                              type Node {
+                                next?: {
+                                  value: int
+                                }
+                              };
+                              func run(input: Node): void {
+                                var items = [
+                                  1,
+                                  2
+                                ];
+                                if (true) {
+                                  var local = 1;
+                                } else {
+                                  var other = 2;
+                                }
+                                for (var index = 0; index < 2; index = index + 1) {
+                                  var loopValue = index;
+                                }
+                                while (false) {
+                                  break;
+                                }
+                                try {
+                                  var attempted = 3;
+                                } catch (errorValue) {
+                                  var handled = 4;
+                                } finally {
+                                  var cleaned = 5;
+                                }
+                              }
+                              var global = {
+                                item = {
+                                  count = 1
+                                }
+                              };
+                              """;
+        SemanticDocumentResult result = Analyze(source);
+        SourceText text = SourceText.From(source);
+        SemanticDocumentSymbol node = result.DocumentSymbols[0];
+        SemanticDocumentSymbol function = result.DocumentSymbols[1];
+        SemanticDocumentSymbol global = result.DocumentSymbols[2];
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.Diagnostics.HasErrors, Is.False, string.Join("\n", result.Diagnostics.Select(static diagnostic => diagnostic.Message)));
+            Assert.That(result.DocumentSymbols.Select(static symbol => symbol.Name), Is.EqualTo([ "Node", "run", "global" ]));
+            Assert.That(node.Kind, Is.EqualTo(SemanticDocumentSymbolKind.Type));
+            Assert.That(node.Children.Single().Children.Single().Name, Is.EqualTo("value"));
+            Assert.That(global.Children.Single().Children.Single().Name, Is.EqualTo("count"));
+            Assert.That(
+                function.Children.Select(static symbol => symbol.Name),
+                Is.EqualTo([ "input", "items", "local", "other", "index", "loopValue", "attempted", "errorValue", "handled", "cleaned" ])
+            );
+            Assert.That(function.Children[0].Kind, Is.EqualTo(SemanticDocumentSymbolKind.Parameter));
+            Assert.That(result.FoldingSpans, Has.Count.EqualTo(8));
+            Assert.That(result.FoldingSpans.All(span => function.Span.Start < span.Start && span.End <= function.Span.End), Is.True);
+
+            foreach (SemanticDocumentSymbol symbol in Flatten(result.DocumentSymbols))
+            {
+                Assert.That(text.GetText(symbol.SelectionSpan), Is.EqualTo(symbol.Name));
+                Assert.That(symbol.Span.Start, Is.LessThanOrEqualTo(symbol.SelectionSpan.Start));
+                Assert.That(symbol.Span.End, Is.GreaterThanOrEqualTo(symbol.SelectionSpan.End));
+            }
+
+            foreach (TextSpan fold in result.FoldingSpans)
+            {
+                Assert.That(text.GetText(fold), Does.StartWith("{").And.EndWith("}"));
+            }
+        }
+
+        static IEnumerable<SemanticDocumentSymbol> Flatten(IEnumerable<SemanticDocumentSymbol> symbols) =>
+            symbols.SelectMany(static symbol => new[] { symbol }.Concat(Flatten(symbol.Children)));
+    }
+
+    [Test]
+    public void KeepsRecoverableStructureWithoutInventingMissingNamesOrDelimiters()
+    {
+        const string source = """
+                              type Broken {
+                                : int,
+                                kept: int
+                              };
+                              func first(): void {
+                                if (true) {
+                                  var local = ;
+                                }
+                              func second(): void {
+                                var = 1;
+                                var kept = 2;
+                              }
+                              """;
+        SemanticDocumentResult result = Analyze(source);
+        SemanticDocumentSymbol first = result.DocumentSymbols.Single(static symbol => symbol.Name == "first");
+        SemanticDocumentSymbol second = result.DocumentSymbols.Single(static symbol => symbol.Name == "second");
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.Diagnostics.HasErrors, Is.True);
+            Assert.That(first.Children.Select(static symbol => symbol.Name), Is.EqualTo([ "local" ]));
+            Assert.That(second.Children.Select(static symbol => symbol.Name), Is.EqualTo([ "kept" ]));
+            Assert.That(result.DocumentSymbols[0].Children.Select(static symbol => symbol.Name), Is.EqualTo([ "kept" ]));
+            Assert.That(result.FoldingSpans, Has.Count.EqualTo(2));
+            Assert.That(result.FoldingSpans.Any(static span => span.Start == source.IndexOf('{', source.IndexOf("first", StringComparison.Ordinal))), Is.False);
+        }
+    }
+
+    [TestCase(CompilationMode.Program)]
+    [TestCase(CompilationMode.Expression)]
+    public void DoesNotFoldTypesObjectsArraysCommentsOrSingleLineBlocks(CompilationMode mode)
+    {
+        string source = mode == CompilationMode.Program
+            ? """
+              type Shape {
+                count: int
+              };
+              var value = {
+                items = [
+                  1,
+                  2
+                ]
+              };
+              if (true) { var local = 1; }
+              """
+            : """
+              {
+                items = [
+                  1,
+                  2
+                ]
+              }
+              """;
+        SemanticDocumentResult result = MuLangCompiler.GetSemanticDocument(source, new EnvironmentBuilder().Build(), mode);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.Diagnostics.HasErrors, Is.False, string.Join("\n", result.Diagnostics.Select(static diagnostic => diagnostic.Message)));
+            Assert.That(result.FoldingSpans, Is.Empty);
+
+            if (mode == CompilationMode.Expression)
+            {
+                Assert.That(result.DocumentSymbols, Is.Empty);
+            }
+        }
+    }
+
     [TestCase("var value$ = 1; value;", "value")]
     [TestCase("type Node { next$?: Node };", "next")]
     [TestCase("var obj = { count$? = 1 }; obj.count;", "count")]

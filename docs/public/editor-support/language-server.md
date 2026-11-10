@@ -27,12 +27,19 @@ Building and packaging the server is covered by the
 ## Supported features
 
 The server provides diagnostics, semantic highlighting, hover, document
-highlights, definitions, and references. See [editor features](editor-features.md)
+highlights, definitions, references, document symbols, and instruction-block
+folding. See [editor features](editor-features.md)
 for their behavior and limitations.
 
 Clients must use full document synchronization and UTF-16 positions.
 Semantic tokens are available through `textDocument/semanticTokens/full`;
 incremental token responses are not supported.
+
+`textDocument/documentSymbol` and `textDocument/foldingRange` serve both MuLang
+and MuIR. Advertise `hierarchicalDocumentSymbolSupport` for nested declarations
+and `lineFoldingOnly` when the client cannot consume character-based folds.
+MuLang retains recoverable syntax-based results after source errors; MuIR
+requires successful complete reading.
 
 Clients can also synchronize `mulang.config.json` documents to receive live
 syntax errors and configuration warnings through `textDocument/publishDiagnostics`.
@@ -53,8 +60,7 @@ server process, full synchronization, and UTF-16 positions.
 
 MuIR reuses hover, `mulang/quickInfo`, definitions, references, highlights, and
 full semantic tokens. It also supports `textDocument/documentSymbol` and
-`textDocument/foldingRange`; those requests return empty arrays for MuLang
-source. Advertise `hierarchicalDocumentSymbolSupport` for nested symbols;
+`textDocument/foldingRange`. Advertise `hierarchicalDocumentSymbolSupport` for nested symbols;
 otherwise the server returns flat symbol information with container names.
 `lineFoldingOnly` omits character positions and preserves closing-delimiter
 lines. The existing semantic-token indices remain unchanged; the appended

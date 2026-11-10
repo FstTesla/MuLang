@@ -10,13 +10,17 @@ public sealed class SemanticDocumentResult
         IReadOnlyList<SemanticOccurrence> occurrences,
         DiagnosticCollection diagnostics,
         Uri? sourceDocument,
-        TextLineMap lineMap
+        TextLineMap lineMap,
+        IReadOnlyList<SemanticDocumentSymbol> documentSymbols,
+        IReadOnlyList<TextSpan> foldingSpans
     )
     {
         Occurrences = occurrences;
         Diagnostics = diagnostics;
         SourceDocument = sourceDocument;
         LineMap = lineMap;
+        DocumentSymbols = documentSymbols;
+        FoldingSpans = foldingSpans;
     }
 
     /// <summary>Gets the resolved semantic occurrences.</summary>
@@ -30,6 +34,12 @@ public sealed class SemanticDocumentResult
 
     /// <summary>Gets the source line map.</summary>
     public TextLineMap LineMap { get; }
+
+    /// <summary>Gets the syntax-derived declaration outline in source order, including recoverable declarations in invalid source.</summary>
+    public IReadOnlyList<SemanticDocumentSymbol> DocumentSymbols { get; }
+
+    /// <summary>Gets the multiline instruction-block spans with present opening and closing braces, in Unicode scalar offsets.</summary>
+    public IReadOnlyList<TextSpan> FoldingSpans { get; }
 
     /// <summary>Gets the smallest semantic occurrence containing an offset.</summary>
     /// <param name="offset">The zero-based Unicode scalar offset.</param>

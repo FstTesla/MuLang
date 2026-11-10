@@ -231,5 +231,4 @@ internal sealed class MuIrMaterializer
         bool IsOptional,
         bool IsReadOnly
     );
-
 }

@@ -41,6 +41,13 @@ MuLang references retain solution membership filtering. Semantic edit
 invalidation remains the responsibility of full-document LSP synchronization
 and the shared language server.
 
+MuLang outline and folding use the compiler's `SemanticDocumentResult.DocumentSymbols`
+and `FoldingSpans`, produced from the same recovered syntax used for binding.
+`SemanticDocumentSymbol` describes source declarations without exposing parser
+nodes or LSP types. Spans use Unicode scalar offsets; the existing shared
+handlers serialize UTF-16 positions. Do not derive MuLang folds from arbitrary
+brace tokens: object and type bodies must remain excluded.
+
 ## Build
 
 After restoring the required dependencies, build the extension project on
@@ -96,6 +103,28 @@ Verify live syntax errors and configuration warnings in `mulang.config.json`,
 diagnostic removal after correction or deletion, and restoration of disk
 diagnostics after discarding unsaved changes. Confirm that JSON coloring and
 schema-aware editing still work and that unrelated JSON files are unaffected.
+
+### MuLang outline and folding checks
+
+In `.mu` and `.mulang` files, verify the client navigation/outline presentation
+of types, properties, functions, parameters, and locals. Confirm identifier-only
+selection ranges, full declaration ranges, nested properties, and source order.
+Record the actual VS surface used; a successful LSP response does not establish
+which outline UI a particular client version provides.
+
+Check gutter outlining or **Edit > Outlining > Toggle Outlining Expansion** for
+multiline function bodies, standalone blocks, branches, loops, and all
+`try`/`catch`/`finally` bodies. Type/object bodies, arrays, and single-line blocks
+must not gain server folds. Check that closing braces remain visible with
+line-only folding.
+
+Make unsaved valid-to-invalid-to-valid edits: recoverable declarations and
+complete instruction blocks remain available, missing names do not appear,
+and incomplete blocks lose their folds without retaining old ranges. Repeat
+with CRLF and non-BMP characters, and switch between program and expression
+configuration to confirm that expression mode has no instruction-block folds.
+Check mixed MuLang/MuIR files without changing MuIR's all-or-nothing behavior.
+Install and interact manually as described above; do not automate VSIX dialogs.
 
 ### MuIR checks
 

@@ -2,7 +2,8 @@
 
 MuLang provides editor support for `.mu` and `.mulang` source files through a
 Visual Studio extension, with syntax highlighting, hover information,
-diagnostics, and navigation. The same extension supports consulting `.muir`
+diagnostics, navigation, document symbols, and instruction-block folding.
+The same extension supports consulting `.muir`
 documents in MuIR formats 1 and 2, without configuring a host environment.
 
 ## Release availability

@@ -20,34 +20,41 @@ public sealed class MuIrSerializationTests
     [TestCase("recursive-types-v2.muir")]
     public void SharedAnalysisPreservesReaderOutputAndDocumentRanges(string fileName)
     {
-        string text = File.ReadAllText(Path.Combine(
-            TestContext.CurrentContext.TestDirectory, "Serialization", "Fixtures", fileName
-        ));
+        string text = File.ReadAllText(
+            Path.Combine(
+                TestContext.CurrentContext.TestDirectory, "Serialization", "Fixtures", fileName
+            )
+        );
         MuIrAnalysisResult analysis = MuIrReader.Analyze(text);
         MuIrDocument document = analysis.Document!;
 
         using (Assert.EnterMultipleScope())
         {
             Assert.That(analysis.ReadResult.Success, Is.True);
-            Assert.That(MuIrWriter.WriteToString(analysis.ReadResult.Program!), Is.EqualTo(
-                MuIrWriter.WriteToString(MuIrReader.Read(text).Program!)
-            ));
-            Assert.That(document.Types.Count, Is.EqualTo(document.Occurrences.Count(
-                static occurrence => occurrence.Kind == MuIrSymbolKind.Type && occurrence.Role == MuIrOccurrenceRole.Declaration
-            )));
+            Assert.That(
+                MuIrWriter.WriteToString(analysis.ReadResult.Program!), Is.EqualTo(
+                    MuIrWriter.WriteToString(MuIrReader.Read(text).Program!)
+                )
+            );
+            Assert.That(
+                document.Types.Count, Is.EqualTo(
+                    document.Occurrences.Count(
+                        static occurrence => occurrence is { Kind: MuIrSymbolKind.Type, Role: MuIrOccurrenceRole.Declaration }
+                    )
+                )
+            );
             Assert.That(document.Tokens.Last().Value, Is.EqualTo("end"));
 
-            foreach (MuIrOccurrence occurrence in document.Occurrences)
+            foreach ((_, _, _, MuIrOccurrenceRole role, MuIrRange selectionRange, MuIrRange range) in document.Occurrences)
             {
-                MuIrRange selection = occurrence.SelectionRange;
-                string token = text.Substring(selection.Offset, selection.Length);
+                string token = text.Substring(selectionRange.Offset, selectionRange.Length);
                 Assert.That(token, Is.Not.Empty);
-                Assert.That(document.Tokens.Any(candidate => candidate.Range == selection), Is.True);
+                Assert.That(document.Tokens.Any(candidate => candidate.Range == selectionRange), Is.True);
 
-                if (occurrence.Role == MuIrOccurrenceRole.Declaration)
+                if (role == MuIrOccurrenceRole.Declaration)
                 {
-                    Assert.That(occurrence.Range.Offset, Is.LessThanOrEqualTo(selection.Offset));
-                    Assert.That(occurrence.Range.Offset + occurrence.Range.Length, Is.GreaterThanOrEqualTo(selection.Offset + selection.Length));
+                    Assert.That(range.Offset, Is.LessThanOrEqualTo(selectionRange.Offset));
+                    Assert.That(range.Offset + range.Length, Is.GreaterThanOrEqualTo(selectionRange.Offset + selectionRange.Length));
                 }
             }
         }
@@ -56,14 +63,16 @@ public sealed class MuIrSerializationTests
     [Test]
     public void SharedAnalysisKeepsEscapedIdentifiersAndUnknownPayloadsSeparate()
     {
-        string text = File.ReadAllText(Path.Combine(
-            TestContext.CurrentContext.TestDirectory, "Serialization", "Fixtures", "diagnostic-attributes-v2.muir"
-        )).Replace("\"$entry\"", "\"main\\u{1F600}\\\"\"", StringComparison.Ordinal)
+        string text = File.ReadAllText(
+                Path.Combine(
+                    TestContext.CurrentContext.TestDirectory, "Serialization", "Fixtures", "diagnostic-attributes-v2.muir"
+                )
+            ).Replace("\"$entry\"", "\"main\\u{1F600}\\\"\"", StringComparison.Ordinal)
             .Replace("attributes 10 {", "attributes 11 {\n  attribute program future { \"%0\" t0 [bb0] }\n", StringComparison.Ordinal);
         text = $"# %0 t0 bb0 😀\r\n{text.Replace("\r\n", "\n", StringComparison.Ordinal).Replace("\n", "\r\n", StringComparison.Ordinal)}";
         MuIrAnalysisResult result = MuIrReader.Analyze(text);
         MuIrOccurrence function = result.Document!.Occurrences.Single(
-            static occurrence => occurrence.Kind == MuIrSymbolKind.Function && occurrence.Role == MuIrOccurrenceRole.Declaration
+            static occurrence => occurrence is { Kind: MuIrSymbolKind.Function, Role: MuIrOccurrenceRole.Declaration }
         );
         int payloadStart = text.IndexOf("\"%0\" t0", StringComparison.Ordinal);
 
@@ -72,10 +81,13 @@ public sealed class MuIrSerializationTests
             Assert.That(result.ReadResult.Success, Is.True);
             Assert.That(function.Id, Is.EqualTo("main😀\""));
             Assert.That(text.Substring(function.SelectionRange.Offset, function.SelectionRange.Length), Is.EqualTo("\"main\\u{1F600}\\\"\""));
-            Assert.That(result.Document.Occurrences.Any(occurrence =>
-                occurrence.SelectionRange.Offset >= payloadStart &&
-                occurrence.SelectionRange.Offset < payloadStart + "\"%0\" t0 [bb0]".Length
-            ), Is.False);
+            Assert.That(
+                result.Document.Occurrences.Any(
+                    occurrence =>
+                        occurrence.SelectionRange.Offset >= payloadStart &&
+                        occurrence.SelectionRange.Offset < payloadStart + "\"%0\" t0 [bb0]".Length
+                ), Is.False
+            );
             Assert.That(result.Document.StructuralRanges, Is.Not.Empty);
         }
     }
@@ -90,10 +102,11 @@ public sealed class MuIrSerializationTests
         {
             Assert.That(result.Document, Is.Null);
             Assert.That(result.ReadResult.Success, Is.False);
-            Assert.That(result.ReadResult.Diagnostics.Select(static diagnostic => (diagnostic.Code, diagnostic.Offset, diagnostic.Length, diagnostic.Line, diagnostic.Column, diagnostic.Message)),
-                Is.EqualTo(MuIrReader.Read(text).Diagnostics.Select(static diagnostic => (diagnostic.Code, diagnostic.Offset, diagnostic.Length, diagnostic.Line, diagnostic.Column, diagnostic.Message))));
+            Assert.That(
+                result.ReadResult.Diagnostics.Select(static diagnostic => (diagnostic.Code, diagnostic.Offset, diagnostic.Length, diagnostic.Line, diagnostic.Column, diagnostic.Message)),
+                Is.EqualTo(MuIrReader.Read(text).Diagnostics.Select(static diagnostic => (diagnostic.Code, diagnostic.Offset, diagnostic.Length, diagnostic.Line, diagnostic.Column, diagnostic.Message)))
+            );
         }
-
     }
 
     [TestCase("copy", new[] { MuIrOccurrenceRole.Write, MuIrOccurrenceRole.Read })]
@@ -106,18 +119,23 @@ public sealed class MuIrSerializationTests
     [TestCase("user-call", new[] { MuIrOccurrenceRole.Read })]
     public void SharedAnalysisDistinguishesInstructionSlotRoles(string opcode, MuIrOccurrenceRole[] roles)
     {
-        string source = File.ReadAllText(Path.Combine(
-            TestContext.CurrentContext.TestDirectory, "Serialization", "Fixtures", "complete.muir"
-        ));
+        string source = File.ReadAllText(
+            Path.Combine(
+                TestContext.CurrentContext.TestDirectory, "Serialization", "Fixtures", "complete.muir"
+            )
+        );
         MuIrDocument document = MuIrReader.Analyze(source).Document!;
         int start = source.IndexOf($"ins {opcode} ", StringComparison.Ordinal);
         int end = source.IndexOf('\n', start);
 
-        Assert.That(document.Occurrences.Where(occurrence =>
-            occurrence.Kind == MuIrSymbolKind.Slot &&
-            occurrence.SelectionRange.Offset >= start &&
-            occurrence.SelectionRange.Offset < end
-        ).Select(static occurrence => occurrence.Role), Is.EqualTo(roles));
+        Assert.That(
+            document.Occurrences.Where(
+                occurrence =>
+                    occurrence.Kind == MuIrSymbolKind.Slot &&
+                    occurrence.SelectionRange.Offset >= start &&
+                    occurrence.SelectionRange.Offset < end
+            ).Select(static occurrence => occurrence.Role), Is.EqualTo(roles)
+        );
     }
 
     [Test]
