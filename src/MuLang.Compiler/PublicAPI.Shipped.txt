@@ -50,6 +50,8 @@ MuLang.Compiler.SemanticClassificationResult.Classifications.get -> System.Colle
 MuLang.Compiler.SemanticClassificationResult.Diagnostics.get -> MuLang.Core.Diagnostics.DiagnosticCollection!
 MuLang.Compiler.SemanticDocumentResult
 MuLang.Compiler.SemanticDocumentResult.Diagnostics.get -> MuLang.Core.Diagnostics.DiagnosticCollection!
+MuLang.Compiler.SemanticDocumentResult.DocumentSymbols.get -> System.Collections.Generic.IReadOnlyList<MuLang.Compiler.SemanticDocumentSymbol!>!
+MuLang.Compiler.SemanticDocumentResult.FoldingSpans.get -> System.Collections.Generic.IReadOnlyList<MuLang.Core.Text.TextSpan>!
 MuLang.Compiler.SemanticDocumentResult.GetHighlights(int offset) -> System.Collections.Generic.IReadOnlyList<MuLang.Compiler.SemanticOccurrence!>!
 MuLang.Compiler.SemanticDocumentResult.GetHover(int offset) -> MuLang.Compiler.HoverInfo?
 MuLang.Compiler.SemanticDocumentResult.GetOccurrence(int offset) -> MuLang.Compiler.SemanticOccurrence?
@@ -57,6 +59,18 @@ MuLang.Compiler.SemanticDocumentResult.GetOccurrences(MuLang.Compiler.SemanticSy
 MuLang.Compiler.SemanticDocumentResult.LineMap.get -> MuLang.Core.Text.TextLineMap!
 MuLang.Compiler.SemanticDocumentResult.Occurrences.get -> System.Collections.Generic.IReadOnlyList<MuLang.Compiler.SemanticOccurrence!>!
 MuLang.Compiler.SemanticDocumentResult.SourceDocument.get -> System.Uri?
+MuLang.Compiler.SemanticDocumentSymbol
+MuLang.Compiler.SemanticDocumentSymbol.Children.get -> System.Collections.Generic.IReadOnlyList<MuLang.Compiler.SemanticDocumentSymbol!>!
+MuLang.Compiler.SemanticDocumentSymbol.Kind.get -> MuLang.Compiler.SemanticDocumentSymbolKind
+MuLang.Compiler.SemanticDocumentSymbol.Name.get -> string!
+MuLang.Compiler.SemanticDocumentSymbol.SelectionSpan.get -> MuLang.Core.Text.TextSpan
+MuLang.Compiler.SemanticDocumentSymbol.Span.get -> MuLang.Core.Text.TextSpan
+MuLang.Compiler.SemanticDocumentSymbolKind
+MuLang.Compiler.SemanticDocumentSymbolKind.Function = 1 -> MuLang.Compiler.SemanticDocumentSymbolKind
+MuLang.Compiler.SemanticDocumentSymbolKind.Parameter = 3 -> MuLang.Compiler.SemanticDocumentSymbolKind
+MuLang.Compiler.SemanticDocumentSymbolKind.Property = 2 -> MuLang.Compiler.SemanticDocumentSymbolKind
+MuLang.Compiler.SemanticDocumentSymbolKind.Type = 0 -> MuLang.Compiler.SemanticDocumentSymbolKind
+MuLang.Compiler.SemanticDocumentSymbolKind.Variable = 4 -> MuLang.Compiler.SemanticDocumentSymbolKind
 MuLang.Compiler.SemanticHoverCategory
 MuLang.Compiler.SemanticHoverCategory.Expression = 6 -> MuLang.Compiler.SemanticHoverCategory
 MuLang.Compiler.SemanticHoverCategory.Function = 2 -> MuLang.Compiler.SemanticHoverCategory
