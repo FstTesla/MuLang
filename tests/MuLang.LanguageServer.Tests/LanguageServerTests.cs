@@ -4280,6 +4280,148 @@ public sealed class LanguageServerTests
         }
     }
 
+    [TestCase("complete.muir", "slot ", "%0", "local variable", "%0: int [input]")]
+    [TestCase("complete.muir", "slot ", "%2", "temporary variable", "%2: int?")]
+    [TestCase("complete.muir", "slot ", "%11", "local variable", "%11 readonly: int [result]")]
+    [TestCase("complete.muir", "slot ", "%0 parameter", "parameter", "%0 readonly: int [value]")]
+    [TestCase("diagnostic-attributes-v2.muir", "slot ", "%0", "local variable", "%0: int [result]")]
+    [TestCase("exception-regions-v2.muir", "block ", "bb0", "block", "bb0")]
+    [TestCase("exception-regions-v2.muir", "lifetime-region ", "lr0", "lifetime region", "lr0")]
+    [TestCase("exception-regions-v2.muir", "lifetime-region ", "lr1", "lifetime region", "lr1")]
+    [TestCase("exception-regions-v2.muir", "exception-region ", "er0", "exception region", "er0")]
+    public async Task MuIrQuickInfoUsesSpecificCategoriesWithoutStructuralDetails(
+        string fixture,
+        string prefix,
+        string identifier,
+        string category,
+        string content
+    )
+    {
+        string source = ReadMuIrFixture(fixture);
+        int position = source.IndexOf($"{prefix}{identifier}", StringComparison.Ordinal) + prefix.Length;
+        IReadOnlyList<JsonElement> output = await RunServerAsync(
+            """
+            {"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}
+            """,
+            CreateOpenDocumentMessage("file:///test.muir", source),
+            CreateMuIrRequest(10, "textDocument/hover", source, position),
+            CreateMuIrRequest(11, "mulang/quickInfo", source, position),
+            """
+            {"jsonrpc":"2.0","method":"shutdown","id":99}
+            """,
+            """
+            {"jsonrpc":"2.0","method":"exit"}
+            """
+        );
+        JsonElement item = MuIrResponse(output, 11).GetProperty("items")[0];
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(
+                MuIrResponse(output, 10).GetProperty("contents").GetProperty("value").GetString(),
+                Is.EqualTo($"[{category}] {content}")
+            );
+            Assert.That(item.GetProperty("category").GetString(), Is.EqualTo(category));
+            Assert.That(item.GetProperty("content").GetString(), Is.EqualTo(content));
+            Assert.That(
+                string.Concat(item.GetProperty("parts").EnumerateArray().Select(static part => part.GetProperty("text").GetString())),
+                Is.EqualTo(content)
+            );
+        }
+    }
+
+    [TestCase("complete.muir", "type ", "t0", "t0: int", "int")]
+    [TestCase("complete.muir", "type ", "t2", "t2: int?", "int")]
+    [TestCase("complete.muir", "type ", "t8", "t8: number[]$", "number")]
+    [TestCase("complete.muir", "type ", "t9", "t9: { items: number[]$ }", "number")]
+    [TestCase("complete.muir", "type ", "t6", "t6: @{\n  label?: string,\n  value: int\n}", "string,int")]
+    [TestCase("complete.muir", "slot ", "%6", "%6: @{\n  label?: string,\n  value: int\n}", "string,int")]
+    [TestCase("complete.muir", "slot ", "%0", "%0: int [input]", "int")]
+    [TestCase("complete.muir", "user ", "\"user.call\"", "\"user.call\"(%0: int [value]): void", "int,void")]
+    [TestCase("recursive-types-v2.muir", "type ", "t1", "t1: {\n  next$?: t1,\n  payload: primitive\n} [Node]", "primitive")]
+    [TestCase("recursive-types-v2.muir", "slot ", "%2", "%2: {\n  next$?: t1,\n  payload: primitive\n}", "primitive")]
+    [TestCase("recursive-types-v2.muir", "entry ", "\"$entry\"", "\"$entry\"(): {\n  next$?: t1,\n  payload: primitive\n}", "primitive")]
+    public async Task MuIrQuickInfoClassifiesIntrinsicTypesAsKeywords(
+        string fixture,
+        string prefix,
+        string identifier,
+        string content,
+        string keywords
+    )
+    {
+        string source = ReadMuIrFixture(fixture);
+        int position = source.IndexOf($"{prefix}{identifier}", StringComparison.Ordinal) + prefix.Length;
+        IReadOnlyList<JsonElement> output = await RunServerAsync(
+            """
+            {"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}
+            """,
+            CreateOpenDocumentMessage("file:///test.muir", source),
+            CreateMuIrRequest(10, "mulang/quickInfo", source, position),
+            CreateMuIrRequest(11, "textDocument/hover", source, position),
+            """
+            {"jsonrpc":"2.0","method":"shutdown","id":99}
+            """,
+            """
+            {"jsonrpc":"2.0","method":"exit"}
+            """
+        );
+        JsonElement item = MuIrResponse(output, 10).GetProperty("items")[0];
+        IReadOnlyList<(string? Kind, string? Text)> parts =
+        [
+            .. item.GetProperty("parts").EnumerateArray().Select(
+                static part => (part.GetProperty("kind").GetString(), part.GetProperty("text").GetString())
+            ),
+        ];
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(item.GetProperty("content").GetString(), Is.EqualTo(content));
+            Assert.That(string.Concat(parts.Select(static part => part.Text)), Is.EqualTo(content));
+            Assert.That(
+                MuIrResponse(output, 11).GetProperty("contents").GetProperty("value").GetString(),
+                Is.EqualTo($"[{item.GetProperty("category").GetString()}] {content}")
+            );
+
+            foreach (string keyword in keywords.Split(','))
+            {
+                Assert.That(parts, Does.Contain(("keyword", keyword)));
+                Assert.That(parts.Any(part => part.Text == keyword && part.Kind != "keyword"), Is.False);
+            }
+
+            Assert.That(
+                parts.Where(static part => part.Text?.StartsWith('t') == true),
+                Has.All.Matches<(string? Kind, string? Text)>(static part => part.Kind == "type")
+            );
+            Assert.That(
+                parts.Where(static part => part.Text is "?" or "$"),
+                Has.All.Matches<(string? Kind, string? Text)>(static part => part.Kind == "operator")
+            );
+            Assert.That(
+                parts.Where(static part => part.Text == "[]"),
+                Has.All.Matches<(string? Kind, string? Text)>(static part => part.Kind == "punctuation")
+            );
+        }
+    }
+
+    [TestCase("closed 0 []", "{}")]
+    [TestCase("open 0 []", "@{}")]
+    [TestCase("closed 1 [\"first-name\" t0 required mutable]", "{ \"first-name\": int }")]
+    [TestCase("closed 1 [\"if\" t0 optional readonly]", "{ \"if\"$?: int }")]
+    [TestCase("closed 1 [\"line\\nbreak\" t0 required mutable]", "{ \"line\\nbreak\": int }")]
+    public void MuIrQuickInfoFormatsEmptyObjectsAndPropertyNames(string definition, string content)
+    {
+        string source = ReadMuIrFixture("diagnostic-attributes-v2.muir")
+            .Replace("closed 1 [\"value\" t0 required mutable]", definition, StringComparison.Ordinal);
+        SourceText text = SourceText.From(source);
+        MuIrEditorDocument projection = new (source, text);
+        int position = source.IndexOf("type t1", StringComparison.Ordinal) + "type ".Length;
+        EditorOccurrence declaration = projection.Occurrences.Single(
+            occurrence => occurrence.Span.Start == position
+        );
+
+        Assert.That(declaration.HoverItems.Single().Content, Is.EqualTo($"t1: {content} [Item, Record]"));
+    }
+
     [Test]
     public async Task MuIrEditsDiscardInvalidSemanticsAndRecoverWithLanguageIdRouting()
     {
@@ -4709,7 +4851,7 @@ public sealed class LanguageServerTests
                 Assert.That(
                     projection.Occurrences.Any(
                         static occurrence =>
-                            occurrence.HoverItems.Any(static item => item.Content.Contains("object closed", StringComparison.Ordinal))
+                            occurrence.HoverItems.Any(static item => item.Content.Contains("next$?: t1", StringComparison.Ordinal))
                     ), Is.True
                 );
             }

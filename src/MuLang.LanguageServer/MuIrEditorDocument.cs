@@ -1,10 +1,10 @@
 using MuLang.Compiler;
+using MuLang.Compiler.Binding;
 using MuLang.Core.Text;
 using MuLang.Core.Types;
 using MuLang.IR;
 using MuLang.IR.Serialization;
 using System.Globalization;
-using System.Text.Json;
 
 namespace MuLang.LanguageServer;
 
@@ -135,6 +135,8 @@ internal sealed class MuIrEditorDocument : EditorDocument
             MuIrSymbolKind.Type => "type",
             MuIrSymbolKind.Function => "function",
             MuIrSymbolKind.Slot when slot?.Kind == IrSlotKind.Parameter => "parameter",
+            MuIrSymbolKind.Slot when slot?.Kind == IrSlotKind.Local => "local variable",
+            MuIrSymbolKind.Slot when slot?.Kind == IrSlotKind.Temporary => "temporary variable",
             MuIrSymbolKind.Slot => "variable",
             MuIrSymbolKind.Block => "block",
             MuIrSymbolKind.LifetimeRegion => "lifetime region",
@@ -206,47 +208,10 @@ internal sealed class MuIrEditorDocument : EditorDocument
                 }
 
                 AddType(slot.Type);
-                parts.Add(new EditorHoverPart(SemanticHoverPartKind.Text, $" ({slot.Kind.ToString().ToLowerInvariant()}, lr{slot.LifetimeRegion})"));
 
                 if (program.Attributes.TryGetSlot(function.Id, slot.Id, out IrSlotAttributes? attributes))
                 {
                     AddName(attributes.SourceName);
-                }
-
-                break;
-            }
-
-            case MuIrSymbolKind.Block when function is not null:
-            {
-                IrBasicBlock? block = function.Blocks.FirstOrDefault(block => block.Id == ParseId(occurrence.Id));
-
-                if (block is not null)
-                {
-                    parts.Add(new EditorHoverPart(SemanticHoverPartKind.Text, $" (lr{block.LifetimeRegion}, {block.Instructions.Count} instructions)"));
-                }
-
-                break;
-            }
-
-            case MuIrSymbolKind.LifetimeRegion when function is not null:
-            {
-                IrLifetimeRegion? region = function.LifetimeRegions.FirstOrDefault(region => region.Id == ParseId(occurrence.Id));
-
-                if (region is not null)
-                {
-                    parts.Add(new EditorHoverPart(SemanticHoverPartKind.Text, $" (parent: {(region.ParentRegion is { } parent ? $"lr{parent}" : "none")}, entry: bb{region.EntryBlock})"));
-                }
-
-                break;
-            }
-
-            case MuIrSymbolKind.ExceptionRegion when function is not null:
-            {
-                IrExceptionRegion? region = function.ExceptionRegions.FirstOrDefault(region => region.Id == ParseId(occurrence.Id));
-
-                if (region is not null)
-                {
-                    parts.Add(new EditorHoverPart(SemanticHoverPartKind.Text, $" (protected: bb{region.Protected.EntryBlock}, handler: {(region.Handler is null ? "none" : $"bb{region.Handler.EntryBlock}")}, cleanup: {(region.Cleanup is null ? "none" : $"bb{region.Cleanup.EntryBlock}")})"));
                 }
 
                 break;
@@ -259,34 +224,13 @@ internal sealed class MuIrEditorDocument : EditorDocument
         {
             parts.Add(new EditorHoverPart(SemanticHoverPartKind.Punctuation, ": "));
 
-            if (type is not ObjectTypeSymbol objectType)
+            foreach (SemanticHoverPart part in SymbolDisplay.Type(
+                type,
+                objectType => $"t{Enumerable.Range(0, document.Types.Count).First(id => ReferenceEquals(document.Types[id], objectType))}"
+            ))
             {
-                parts.Add(new EditorHoverPart(SemanticHoverPartKind.Type, type.DisplayName));
-                return;
+                parts.Add(new EditorHoverPart(part.Kind, part.Text));
             }
-
-            parts.Add(new EditorHoverPart(SemanticHoverPartKind.Keyword, objectType.IsOpen ? "object open" : "object closed"));
-            parts.Add(new EditorHoverPart(SemanticHoverPartKind.Punctuation, " { "));
-            int index = 0;
-
-            foreach (ObjectPropertySymbol property in objectType.Properties)
-            {
-                if (index++ > 0)
-                {
-                    parts.Add(new EditorHoverPart(SemanticHoverPartKind.Punctuation, ", "));
-                }
-
-                parts.Add(new EditorHoverPart(SemanticHoverPartKind.Property, JsonSerializer.Serialize(property.Name)));
-                parts.Add(new EditorHoverPart(SemanticHoverPartKind.Punctuation, ": "));
-                string name = property.Type is ObjectTypeSymbol
-                    ? $"t{Enumerable.Range(0, document.Types.Count).First(id => ReferenceEquals(document.Types[id], property.Type))}"
-                    : property.Type.DisplayName;
-                parts.Add(new EditorHoverPart(SemanticHoverPartKind.Type, name));
-                parts.Add(new EditorHoverPart(SemanticHoverPartKind.Keyword, property.IsOptional ? " optional" : " required"));
-                parts.Add(new EditorHoverPart(SemanticHoverPartKind.Keyword, property.IsReadOnly ? " readonly" : " mutable"));
-            }
-
-            parts.Add(new EditorHoverPart(SemanticHoverPartKind.Punctuation, " }"));
         }
 
         void AddName(string? name)

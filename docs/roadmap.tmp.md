@@ -17,6 +17,14 @@ definition navigation, workspace references, and dedicated property
 classification are available through the language server. Visual Studio renders
 the categorized hover model through native theme-aware Quick Info.
 
+MuIR editor support is implemented for formats 1 and 2, with a dedicated
+`.muir` content type and TextMate grammar, semantic highlighting, hover,
+document-local definitions, references and occurrence highlights, document
+symbols, and structural folding. Consultation is independent of MuLang source
+compilation and host configuration; it does not publish diagnostics or validate
+execution eligibility. Invalid documents retain lexical fallback without stale
+semantic results.
+
 ## Goal: package release `0.4.0`
 
 Use the stable MuLang `1.2` and MuIR 2 contracts as the foundation for a
@@ -26,12 +34,7 @@ release-blocking correctness fixes.
 
 ## Sequence
 
-1. **Add lexical MuIR editor support.** Register `.muir` as a separate content
-   type with its own TextMate grammar for comments, strings, numbers, document
-   sections, types, instructions, terminators, attributes, and `t`, `%`, `bb`,
-   `lr`, and `er` references. Do not route MuIR documents through the MuLang
-   source compiler.
-2. **Stabilize and release.** Validate the language server and VSIX across
+1. **Stabilize and release.** Validate the language server and VSIX across
    supported Visual Studio versions, retain cross-platform compiler and package
    validation, update editor documentation and samples, and publish beta and
    RC prereleases before tagging `0.4.0`.
@@ -43,10 +46,8 @@ references. Formatting requires a separately defined canonical source style.
 Incremental parsing and incremental semantic-token responses are performance
 optimizations rather than initial `0.4.0` release requirements.
 
-MuIR live diagnostics may later reuse `MuIrReader`, with semantic highlighting
-and navigation between slots, blocks, lifetime regions, and exception regions
-added only after the independent lexical content type is established. These
-features may ship in `0.4.x` without blocking the first tooling release.
+MuIR live diagnostics remain deferred and may later reuse `MuIrReader`.
+They may ship in `0.4.x` without blocking the first tooling release.
 
 ## Next release cycle after `0.4.0`
 

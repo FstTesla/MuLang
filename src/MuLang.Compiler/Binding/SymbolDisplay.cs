@@ -143,6 +143,25 @@ internal static class SymbolDisplay
         return builder.Build();
     }
 
+    public static IReadOnlyList<SemanticHoverPart> Type(
+        TypeSymbol type,
+        Func<ObjectTypeSymbol, string> getObjectTypeName
+    )
+    {
+        Builder builder = new (getObjectTypeName);
+
+        if (type is ObjectTypeSymbol value)
+        {
+            builder.AppendObjectBody(value, 0);
+        }
+        else
+        {
+            builder.AppendType(type, 0);
+        }
+
+        return builder.Build();
+    }
+
     public static IReadOnlyList<SemanticHoverPart> TypeDeclaration(TypeSymbol type)
     {
         Builder builder = new ();
@@ -164,6 +183,12 @@ internal static class SymbolDisplay
     private sealed class Builder
     {
         private readonly IList<SemanticHoverPart> parts = new List<SemanticHoverPart>();
+        private readonly Func<ObjectTypeSymbol, string>? getObjectTypeName;
+
+        public Builder(Func<ObjectTypeSymbol, string>? getObjectTypeName = null)
+        {
+            this.getObjectTypeName = getObjectTypeName;
+        }
 
         public IReadOnlyList<SemanticHoverPart> Build()
         {
@@ -229,6 +254,12 @@ internal static class SymbolDisplay
                 {
                     AppendType(nullable.UnderlyingType, indentation);
                     Add(SemanticHoverPartKind.Operator, "?");
+                    break;
+                }
+
+                case ObjectTypeSymbol value when getObjectTypeName is not null:
+                {
+                    Add(SemanticHoverPartKind.Type, getObjectTypeName(value));
                     break;
                 }
 
